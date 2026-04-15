@@ -1,9 +1,11 @@
 # Kopierblöcke — Git-Remote, Push, Prompts, §5a (Vorlagen)
 
-**Aktueller lokaler Commit (Root-Import):** `0f12ea9c78a45328f0ec638d2e66a6b642b01738`  
+**Team-Remote (HTTPS):** `https://github.com/rhermann90/ERP.git`  
+**Aktueller lokaler HEAD:** `5d354c7ad4a7005fbc15988917faa29986f8903c`  
+**Root-Import (historisch):** `0f12ea9c78a45328f0ec638d2e66a6b642b01738`  
 **Workspace (lokal):** `/Users/romanhermann/Projekte/ERP`
 
-**Wichtig:** Die **echte** GitHub-URL eures Team-Repos steht **nicht** in diesem Repo. Ersetzt in allen Blöcken unten **`https://github.com/ORG/REPO.git`** bzw. **`ORG`**, **`REPO`**, **`RUN_ID`** durch eure Werte (oder nutzt SSH-Variante).
+**Platzhalter:** In Abschnitt 5 weiterhin **`RUN_ID`** und **`SHA`** nur aus der echten GitHub-Actions-UI kopieren (nicht erfinden).
 
 ---
 
@@ -12,19 +14,18 @@
 ```bash
 cd /Users/romanhermann/Projekte/ERP
 
-git remote add origin https://github.com/ORG/REPO.git
-# Falls origin schon existiert und falsch ist:
-# git remote remove origin
-# git remote add origin https://github.com/ORG/REPO.git
+git remote add origin https://github.com/rhermann90/ERP.git
+# Falls origin schon existiert:
+# git remote set-url origin https://github.com/rhermann90/ERP.git
 
 git branch -M main
 git push -u origin main
 ```
 
-**Nach erfolgreichem Push** (URL mit eurem ORG/REPO):
+**Nach erfolgreichem Push** (lokal mit GitHub-Auth: PAT, `gh auth login`, oder SSH-Remote):
 
-- Repo im Browser: `https://github.com/ORG/REPO`
-- Dieser Commit im Browser: `https://github.com/ORG/REPO/commit/0f12ea9c78a45328f0ec638d2e66a6b642b01738`
+- Repo im Browser: `https://github.com/rhermann90/ERP`
+- HEAD im Browser: `https://github.com/rhermann90/ERP/commit/5d354c7ad4a7005fbc15988917faa29986f8903c`
 
 ---
 
@@ -33,7 +34,7 @@ git push -u origin main
 ```bash
 cd /Users/romanhermann/Projekte/ERP
 
-git remote add origin git@github.com:ORG/REPO.git
+git remote add origin git@github.com:rhermann90/ERP.git
 git branch -M main
 git push -u origin main
 ```
@@ -44,7 +45,7 @@ git push -u origin main
 
 ```text
 Workspace: /Users/romanhermann/Projekte/ERP
-Remote-Ziel nach Push: https://github.com/ORG/REPO (bitte ORG/REPO ersetzen)
+Remote-Ziel nach Push: https://github.com/rhermann90/ERP
 
 PL / System — zuerst:
 - Sprint: docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md | Index: docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md
@@ -64,7 +65,7 @@ Diese Runde: Nach erstem Push — PR-Evidence vorbereiten; nächste Prompts erst
 ### Backend
 
 ```text
-Rolle: Senior Backend. Repo: /Users/romanhermann/Projekte/ERP, Remote https://github.com/ORG/REPO.git (ORG/REPO ersetzen).
+Rolle: Senior Backend. Repo: /Users/romanhermann/Projekte/ERP, Remote https://github.com/rhermann90/ERP.git.
 
 1) git pull origin main
 2) Keine Audit-Laufzeit / keine OpenAPI- oder error-codes-Änderung ohne separates Gate.
@@ -79,7 +80,7 @@ Rolle: Senior Frontend apps/web. Repo: /Users/romanhermann/Projekte/ERP.
 
 1) git pull origin main
 2) npm run test -w apps/web && npm run build:web
-3) Tracker-URLs nur echt aus eurem GitHub/Jira — z. B. Issue-URL: https://github.com/ORG/REPO/issues/<NUMMER> (ORG/REPO/NUMMER ersetzen)
+3) Tracker-URLs nur echt aus GitHub/Jira — z. B. Issue-URL: https://github.com/rhermann90/ERP/issues/<NUMMER>
 ```
 
 ### QA
@@ -87,7 +88,7 @@ Rolle: Senior Frontend apps/web. Repo: /Users/romanhermann/Projekte/ERP.
 ```text
 Rolle: QA. Repo: /Users/romanhermann/Projekte/ERP.
 
-1) Nach jedem Merge-PR auf main: Workflow https://github.com/ORG/REPO/blob/main/.github/workflows/ci.yml prüfen, Job backend grün.
+1) Nach jedem Merge-PR auf main: Workflow https://github.com/rhermann90/ERP/blob/main/.github/workflows/ci.yml prüfen, Job backend grün.
 2) §5a-Kommentar erst mit echter Run-URL (siehe Abschnitt 5 unten).
 ```
 
@@ -109,16 +110,16 @@ Rolle: Senior Code Review. Repo: /Users/romanhermann/Projekte/ERP.
 ```text
 ## QA — Merge-Evidence (main)
 
-Actions (grün): https://github.com/ORG/REPO/actions/runs/RUN_ID — Commit SHA = Merge auf main — Job `backend`
+Actions (grün): https://github.com/rhermann90/ERP/actions/runs/RUN_ID — Commit SHA = Merge auf main — Job `backend`
 
 Team-Regel Evidence-SHA (Pflicht: genau eine Zeile, vom Team bestätigt; QA ratet nicht): <z. B. „SHA = Squash-Merge-Commit auf main“ ODER „SHA = Merge-Commit (no squash)“>
 
 Kontext FIN-0 / Gate: docs/contracts/qa-fin-0-gate-readiness.md | FIN-2-Start-Gate: docs/tickets/FIN-2-START-GATE.md
 ```
 
-**Direktlink auf den dokumentierten Initial-Commit** (nach Push, ORG/REPO ersetzen):
+**Direktlink Root-Import** (nach Push):
 
-`https://github.com/ORG/REPO/commit/0f12ea9c78a45328f0ec638d2e66a6b642b01738`
+`https://github.com/rhermann90/ERP/commit/0f12ea9c78a45328f0ec638d2e66a6b642b01738`
 
 ---
 
@@ -149,16 +150,12 @@ Kontext FIN-0 / Gate: docs/contracts/qa-fin-0-gate-readiness.md | FIN-2-Start-Ga
 
 ### Evidence
 - **QA:** …
-- **Backend:** PR-Link https://github.com/ORG/REPO/pull/NUMMER (ersetzen)
+- **Backend:** PR-Link https://github.com/rhermann90/ERP/pull/NUMMER
 - …
 ```
 
 ---
 
-## 7) Optional: Wenn GitHub-Repo-URL = Benutzername aus dem Mac-Pfad (nur prüfen, nicht raten!)
+## 7) Hinweis: Anderer GitHub-Account
 
-Falls euer Hub-User **`romanhermann`** heißt und das Repo **`ERP`** heißt, **könnte** die Remote-URL lauten:
-
-`https://github.com/romanhermann/ERP.git`
-
-**Nur verwenden, wenn das Repo dort wirklich existiert** — sonst Schritt 1 mit eurer echten URL.
+Konfiguriertes Team-Remote ist **`rhermann90/ERP`**. Ein anderes Konto (z. B. anderer Benutzername auf dem Mac) ändert nichts an der URL — nur pushen, wer auf GitHub Schreibrechte für dieses Repo hat.
