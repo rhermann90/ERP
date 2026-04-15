@@ -1,0 +1,1000 @@
+openapi: 3.0.3
+info:
+  title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-0 Finance Stubs)
+  version: 1.3.0-fin0
+  description: |
+    **PWA / Browser-Anbindung**
+    - **CORS**: Umgebungsvariable `CORS_ORIGINS` — kommagetrennte, exakte Origins (z. B. `https://app.example.com,http://localhost:5173`). Leer oder unset: keine `Access-Control-*`-Header (gleiche Origin oder Server-zu-Server).
+    - **Auth**: `Authorization: Bearer <signed-v1-token>` (siehe `bearerToken`); optionaler Header `X-Tenant-Id` muss zum Tenant im Token passen, sonst `TENANT_SCOPE_VIOLATION`. **Betrieb:** Token-Signatur mit Umgebungsvariable `AUTH_TOKEN_SECRET` (min. 32 Zeichen bei `NODE_ENV=production`); ohne gesetztes Secret startet der Server nicht — siehe Repo-`.env.example`. Nur lokaler Demo-Modus: `ERP_ALLOW_INSECURE_DEV_AUTH=1` und nicht `production` (mit Warnung, niemals deployen).
+    - **Logs**: Strukturierte Fastify-Request-Logs enthalten keine `Authorization`- oder `Cookie`-Werte (`LOG_LEVEL`, `LOG_DISABLE=1` siehe Betrieb).
+    - **Fehler**: Antwort-JSON gemäß Schema `Error` — Felder `code`, `message`, `correlationId`, `retryable`, `blocking`, optional `details` (Frontend-Passthrough laut `docs/contracts/decision-log-phase1-frontend.md`).
+servers:
+  - url: http://localhost:3000
+tags:
+  - name: Finance (FIN-0)
+    description: |
+      OpenAPI-Skelett für FIN-1 (Zahlungsbedingungen) / FIN-2 (Rechnung) / später FIN-3 (Zahlungseingang).
+      **FIN-2 Implementation out of scope** bis `docs/tickets/FIN-2-START-GATE.md` erfüllt; Fail-closed-Mapping: `docs/contracts/finance-fin0-openapi-mapping.md`.
+components:
+  securitySchemes:
+    bearerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: signed-v1-token
+  parameters:
+    TenantScopeHeader:
+      in: header
+      name: x-tenant-id
+      required: false
+      schema:
+        type: string
+        format: uuid
+      description: Optionaler Tenant-Scope, muss mit Token-Tenant identisch sein.
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: |
+        Pflicht für Zahlungseingang (8.7) sobald Endpunkt produktiv; technische Eindeutigkeit `(tenant_id, idempotency_key)` gemäß ADR-0007.
+        FIN-0 dokumentiert nur den Contract — kein produktiver Buchungsweg.
+  schemas:
+    AllowedActionsResponse:
+      type: object
+      required: [documentId, entityType, allowedActions]
+      properties:
+        documentId:
+          type: string
+          format: uuid
+        entityType:
+          type: string
+          enum: [OFFER_VERSION, SUPPLEMENT_VERSION, MEASUREMENT_VERSION, LV_VERSION, LV_STRUCTURE_NODE, LV_POSITION, INVOICE]
+        allowedActions:
+          type: array
+          items:
+            type: string
+          description: |
+            Backend Source-of-Truth. Für entityType=OFFER_VERSION und status=ANGENOMMEN können berechtigte Rollen
+            (ADMIN, VERTRIEB, GESCHAEFTSFUEHRUNG) die Aktion OFFER_CREATE_SUPPLEMENT erhalten (Mapping zu POST /offers/{offerId}/supplements).
+            OFFER_CREATE_VERSION endet spätestens vor ANGENOMMEN/ABGELEHNT/ARCHIVIERT (Policy offer-create-version-policy).
+            entityType=MEASUREMENT_VERSION: Aktionen gemäß §5.4 v1.2 (z. B. MEASUREMENT_CREATE_VERSION nur nach FREIGEGEBEN/ABGERECHNET;
+            historische Versionen: leere allowedActions).
+            entityType=LV_VERSION|LV_STRUCTURE_NODE|LV_POSITION: gemäß §9 v1.2 und ADR-0005 (Text/Struktur nur ENTWURF aktuelle Version).
+            entityType=INVOICE: kanonische Export-Aktion **EXPORT_INVOICE** (Format `XRECHNUNG` nur im Body von POST /exports); kein separates actionId-Suffix pro Format.
+    MeasurementPosition:
+      type: object
+      required: [lvPositionId, quantity, unit]
+      properties:
+        lvPositionId:
+          type: string
+          format: uuid
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+        unit:
+          type: string
+          maxLength: 32
+        note:
+          type: string
+          maxLength: 500
+    CreateMeasurementRequest:
+      type: object
+      required: [projectId, customerId, lvVersionId, positions, reason]
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        lvVersionId:
+          type: string
+          format: uuid
+        positions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/MeasurementPosition'
+        reason:
+          type: string
+          minLength: 5
+    TransitionMeasurementStatusRequest:
+      type: object
+      required: [measurementVersionId, nextStatus, reason]
+      properties:
+        measurementVersionId:
+          type: string
+          format: uuid
+        nextStatus:
+          type: string
+          enum: [GEPRUEFT, FREIGEGEBEN, ABGERECHNET, ARCHIVIERT]
+        reason:
+          type: string
+          minLength: 5
+    CreateMeasurementVersionRequest:
+      type: object
+      required: [measurementId, reason]
+      properties:
+        measurementId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          minLength: 5
+    UpdateMeasurementPositionsRequest:
+      type: object
+      required: [positions, reason]
+      properties:
+        positions:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/MeasurementPosition'
+        reason:
+          type: string
+          minLength: 5
+    CreateLvCatalogRequest:
+      type: object
+      required: [name, headerSystemText, headerEditingText, reason]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        headerSystemText:
+          type: string
+        headerEditingText:
+          type: string
+        projectId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          minLength: 5
+    CreateLvCatalogVersionRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 5
+    TransitionLvVersionRequest:
+      type: object
+      required: [nextStatus, reason]
+      properties:
+        nextStatus:
+          type: string
+          enum: [FREIGEGEBEN, ARCHIVIERT]
+        reason:
+          type: string
+          minLength: 5
+    AddLvStructureNodeRequest:
+      type: object
+      required: [kind, sortOrdinal, systemText, editingText, reason]
+      properties:
+        parentNodeId:
+          type: string
+          format: uuid
+          nullable: true
+        kind:
+          type: string
+          enum: [BEREICH, TITEL, UNTERTITEL]
+        sortOrdinal:
+          type: string
+        systemText:
+          type: string
+        editingText:
+          type: string
+        reason:
+          type: string
+          minLength: 5
+    UpdateLvNodeEditingRequest:
+      type: object
+      required: [editingText, reason]
+      properties:
+        editingText:
+          type: string
+        reason:
+          type: string
+          minLength: 5
+    AddLvPositionRequest:
+      type: object
+      required: [parentNodeId, sortOrdinal, quantity, unit, unitPriceCents, kind, systemText, editingText, reason]
+      properties:
+        parentNodeId:
+          type: string
+          format: uuid
+        sortOrdinal:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        unitPriceCents:
+          type: integer
+        kind:
+          type: string
+          enum: [NORMAL, ALTERNATIV, EVENTUAL]
+        systemText:
+          type: string
+        editingText:
+          type: string
+        stammPositionsRef:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          minLength: 5
+    PatchLvPositionRequest:
+      type: object
+      required: [reason]
+      properties:
+        editingText:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        unitPriceCents:
+          type: integer
+        sortOrdinal:
+          type: string
+        reason:
+          type: string
+          minLength: 5
+    CreatePaymentTermsVersionRequest:
+      type: object
+      description: |
+        Platzhalter FIN-1 — Zahlungsbedingungs-Version (v1.3 **8.5**). Felder können im FIN-2-Kick-off verfeinert werden;
+        **kein** `default` für Geldbeträge oder Währung (8.12 / 8.16).
+      required: [projectId, customerId, reason, termsLabel]
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        termsLabel:
+          type: string
+          maxLength: 200
+          description: Mandantensichtbare Bezeichnung der Konditionsversion (kein Freitext-Skript).
+        reason:
+          type: string
+          minLength: 5
+    CreateInvoiceDraftRequest:
+      type: object
+      description: |
+        Platzhalter FIN-2 — Rechnung als Entwurf (**8.2**). `lvVersionId` verbindliche Bezugsgröße für **8.4 Schritt 1** (FIN-2-Start-Gate **G5**).
+        `invoiceCurrencyCode` explizit required; v1.3 buchführungsrelevant nur **EUR** — **ohne** OpenAPI-Default.
+      required: [lvVersionId, offerVersionId, invoiceCurrencyCode, reason]
+      properties:
+        lvVersionId:
+          type: string
+          format: uuid
+        offerVersionId:
+          type: string
+          format: uuid
+        invoiceCurrencyCode:
+          type: string
+          enum: [EUR]
+        reason:
+          type: string
+          minLength: 5
+    PaymentIntakeRequest:
+      type: object
+      description: Platzhalter FIN-3 / Anbindung **8.7** — Zahlungseingang (ohne produktive Buchung in FIN-0).
+      required: [invoiceId, amountCents, externalReference, reason]
+      properties:
+        invoiceId:
+          type: string
+          format: uuid
+        amountCents:
+          type: integer
+          description: Geldbetrag in Cent; Rundungslogik **8.12** ausschließlich serverseitig nach ADR-0007 (nicht im FIN-0-Backend implementiert).
+          minimum: 1
+        externalReference:
+          type: string
+          maxLength: 200
+          description: Externer Bank-/PSP-Referenztext (DSGVO-minimierte Speicherung später im Implementierungs-PR).
+        reason:
+          type: string
+          minLength: 5
+    Error:
+      type: object
+      required: [code, message, correlationId, retryable, blocking]
+      properties:
+        code:
+          type: string
+          description: DomainError-Code oder VALIDATION_FAILED (siehe docs/contracts/error-codes.json).
+        message:
+          type: string
+        correlationId:
+          type: string
+          format: uuid
+          description: Pro Antwort von handleError generiert (Phase 1).
+        retryable:
+          type: boolean
+        blocking:
+          type: boolean
+        details:
+          type: object
+          additionalProperties: true
+          description: Optional, z. B. validationErrors bei EXPORT_PREFLIGHT_FAILED.
+    ExportRequest:
+      type: object
+      required: [entityType, entityId, format]
+      properties:
+        entityType:
+          type: string
+          enum: [OFFER_VERSION, SUPPLEMENT_VERSION, INVOICE]
+        entityId:
+          type: string
+          format: uuid
+        format:
+          type: string
+          enum: [XRECHNUNG, GAEB]
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+paths:
+  /health:
+    get:
+      summary: Liveness (tenant-neutral, ohne Auth)
+      description: Minimaler Endpunkt für Load-Balancer/Orchestrierung; keine Mandantendaten.
+      responses:
+        '200':
+          description: Prozess antwortet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+  /lv/catalogs:
+    post:
+      description: Neuer LV-Katalog mit erster Version (ENTWURF) und Minimal-Skelett §9.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLvCatalogRequest'
+      responses:
+        '201':
+          description: lvCatalogId, lvVersionId, samplePositionId
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+        '401':
+          description: UNAUTHORIZED
+  /lv/catalogs/{lvCatalogId}/version:
+    post:
+      description: Neue LV-Version nach FREIGEGEBEN (nicht-destruktiv, Baumkopie).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: lvCatalogId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLvCatalogVersionRequest'
+      responses:
+        '201':
+          description: lvVersionId, versionNumber
+        '409':
+          description: LV_NEW_VERSION_FORBIDDEN
+        '404':
+          description: LV_CATALOG_NOT_FOUND
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+  /lv/versions/{lvVersionId}/status:
+    post:
+      description: LV-Version Status ENTWURF→FREIGEGEBEN→ARCHIVIERT (nur aktuelle Version).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: lvVersionId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitionLvVersionRequest'
+      responses:
+        '200':
+          description: LvVersion
+        '409':
+          description: LV_STATUS_TRANSITION_FORBIDDEN | LV_VERSION_NOT_CURRENT | LV_STRUCTURE_LOCKED
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+  /lv/versions/{lvVersionId}/nodes:
+    post:
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: lvVersionId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddLvStructureNodeRequest'
+      responses:
+        '201':
+          description: LvStructureNode
+        '409':
+          description: LV_STRUCTURE_LOCKED | LV_HIERARCHY_INVALID
+        '404':
+          description: LV_NODE_NOT_FOUND
+  /lv/nodes/{nodeId}/editing-text:
+    patch:
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: nodeId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLvNodeEditingRequest'
+      responses:
+        '200':
+          description: LvStructureNode
+        '409':
+          description: LV_STRUCTURE_LOCKED
+  /lv/versions/{lvVersionId}/positions:
+    post:
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: lvVersionId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddLvPositionRequest'
+      responses:
+        '201':
+          description: LvPosition
+        '409':
+          description: LV_STRUCTURE_LOCKED | LV_HIERARCHY_INVALID
+  /lv/positions/{positionId}:
+    patch:
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: positionId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchLvPositionRequest'
+      responses:
+        '200':
+          description: LvPosition
+        '404':
+          description: LV_POSITION_NOT_FOUND
+        '409':
+          description: LV_STRUCTURE_LOCKED
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+  /measurements:
+    post:
+      description: |
+        Neues Aufmass mit erster Version (ENTWURF). AuthZ SoT-Aktion MEASUREMENT_CREATE.
+        Siehe GET /documents/{id}/allowed-actions?entityType=MEASUREMENT_VERSION für Folgeaktionen auf der aktuellen Version.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMeasurementRequest'
+      responses:
+        '201':
+          description: measurementId und measurementVersionId
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+        '422':
+          description: MEASUREMENT_POSITIONS_REQUIRED / Zod
+        '401':
+          description: Authentifizierung fehlgeschlagen
+  /measurements/status:
+    post:
+      description: Statusübergang nur auf der aktuellen Aufmassversion (§5.4). Kritische Übergänge mit AuditEvent.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitionMeasurementStatusRequest'
+      responses:
+        '200':
+          description: Aktualisierte MeasurementVersion
+        '409':
+          description: MEASUREMENT_STATUS_TRANSITION_FORBIDDEN | MEASUREMENT_VERSION_NOT_CURRENT
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+        '404':
+          description: MEASUREMENT_NOT_FOUND
+        '401':
+          description: Authentifizierung fehlgeschlagen
+  /measurements/version:
+    post:
+      description: |
+        Neue Aufmassversion (nicht-destruktiv) gemäß §5.4 nach FREIGEGEBEN oder ABGERECHNET.
+        Gleiche Policy wie GET allowed-actions (MEASUREMENT_CREATE_VERSION).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMeasurementVersionRequest'
+      responses:
+        '201':
+          description: measurementVersionId, versionNumber
+        '409':
+          description: MEASUREMENT_NEW_VERSION_FORBIDDEN
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+        '404':
+          description: MEASUREMENT_NOT_FOUND
+        '401':
+          description: Authentifizierung fehlgeschlagen
+  /measurements/{measurementVersionId}/positions:
+    post:
+      description: Ersetzt Positionen nur bei aktueller Version im Status ENTWURF (§5.4).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: measurementVersionId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMeasurementPositionsRequest'
+      responses:
+        '200':
+          description: positions Array
+        '409':
+          description: MEASUREMENT_POSITION_EDIT_FORBIDDEN | MEASUREMENT_VERSION_NOT_CURRENT
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+        '404':
+          description: MEASUREMENT_NOT_FOUND
+        '401':
+          description: Authentifizierung fehlgeschlagen
+  /measurements/{measurementVersionId}:
+    get:
+      description: Liest Aufmassversion inkl. Positionen (tenant-gefiltert).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: measurementVersionId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: version, measurementId, positions
+        '404':
+          description: MEASUREMENT_NOT_FOUND
+        '401':
+          description: Authentifizierung fehlgeschlagen
+  /offers/version:
+    post:
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+      responses:
+        '201':
+          description: Neue Angebotsversion erstellt
+        '409':
+          description: FOLLOWUP_DOCUMENT_REQUIRED wenn aktuelle Angebotsversion nicht mehr OFFER_CREATE_VERSION zulässt (v1.2 u.a. ANGENOMMEN; nur Nachtrag)
+        '404':
+          description: OFFER_NOT_FOUND oder OFFER_VERSION_NOT_FOUND
+        '403':
+          description: AUTH_ROLE_FORBIDDEN oder TENANT_SCOPE_VIOLATION
+        '401':
+          description: Authentifizierung fehlgeschlagen
+  /offers/{offerId}/supplements:
+    post:
+      description: |
+        Aktion OFFER_CREATE_SUPPLEMENT (Minimal-API). AuthZ identisch zu GET /documents/{id}/allowed-actions
+        für dieselbe Rolle (OFFER_CREATE_SUPPLEMENT in allowedActions).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: offerId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+      responses:
+        '201':
+          description: Nachtragsangebot-Version (ENTWURF) erstellt
+        '409':
+          description: SUPPLEMENT_BASE_NOT_ACCEPTED (Basisversion nicht ANGENOMMEN)
+        '403':
+          description: AUTH_ROLE_FORBIDDEN oder TENANT_SCOPE_VIOLATION
+        '404':
+          description: OFFER_NOT_FOUND oder OFFER_VERSION_NOT_FOUND
+        '401':
+          description: Authentifizierung fehlgeschlagen
+  /supplements/status:
+    post:
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      responses:
+        '200':
+          description: Nachtragsstatus geaendert (IN_FREIGABE|FREIGEGEBEN|VERSENDET|BEAUFTRAGT|ABGELEHNT|ARCHIVIERT)
+        '409':
+          description: SUPPLEMENT_STATUS_TRANSITION_FORBIDDEN
+        '404':
+          description: SUPPLEMENT_NOT_FOUND
+        '403':
+          description: AUTH_ROLE_FORBIDDEN oder TENANT_SCOPE_VIOLATION
+        '401':
+          description: Authentifizierung fehlgeschlagen
+  /supplements/{supplementVersionId}/billing-impact:
+    post:
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: supplementVersionId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Abrechnungswirkung mit Nachtragsreferenz angewendet
+        '409':
+          description: SUPPLEMENT_BILLING_EFFECT_FORBIDDEN
+        '404':
+          description: SUPPLEMENT_NOT_FOUND oder EXPORT_ENTITY_NOT_FOUND
+        '422':
+          description: TRACEABILITY_LINK_MISSING
+        '403':
+          description: AUTH_ROLE_FORBIDDEN oder TENANT_SCOPE_VIOLATION
+        '401':
+          description: Authentifizierung fehlgeschlagen
+  /supplements/{supplementVersionId}:
+    get:
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: supplementVersionId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Nachtragsversion inklusive unveraenderlicher Basisreferenz
+        '404':
+          description: SUPPLEMENT_NOT_FOUND
+        '403':
+          description: TENANT_SCOPE_VIOLATION
+        '401':
+          description: Authentifizierung fehlgeschlagen
+  /offers/status:
+    post:
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      responses:
+        '200':
+          description: Status geaendert (IN_FREIGABE|FREIGEGEBEN|VERSENDET|ANGENOMMEN|ABGELEHNT)
+        '409':
+          description: STATUS_TRANSITION_FORBIDDEN
+        '403':
+          description: AUTH_ROLE_FORBIDDEN oder TENANT_SCOPE_VIOLATION
+        '401':
+          description: Authentifizierung fehlgeschlagen
+  /exports:
+    post:
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+      responses:
+        '201':
+          description: Exportlauf erfolgreich
+        '422':
+          description: EXPORT_PREFLIGHT_FAILED oder TRACEABILITY_LINK_MISSING oder TRACEABILITY_FIELD_MISMATCH
+        '403':
+          description: AUTH_ROLE_FORBIDDEN oder TENANT_SCOPE_VIOLATION
+        '401':
+          description: Authentifizierung fehlgeschlagen
+  /documents/{id}/allowed-actions:
+    get:
+      description: |
+        Liefert erlaubte actionIds für das Dokument (Backend-SoT). Kein separates entityType=OFFER in Phase 1.
+        Beispiel nach Annahme: bei OFFER_VERSION im Status ANGENOMMEN erscheint für ADMIN/VERTRIEB/GESCHAEFTSFUEHRUNG
+        OFFER_CREATE_SUPPLEMENT (nicht OFFER_CREATE_VERSION).
+        Für §9 LV: `id` ist jeweils die Entitäts-ID passend zu `entityType` (LV_VERSION → lvVersionId, LV_STRUCTURE_NODE → nodeId, LV_POSITION → positionId); siehe ADR-0005.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: entityType
+          required: true
+          schema:
+            type: string
+            enum:
+              - OFFER_VERSION
+              - SUPPLEMENT_VERSION
+              - MEASUREMENT_VERSION
+              - LV_VERSION
+              - LV_STRUCTURE_NODE
+              - LV_POSITION
+              - INVOICE
+      responses:
+        '200':
+          description: Erlaubte Aktionen pro Dokument als Backend-Source-of-Truth
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllowedActionsResponse'
+              examples:
+                offerVersionAcceptedSales:
+                  summary: OFFER_VERSION ANGENOMMEN, Rolle VERTRIEB
+                  value:
+                    documentId: "33333333-3333-4333-8333-333333333333"
+                    entityType: OFFER_VERSION
+                    allowedActions: ["OFFER_CREATE_SUPPLEMENT"]
+        '403':
+          description: TENANT_SCOPE_VIOLATION
+        '404':
+          description: DOCUMENT_NOT_FOUND
+        '401':
+          description: Authentifizierung fehlgeschlagen
+  /audit-events:
+    get:
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: DSGVO-minimierte Auditansicht
+        '403':
+          description: FORBIDDEN_AUDIT_READ
+        '401':
+          description: Authentifizierung fehlgeschlagen
+  /finance/payment-terms/versions:
+    post:
+      tags: [Finance (FIN-0)]
+      operationId: finPaymentTermsVersionCreate
+      summary: Neue Zahlungsbedingungs-Version (8.5) — Contract-Stub
+      description: |
+        FIN-1 Platzhalter. Vor FIN-2-Start-Gate keine produktive Persistenz — Implementierung fail-closed
+        (siehe `docs/contracts/finance-fin0-openapi-mapping.md`).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentTermsVersionRequest'
+      responses:
+        '201':
+          description: Noch nicht implementiert — reserviert für paymentTermsVersionId nach Gate.
+        '422':
+          description: TRACEABILITY_LINK_MISSING | EXPORT_PREFLIGHT_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+  /invoices:
+    post:
+      tags: [Finance (FIN-0)]
+      operationId: finInvoiceDraftCreate
+      summary: Rechnungsentwurf anlegen (8.2 / 8.4) — Contract-Stub
+      description: |
+        FIN-2 Platzhalter. Keine produktive Buchung ohne Gate (`docs/tickets/FIN-2-START-GATE.md`).
+        Kein paralleles Schatten-LV; `lvVersionId` ist die verbindliche LV-Bezugsgröße (ADR-0007).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInvoiceDraftRequest'
+      responses:
+        '201':
+          description: Noch nicht implementiert — reserviert für invoiceId nach Gate.
+        '422':
+          description: TRACEABILITY_LINK_MISSING | EXPORT_PREFLIGHT_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+  /invoices/{invoiceId}:
+    get:
+      tags: [Finance (FIN-0)]
+      operationId: finInvoiceGet
+      summary: Rechnung lesen (8.2) — Contract-Stub
+      description: Lesepfad tenant-isoliert; vor Implementierung fail-closed DOCUMENT_NOT_FOUND möglich.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: invoiceId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Noch nicht implementiert — Payload nach FIN-2.
+        '404':
+          description: DOCUMENT_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+  /finance/payments/intake:
+    post:
+      tags: [Finance (FIN-0)]
+      operationId: finPaymentIntakeCreate
+      summary: Zahlungseingang (8.7) — Contract-Stub inkl. Idempotency-Key
+      description: |
+        FIN-3-Vorbereitung: Idempotenz-Hook gemäß ADR-0007. **FIN-2 Implementation out of scope** für Buchungslogik bis Gate geschlossen.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentIntakeRequest'
+      responses:
+        '201':
+          description: Noch nicht implementiert — reserviert für Zahlungsnachweis nach Gate.
+        '422':
+          description: TRACEABILITY_LINK_MISSING | EXPORT_PREFLIGHT_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          description: VALIDATION_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED

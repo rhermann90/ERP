@@ -1,0 +1,251 @@
+{
+  "contractVersion": "1.4.1",
+  "phase": "phase-2-inc2-lv",
+  "sourceOfTruth": "backend.allowedActions",
+  "backendRealityAnchor": {
+    "apiContract": "docs/api-contract.yaml",
+    "serviceEndpoints": [
+      "GET /health",
+      "POST /offers/version",
+      "POST /offers/status",
+      "POST /supplements/status",
+      "POST /supplements/{supplementVersionId}/billing-impact",
+      "POST /measurements",
+      "POST /measurements/status",
+      "POST /measurements/version",
+      "POST /measurements/{measurementVersionId}/positions",
+      "GET /measurements/{measurementVersionId}",
+      "POST /lv/catalogs",
+      "POST /lv/catalogs/{lvCatalogId}/version",
+      "POST /lv/versions/{lvVersionId}/status",
+      "POST /lv/versions/{lvVersionId}/nodes",
+      "PATCH /lv/nodes/{nodeId}/editing-text",
+      "POST /lv/versions/{lvVersionId}/positions",
+      "PATCH /lv/positions/{positionId}",
+      "POST /exports",
+      "GET /audit-events",
+      "GET /documents/{id}/allowed-actions?entityType=OFFER_VERSION|SUPPLEMENT_VERSION|MEASUREMENT_VERSION|LV_VERSION|LV_STRUCTURE_NODE|LV_POSITION|INVOICE"
+    ]
+  },
+  "notes": [
+    "PWA: CORS-Allowlist via Backend-Env `CORS_ORIGINS` (exakte Origins); Security-Header und `/health` siehe `docs/api-contract.yaml` info.description.",
+    "UI executes critical actions only when action is returned by backend allowedActions.",
+    "UI does not derive status transitions locally.",
+    "Contracts are restricted to backend-implemented entities in phase 1.",
+    "ERP v1.2 policy mirror: in VERSENDET no in-place mutation of existing version; adjustment only via OFFER_CREATE_VERSION."
+  ],
+  "roleStrategy": {
+    "mode": "mapping_table",
+    "frontendToBackendRole": {
+      "SUPER_ADMIN": "ADMIN",
+      "ACCOUNTING": "BUCHHALTUNG",
+      "MANAGEMENT": "GESCHAEFTSFUEHRUNG",
+      "SALES": "VERTRIEB",
+      "READ_ONLY": "VIEWER"
+    }
+  },
+  "statusModel": {
+    "offerVersion": [
+      "ENTWURF",
+      "IN_FREIGABE",
+      "FREIGEGEBEN",
+      "VERSENDET",
+      "ANGENOMMEN",
+      "ABGELEHNT",
+      "ARCHIVIERT"
+    ],
+    "invoice": [
+      "ENTWURF",
+      "GEPRUEFT",
+      "FREIGEGEBEN",
+      "GEBUCHT_VERSENDET",
+      "BEZAHLT",
+      "TEILBEZAHLT",
+      "STORNIERT"
+    ],
+    "measurementVersion": ["ENTWURF", "GEPRUEFT", "FREIGEGEBEN", "ABGERECHNET", "ARCHIVIERT"],
+    "supplementVersion": [
+      "ENTWURF",
+      "IN_FREIGABE",
+      "FREIGEGEBEN",
+      "VERSENDET",
+      "BEAUFTRAGT",
+      "ABGELEHNT",
+      "ARCHIVIERT"
+    ],
+    "lvVersion": ["ENTWURF", "FREIGEGEBEN", "ARCHIVIERT"]
+  },
+  "modules": [
+    {
+      "moduleId": "offerVersionEditor",
+      "entityType": "OFFER_VERSION",
+      "requiredFields": ["id", "tenantId", "offerId", "versionNumber", "status", "lvVersionId", "systemText", "editingText"],
+      "immutableFields": ["id", "tenantId", "offerId", "versionNumber", "systemText"],
+      "readonlyByStatus": {
+        "ENTWURF": ["systemText"],
+        "IN_FREIGABE": ["*"],
+        "FREIGEGEBEN": ["*"],
+        "VERSENDET": ["*"],
+        "ANGENOMMEN": ["*"],
+        "ABGELEHNT": ["*"],
+        "ARCHIVIERT": ["*"]
+      },
+      "criticalMarkers": {
+        "systemTextVsEditingText": {
+          "systemText": "always_readonly",
+          "editingText": "editable_only_when_status=ENTWURF"
+        },
+        "offerCreateVersionPolicyV12": {
+          "allowedForCreateVersion": ["ENTWURF", "IN_FREIGABE", "FREIGEGEBEN", "VERSENDET"],
+          "blockedForCreateVersion": ["ANGENOMMEN", "ABGELEHNT", "ARCHIVIERT"],
+          "blockedCode": "FOLLOWUP_DOCUMENT_REQUIRED"
+        },
+        "immutableLegalAreas": [
+          "VERSENDET: keine In-Place-Aenderung der bestehenden Version; Anpassung nur nicht-destruktiv ueber neue Angebotsversion (OFFER_CREATE_VERSION).",
+          "ANGENOMMEN: OFFER_CREATE_VERSION gesperrt; Nachtragspfad erfolgt ueber OFFER_CREATE_SUPPLEMENT (POST /offers/{offerId}/supplements)."
+        ],
+        "statusLocks": ["only backend-allowed status actions are rendered"]
+      }
+    },
+    {
+      "moduleId": "supplementLifecycle",
+      "entityType": "SUPPLEMENT_VERSION",
+      "requiredFields": ["id", "tenantId", "supplementOfferId", "status", "lvVersionId", "systemText", "editingText"],
+      "immutableFields": ["id", "tenantId", "supplementOfferId", "systemText"],
+      "readonlyByStatus": {
+        "ENTWURF": ["systemText"],
+        "IN_FREIGABE": ["*"],
+        "FREIGEGEBEN": ["*"],
+        "VERSENDET": ["*"],
+        "BEAUFTRAGT": ["*"],
+        "ABGELEHNT": ["*"],
+        "ARCHIVIERT": ["*"]
+      },
+      "criticalMarkers": {
+        "offerToSupplementEntry": [
+          "OFFER_CREATE_SUPPLEMENT is entered from OFFER_VERSION status ANGENOMMEN via allowedActions SoT.",
+          "No local fallback action may be shown if OFFER_CREATE_SUPPLEMENT is absent."
+        ],
+        "billingImpactGate": ["before BEAUFTRAGT -> no billing impact API"],
+        "statusLocks": ["only backend-allowed supplement actions are rendered"]
+      }
+    },
+    {
+      "moduleId": "measurementLifecycle",
+      "entityType": "MEASUREMENT_VERSION",
+      "requiredFields": ["id", "tenantId", "measurementId", "versionNumber", "status"],
+      "immutableFields": ["id", "tenantId", "measurementId", "versionNumber"],
+      "readonlyByStatus": {
+        "ENTWURF": [],
+        "GEPRUEFT": ["*"],
+        "FREIGEGEBEN": ["*"],
+        "ABGERECHNET": ["*"],
+        "ARCHIVIERT": ["*"]
+      },
+      "criticalMarkers": {
+        "v12_section_5_4": [
+          "Position edits only in ENTWURF of current version; after FREIGEGEBEN corrections via MEASUREMENT_CREATE_VERSION only."
+        ],
+        "traceabilityHead": [
+          "Measurement aggregate holds projectId, customerId, lvVersionId for invoice traceability checks."
+        ],
+        "statusLocks": ["only backend-allowed measurement actions are rendered; non-current versions => empty allowedActions"]
+      }
+    },
+    {
+      "moduleId": "lvCatalogHierarchy",
+      "entityType": "LV_VERSION",
+      "requiredFields": ["id", "tenantId", "lvCatalogId", "status", "versionNumber"],
+      "immutableFields": ["id", "tenantId", "lvCatalogId", "versionNumber"],
+      "readonlyByStatus": {
+        "ENTWURF": [],
+        "FREIGEGEBEN": ["*"],
+        "ARCHIVIERT": ["*"]
+      },
+      "criticalMarkers": {
+        "v12_section_9": [
+          "Struktur und Bearbeitungstext nur ENTWURF der aktuellen Version; Systemtext nie per Update-API.",
+          "Neue LV-Version nicht-destruktiv von FREIGEGEBEN (lv-create-version-policy).",
+          "SoT: GET /documents/{lvVersionId}/allowed-actions?entityType=LV_VERSION|LV_STRUCTURE_NODE|LV_POSITION — gleiche Guards auf allen LV-Schreibpfaden."
+        ],
+        "traceability": [
+          "Angebot, Aufmass, Rechnung referenzieren lvVersionId/lvPositionId; LvReferenceValidator prüft Tenant und Versionskonsistenz."
+        ],
+        "statusLocks": ["only backend-allowed LV actions; non-current lvVersion => empty allowedActions"]
+      }
+    },
+    {
+      "moduleId": "invoiceExportReadiness",
+      "entityType": "INVOICE",
+      "requiredFields": [
+        "id",
+        "tenantId",
+        "projectId",
+        "customerId",
+        "measurementId",
+        "lvId",
+        "offerId",
+        "status"
+      ],
+      "immutableFields": ["id", "tenantId", "projectId", "customerId", "measurementId", "lvId", "offerId", "immutableFromStatus"],
+      "readonlyByStatus": {
+        "ENTWURF": ["invoiceNumber", "issueDate", "totalGrossCents"],
+        "GEPRUEFT": [],
+        "FREIGEGEBEN": [],
+        "GEBUCHT_VERSENDET": ["*"],
+        "TEILBEZAHLT": ["*"],
+        "BEZAHLT": ["*"],
+        "STORNIERT": ["*"]
+      },
+      "criticalMarkers": {
+        "immutableLegalAreas": ["status>=GEBUCHT_VERSENDET => immutable legal document core"],
+        "statusLocks": ["export only after backend preflight pass"],
+        "invoiceExportSoT": [
+          "Kanonische actionId fuer Rechnungsexport: EXPORT_INVOICE (Format XRECHNUNG im POST /exports Body).",
+          "Kein EXPORT_INVOICE_XRECHNUNG in allowedActions — Legacy, nicht verwenden."
+        ]
+      }
+    },
+    {
+      "moduleId": "auditTimeline",
+      "entityType": "AUDIT_EVENT_VIEW",
+      "requiredFields": ["id", "entityType", "entityId", "action", "timestamp", "actorUserId"],
+      "immutableFields": ["*"],
+      "readonlyByStatus": {
+        "VIEW": ["*"]
+      },
+      "criticalMarkers": {
+        "leastPrivilege": ["roles ADMIN|BUCHHALTUNG|GESCHAEFTSFUEHRUNG only"],
+        "dataMinimization": ["beforeState/afterState not exposed in read API"]
+      }
+    }
+  ],
+  "allowedActionsDeliveryModel": {
+    "documentLevel": {
+      "required": true,
+      "endpoint": "GET /documents/{id}/allowed-actions?entityType=OFFER_VERSION|SUPPLEMENT_VERSION|MEASUREMENT_VERSION|LV_VERSION|LV_STRUCTURE_NODE|LV_POSITION|INVOICE",
+      "responseShape": {
+        "documentId": "uuid",
+        "entityType": "OFFER_VERSION|SUPPLEMENT_VERSION|MEASUREMENT_VERSION|LV_VERSION|LV_STRUCTURE_NODE|LV_POSITION|INVOICE",
+        "allowedActions": ["string"]
+      },
+      "uiRule": "Only actions included in allowedActions can be enabled/executed."
+    },
+    "rowLevel": {
+      "requiredInPhase1": false,
+      "decision": "phase2_non_critical",
+      "qaTestableRule": "QA P0 must not expect row-level endpoints in phase 1."
+    },
+    "bulkLevel": {
+      "requiredInPhase1": false,
+      "decision": "phase2_non_critical",
+      "qaTestableRule": "QA P0 must not expect bulk-level endpoints in phase 1."
+    }
+  },
+  "versionConflictPolicy": {
+    "currentBackendSupport": false,
+    "triggerCode": null,
+    "phase1Behavior": "No merge flow. On 409 errors UI reloads entity and re-evaluates allowedActions.",
+    "phase2Candidate": "Introduce explicit VERSION_CONFLICT with field-class resolution."
+  }
+}

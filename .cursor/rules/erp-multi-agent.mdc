@@ -1,0 +1,27 @@
+---
+description: Persistent working rules for ERP multi-agent delivery
+alwaysApply: true
+---
+
+# ERP Multi-Agent Core Rules
+
+Authoritative domain source is `ERP Systembeschreibung v1.3.md` (v1.2 nur noch historische Referenz bei Bedarf).
+
+Non-negotiable rules:
+- Do not simplify domain logic.
+- Enforce strict tenant isolation.
+- Use versioning for business-critical states; no destructive overwrite.
+- Preserve end-to-end traceability: invoice -> measurement -> LV -> offer -> project -> customer.
+- Never mix immutable system text with editable business text.
+- When uncertain, state assumptions explicitly and request clarification.
+
+Delivery rules:
+- Work in phases with explicit quality gates.
+- Every output must include: result, rationale, risks, open questions.
+- Explain impact on legal compliance, data consistency, maintainability, and PWA readiness.
+- Prefer scalable, modular, and testable solutions over quick hacks.
+
+Review rules:
+- Treat missing tests for critical paths as incomplete.
+- Flag legal/financial risks early.
+- Stop phase progression on unresolved critical findings.

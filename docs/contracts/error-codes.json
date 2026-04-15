@@ -1,0 +1,387 @@
+{
+  "contractVersion": "1.5.0-fin0",
+  "phase": "phase-2-inc2-lv+fin0-contract",
+  "qaClosure": {
+    "defectId": "QA-P1-001",
+    "status": "closed",
+    "closedOn": "2026-04-14",
+    "reference": "docs/contracts/qa-defects-phase1.md (Doc consistency review); workspace documentation sync — no PR number"
+  },
+  "backendEnvelope": {
+    "source": "src/api/app.ts handleError",
+    "httpStatusesUsed": [400, 401, 403, 404, 409, 422, 500],
+    "required": ["code", "message", "correlationId", "retryable", "blocking"],
+    "optional": ["details"],
+    "retryableDerivation": "DomainError: retryable=true only for codes in { AUTH_SESSION_EXPIRED, VALIDATION_FAILED, EXPORT_CHANNEL_UNAVAILABLE }; all other DomainError codes => retryable=false. Non-DomainError catch-all => code VALIDATION_FAILED, http400, retryable=true, blocking=false.",
+    "blockingDerivation": "blocking = !retryable for DomainError; non-DomainError VALIDATION_FAILED => blocking=false.",
+    "correlationIdDerivation": "UUID generated per error response in handleError (not from request header in phase 1)."
+  },
+  "domainErrorCodesEmitted": [
+    "AUTH_ROLE_FORBIDDEN",
+    "DOCUMENT_NOT_FOUND",
+    "MEASUREMENT_NEW_VERSION_FORBIDDEN",
+    "MEASUREMENT_NOT_FOUND",
+    "MEASUREMENT_POSITION_EDIT_FORBIDDEN",
+    "MEASUREMENT_POSITIONS_REQUIRED",
+    "MEASUREMENT_STATUS_TRANSITION_FORBIDDEN",
+    "MEASUREMENT_VERSION_NOT_CURRENT",
+    "EXPORT_ENTITY_NOT_FOUND",
+    "EXPORT_PREFLIGHT_FAILED",
+    "FOLLOWUP_DOCUMENT_REQUIRED",
+    "FORBIDDEN_AUDIT_READ",
+    "LV_CATALOG_NOT_FOUND",
+    "LV_COPY_FAILED",
+    "LV_HIERARCHY_INVALID",
+    "LV_NEW_VERSION_FORBIDDEN",
+    "LV_NODE_NOT_FOUND",
+    "LV_POSITION_NOT_FOUND",
+    "LV_POSITION_VERSION_MISMATCH",
+    "LV_STATUS_TRANSITION_FORBIDDEN",
+    "LV_STRUCTURE_LOCKED",
+    "LV_SYSTEM_TEXT_IMMUTABLE",
+    "LV_VERSION_NOT_CURRENT",
+    "LV_VERSION_NOT_FOUND",
+    "OFFER_NOT_FOUND",
+    "OFFER_VERSION_NOT_FOUND",
+    "SUPPLEMENT_BILLING_EFFECT_FORBIDDEN",
+    "SUPPLEMENT_BASE_NOT_ACCEPTED",
+    "SUPPLEMENT_NOT_FOUND",
+    "SUPPLEMENT_STATUS_TRANSITION_FORBIDDEN",
+    "STATUS_TRANSITION_FORBIDDEN",
+    "TENANT_SCOPE_VIOLATION",
+    "TRACEABILITY_FIELD_MISMATCH",
+    "TRACEABILITY_LINK_MISSING",
+    "UNAUTHORIZED"
+  ],
+  "nonDomainErrorCodesEmitted": [
+    {
+      "code": "VALIDATION_FAILED",
+      "httpStatus": 400,
+      "source": "Zod parse failures and other non-DomainError exceptions mapped in handleError"
+    }
+  ],
+  "exportPreflightDetailTokens": [
+    {
+      "token": "LV_VERSION_MISSING",
+      "parentCode": "EXPORT_PREFLIGHT_FAILED",
+      "httpStatus": 422,
+      "source": "src/services/export-service.ts validationErrors",
+      "note": "Kein eigenständiger top-level DomainError-Code; erscheint in details.validationErrors bei fehlendem LV-Kontext im Export-Preflight."
+    }
+  ],
+  "frontendNormalizedEnvelope": {
+    "required": ["code", "message", "correlationId", "retryable", "blocking"],
+    "optional": ["details"],
+    "normalizationRules": {
+      "default": "passthrough: use JSON body fields from backend as-is",
+      "fallbackTemporary": "only if response body lacks correlationId/retryable/blocking (non-compliant client or legacy proxy): derive correlationId from response.headers['x-request-id'] or generate client UUID; set retryable/blocking from this document's per-code table — mark technical debt, remove when backend guarantee is universal"
+    }
+  },
+  "classes": [
+    {
+      "classId": "tenant",
+      "codes": [
+        {
+          "code": "TENANT_SCOPE_VIOLATION",
+          "httpStatus": 403,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Hard block modal, force tenant/session refresh."
+        }
+      ]
+    },
+    {
+      "classId": "authorization",
+      "codes": [
+        {
+          "code": "AUTH_ROLE_FORBIDDEN",
+          "httpStatus": 403,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Disable action and show missing-permission banner."
+        },
+        {
+          "code": "UNAUTHORIZED",
+          "httpStatus": 401,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Redirect to re-auth; backend marks non-retryable on this code (client may still start a new session)."
+        },
+        {
+          "code": "FORBIDDEN_AUDIT_READ",
+          "httpStatus": 403,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Hide audit panel and show compliance access hint."
+        }
+      ]
+    },
+    {
+      "classId": "status_workflow",
+      "codes": [
+        {
+          "code": "STATUS_TRANSITION_FORBIDDEN",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Reload document and allowedActions; show status conflict modal."
+        },
+        {
+          "code": "FOLLOWUP_DOCUMENT_REQUIRED",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Route user into follow-up document flow (no in-place change on immutable stand)."
+        },
+        {
+          "code": "SUPPLEMENT_BASE_NOT_ACCEPTED",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Nachtrag nur mit angenommener Basis-Angebotsversion; Prüfung Basis + aktueller Stand."
+        },
+        {
+          "code": "SUPPLEMENT_STATUS_TRANSITION_FORBIDDEN",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Nachtragsstatus laut SoT neu laden und erlaubte Aktion erneut wählen."
+        },
+        {
+          "code": "SUPPLEMENT_BILLING_EFFECT_FORBIDDEN",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Abrechnungswirkung erst nach BEAUFTRAGT zulässig."
+        },
+        {
+          "code": "MEASUREMENT_STATUS_TRANSITION_FORBIDDEN",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Aufmass-Status laut §5.4 / SoT neu laden."
+        },
+        {
+          "code": "MEASUREMENT_POSITION_EDIT_FORBIDDEN",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Nach Freigabe nur neue Aufmassversion; keine Positionsänderung auf dieser Version."
+        },
+        {
+          "code": "MEASUREMENT_NEW_VERSION_FORBIDDEN",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Neue Aufmassversion nur nach FREIGEGEBEN oder ABGERECHNET (§5.4)."
+        },
+        {
+          "code": "MEASUREMENT_VERSION_NOT_CURRENT",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Nur die aktuelle Aufmassversion ist für diesen Vorgang zulässig."
+        },
+        {
+          "code": "LV_STRUCTURE_LOCKED",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "LV-Struktur und Bearbeitungstext nur im Status ENTWURF (§9); SoT neu laden."
+        },
+        {
+          "code": "LV_SYSTEM_TEXT_IMMUTABLE",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Systemtext nicht per Update-API änderbar; Eingabe entfernen."
+        },
+        {
+          "code": "LV_NEW_VERSION_FORBIDDEN",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Neue LV-Version nur von FREIGEGEBEN; Policy prüfen."
+        },
+        {
+          "code": "LV_STATUS_TRANSITION_FORBIDDEN",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "LV-Statuswechsel laut §9 nicht zulässig."
+        },
+        {
+          "code": "LV_VERSION_NOT_CURRENT",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Nur die aktuelle LV-Version für diese Aktion zulässig."
+        }
+      ]
+    },
+    {
+      "classId": "validation",
+      "codes": [
+        {
+          "code": "VALIDATION_FAILED",
+          "httpStatus": 400,
+          "retryable": true,
+          "blocking": false,
+          "uiReaction": "Show inline form-level error; fix input and retry."
+        },
+        {
+          "code": "LV_HIERARCHY_INVALID",
+          "httpStatus": 422,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "LV-Hierarchie §9 verletzt (Bereich/Titel/Untertitel/Position)."
+        },
+        {
+          "code": "LV_POSITION_VERSION_MISMATCH",
+          "httpStatus": 422,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "LV-Position gehört nicht zur gewählten LV-Version."
+        }
+      ]
+    },
+    {
+      "classId": "internal_error",
+      "codes": [
+        {
+          "code": "LV_COPY_FAILED",
+          "httpStatus": 500,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Interner Fehler bei LV-Versionskopie; Support/Vorgang erneut versuchen."
+        }
+      ]
+    },
+    {
+      "classId": "export_traceability",
+      "codes": [
+        {
+          "code": "EXPORT_PREFLIGHT_FAILED",
+          "httpStatus": 422,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Show blocking preflight checklist from details.validationErrors."
+        },
+        {
+          "code": "TRACEABILITY_LINK_MISSING",
+          "httpStatus": 422,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Show missing-link diagnostics and block export."
+        },
+        {
+          "code": "TRACEABILITY_FIELD_MISMATCH",
+          "httpStatus": 422,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Show mismatch diagnostics and block export."
+        }
+      ]
+    },
+    {
+      "classId": "not_found",
+      "codes": [
+        {
+          "code": "DOCUMENT_NOT_FOUND",
+          "httpStatus": 404,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Show not-found state and navigate back to list."
+        },
+        {
+          "code": "EXPORT_ENTITY_NOT_FOUND",
+          "httpStatus": 404,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Show not-found state for export target."
+        },
+        {
+          "code": "OFFER_NOT_FOUND",
+          "httpStatus": 404,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Show not-found state for offer."
+        },
+        {
+          "code": "OFFER_VERSION_NOT_FOUND",
+          "httpStatus": 404,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Show not-found state for offer version."
+        },
+        {
+          "code": "SUPPLEMENT_NOT_FOUND",
+          "httpStatus": 404,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Show not-found state for supplement version."
+        },
+        {
+          "code": "MEASUREMENT_NOT_FOUND",
+          "httpStatus": 404,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Show not-found state for measurement or measurement version."
+        },
+        {
+          "code": "LV_CATALOG_NOT_FOUND",
+          "httpStatus": 404,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "LV-Katalog nicht gefunden."
+        },
+        {
+          "code": "LV_VERSION_NOT_FOUND",
+          "httpStatus": 404,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "LV-Version nicht gefunden."
+        },
+        {
+          "code": "LV_NODE_NOT_FOUND",
+          "httpStatus": 404,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "LV-Strukturknoten nicht gefunden."
+        },
+        {
+          "code": "LV_POSITION_NOT_FOUND",
+          "httpStatus": 404,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "LV-Position nicht gefunden."
+        }
+      ]
+    },
+    {
+      "classId": "measurement_validation",
+      "codes": [
+        {
+          "code": "MEASUREMENT_POSITIONS_REQUIRED",
+          "httpStatus": 422,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Mindestens eine Aufmassposition erforderlich."
+        }
+      ]
+    }
+  ],
+  "qaP0MappingHints": [
+    "tenant: TENANT_SCOPE_VIOLATION",
+    "authz: AUTH_ROLE_FORBIDDEN|FORBIDDEN_AUDIT_READ|UNAUTHORIZED",
+    "versioning: FOLLOWUP_DOCUMENT_REQUIRED",
+    "supplement: SUPPLEMENT_BASE_NOT_ACCEPTED|SUPPLEMENT_STATUS_TRANSITION_FORBIDDEN|SUPPLEMENT_BILLING_EFFECT_FORBIDDEN|SUPPLEMENT_NOT_FOUND",
+    "traceability: TRACEABILITY_LINK_MISSING|TRACEABILITY_FIELD_MISMATCH",
+    "export-fail-closed: EXPORT_PREFLIGHT_FAILED",
+    "validation: VALIDATION_FAILED",
+    "measurement: MEASUREMENT_NOT_FOUND|MEASUREMENT_STATUS_TRANSITION_FORBIDDEN|MEASUREMENT_POSITION_EDIT_FORBIDDEN|MEASUREMENT_NEW_VERSION_FORBIDDEN|MEASUREMENT_VERSION_NOT_CURRENT|MEASUREMENT_POSITIONS_REQUIRED",
+    "lv: LV_CATALOG_NOT_FOUND|LV_VERSION_NOT_FOUND|LV_VERSION_NOT_CURRENT|LV_NODE_NOT_FOUND|LV_POSITION_NOT_FOUND|LV_HIERARCHY_INVALID|LV_POSITION_VERSION_MISMATCH|LV_STRUCTURE_LOCKED|LV_SYSTEM_TEXT_IMMUTABLE|LV_STATUS_TRANSITION_FORBIDDEN|LV_NEW_VERSION_FORBIDDEN|LV_COPY_FAILED",
+    "lv-references: LV_VERSION_NOT_FOUND|LV_POSITION_NOT_FOUND|LV_POSITION_VERSION_MISMATCH",
+    "finance-fin0-stub: TRACEABILITY_LINK_MISSING|EXPORT_PREFLIGHT_FAILED|DOCUMENT_NOT_FOUND|VALIDATION_FAILED — siehe docs/contracts/finance-fin0-openapi-mapping.md (keine neuen Codes in FIN-0)"
+  ]
+}

@@ -1,0 +1,837 @@
+{
+  "contractVersion": "1.4.1",
+  "phase": "phase-2-inc2-lv",
+  "policy": {
+    "sourceOfTruth": "backend.allowedActions",
+    "uiMustCheck": [
+      "actionId is returned in allowedActions",
+      "request payload passes frontend schema validation",
+      "backend role mapping is resolved before action execution"
+    ],
+    "uiMustNotDo": [
+      "infer additional status transitions",
+      "execute hidden actions by handcrafted requests",
+      "assume idempotency replay semantics not implemented by backend"
+    ]
+  },
+  "actions": [
+    {
+      "actionId": "OFFER_CREATE_VERSION",
+      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "allowedFromStatus": ["ENTWURF", "IN_FREIGABE", "FREIGEGEBEN", "VERSENDET"],
+      "allowedToStatus": ["ENTWURF"],
+      "validationSchema": {
+        "endpoint": "POST /offers/version",
+        "requiredFields": ["offerId", "lvVersionId", "editingText", "reason"],
+        "fieldRules": {
+          "offerId": "uuid",
+          "lvVersionId": "uuid",
+          "editingText": "minLength:1",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "VERSION_CREATED",
+      "backendErrors": [
+        "FOLLOWUP_DOCUMENT_REQUIRED",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "OFFER_NOT_FOUND",
+        "OFFER_VERSION_NOT_FOUND",
+        "LV_VERSION_NOT_FOUND"
+      ],
+      "backendPolicyMirror": {
+        "source": "src/domain/offer-create-version-policy.ts",
+        "emitsNo": ["NEW_VERSION_REQUIRED"]
+      }
+    },
+    {
+      "actionId": "OFFER_CREATE_SUPPLEMENT",
+      "requiredRole": ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["ANGENOMMEN"],
+      "allowedToStatus": ["ENTWURF"],
+      "validationSchema": {
+        "endpoint": "POST /offers/{offerId}/supplements",
+        "requiredFields": ["baseOfferVersionId", "lvVersionId", "editingText", "reason"],
+        "fieldRules": {
+          "baseOfferVersionId": "uuid",
+          "lvVersionId": "uuid",
+          "editingText": "minLength:1",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "VERSION_CREATED",
+      "backendErrors": [
+        "SUPPLEMENT_BASE_NOT_ACCEPTED",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "OFFER_NOT_FOUND",
+        "OFFER_VERSION_NOT_FOUND",
+        "LV_VERSION_NOT_FOUND"
+      ],
+      "backendPolicyMirror": {
+        "source": "AuthorizationService.allowedOfferActionsByStatus + assertCanCreateSupplement",
+        "sourceOfTruthEndpoint": "GET /documents/{id}/allowed-actions?entityType=OFFER_VERSION"
+      }
+    },
+    {
+      "actionId": "SUPPLEMENT_SET_IN_FREIGABE",
+      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "allowedFromStatus": ["ENTWURF"],
+      "allowedToStatus": ["IN_FREIGABE"],
+      "validationSchema": {
+        "endpoint": "POST /supplements/status",
+        "requiredFields": ["supplementVersionId", "nextStatus", "reason"],
+        "fieldRules": {
+          "nextStatus": "literal:IN_FREIGABE"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": [
+        "SUPPLEMENT_STATUS_TRANSITION_FORBIDDEN",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "SUPPLEMENT_NOT_FOUND"
+      ]
+    },
+    {
+      "actionId": "SUPPLEMENT_SET_FREIGEGEBEN",
+      "requiredRole": ["ADMIN", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["IN_FREIGABE"],
+      "allowedToStatus": ["FREIGEGEBEN"],
+      "validationSchema": {
+        "endpoint": "POST /supplements/status",
+        "requiredFields": ["supplementVersionId", "nextStatus", "reason"],
+        "fieldRules": {
+          "nextStatus": "literal:FREIGEGEBEN"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": [
+        "SUPPLEMENT_STATUS_TRANSITION_FORBIDDEN",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "SUPPLEMENT_NOT_FOUND"
+      ]
+    },
+    {
+      "actionId": "SUPPLEMENT_SET_VERSENDET",
+      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "allowedFromStatus": ["FREIGEGEBEN"],
+      "allowedToStatus": ["VERSENDET"],
+      "validationSchema": {
+        "endpoint": "POST /supplements/status",
+        "requiredFields": ["supplementVersionId", "nextStatus", "reason"],
+        "fieldRules": {
+          "nextStatus": "literal:VERSENDET"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": [
+        "SUPPLEMENT_STATUS_TRANSITION_FORBIDDEN",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "SUPPLEMENT_NOT_FOUND"
+      ]
+    },
+    {
+      "actionId": "SUPPLEMENT_SET_BEAUFTRAGT",
+      "requiredRole": ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["VERSENDET"],
+      "allowedToStatus": ["BEAUFTRAGT"],
+      "validationSchema": {
+        "endpoint": "POST /supplements/status",
+        "requiredFields": ["supplementVersionId", "nextStatus", "reason"],
+        "fieldRules": {
+          "nextStatus": "literal:BEAUFTRAGT"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": [
+        "SUPPLEMENT_STATUS_TRANSITION_FORBIDDEN",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "SUPPLEMENT_NOT_FOUND"
+      ]
+    },
+    {
+      "actionId": "SUPPLEMENT_SET_ABGELEHNT",
+      "requiredRole": ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["VERSENDET"],
+      "allowedToStatus": ["ABGELEHNT"],
+      "validationSchema": {
+        "endpoint": "POST /supplements/status",
+        "requiredFields": ["supplementVersionId", "nextStatus", "reason"],
+        "fieldRules": {
+          "nextStatus": "literal:ABGELEHNT"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": [
+        "SUPPLEMENT_STATUS_TRANSITION_FORBIDDEN",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "SUPPLEMENT_NOT_FOUND"
+      ]
+    },
+    {
+      "actionId": "SUPPLEMENT_SET_ARCHIVIERT",
+      "requiredRole": ["ADMIN", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["ENTWURF", "BEAUFTRAGT", "ABGELEHNT"],
+      "allowedToStatus": ["ARCHIVIERT"],
+      "validationSchema": {
+        "endpoint": "POST /supplements/status",
+        "requiredFields": ["supplementVersionId", "nextStatus", "reason"],
+        "fieldRules": {
+          "nextStatus": "literal:ARCHIVIERT"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": [
+        "SUPPLEMENT_STATUS_TRANSITION_FORBIDDEN",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "SUPPLEMENT_NOT_FOUND"
+      ]
+    },
+    {
+      "actionId": "SUPPLEMENT_APPLY_BILLING_IMPACT",
+      "requiredRole": ["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["BEAUFTRAGT"],
+      "allowedToStatus": ["BEAUFTRAGT"],
+      "validationSchema": {
+        "endpoint": "POST /supplements/{supplementVersionId}/billing-impact",
+        "requiredFields": ["invoiceId", "reason"],
+        "fieldRules": {
+          "invoiceId": "uuid",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": [
+        "SUPPLEMENT_BILLING_EFFECT_FORBIDDEN",
+        "SUPPLEMENT_NOT_FOUND",
+        "EXPORT_ENTITY_NOT_FOUND",
+        "TRACEABILITY_LINK_MISSING",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED"
+      ]
+    },
+    {
+      "actionId": "OFFER_SET_IN_FREIGABE",
+      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "allowedFromStatus": ["ENTWURF"],
+      "allowedToStatus": ["IN_FREIGABE"],
+      "validationSchema": {
+        "endpoint": "POST /offers/status",
+        "requiredFields": ["offerVersionId", "nextStatus", "reason"],
+        "fieldRules": {
+          "offerVersionId": "uuid",
+          "nextStatus": "literal:IN_FREIGABE",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": ["STATUS_TRANSITION_FORBIDDEN", "AUTH_ROLE_FORBIDDEN", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
+    },
+    {
+      "actionId": "OFFER_SET_FREIGEGEBEN",
+      "requiredRole": ["ADMIN", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["IN_FREIGABE"],
+      "allowedToStatus": ["FREIGEGEBEN"],
+      "validationSchema": {
+        "endpoint": "POST /offers/status",
+        "requiredFields": ["offerVersionId", "nextStatus", "reason"],
+        "fieldRules": {
+          "nextStatus": "literal:FREIGEGEBEN"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": ["STATUS_TRANSITION_FORBIDDEN", "AUTH_ROLE_FORBIDDEN", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
+    },
+    {
+      "actionId": "OFFER_SET_VERSENDET",
+      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "allowedFromStatus": ["FREIGEGEBEN"],
+      "allowedToStatus": ["VERSENDET"],
+      "validationSchema": {
+        "endpoint": "POST /offers/status",
+        "requiredFields": ["offerVersionId", "nextStatus", "reason"],
+        "fieldRules": {
+          "nextStatus": "literal:VERSENDET"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": ["STATUS_TRANSITION_FORBIDDEN", "AUTH_ROLE_FORBIDDEN", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
+    },
+    {
+      "actionId": "OFFER_SET_ANGENOMMEN",
+      "requiredRole": ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["VERSENDET"],
+      "allowedToStatus": ["ANGENOMMEN"],
+      "validationSchema": {
+        "endpoint": "POST /offers/status",
+        "requiredFields": ["offerVersionId", "nextStatus", "reason"],
+        "fieldRules": {
+          "nextStatus": "literal:ANGENOMMEN",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": ["STATUS_TRANSITION_FORBIDDEN", "AUTH_ROLE_FORBIDDEN", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
+    },
+    {
+      "actionId": "OFFER_SET_ABGELEHNT",
+      "requiredRole": ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["VERSENDET"],
+      "allowedToStatus": ["ABGELEHNT"],
+      "validationSchema": {
+        "endpoint": "POST /offers/status",
+        "requiredFields": ["offerVersionId", "nextStatus", "reason"],
+        "fieldRules": {
+          "nextStatus": "literal:ABGELEHNT",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": ["STATUS_TRANSITION_FORBIDDEN", "AUTH_ROLE_FORBIDDEN", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
+    },
+    {
+      "actionId": "EXPORT_INVOICE",
+      "requiredRole": ["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["FREIGEGEBEN", "GEBUCHT_VERSENDET", "TEILBEZAHLT", "BEZAHLT"],
+      "allowedToStatus": ["FREIGEGEBEN", "GEBUCHT_VERSENDET", "TEILBEZAHLT", "BEZAHLT"],
+      "validationSchema": {
+        "endpoint": "POST /exports",
+        "requiredFields": ["entityType", "entityId", "format"],
+        "fieldRules": {
+          "entityType": "literal:INVOICE",
+          "entityId": "uuid",
+          "format": "literal:XRECHNUNG"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "EXPORT_SUCCEEDED|EXPORT_FAILED",
+      "backendErrors": [
+        "EXPORT_PREFLIGHT_FAILED",
+        "TRACEABILITY_LINK_MISSING",
+        "TRACEABILITY_FIELD_MISMATCH",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED"
+      ],
+      "backendPolicyMirror": {
+        "source": "AuthorizationService.assertCanExport + allowedInvoiceActionsByStatus",
+        "sourceOfTruthEndpoint": "GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE",
+        "canonicalActionId": "EXPORT_INVOICE",
+        "legacyForbidden": ["EXPORT_INVOICE_XRECHNUNG"]
+      }
+    },
+    {
+      "actionId": "EXPORT_OFFER_VERSION",
+      "requiredRole": ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["FREIGEGEBEN", "VERSENDET", "ANGENOMMEN", "ABGELEHNT"],
+      "allowedToStatus": ["FREIGEGEBEN", "VERSENDET", "ANGENOMMEN", "ABGELEHNT"],
+      "validationSchema": {
+        "endpoint": "POST /exports",
+        "requiredFields": ["entityType", "entityId", "format"],
+        "fieldRules": {
+          "entityType": "literal:OFFER_VERSION",
+          "entityId": "uuid",
+          "format": "literal:GAEB"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "EXPORT_SUCCEEDED|EXPORT_FAILED",
+      "backendErrors": ["EXPORT_PREFLIGHT_FAILED", "AUTH_ROLE_FORBIDDEN", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
+    },
+    {
+      "actionId": "EXPORT_SUPPLEMENT_VERSION",
+      "requiredRole": ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["FREIGEGEBEN", "VERSENDET", "BEAUFTRAGT", "ABGELEHNT"],
+      "allowedToStatus": ["FREIGEGEBEN", "VERSENDET", "BEAUFTRAGT", "ABGELEHNT"],
+      "validationSchema": {
+        "endpoint": "POST /exports",
+        "requiredFields": ["entityType", "entityId", "format"],
+        "fieldRules": {
+          "entityType": "literal:SUPPLEMENT_VERSION",
+          "entityId": "uuid",
+          "format": "literal:GAEB"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "EXPORT_SUCCEEDED|EXPORT_FAILED",
+      "backendErrors": ["EXPORT_PREFLIGHT_FAILED", "AUTH_ROLE_FORBIDDEN", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
+    },
+    {
+      "actionId": "MEASUREMENT_CREATE",
+      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "allowedFromStatus": ["N_A"],
+      "allowedToStatus": ["ENTWURF"],
+      "validationSchema": {
+        "endpoint": "POST /measurements",
+        "requiredFields": ["projectId", "customerId", "lvVersionId", "positions", "reason"],
+        "fieldRules": {
+          "projectId": "uuid",
+          "customerId": "uuid",
+          "lvVersionId": "uuid",
+          "positions": "array min1",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "VERSION_CREATED",
+      "backendErrors": [
+        "MEASUREMENT_POSITIONS_REQUIRED",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "VALIDATION_FAILED",
+        "LV_VERSION_NOT_FOUND",
+        "LV_POSITION_NOT_FOUND",
+        "LV_POSITION_VERSION_MISMATCH"
+      ],
+      "backendPolicyMirror": {
+        "source": "src/services/measurement-service.ts#createMeasurement"
+      }
+    },
+    {
+      "actionId": "MEASUREMENT_UPDATE_POSITIONS",
+      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "allowedFromStatus": ["ENTWURF"],
+      "allowedToStatus": ["ENTWURF"],
+      "validationSchema": {
+        "endpoint": "POST /measurements/{measurementVersionId}/positions",
+        "requiredFields": ["positions", "reason"],
+        "fieldRules": {
+          "positions": "array min 1",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "POSITIONS_UPDATED",
+      "backendErrors": [
+        "MEASUREMENT_POSITION_EDIT_FORBIDDEN",
+        "MEASUREMENT_VERSION_NOT_CURRENT",
+        "MEASUREMENT_NOT_FOUND",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "LV_POSITION_NOT_FOUND",
+        "LV_POSITION_VERSION_MISMATCH"
+      ],
+      "backendPolicyMirror": {
+        "source": "src/domain/measurement-lifecycle-policy.ts#measurementVersionAllowsPositionEdit"
+      }
+    },
+    {
+      "actionId": "MEASUREMENT_SET_GEPRUEFT",
+      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "allowedFromStatus": ["ENTWURF"],
+      "allowedToStatus": ["GEPRUEFT"],
+      "validationSchema": {
+        "endpoint": "POST /measurements/status",
+        "requiredFields": ["measurementVersionId", "nextStatus", "reason"],
+        "fieldRules": {
+          "nextStatus": "literal:GEPRUEFT",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": [
+        "MEASUREMENT_STATUS_TRANSITION_FORBIDDEN",
+        "MEASUREMENT_VERSION_NOT_CURRENT",
+        "MEASUREMENT_NOT_FOUND",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED"
+      ]
+    },
+    {
+      "actionId": "MEASUREMENT_SET_FREIGEGEBEN",
+      "requiredRole": ["ADMIN", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["GEPRUEFT"],
+      "allowedToStatus": ["FREIGEGEBEN"],
+      "validationSchema": {
+        "endpoint": "POST /measurements/status",
+        "requiredFields": ["measurementVersionId", "nextStatus", "reason"],
+        "fieldRules": {
+          "nextStatus": "literal:FREIGEGEBEN",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": [
+        "MEASUREMENT_STATUS_TRANSITION_FORBIDDEN",
+        "MEASUREMENT_VERSION_NOT_CURRENT",
+        "MEASUREMENT_NOT_FOUND",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED"
+      ]
+    },
+    {
+      "actionId": "MEASUREMENT_SET_ABGERECHNET",
+      "requiredRole": ["ADMIN", "BUCHHALTUNG"],
+      "allowedFromStatus": ["FREIGEGEBEN"],
+      "allowedToStatus": ["ABGERECHNET"],
+      "validationSchema": {
+        "endpoint": "POST /measurements/status",
+        "requiredFields": ["measurementVersionId", "nextStatus", "reason"],
+        "fieldRules": {
+          "nextStatus": "literal:ABGERECHNET",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": [
+        "MEASUREMENT_STATUS_TRANSITION_FORBIDDEN",
+        "MEASUREMENT_VERSION_NOT_CURRENT",
+        "MEASUREMENT_NOT_FOUND",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED"
+      ]
+    },
+    {
+      "actionId": "MEASUREMENT_SET_ARCHIVIERT",
+      "requiredRole": ["ADMIN", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["ABGERECHNET"],
+      "allowedToStatus": ["ARCHIVIERT"],
+      "validationSchema": {
+        "endpoint": "POST /measurements/status",
+        "requiredFields": ["measurementVersionId", "nextStatus", "reason"],
+        "fieldRules": {
+          "nextStatus": "literal:ARCHIVIERT",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": [
+        "MEASUREMENT_STATUS_TRANSITION_FORBIDDEN",
+        "MEASUREMENT_VERSION_NOT_CURRENT",
+        "MEASUREMENT_NOT_FOUND",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED"
+      ]
+    },
+    {
+      "actionId": "MEASUREMENT_CREATE_VERSION",
+      "requiredRole": ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["FREIGEGEBEN", "ABGERECHNET"],
+      "allowedToStatus": ["ENTWURF"],
+      "validationSchema": {
+        "endpoint": "POST /measurements/version",
+        "requiredFields": ["measurementId", "reason"],
+        "fieldRules": {
+          "measurementId": "uuid",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "VERSION_CREATED",
+      "backendErrors": [
+        "MEASUREMENT_NEW_VERSION_FORBIDDEN",
+        "MEASUREMENT_NOT_FOUND",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED"
+      ],
+      "backendPolicyMirror": {
+        "source": "src/domain/measurement-create-version-policy.ts"
+      }
+    },
+    {
+      "actionId": "LV_CATALOG_CREATE",
+      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "allowedFromStatus": ["N_A"],
+      "allowedToStatus": ["ENTWURF"],
+      "validationSchema": {
+        "endpoint": "POST /lv/catalogs",
+        "requiredFields": ["name", "headerSystemText", "headerEditingText", "reason"],
+        "fieldRules": {
+          "name": "minLength:1 maxLength:200",
+          "headerSystemText": "minLength:1",
+          "headerEditingText": "minLength:1",
+          "reason": "minLength:5",
+          "projectId": "optional uuid"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "VERSION_CREATED",
+      "backendErrors": [
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "VALIDATION_FAILED"
+      ],
+      "backendPolicyMirror": {
+        "source": "AuthorizationService.assertCanCreateLvCatalog"
+      }
+    },
+    {
+      "actionId": "LV_CREATE_NEXT_VERSION",
+      "requiredRole": ["ADMIN", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["FREIGEGEBEN"],
+      "allowedToStatus": ["ENTWURF"],
+      "validationSchema": {
+        "endpoint": "POST /lv/catalogs/{lvCatalogId}/version",
+        "requiredFields": ["reason"],
+        "fieldRules": {
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "VERSION_CREATED",
+      "backendErrors": [
+        "LV_NEW_VERSION_FORBIDDEN",
+        "LV_CATALOG_NOT_FOUND",
+        "LV_VERSION_NOT_FOUND",
+        "LV_COPY_FAILED",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "VALIDATION_FAILED"
+      ],
+      "backendPolicyMirror": {
+        "source": "src/domain/lv-create-version-policy.ts",
+        "sourceOfTruthEndpoint": "GET /documents/{lvVersionId}/allowed-actions?entityType=LV_VERSION"
+      }
+    },
+    {
+      "actionId": "LV_SET_FREIGEGEBEN",
+      "requiredRole": ["ADMIN", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["ENTWURF"],
+      "allowedToStatus": ["FREIGEGEBEN"],
+      "validationSchema": {
+        "endpoint": "POST /lv/versions/{lvVersionId}/status",
+        "requiredFields": ["nextStatus", "reason"],
+        "fieldRules": {
+          "nextStatus": "literal:FREIGEGEBEN",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": [
+        "LV_STATUS_TRANSITION_FORBIDDEN",
+        "LV_VERSION_NOT_FOUND",
+        "LV_VERSION_NOT_CURRENT",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "VALIDATION_FAILED"
+      ],
+      "backendPolicyMirror": {
+        "source": "src/domain/lv-version-lifecycle-policy.ts",
+        "sourceOfTruthEndpoint": "GET /documents/{lvVersionId}/allowed-actions?entityType=LV_VERSION"
+      }
+    },
+    {
+      "actionId": "LV_SET_ARCHIVIERT",
+      "requiredRole": ["ADMIN", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["FREIGEGEBEN"],
+      "allowedToStatus": ["ARCHIVIERT"],
+      "validationSchema": {
+        "endpoint": "POST /lv/versions/{lvVersionId}/status",
+        "requiredFields": ["nextStatus", "reason"],
+        "fieldRules": {
+          "nextStatus": "literal:ARCHIVIERT",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": [
+        "LV_STATUS_TRANSITION_FORBIDDEN",
+        "LV_VERSION_NOT_FOUND",
+        "LV_VERSION_NOT_CURRENT",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "VALIDATION_FAILED"
+      ],
+      "backendPolicyMirror": {
+        "source": "src/domain/lv-version-lifecycle-policy.ts",
+        "sourceOfTruthEndpoint": "GET /documents/{lvVersionId}/allowed-actions?entityType=LV_VERSION"
+      }
+    },
+    {
+      "actionId": "LV_ADD_STRUCTURE_NODE",
+      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "allowedFromStatus": ["ENTWURF"],
+      "allowedToStatus": ["ENTWURF"],
+      "validationSchema": {
+        "endpoint": "POST /lv/versions/{lvVersionId}/nodes",
+        "requiredFields": ["kind", "sortOrdinal", "systemText", "editingText", "reason"],
+        "fieldRules": {
+          "parentNodeId": "uuid|null",
+          "kind": "BEREICH|TITEL|UNTERTITEL",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "LV_NODE_CREATED",
+      "backendErrors": [
+        "LV_STRUCTURE_LOCKED",
+        "LV_HIERARCHY_INVALID",
+        "LV_VERSION_NOT_FOUND",
+        "LV_VERSION_NOT_CURRENT",
+        "LV_NODE_NOT_FOUND",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "VALIDATION_FAILED"
+      ],
+      "backendPolicyMirror": {
+        "source": "src/domain/lv-text-structure-policy.ts",
+        "sourceOfTruthEndpoint": "GET /documents/{lvVersionId}/allowed-actions?entityType=LV_VERSION"
+      }
+    },
+    {
+      "actionId": "LV_ADD_POSITION",
+      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "allowedFromStatus": ["ENTWURF"],
+      "allowedToStatus": ["ENTWURF"],
+      "validationSchema": {
+        "endpoint": "POST /lv/versions/{lvVersionId}/positions",
+        "requiredFields": [
+          "parentNodeId",
+          "sortOrdinal",
+          "quantity",
+          "unit",
+          "unitPriceCents",
+          "kind",
+          "systemText",
+          "editingText",
+          "reason"
+        ],
+        "fieldRules": {
+          "parentNodeId": "uuid",
+          "kind": "NORMAL|ALTERNATIV|EVENTUAL",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "LV_POSITION_CREATED",
+      "backendErrors": [
+        "LV_STRUCTURE_LOCKED",
+        "LV_HIERARCHY_INVALID",
+        "LV_VERSION_NOT_FOUND",
+        "LV_VERSION_NOT_CURRENT",
+        "LV_NODE_NOT_FOUND",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "VALIDATION_FAILED"
+      ],
+      "backendPolicyMirror": {
+        "source": "src/domain/lv-text-structure-policy.ts",
+        "sourceOfTruthEndpoint": "GET /documents/{lvVersionId}/allowed-actions?entityType=LV_VERSION"
+      }
+    },
+    {
+      "actionId": "LV_UPDATE_NODE_EDITING_TEXT",
+      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "allowedFromStatus": ["ENTWURF"],
+      "allowedToStatus": ["ENTWURF"],
+      "validationSchema": {
+        "endpoint": "PATCH /lv/nodes/{nodeId}/editing-text",
+        "requiredFields": ["editingText", "reason"],
+        "fieldRules": {
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "BUSINESS_TEXT_UPDATED",
+      "backendErrors": [
+        "LV_STRUCTURE_LOCKED",
+        "LV_SYSTEM_TEXT_IMMUTABLE",
+        "LV_NODE_NOT_FOUND",
+        "LV_VERSION_NOT_CURRENT",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "VALIDATION_FAILED"
+      ],
+      "backendPolicyMirror": {
+        "source": "src/domain/lv-text-structure-policy.ts",
+        "sourceOfTruthEndpoint": "GET /documents/{nodeId}/allowed-actions?entityType=LV_STRUCTURE_NODE"
+      }
+    },
+    {
+      "actionId": "LV_UPDATE_POSITION",
+      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "allowedFromStatus": ["ENTWURF"],
+      "allowedToStatus": ["ENTWURF"],
+      "validationSchema": {
+        "endpoint": "PATCH /lv/positions/{positionId}",
+        "requiredFields": ["reason"],
+        "fieldRules": {
+          "reason": "minLength:5",
+          "patch": "min one of editingText|quantity|unit|unitPriceCents|sortOrdinal"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "BUSINESS_TEXT_UPDATED",
+      "backendErrors": [
+        "LV_STRUCTURE_LOCKED",
+        "LV_SYSTEM_TEXT_IMMUTABLE",
+        "LV_POSITION_NOT_FOUND",
+        "LV_VERSION_NOT_CURRENT",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "VALIDATION_FAILED"
+      ],
+      "backendPolicyMirror": {
+        "source": "src/domain/lv-text-structure-policy.ts",
+        "sourceOfTruthEndpoint": "GET /documents/{positionId}/allowed-actions?entityType=LV_POSITION"
+      }
+    },
+    {
+      "actionId": "AUDIT_READ",
+      "requiredRole": ["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["N_A"],
+      "allowedToStatus": ["N_A"],
+      "validationSchema": {
+        "endpoint": "GET /audit-events",
+        "requiredFields": ["page", "pageSize"],
+        "fieldRules": {
+          "page": "int>=1",
+          "pageSize": "int(1..100)"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "N_A",
+      "backendErrors": ["FORBIDDEN_AUDIT_READ", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
+    }
+  ]
+}

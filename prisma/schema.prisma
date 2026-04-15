@@ -1,0 +1,205 @@
+// ADR-0003/0006: Offer + OfferVersion; ADR Inkrement 2: current_version FK (deferrable), audit_events
+// ADR-0005/0004: LV §9 + Aufmass; offer_versions.lv_version_id -> lv_versions (FIN-2 Gate G5)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Angebots-Aggregat; current_version referenziert offer_versions (tenant-gleich), FK deferrable in SQL-Migration.
+model Offer {
+  tenantId         String   @map("tenant_id") @db.Uuid
+  id               String   @db.Uuid
+  projectId        String   @map("project_id") @db.Uuid
+  customerId       String   @map("customer_id") @db.Uuid
+  currentVersionId String   @map("current_version_id") @db.Uuid
+  createdAt        DateTime @map("created_at")
+  createdBy        String   @map("created_by") @db.Uuid
+
+  versions       OfferVersion[] @relation("OfferVersions")
+  currentVersion OfferVersion   @relation("OfferCurrentVersion", fields: [tenantId, currentVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+
+  @@id([tenantId, id])
+  @@map("offers")
+}
+
+model OfferVersion {
+  tenantId      String    @map("tenant_id") @db.Uuid
+  id            String    @db.Uuid
+  offerId       String    @map("offer_id") @db.Uuid
+  versionNumber Int       @map("version_number")
+  status        String
+  lvVersionId   String    @map("lv_version_id") @db.Uuid
+  systemText    String    @map("system_text")
+  editingText   String    @map("editing_text")
+  createdAt     DateTime  @map("created_at")
+  createdBy     String    @map("created_by") @db.Uuid
+  releasedAt    DateTime? @map("released_at")
+
+  offer       Offer     @relation("OfferVersions", fields: [tenantId, offerId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  asCurrentOf Offer[]   @relation("OfferCurrentVersion")
+  lvVersion   LvVersion @relation(fields: [tenantId, lvVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, offerId, versionNumber])
+  @@index([tenantId, status])
+  @@map("offer_versions")
+}
+
+model LvCatalog {
+  tenantId           String      @map("tenant_id") @db.Uuid
+  id                 String      @db.Uuid
+  projectId          String?     @map("project_id") @db.Uuid
+  name               String
+  currentVersionId   String      @map("current_version_id") @db.Uuid
+  createdAt          DateTime    @map("created_at")
+  createdBy          String      @map("created_by") @db.Uuid
+
+  versions       LvVersion[] @relation("LvCatalogVersions")
+  currentVersion LvVersion   @relation("LvCatalogCurrentVersion", fields: [tenantId, currentVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+
+  @@id([tenantId, id])
+  @@map("lv_catalogs")
+}
+
+model LvVersion {
+  tenantId           String   @map("tenant_id") @db.Uuid
+  id                 String   @db.Uuid
+  lvCatalogId        String   @map("lv_catalog_id") @db.Uuid
+  versionNumber      Int      @map("version_number")
+  status             String
+  headerSystemText   String   @map("header_system_text")
+  headerEditingText  String   @map("header_editing_text")
+  createdAt          DateTime @map("created_at")
+  createdBy          String   @map("created_by") @db.Uuid
+
+  catalog           LvCatalog         @relation("LvCatalogVersions", fields: [tenantId, lvCatalogId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  catalogsCurrentOf LvCatalog[]       @relation("LvCatalogCurrentVersion")
+  structureNodes    LvStructureNode[]
+  positions         LvPosition[]
+  offerVersions     OfferVersion[]
+  measurements      Measurement[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, lvCatalogId, versionNumber])
+  @@map("lv_versions")
+}
+
+model LvStructureNode {
+  tenantId     String  @map("tenant_id") @db.Uuid
+  id           String  @db.Uuid
+  lvVersionId  String  @map("lv_version_id") @db.Uuid
+  parentNodeId String? @map("parent_node_id") @db.Uuid
+  kind         String
+  sortOrdinal  String  @map("sort_ordinal")
+  systemText   String  @map("system_text")
+  editingText  String  @map("editing_text")
+
+  lvVersion LvVersion @relation(fields: [tenantId, lvVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Cascade)
+  parent    LvStructureNode? @relation("LvNodeHierarchy", fields: [tenantId, parentNodeId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  children  LvStructureNode[] @relation("LvNodeHierarchy")
+
+  positionsAsParent LvPosition[]
+
+  @@id([tenantId, id])
+  @@index([tenantId, lvVersionId])
+  @@map("lv_structure_nodes")
+}
+
+model LvPosition {
+  tenantId           String  @map("tenant_id") @db.Uuid
+  id                 String  @db.Uuid
+  lvVersionId        String  @map("lv_version_id") @db.Uuid
+  parentNodeId       String  @map("parent_node_id") @db.Uuid
+  sortOrdinal        String  @map("sort_ordinal")
+  quantity           Float
+  unit               String
+  unitPriceCents     Int     @map("unit_price_cents")
+  kind               String
+  systemText         String  @map("system_text")
+  editingText        String  @map("editing_text")
+  stammPositionsRef  String? @map("stamm_positions_ref") @db.Uuid
+
+  lvVersion  LvVersion       @relation(fields: [tenantId, lvVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Cascade)
+  parentNode LvStructureNode @relation(fields: [tenantId, parentNodeId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+
+  measurementPositions MeasurementPosition[]
+
+  @@id([tenantId, id])
+  @@index([tenantId, lvVersionId])
+  @@map("lv_positions")
+}
+
+model Measurement {
+  tenantId           String   @map("tenant_id") @db.Uuid
+  id                 String   @db.Uuid
+  projectId          String   @map("project_id") @db.Uuid
+  customerId         String   @map("customer_id") @db.Uuid
+  lvVersionId        String   @map("lv_version_id") @db.Uuid
+  currentVersionId   String   @map("current_version_id") @db.Uuid
+  createdAt          DateTime @map("created_at")
+  createdBy          String   @map("created_by") @db.Uuid
+
+  lvVersion      LvVersion             @relation(fields: [tenantId, lvVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  versions       MeasurementVersion[] @relation("MeasurementVersions")
+  currentVersion MeasurementVersion   @relation("MeasurementCurrentVersion", fields: [tenantId, currentVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+
+  @@id([tenantId, id])
+  @@map("measurements")
+}
+
+model MeasurementVersion {
+  tenantId       String   @map("tenant_id") @db.Uuid
+  id             String   @db.Uuid
+  measurementId  String   @map("measurement_id") @db.Uuid
+  versionNumber  Int      @map("version_number")
+  status         String
+  createdAt      DateTime @map("created_at")
+  createdBy      String   @map("created_by") @db.Uuid
+
+  measurement Measurement @relation("MeasurementVersions", fields: [tenantId, measurementId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  asCurrentOf Measurement[] @relation("MeasurementCurrentVersion")
+  positions   MeasurementPosition[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, measurementId, versionNumber])
+  @@map("measurement_versions")
+}
+
+model MeasurementPosition {
+  tenantId               String  @map("tenant_id") @db.Uuid
+  id                     String  @db.Uuid
+  measurementVersionId String  @map("measurement_version_id") @db.Uuid
+  lvPositionId           String  @map("lv_position_id") @db.Uuid
+  quantity               Float
+  unit                   String
+  note                   String?
+
+  measurementVersion MeasurementVersion @relation(fields: [tenantId, measurementVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Cascade)
+  lvPosition         LvPosition         @relation(fields: [tenantId, lvPositionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+
+  @@id([tenantId, id])
+  @@index([tenantId, measurementVersionId])
+  @@map("measurement_positions")
+}
+
+/// Persistente Audit-Zeile; Lesepfad API bleibt DSGVO-minimiert (kein before/after in GET).
+model AuditEvent {
+  id          String   @id @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id") @db.Uuid
+  action      String
+  timestamp   DateTime
+  actorUserId String   @map("actor_user_id") @db.Uuid
+  reason      String?
+  beforeState Json?    @map("before_state")
+  afterState  Json?    @map("after_state")
+
+  @@index([tenantId, timestamp])
+  @@map("audit_events")
+}

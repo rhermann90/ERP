@@ -1,0 +1,150 @@
+import {
+  AuditEvent,
+  ExportRun,
+  Invoice,
+  LvCatalog,
+  LvPosition,
+  LvStructureNode,
+  LvVersion,
+  Measurement,
+  MeasurementPosition,
+  MeasurementVersion,
+  Offer,
+  OfferVersion,
+  SupplementOffer,
+  SupplementVersion,
+  TenantId,
+  TraceabilityLink,
+  UUID,
+} from "../domain/types.js";
+
+export class InMemoryRepositories {
+  public offers = new Map<UUID, Offer>();
+  public offerVersions = new Map<UUID, OfferVersion>();
+  public supplementOffers = new Map<UUID, SupplementOffer>();
+  public supplementVersions = new Map<UUID, SupplementVersion>();
+  public measurements = new Map<UUID, Measurement>();
+  public measurementVersions = new Map<UUID, MeasurementVersion>();
+  public measurementPositions = new Map<UUID, MeasurementPosition>();
+  public lvCatalogs = new Map<UUID, LvCatalog>();
+  public lvVersions = new Map<UUID, LvVersion>();
+  public lvStructureNodes = new Map<UUID, LvStructureNode>();
+  public lvPositions = new Map<UUID, LvPosition>();
+  public auditEvents: AuditEvent[] = [];
+  public exportRuns = new Map<UUID, ExportRun>();
+  public traceabilityLinks = new Map<UUID, TraceabilityLink>();
+  public invoices = new Map<UUID, Invoice>();
+
+  public getOfferByTenant(tenantId: TenantId, offerId: UUID): Offer | undefined {
+    const offer = this.offers.get(offerId);
+    if (!offer || offer.tenantId !== tenantId) {
+      return undefined;
+    }
+    return offer;
+  }
+
+  public getOfferVersionByTenant(tenantId: TenantId, offerVersionId: UUID): OfferVersion | undefined {
+    const version = this.offerVersions.get(offerVersionId);
+    if (!version || version.tenantId !== tenantId) {
+      return undefined;
+    }
+    return version;
+  }
+
+  /** Schreibpfad für Domäne/Seed (nicht direkt `.set` in Services). */
+  public putOffer(offer: Offer): void {
+    this.offers.set(offer.id, offer);
+  }
+
+  public putOfferVersion(version: OfferVersion): void {
+    this.offerVersions.set(version.id, version);
+  }
+
+  public getInvoiceByTenant(tenantId: TenantId, invoiceId: UUID): Invoice | undefined {
+    const invoice = this.invoices.get(invoiceId);
+    if (!invoice || invoice.tenantId !== tenantId) {
+      return undefined;
+    }
+    return invoice;
+  }
+
+  public getSupplementOfferByTenant(tenantId: TenantId, supplementOfferId: UUID): SupplementOffer | undefined {
+    const supplement = this.supplementOffers.get(supplementOfferId);
+    if (!supplement || supplement.tenantId !== tenantId) {
+      return undefined;
+    }
+    return supplement;
+  }
+
+  public getSupplementVersionByTenant(tenantId: TenantId, supplementVersionId: UUID): SupplementVersion | undefined {
+    const version = this.supplementVersions.get(supplementVersionId);
+    if (!version || version.tenantId !== tenantId) {
+      return undefined;
+    }
+    return version;
+  }
+
+  public getMeasurementByTenant(tenantId: TenantId, measurementId: UUID): Measurement | undefined {
+    const m = this.measurements.get(measurementId);
+    if (!m || m.tenantId !== tenantId) {
+      return undefined;
+    }
+    return m;
+  }
+
+  public getMeasurementVersionByTenant(tenantId: TenantId, measurementVersionId: UUID): MeasurementVersion | undefined {
+    const v = this.measurementVersions.get(measurementVersionId);
+    if (!v || v.tenantId !== tenantId) {
+      return undefined;
+    }
+    return v;
+  }
+
+  public listMeasurementPositionsForVersion(tenantId: TenantId, measurementVersionId: UUID): MeasurementPosition[] {
+    return [...this.measurementPositions.values()].filter(
+      (p) => p.tenantId === tenantId && p.measurementVersionId === measurementVersionId,
+    );
+  }
+
+  public getLvCatalogByTenant(tenantId: TenantId, catalogId: UUID): LvCatalog | undefined {
+    const c = this.lvCatalogs.get(catalogId);
+    if (!c || c.tenantId !== tenantId) {
+      return undefined;
+    }
+    return c;
+  }
+
+  public getLvVersionByTenant(tenantId: TenantId, lvVersionId: UUID): LvVersion | undefined {
+    const v = this.lvVersions.get(lvVersionId);
+    if (!v || v.tenantId !== tenantId) {
+      return undefined;
+    }
+    return v;
+  }
+
+  public getLvStructureNodeByTenant(tenantId: TenantId, nodeId: UUID): LvStructureNode | undefined {
+    const n = this.lvStructureNodes.get(nodeId);
+    if (!n || n.tenantId !== tenantId) {
+      return undefined;
+    }
+    return n;
+  }
+
+  public getLvPositionByTenant(tenantId: TenantId, positionId: UUID): LvPosition | undefined {
+    const p = this.lvPositions.get(positionId);
+    if (!p || p.tenantId !== tenantId) {
+      return undefined;
+    }
+    return p;
+  }
+
+  public listLvStructureNodesForVersion(tenantId: TenantId, lvVersionId: UUID): LvStructureNode[] {
+    return [...this.lvStructureNodes.values()].filter(
+      (n) => n.tenantId === tenantId && n.lvVersionId === lvVersionId,
+    );
+  }
+
+  public listLvPositionsForVersion(tenantId: TenantId, lvVersionId: UUID): LvPosition[] {
+    return [...this.lvPositions.values()].filter((p) => p.tenantId === tenantId && p.lvVersionId === lvVersionId);
+  }
+}

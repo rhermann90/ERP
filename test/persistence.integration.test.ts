@@ -1,0 +1,375 @@
+import { execSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { FastifyInstance } from "fastify";
+import { PrismaClient } from "@prisma/client";
+import { buildApp } from "../src/api/app.js";
+import { SEED_IDS } from "../src/composition/seed.js";
+import { createSignedToken } from "../src/auth/token-auth.js";
+
+const dbUrl = process.env.PERSISTENCE_DB_TEST_URL?.trim();
+
+if (process.env.GITHUB_ACTIONS === "true" && !dbUrl) {
+  throw new Error("PERSISTENCE_DB_TEST_URL must be set in GitHub Actions CI");
+}
+
+function adminHeaders(tenantId: string = SEED_IDS.tenantId) {
+  const userId = "77777777-7777-4777-8777-777777777777";
+  const token = createSignedToken({
+    sub: userId,
+    tenantId,
+    role: "ADMIN",
+    exp: Math.floor(Date.now() / 1000) + 600,
+  });
+  return { authorization: `Bearer ${token}`, "x-tenant-id": tenantId };
+}
+
+const persistenceDbSuite = dbUrl ? describe.sequential : describe.skip;
+
+persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => {
+  /** Gesetzt in `beforeAll`; Suite läuft nur mit `PERSISTENCE_DB_TEST_URL`. */
+  let app!: FastifyInstance;
+  let prisma!: PrismaClient;
+
+  beforeAll(async () => {
+    process.env.DATABASE_URL = dbUrl!;
+    execSync("npx prisma migrate deploy", {
+      stdio: "inherit",
+      env: { ...process.env, DATABASE_URL: dbUrl! },
+    });
+    const cleanup = new PrismaClient({ datasourceUrl: dbUrl });
+    await cleanup.$executeRawUnsafe(
+      `TRUNCATE TABLE measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, audit_events, offer_versions, offers RESTART IDENTITY CASCADE`,
+    );
+    await cleanup.$disconnect();
+
+    app = await buildApp({ repositoryMode: "postgres", seedDemoData: true });
+    await app.ready();
+    prisma = new PrismaClient({ datasourceUrl: dbUrl });
+  });
+
+  afterAll(async () => {
+    if (app) await app.close();
+    if (prisma) await prisma.$disconnect();
+  });
+
+  it("Offer.current_version_id referenziert offer_versions (Prisma-Include)", async () => {
+    const row = await prisma.offer.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.offerId } },
+      include: { currentVersion: true },
+    });
+    expect(row?.currentVersionId).toBe(SEED_IDS.offerVersionId);
+    expect(row?.currentVersion?.id).toBe(SEED_IDS.offerVersionId);
+  });
+
+  it("Seed: LV §9 + Aufmass sind in Postgres tenant-isoliert persistiert (Gate G1/G2)", async () => {
+    const cat = await prisma.lvCatalog.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.lvCatalogId } },
+      include: { currentVersion: { include: { positions: true, structureNodes: true } } },
+    });
+    expect(cat?.currentVersionId).toBe(SEED_IDS.lvVersionId);
+    expect(cat?.currentVersion?.positions.some((p) => p.id === SEED_IDS.lvPositionSeedA)).toBe(true);
+    const m = await prisma.measurement.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.measurementId } },
+      include: { currentVersion: { include: { positions: true } } },
+    });
+    expect(m?.lvVersionId).toBe(SEED_IDS.lvVersionId);
+    expect(m?.currentVersion?.positions.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("offer_versions.lv_version_id referenziert persistierte lv_versions (Gate G5)", async () => {
+    const ov = await prisma.offerVersion.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.offerVersionId } },
+      include: { lvVersion: true },
+    });
+    expect(ov?.lvVersionId).toBe(SEED_IDS.lvVersionId);
+    expect(ov?.lvVersion?.id).toBe(SEED_IDS.lvVersionId);
+  });
+
+  it("Traceability: Rechnungs-Export nach Postgres-Seed fail-closed grün (Gate G3)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/exports",
+      headers: adminHeaders(),
+      payload: {
+        entityType: "INVOICE",
+        entityId: SEED_IDS.invoiceId,
+        format: "XRECHNUNG",
+      },
+    });
+    expect(res.statusCode).toBe(201);
+  });
+
+  it("Audit: Schreibpfad Postgres + GET liefert nur minimierte Felder", async () => {
+    await app.inject({
+      method: "POST",
+      url: "/offers/status",
+      headers: adminHeaders(),
+      payload: {
+        offerVersionId: SEED_IDS.offerVersionId,
+        nextStatus: "IN_FREIGABE",
+        reason: "Persistenztest Angebotsstatus",
+      },
+    });
+    const row = await prisma.auditEvent.findFirst({
+      where: { tenantId: SEED_IDS.tenantId, action: "STATUS_CHANGED" },
+      orderBy: { timestamp: "desc" },
+    });
+    expect(row).toBeTruthy();
+    const res = await app.inject({
+      method: "GET",
+      url: "/audit-events?page=1&pageSize=20",
+      headers: adminHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    const entry = (res.json() as { data: Record<string, unknown>[] }).data.find((x) => x.id === row!.id);
+    expect(entry).toBeDefined();
+    expect(entry).not.toHaveProperty("beforeState");
+    expect(entry).not.toHaveProperty("reason");
+  });
+
+  it("GET /audit-events liest nur eigenen Tenant aus DB", async () => {
+    const foreignTenant = "99999999-9999-4999-8999-999999999999";
+    const foreignId = randomUUID();
+    await prisma.auditEvent.create({
+      data: {
+        id: foreignId,
+        tenantId: foreignTenant,
+        entityType: "OFFER_VERSION",
+        entityId: SEED_IDS.offerVersionId,
+        action: "STATUS_CHANGED",
+        timestamp: new Date(),
+        actorUserId: "88888888-8888-4888-8888-888888888888",
+      },
+    });
+    const res = await app.inject({
+      method: "GET",
+      url: "/audit-events?page=1&pageSize=100",
+      headers: adminHeaders(SEED_IDS.tenantId),
+    });
+    expect(
+      (res.json() as { data: { id: string }[] }).data.some((x) => x.id === foreignId),
+    ).toBe(false);
+  });
+
+  it("CI Postgres job: PERSISTENCE_DB_TEST_URL is set when running under GitHub Actions", () => {
+    if (process.env.GITHUB_ACTIONS === "true") {
+      expect(dbUrl).toMatch(/^postgresql:\/\//);
+    }
+  });
+
+  it("applies migrations including LV, Aufmass, audit_events and referential offer_versions.lv_version_id", async () => {
+    const rows = await prisma.$queryRaw<{ tablename: string }[]>`
+      SELECT tablename FROM pg_tables
+      WHERE schemaname = 'public' AND tablename IN (
+        'audit_events','lv_catalogs','lv_positions','lv_structure_nodes','lv_versions',
+        'measurement_positions','measurement_versions','measurements','offers','offer_versions')
+      ORDER BY tablename`;
+    expect(rows.map((r) => r.tablename)).toEqual([
+      "audit_events",
+      "lv_catalogs",
+      "lv_positions",
+      "lv_structure_nodes",
+      "lv_versions",
+      "measurement_positions",
+      "measurement_versions",
+      "measurements",
+      "offer_versions",
+      "offers",
+    ]);
+    const cons = await prisma.$queryRaw<{ conname: string }[]>`
+      SELECT conname FROM pg_constraint
+      WHERE conrelid = 'offers'::regclass AND contype = 'f' AND conname = 'offers_current_version_fkey'`;
+    expect(cons.length).toBe(1);
+    const lvFk = await prisma.$queryRaw<{ conname: string }[]>`
+      SELECT conname FROM pg_constraint
+      WHERE conrelid = 'offer_versions'::regclass AND contype = 'f' AND conname = 'offer_versions_tenant_lv_version_id_fkey'`;
+    expect(lvFk.length).toBe(1);
+  });
+
+  it("rejects cross-tenant offer_version insert (composite FK tenant_id, offer_id)", async () => {
+    const tenantA = randomUUID();
+    const tenantB = randomUUID();
+    const offerId = randomUUID();
+    const versionId = randomUUID();
+    const catB = randomUUID();
+    const lvB = randomUUID();
+    const actor = randomUUID();
+    const now = new Date();
+    await expect(
+      prisma.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe("SET CONSTRAINTS ALL DEFERRED");
+        await tx.lvCatalog.create({
+          data: {
+            tenantId: tenantB,
+            id: catB,
+            name: "cross-tenant-fk",
+            currentVersionId: lvB,
+            createdAt: now,
+            createdBy: actor,
+          },
+        });
+        await tx.lvVersion.create({
+          data: {
+            tenantId: tenantB,
+            id: lvB,
+            lvCatalogId: catB,
+            versionNumber: 1,
+            status: "ENTWURF",
+            headerSystemText: "h",
+            headerEditingText: "h2",
+            createdAt: now,
+            createdBy: actor,
+          },
+        });
+        await tx.offer.create({
+          data: {
+            tenantId: tenantA,
+            id: offerId,
+            projectId: randomUUID(),
+            customerId: randomUUID(),
+            currentVersionId: versionId,
+            createdAt: now,
+            createdBy: actor,
+          },
+        });
+        await tx.offerVersion.create({
+          data: {
+            tenantId: tenantB,
+            id: versionId,
+            offerId,
+            versionNumber: 1,
+            status: "ENTWURF",
+            lvVersionId: lvB,
+            systemText: "sys",
+            editingText: "edit",
+            createdAt: now,
+            createdBy: actor,
+          },
+        });
+      }),
+    ).rejects.toMatchObject({ code: "P2003" });
+  });
+
+  it("rejects offer when current_version_id has no matching offer_version at commit (offers_current_version_fkey)", async () => {
+    const tenantId = randomUUID();
+    const offerId = randomUUID();
+    const bogusVersionId = randomUUID();
+    await expect(
+      prisma.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe("SET CONSTRAINTS ALL DEFERRED");
+        await tx.offer.create({
+          data: {
+            tenantId,
+            id: offerId,
+            projectId: randomUUID(),
+            customerId: randomUUID(),
+            currentVersionId: bogusVersionId,
+            createdAt: new Date(),
+            createdBy: randomUUID(),
+          },
+        });
+      }),
+    ).rejects.toMatchObject({ code: "P2003" });
+  });
+
+  it("allows deferred insert: offer row before offer_version when current_version_id matches (same transaction)", async () => {
+    const tenantId = randomUUID();
+    const offerId = randomUUID();
+    const versionId = randomUUID();
+    const catId = randomUUID();
+    const lvVid = randomUUID();
+    const actor = randomUUID();
+    const now = new Date();
+    const rollbackTag = "ROLLBACK_DEFERRED_INSERT_TEST";
+    await expect(
+      prisma.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe("SET CONSTRAINTS ALL DEFERRED");
+        await tx.lvCatalog.create({
+          data: {
+            tenantId,
+            id: catId,
+            name: "defer-offer-fk",
+            currentVersionId: lvVid,
+            createdAt: now,
+            createdBy: actor,
+          },
+        });
+        await tx.lvVersion.create({
+          data: {
+            tenantId,
+            id: lvVid,
+            lvCatalogId: catId,
+            versionNumber: 1,
+            status: "ENTWURF",
+            headerSystemText: "h",
+            headerEditingText: "h2",
+            createdAt: now,
+            createdBy: actor,
+          },
+        });
+        await tx.offer.create({
+          data: {
+            tenantId,
+            id: offerId,
+            projectId: randomUUID(),
+            customerId: randomUUID(),
+            currentVersionId: versionId,
+            createdAt: now,
+            createdBy: actor,
+          },
+        });
+        await tx.offerVersion.create({
+          data: {
+            tenantId,
+            id: versionId,
+            offerId,
+            versionNumber: 1,
+            status: "ENTWURF",
+            lvVersionId: lvVid,
+            systemText: "sys",
+            editingText: "edit",
+            createdAt: now,
+            createdBy: actor,
+          },
+        });
+        const o = await tx.offer.findUnique({ where: { tenantId_id: { tenantId, id: offerId } } });
+        expect(o?.currentVersionId).toBe(versionId);
+        throw new Error(rollbackTag);
+      }),
+    ).rejects.toThrow(rollbackTag);
+    const leaked = await prisma.offer.findUnique({ where: { tenantId_id: { tenantId, id: offerId } } });
+    expect(leaked).toBeNull();
+  });
+
+  it("persisted audit_event survives PrismaClient disconnect and new connection (restart simulation)", async () => {
+    const id = randomUUID();
+    const tenantId = randomUUID();
+    const entityId = randomUUID();
+    const actorId = randomUUID();
+    const ts = new Date();
+    await prisma.auditEvent.create({
+      data: {
+        id,
+        tenantId,
+        entityType: "OFFER_VERSION",
+        entityId,
+        action: "PERSISTENCE_QA_PROBE",
+        timestamp: ts,
+        actorUserId: actorId,
+        reason: "increment-2 reconnect smoke",
+      },
+    });
+    await prisma.$disconnect();
+
+    const prisma2 = new PrismaClient({ datasourceUrl: dbUrl! });
+    const row = await prisma2.auditEvent.findUnique({ where: { id } });
+    expect(row).not.toBeNull();
+    expect(row?.action).toBe("PERSISTENCE_QA_PROBE");
+    expect(row?.tenantId).toBe(tenantId);
+    await prisma2.auditEvent.delete({ where: { id } });
+    await prisma2.$disconnect();
+
+    prisma = new PrismaClient({ datasourceUrl: dbUrl! });
+  });
+});

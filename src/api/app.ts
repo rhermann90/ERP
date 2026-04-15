@@ -1,0 +1,538 @@
+import Fastify, { FastifyInstance } from "fastify";
+import { randomUUID } from "node:crypto";
+import { ZodError } from "zod";
+import { AuthContext, verifyBearerToken } from "../auth/token-auth.js";
+import { DomainError } from "../errors/domain-error.js";
+import { assertSystemTextNotInUpdatePayload } from "../domain/lv-text-structure-policy.js";
+import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
+import { AuditService } from "../services/audit-service.js";
+import { AuthorizationService } from "../services/authorization-service.js";
+import { ExportService } from "../services/export-service.js";
+import { LvReferenceValidator } from "../services/lv-reference-validator.js";
+import { LvService } from "../services/lv-service.js";
+import { MeasurementService } from "../services/measurement-service.js";
+import { OfferService } from "../services/offer-service.js";
+import { SupplementService } from "../services/supplement-service.js";
+import { TraceabilityService } from "../services/traceability-service.js";
+import {
+  addLvPositionSchema,
+  addLvStructureNodeSchema,
+  allowedActionsQuerySchema,
+  applySupplementBillingImpactSchema,
+  auditListQuerySchema,
+  authHeaderSchema,
+  createLvCatalogSchema,
+  createLvCatalogVersionSchema,
+  createMeasurementSchema,
+  createMeasurementVersionSchema,
+  createSupplementSchema,
+  createOfferVersionSchema,
+  patchLvPositionSchema,
+  prepareExportSchema,
+  transitionLvVersionStatusSchema,
+  transitionMeasurementStatusSchema,
+  transitionSupplementStatusSchema,
+  transitionOfferStatusSchema,
+  updateLvNodeEditingSchema,
+  updateMeasurementPositionsSchema,
+} from "../validation/schemas.js";
+import { seedDemoData } from "../composition/seed.js";
+import {
+  buildFastifyLoggerOptions,
+  normalizeCorsOrigins,
+  parseCorsOriginsFromEnv,
+  registerPwaHttpHooks,
+} from "../http/pwa-http-layer.js";
+import { PrismaClient } from "@prisma/client";
+import {
+  assertDatabaseUrlForPostgresMode,
+  resolveRepositoryMode,
+  type RepositoryMode,
+} from "../config/repository-mode.js";
+import { noopOfferPersistence, PrismaOfferPersistence, type OfferPersistencePort } from "../persistence/offer-persistence.js";
+import {
+  noopLvMeasurementPersistence,
+  PrismaLvMeasurementPersistence,
+  type LvMeasurementPersistencePort,
+} from "../persistence/lv-measurement-persistence.js";
+
+export type BuildAppOptions = {
+  seedDemoData?: boolean;
+  /** Test-Override; in Produktion: `CORS_ORIGINS` (kommagetrennt). Leer = kein CORS. */
+  corsOrigins?: string[];
+  /** Explizit In-Memory erzwingen (Vitest, lokale Demos ohne DB). */
+  repositoryMode?: RepositoryMode;
+};
+
+export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstance> {
+  const logger =
+    process.env.NODE_ENV === "test" || process.env.LOG_DISABLE === "1"
+      ? false
+      : buildFastifyLoggerOptions();
+  const app = Fastify({ logger });
+  const corsList = options?.corsOrigins ?? parseCorsOriginsFromEnv();
+  registerPwaHttpHooks(app, normalizeCorsOrigins(corsList));
+
+  app.get("/health", async (_request, reply) => {
+    return reply.status(200).send({ status: "ok" as const });
+  });
+
+  const repos = new InMemoryRepositories();
+  const repositoryMode = resolveRepositoryMode({ repositoryMode: options?.repositoryMode });
+  let prisma: PrismaClient | null = null;
+  let offerPersistence: OfferPersistencePort = noopOfferPersistence;
+  let lvMeasurementPersistence: LvMeasurementPersistencePort = noopLvMeasurementPersistence;
+
+  if (repositoryMode === "postgres") {
+    assertDatabaseUrlForPostgresMode(repositoryMode);
+    prisma = new PrismaClient();
+    offerPersistence = new PrismaOfferPersistence(prisma);
+    lvMeasurementPersistence = new PrismaLvMeasurementPersistence(prisma);
+    if (options?.seedDemoData ?? true) {
+      seedDemoData(repos);
+      await lvMeasurementPersistence.syncAllFromMemory(repos);
+      await offerPersistence.syncAllOffersFromMemory(repos);
+    } else {
+      await lvMeasurementPersistence.hydrateIntoMemory(repos);
+      await offerPersistence.hydrateOffersIntoMemory(repos);
+    }
+    app.addHook("onClose", async () => {
+      await prisma?.$disconnect();
+    });
+    app.log.info(
+      "Persistenz: Postgres LV+Aufmass (ADR-0004/0005) + Offer+OfferVersion (ADR-0006); übrige Entitäten weiter In-Memory.",
+    );
+  } else {
+    if (options?.seedDemoData ?? true) {
+      seedDemoData(repos);
+    }
+    if (process.env.NODE_ENV !== "test") {
+      app.log.warn(
+        "repositoryMode=memory: keine Postgres-Persistenz für Offers (ERP_REPOSITORY=memory oder ohne DATABASE_URL).",
+      );
+    }
+  }
+
+  const audit = new AuditService(repos, prisma);
+  const lvRef = new LvReferenceValidator(repos);
+  const offerService = new OfferService(repos, audit, lvRef, offerPersistence);
+  const supplementService = new SupplementService(repos, audit, lvRef);
+  const measurementService = new MeasurementService(repos, audit, lvRef, lvMeasurementPersistence);
+  const lvService = new LvService(repos, audit, lvMeasurementPersistence);
+  const exportService = new ExportService(repos, audit);
+  const traceabilityService = new TraceabilityService(repos);
+  const authorizationService = new AuthorizationService(repos);
+
+  app.post("/lv/catalogs", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      authorizationService.assertCanCreateLvCatalog(auth.role);
+      const body = createLvCatalogSchema.parse(request.body);
+      const result = await lvService.createCatalogWithSkeleton({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        ...body,
+      });
+      return reply.status(201).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.post("/lv/catalogs/:lvCatalogId/version", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      const params = request.params as { lvCatalogId: string };
+      const body = createLvCatalogVersionSchema.parse(request.body);
+      authorizationService.assertLvCreateNextVersionForCatalog(auth.tenantId, auth.role, params.lvCatalogId);
+      const result = await lvService.createNewVersionFromCatalog({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        lvCatalogId: params.lvCatalogId,
+        reason: body.reason,
+      });
+      return reply.status(201).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.post("/lv/versions/:lvVersionId/status", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      const params = request.params as { lvVersionId: string };
+      const body = transitionLvVersionStatusSchema.parse(request.body);
+      authorizationService.assertCanTransitionLvVersion(auth.role, body.nextStatus);
+      const result = await lvService.transitionVersionStatus({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        lvVersionId: params.lvVersionId,
+        nextStatus: body.nextStatus,
+        reason: body.reason,
+      });
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.post("/lv/versions/:lvVersionId/nodes", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      authorizationService.assertCanAddLvStructureNode(auth.role);
+      const params = request.params as { lvVersionId: string };
+      const body = addLvStructureNodeSchema.parse(request.body);
+      const result = await lvService.addStructureNode({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        lvVersionId: params.lvVersionId,
+        parentNodeId: body.parentNodeId,
+        kind: body.kind,
+        sortOrdinal: body.sortOrdinal,
+        systemText: body.systemText,
+        editingText: body.editingText,
+        reason: body.reason,
+      });
+      return reply.status(201).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.patch("/lv/nodes/:nodeId/editing-text", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      authorizationService.assertCanUpdateLvNodeEditing(auth.role);
+      const params = request.params as { nodeId: string };
+      assertSystemTextNotInUpdatePayload(request.body as Record<string, unknown>, "systemText");
+      const body = updateLvNodeEditingSchema.parse(request.body);
+      const result = await lvService.updateNodeEditingText({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        nodeId: params.nodeId,
+        editingText: body.editingText,
+        reason: body.reason,
+      });
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.post("/lv/versions/:lvVersionId/positions", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      authorizationService.assertCanAddLvPosition(auth.role);
+      const params = request.params as { lvVersionId: string };
+      const body = addLvPositionSchema.parse(request.body);
+      const result = await lvService.addPosition({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        lvVersionId: params.lvVersionId,
+        ...body,
+      });
+      return reply.status(201).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.patch("/lv/positions/:positionId", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      authorizationService.assertCanUpdateLvPosition(auth.role);
+      const params = request.params as { positionId: string };
+      assertSystemTextNotInUpdatePayload(request.body as Record<string, unknown>, "systemText");
+      const body = patchLvPositionSchema.parse(request.body);
+      const result = await lvService.updatePosition({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        positionId: params.positionId,
+        editingText: body.editingText,
+        quantity: body.quantity,
+        unit: body.unit,
+        unitPriceCents: body.unitPriceCents,
+        sortOrdinal: body.sortOrdinal,
+        reason: body.reason,
+      });
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.post("/measurements", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      authorizationService.assertCanCreateMeasurement(auth.role);
+      const body = createMeasurementSchema.parse(request.body);
+      const result = await measurementService.createMeasurement({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        ...body,
+      });
+      return reply.status(201).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.post("/measurements/status", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      const body = transitionMeasurementStatusSchema.parse(request.body);
+      authorizationService.assertCanTransitionMeasurementStatus(auth.role, body.nextStatus);
+      const result = await measurementService.transitionStatus({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        ...body,
+      });
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.post("/measurements/version", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      const body = createMeasurementVersionSchema.parse(request.body);
+      authorizationService.assertMeasurementCreateVersionForMeasurement(auth.tenantId, auth.role, body.measurementId);
+      const result = await measurementService.createVersion({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        measurementId: body.measurementId,
+        reason: body.reason,
+      });
+      return reply.status(201).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.post("/measurements/:measurementVersionId/positions", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      authorizationService.assertCanUpdateMeasurementPositions(auth.role);
+      const params = request.params as { measurementVersionId: string };
+      const body = updateMeasurementPositionsSchema.parse(request.body);
+      const result = await measurementService.updatePositions({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        measurementVersionId: params.measurementVersionId,
+        positions: body.positions,
+        reason: body.reason,
+      });
+      return reply.status(200).send({ positions: result });
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.get("/measurements/:measurementVersionId", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      const params = request.params as { measurementVersionId: string };
+      const result = measurementService.getVersionDetail(auth.tenantId, params.measurementVersionId);
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.post("/offers/version", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      const body = createOfferVersionSchema.parse(request.body);
+      authorizationService.assertOfferCreateVersionForOffer(auth.tenantId, auth.role, body.offerId);
+      const result = await offerService.createVersion({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        ...body,
+      });
+      return reply.status(201).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.post("/offers/:offerId/supplements", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      authorizationService.assertCanCreateSupplement(auth.role);
+      const params = request.params as { offerId: string };
+      const body = createSupplementSchema.parse(request.body);
+      const result = supplementService.createFromAcceptedOffer({
+        tenantId: auth.tenantId,
+        offerId: params.offerId,
+        actorUserId: auth.userId,
+        ...body,
+      });
+      return reply.status(201).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.post("/supplements/status", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      const body = transitionSupplementStatusSchema.parse(request.body);
+      authorizationService.assertCanTransitionSupplementStatus(auth.role, body.nextStatus);
+      const result = supplementService.transitionStatus({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        ...body,
+      });
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.post("/supplements/:supplementVersionId/billing-impact", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      authorizationService.assertCanApplySupplementBillingImpact(auth.role);
+      const params = request.params as { supplementVersionId: string };
+      const body = applySupplementBillingImpactSchema.parse(request.body);
+      const result = supplementService.applyBillingImpact({
+        tenantId: auth.tenantId,
+        supplementVersionId: params.supplementVersionId,
+        invoiceId: body.invoiceId,
+        actorUserId: auth.userId,
+        reason: body.reason,
+      });
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.get("/supplements/:supplementVersionId", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      const params = request.params as { supplementVersionId: string };
+      const result = supplementService.getById(auth.tenantId, params.supplementVersionId);
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.post("/offers/status", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      const body = transitionOfferStatusSchema.parse(request.body);
+      authorizationService.assertCanTransitionOfferStatus(auth.role, body.nextStatus);
+      const result = await offerService.transitionStatus({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        ...body,
+      });
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.post("/exports", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      const body = prepareExportSchema.parse(request.body);
+      authorizationService.assertCanExport(auth.role, body.entityType, body.format);
+      if (body.entityType === "INVOICE") {
+        traceabilityService.assertInvoiceTraceability(auth.tenantId, body.entityId);
+      }
+      const run = exportService.prepareExport({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        ...body,
+      });
+      return reply.status(201).send(run);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.get("/audit-events", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      const query = auditListQuerySchema.parse(request.query);
+      const result = await audit.listByTenant({
+        tenantId: auth.tenantId,
+        role: auth.role,
+        page: query.page,
+        pageSize: query.pageSize,
+      });
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+
+  app.get("/documents/:id/allowed-actions", async (request, reply) => {
+    try {
+      const auth = getAuthContext(request.headers);
+      const params = request.params as { id: string };
+      const query = allowedActionsQuerySchema.parse(request.query);
+      const allowedActions = authorizationService.getAllowedActions(auth.tenantId, query.entityType, params.id, auth.role);
+      return reply.status(200).send({
+        documentId: params.id,
+        entityType: query.entityType,
+        allowedActions,
+      });
+    } catch (error) {
+      return handleError(error, reply);
+    }
+  });
+  return app;
+}
+
+function getAuthContext(rawHeaders: unknown): AuthContext {
+  const headers = authHeaderSchema.parse(rawHeaders);
+  const auth = verifyBearerToken(headers.authorization);
+  if (headers["x-tenant-id"] && headers["x-tenant-id"] !== auth.tenantId) {
+    throw new DomainError("TENANT_SCOPE_VIOLATION", "Tenant-Scope passt nicht zum Auth-Token", 403);
+  }
+  return auth;
+}
+
+function handleError(error: unknown, reply: { status: (code: number) => { send: (body: unknown) => unknown } }) {
+  const correlationId = randomUUID();
+  if (error instanceof DomainError) {
+    const isRetryable = new Set(["AUTH_SESSION_EXPIRED", "VALIDATION_FAILED", "EXPORT_CHANNEL_UNAVAILABLE"]).has(
+      error.code,
+    );
+    return reply
+      .status(error.statusCode)
+      .send({
+        code: error.code,
+        message: error.message,
+        correlationId,
+        retryable: isRetryable,
+        blocking: !isRetryable,
+        details: error.details ?? undefined,
+      });
+  }
+  if (error instanceof ZodError) {
+    const first = error.issues[0];
+    const message = first
+      ? `${first.path.length ? `${first.path.join(".")}: ` : ""}${first.message}`
+      : "Validierung fehlgeschlagen";
+    return reply.status(400).send({
+      code: "VALIDATION_FAILED",
+      message,
+      correlationId,
+      retryable: true,
+      blocking: false,
+    });
+  }
+  return reply.status(400).send({
+    code: "VALIDATION_FAILED",
+    message: String(error),
+    correlationId,
+    retryable: true,
+    blocking: false,
+  });
+}

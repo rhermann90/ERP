@@ -1,0 +1,38 @@
+{
+  "name": "erp",
+  "version": "1.0.0",
+  "description": "ERP backend foundation for construction domain",
+  "main": "dist/index.js",
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "dev:token": "tsx scripts/print-dev-token.ts",
+    "dev:web": "npm run dev -w apps/web",
+    "build:web": "npm run build -w apps/web",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "prisma generate",
+    "prisma:validate": "node scripts/prisma-env-placeholder.mjs validate",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "fastify": "^5.8.5",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "prisma": "^5.22.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.4"
+  }
+}
