@@ -39,7 +39,7 @@ Der Reviewer sendet **ein** zusammenhängendes Textstück (Chat/Ticket). **Pflic
 
 `git pull origin main` im Team-Clone: vor jedem Review erneut ausführen. **§5a** nur mit **echten** Werten aus der GitHub-UI am PR.
 
-**Kanonisches Merge-Ziel FIN-0 (öffentlich, Branch = PR-Head):** https://github.com/rhermann90/ERP/pull/1 — `feat/fin-0-web-finance-vorbereitung`. Vorbefüllter **5a-pre)**-Kopierblock (Run + SHA, Stand Repo-Abfrage): [`prompts/KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md`](./KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md) Abschnitt **„5a) FIN-0 — PR #1 …“**. **Vor dem Posten am PR:** in GitHub Actions prüfen, dass der genannte Run noch **success** ist und der **Commit** noch dem **PR-Head** entspricht; nach jedem Push neue `RUN_ID` / `SHA` aus der UI kopieren.
+**Kanonisches Merge-Ziel FIN-0 (öffentlich, Branch = PR-Head):** https://github.com/rhermann90/ERP/pull/1 — `feat/fin-0-web-finance-vorbereitung`. **5a-pre)**-Vorlage + `curl|jq`-Hilfe + Platzhalter-Copy-Block: [`prompts/KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md`](./KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md) Abschnitt **„5a) FIN-0 — PR #1 …“**. **Vor dem Posten am PR:** `RUN_ID` und `SHA` aus der GitHub-UI oder per `jq` einsetzen (Run **success**, `head_sha` = PR-Head).
 
 ```text
 ## Rückmeldung an Projektleitung (Kurzfassung für nächste Prompts)
@@ -64,7 +64,7 @@ Merge-Evidence laut qa-fin-0-gate-readiness.md §5a im PR noch nicht vollständi
 - Jeder Push invalidiert die letzte CI-/Evidence-Annahme.
 
 ### Offene Punkte / PL-Entscheidung nötig
-- QA: §5a **im GitHub-PR** nachreichen (Kommentar/Beschreibung): fertigen Block aus `prompts/KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md` Abschnitt **5a) FIN-0 — PR #1** kopieren — **vor** dem Absenden Run in der GitHub-UI auf **success** + SHA = PR-Head prüfen.
+- QA: §5a **im GitHub-PR** nachreichen (Kommentar/Beschreibung): Vorlage + Platzhalter aus `prompts/KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md` Abschnitt **5a) FIN-0 — PR #1** — `<RUN_ID>` / `<SHA…>` mit UI oder `curl|jq` ersetzen, Run **success**, `head_sha` = PR-Head.
 - Merge-Ziel-PR ist festgelegt: **https://github.com/rhermann90/ERP/pull/1** (bei Abweichung diesen Absatz im Repo aktualisieren).
 
 ### Nächster fokussierter Scope (Vorschlag für PL, max. 5 Aufzählungspunkte)
