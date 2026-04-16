@@ -186,4 +186,4 @@
 
 **Nächster Schritt:** Kick-off **FIN-0** (ADR-Entwurf + Schnittstelle Rechnung ↔ bestehende Traceability), Pflege **`docs/tickets/FIN-2-START-GATE.md`** (G1–G10), Eintrag der Phasen in euer Ticket-System (Labels `FIN-0` … `FIN-6`).
 
-**Rollenprompts (kopierfertig):** [`prompts/FIN-0-rollenprompts.md`](../prompts/FIN-0-rollenprompts.md) — inkl. **PL/System zuerst**, feste **Vier-Prompt-Reihenfolge**; **Rückmeldung für die nächste Prompt-Planung** verbindlich nur vom **Code Reviewer**; Einstieg [`prompts/README.md`](../prompts/README.md) (**nur Team-Clone**); Orchestrierung **§0** [`prompts/AGENTEN-PROMPT-LEITFADEN.md`](../prompts/AGENTEN-PROMPT-LEITFADEN.md).
+**Rollenprompts (kopierfertig):** [`prompts/FIN-0-rollenprompts.md`](../prompts/FIN-0-rollenprompts.md) — inkl. **PL/System zuerst**, feste **Vier-Prompt-Reihenfolge**; **Rückmeldung für die nächste Prompt-Planung** verbindlich nur vom **Code Reviewer**; Einstieg [`prompts/README.md`](../prompts/README.md) (**nur Team-Clone**, kanonisches `origin` dort); Orchestrierung **§0** [`prompts/AGENTEN-PROMPT-LEITFADEN.md`](../prompts/AGENTEN-PROMPT-LEITFADEN.md).

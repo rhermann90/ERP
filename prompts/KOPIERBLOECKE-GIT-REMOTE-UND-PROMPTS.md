@@ -12,6 +12,26 @@
 
 ---
 
+## 0) PL-Preflight (vor jeder Orchestrierungs-Runde)
+
+Im **Team-Clone** ausführen (`cd` auf euren Pfad):
+
+```bash
+git remote -v
+# Erwartung: origin → git@github.com:rhermann90/ERP.git (oder HTTPS-URL aus prompts/README.md)
+
+git status -sb
+# Erwartung: bewusster Scope; keine Secrets / keine Private-Key-Dateien im Staging
+```
+
+**SSH zu GitHub prüfen** (welcher Key wird angeboten; „Never used“ in GitHub-Einstellungen verschwindet nach erfolgreicher Nutzung oft verzögert):
+
+```bash
+ssh -vT git@github.com 2>&1 | grep -E 'Offering public key|Hi |Authenticated to'
+```
+
+---
+
 ## 1) Remote setzen und `main` pushen (HTTPS)
 
 ```bash
