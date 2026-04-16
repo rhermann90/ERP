@@ -129,4 +129,23 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     expect(res.statusCode).toBe(403);
     expect((res.json() as { code: string }).code).toBe("TENANT_SCOPE_VIOLATION");
   });
+
+  it("rejects invalid Bearer with 401 UNAUTHORIZED (POST /finance/payment-terms/versions)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/finance/payment-terms/versions",
+      headers: {
+        authorization: "Bearer v1.invalid-token-part.signature",
+        "x-tenant-id": SEED_IDS.tenantId,
+      },
+      payload: {
+        projectId: randomUUID(),
+        customerId: randomUUID(),
+        termsLabel: "14 Tage netto",
+        reason: "FIN-0 stub auth test",
+      },
+    });
+    expect(res.statusCode).toBe(401);
+    expect((res.json() as { code: string }).code).toBe("UNAUTHORIZED");
+  });
 });

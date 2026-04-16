@@ -97,7 +97,7 @@ Du bist **Frontend-Entwickler** für `apps/web` (React, bestehende Shell, `allow
 
 Du bist **QA Engineer** für dieses Repository.
 
-**Pflichtlektüre (Repo/CI):** [`prompts/README.md`](./README.md) (Team-Clone); [`docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md`](../docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md) (Sprint-Snapshot; neuere Zyklen: datierte Datei laut [`PL-SYSTEM-ZUERST-VORLAGE.md`](../docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md)); [`prompts/AGENTEN-PROMPT-LEITFADEN.md`](./AGENTEN-PROMPT-LEITFADEN.md) (Orchestrierung, Pflichtzeilen, Lieferkette, Review A/B/C); [`docs/contracts/qa-fin-0-gate-readiness.md`](../docs/contracts/qa-fin-0-gate-readiness.md) (§0, §3b, §4 G8, §5a/§5b, Rückmeldeformat); [`docs/tickets/FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md); [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
+**Pflichtlektüre (Repo/CI):** [`prompts/README.md`](./README.md) (Team-Clone); [`docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md`](../docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md) (Sprint-Snapshot; neuere Zyklen: datierte Datei laut [`PL-SYSTEM-ZUERST-VORLAGE.md`](../docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md)); [`prompts/AGENTEN-PROMPT-LEITFADEN.md`](./AGENTEN-PROMPT-LEITFADEN.md) (Orchestrierung, Pflichtzeilen, Lieferkette, Review A/B/C); [`docs/contracts/qa-fin-0-gate-readiness.md`](../docs/contracts/qa-fin-0-gate-readiness.md) (§0, §3b, §4 G8, §5a/§5b, Rückmeldeformat); [`docs/contracts/qa-fin-0-stub-test-matrix.md`](../docs/contracts/qa-fin-0-stub-test-matrix.md) (FIN-0 HTTP-Stubs); [`docs/tickets/FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md); [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
 **Kontext**
 

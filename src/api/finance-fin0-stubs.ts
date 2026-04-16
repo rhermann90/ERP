@@ -42,7 +42,13 @@ function parseIdempotencyKey(headers: Record<string, string | string[] | undefin
 }
 
 /**
- * FIN-0: HTTP-Stubs für docs/api-contract.yaml (Finance-Tag). Keine Persistenz, kein FIN-2 bis Gate.
+ * FIN-0: HTTP-Stubs für `docs/api-contract.yaml` (operationIds `finPaymentTermsVersionCreate`,
+ * `finInvoiceDraftCreate`, `finInvoiceGet`, `finPaymentIntakeCreate`).
+ *
+ * **FIN-2 Implementation out of scope**; FIN-0 HTTP stubs only — siehe `docs/tickets/FIN-2-START-GATE.md`
+ * und `docs/adr/0007-finance-persistence-and-invoice-boundaries.md`. Fail-closed:
+ * `docs/contracts/finance-fin0-openapi-mapping.md` (nur bestehende Domain-Codes aus `error-codes.json`).
+ * Keine Prisma-Rechnung/Zahlung, keine produktive Buchung.
  */
 export function registerFinanceFin0Stubs(app: FastifyInstance): void {
   app.post("/finance/payment-terms/versions", async (request, reply) => {

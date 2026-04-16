@@ -31,6 +31,33 @@ Der Reviewer sendet **ein** zusammenhängendes Textstück (Chat/Ticket). **Pflic
 
 **Ohne** diese Mindestfelder formuliert die PL **keine** neue Vier-Prompt-Runde (Nachforderung beim Reviewer).
 
+### Lieferung Code-Review (aktuelle Runde — Branch `feat/fin-0-web-finance-vorbereitung` vs `origin/main`)
+
+`git pull origin main` im Team-Clone: **Already up to date.** Review ohne GitHub-PR-Nummer (kein `gh`); Diff lokal `origin/main..HEAD`.
+
+```text
+## Rückmeldung an Projektleitung (Kurzfassung für nächste Prompts)
+
+### Ergebnis
+Ein zusammenhängender Branch enthält FIN-0-Frontend (read-only „Finanz (Vorbereitung)“, Hash-Route, `getInvoice` nur GET), QA-Artefakte (`docs/contracts/qa-fin-0-stub-test-matrix.md`, Ergänzungen in `qa-fin-0-gate-readiness.md`), kleine Backend-Anpassungen (Kommentar `finance-fin0-stubs.ts`, zusätzlicher Stub-Test 401) sowie `prompts/*` und eine Zeile `docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`. Keine Phantom-Domain-Codes im Diff; `getInvoice` nutzt dieselbe Tenant/Bearer-Header-Kette wie `requestJson`. Kein produktives FIN-2-UI.
+
+### blocking
+Merge-Evidence laut `qa-fin-0-gate-readiness.md` **§5a** im PR noch nicht vollständig (grüner Actions-Link + SHA + Team-Regel Evidence-SHA) — **kein Approve** bis zur Nachreichung.
+
+### Pflicht (Merge-Evidence / QA-Sicht)
+- Grüner GitHub-Actions-Link für Merge auf main: nein — fehlt (in dieser Review-Sitzung kein Run verlinkt; keine erfundene URL)
+- Merge auf main aus QA-Sicht blockiert: ja — §5a für den konkreten Merge unvollständig
+
+### Nächster fokussierter Scope (Vorschlag für PL, max. 5 Aufzählungspunkte)
+- QA: Nach grünem CI vollständiges §5a im PR (Run-URL + SHA + eine Zeile Team-Regel Evidence-SHA); bei mehreren offenen PRs klären, welcher Run den Merge auf `main` belegt.
+- PL/Team: PR-Beschreibung/Scope-Zeile — ob bewusst **ein** Bundle-PR (Frontend+QA+kleine Backend-Stub-Ergänzung) oder Aufteilung nach Wunsch; bei getrennter Kommunikation „nur Frontend/QA“ follow-up für Transparenz.
+- Frontend: Nach Merge — Stichprobe `apps/web` gegen Gate-Vorlage (keine Schreibaktionen auf Finanz-Vorbereitungsseite; weiterhin nur `allowed-actions`-SoT für Mutationen).
+- Backend: In dieser Runde nur Stub-Test/Kommentar mitreviewt; kein Audit-Laufzeit-Change.
+- Kein FIN-2 produktiv; Audit nur mit PL-Eintrag FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md.
+```
+
+**GitHub-Review am PR:** Markdown mit Vorbedingung PL, Umfang „Files changed“, Kurz-8-Punkte, Frontend/QA/Backend-Stichprobe — Abschnitt **blocking** wortgleich der Zeile unter „### blocking“ oben (Szenario A laut `prompts/AGENTEN-PROMPT-LEITFADEN.md` §5).
+
 ---
 
 ## 2) Was die PL daraus macht (Arbeitsregel)

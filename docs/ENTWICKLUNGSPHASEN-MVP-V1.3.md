@@ -55,7 +55,7 @@
 
 - **ADR** (neu oder Fortführung von 0003/0006): Persistenzgrenzen für **Rechnung**, **Zahlungsbedingungs-Version**, **Zahlungseingang**, **Zuordnung**, **Mahnkonfiguration** / **Mahnereignis**; Transaktionsgrenzen und Idempotenz-Hooks für **8.7**.  
 - **OpenAPI** (`docs/api-contract.yaml`): Ressourcen- und Fehlercodes für die folgenden Phasen skizziert (Stub-Endpunkte erlaubt, aber **keine** Phantom-Codes).  
-- **Teststrategie:** P0-Matrix-Einträge für Tenant-Leak und SoT für Finanz-Endpunkte.
+- **Teststrategie:** P0-Matrix-Einträge für Tenant-Leak und SoT für Finanz-Endpunkte; FIN-0-Stub-Matrix [`docs/contracts/qa-fin-0-stub-test-matrix.md`](./contracts/qa-fin-0-stub-test-matrix.md) und Gate-/Merge-Evidence [`docs/contracts/qa-fin-0-gate-readiness.md`](./contracts/qa-fin-0-gate-readiness.md).
 
 **Meilenstein M0 (abgenommen, wenn …)**
 
