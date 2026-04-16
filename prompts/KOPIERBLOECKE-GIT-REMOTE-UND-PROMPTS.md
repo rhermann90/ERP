@@ -141,6 +141,36 @@ Team-Regel Evidence-SHA (Pflicht: genau eine Zeile, vom Team bestätigt; QA rate
 Kontext FIN-0 / Gate: docs/contracts/qa-fin-0-gate-readiness.md | FIN-2-Start-Gate: docs/tickets/FIN-2-START-GATE.md
 ```
 
+### 5a) FIN-0 — PR #1 (`feat/fin-0-web-finance-vorbereitung`) — **5a-pre)** vorbefüllt
+
+**Merge-Ziel-PR:** https://github.com/rhermann90/ERP/pull/1  
+
+**Hinweis:** `RUN_ID` und vollständiger `SHA` aus der **GitHub-UI** oder per **`curl|jq`** unten (öffentliche API). **Vor dem Posten am PR:** Run **success**; `head_sha` des Laufs = **PR-Head** (erstes `curl`). Fest eingetragene Beispiel-Zahlen im Repo **veralten** nach jedem Push — deshalb im Copy-Block unten **Platzhalter**; Werte immer frisch holen.
+
+**Optional (Terminal, öffentliche API):** neuesten Run auf dem Branch — `head_sha` muss dem PR-Head entsprechen:
+
+```bash
+curl -sS "https://api.github.com/repos/rhermann90/ERP/pulls/1" | jq -r '"PR head: " + .head.sha'
+curl -sS "https://api.github.com/repos/rhermann90/ERP/actions/runs?branch=feat/fin-0-web-finance-vorbereitung&per_page=1" \
+  | jq -r '.workflow_runs[0] | "Neuester Run: " + (.id|tostring) + " conclusion=" + .conclusion + " head_sha=" + .head_sha'
+```
+
+*Orientierungsbeispiel (nach Push oft falsch — nur gegenprüfen): Run `24536117032`, Head `3b9b8f00e5a5a724596f1f8c80a4db9e37fe74e7`, `success`.*
+
+```text
+## QA — Merge-Evidence (PR — pre-merge)
+
+Actions (grün): https://github.com/rhermann90/ERP/actions/runs/<RUN_ID> — Commit <SHA_AUS_RUN_DETAIL_PR_HEAD> — geprüfter PR-Head, Job `backend`
+
+Team-Regel Evidence-SHA (Pflicht: genau eine Zeile, vom PL/Team bestätigt; QA ratet nicht): SHA = Commit aus Run-Detail (PR-Head); Merge auf main erst nach Approve unter dieser Evidence.
+
+QA-Kern (Permalink) — optional (Team empfohlen): <nach dem Posten: Kommentar-Zeitstempel in GitHub anklicken, HTTPS-URL der Seite kopieren>
+
+Kontext FIN-0 / Gate: docs/contracts/qa-fin-0-gate-readiness.md | FIN-2-Start-Gate: docs/tickets/FIN-2-START-GATE.md
+```
+
+Optional **darunter** (gleicher Kommentar, laut `qa-fin-0-gate-readiness.md` §5c): Stub-Matrix / manuelle Stichproben — **kein** Ersatz für den grünen `backend`-Run.
+
 **Direktlink Root-Import** (nach Push):
 
 `https://github.com/rhermann90/ERP/commit/0f12ea9c78a45328f0ec638d2e66a6b642b01738`

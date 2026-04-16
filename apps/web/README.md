@@ -7,6 +7,7 @@ Vite + React + TypeScript + `vite-plugin-pwa`. Die UI koppelt Schreibaktionen au
 | Variable | Bedeutung |
 |----------|-----------|
 | `VITE_API_BASE_URL` | Backend-Origin, z. B. `http://localhost:3000` (Default im Code, falls unset) |
+| `VITE_REPO_DOCS_BASE` | Optional: GitHub-`blob/main`-URL **ohne** trailing slash — klickbare Links auf der Seite **Finanz (Vorbereitung)** (`#/finanz-vorbereitung`) |
 
 Kopiere `apps/web/.env.example` nach `.env` (nur Vite-Variablen). Backend-Umgebung siehe Repo-Root [`.env.example`](../.env.example).
 
@@ -65,7 +66,15 @@ npm run test     # Frontend-Unit-Tests (SoT, Session, Envelope, Text-Rendering)
 
 Gelesen: [`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`](../docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md), [`docs/tickets/FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md).
 
-**Ergebnis dieses Schritts:** **Kein UI-Change für FIN-0** (keine neue Route, kein Mahn-/Zahlungsbuchungs-UI, kein read-only „Finanz (vorbereitet)“-Stub ohne PL-Auftrag). **API-Client:** Fehler-Envelope strikt an [`docs/contracts/error-codes.json`](../docs/contracts/error-codes.json) + Decision-Log (`Passthrough`; Fallback `x-request-id` / UUID + Code-Tabelle bei fehlenden Envelope-Feldern). Das FIN-2-Start-Gate verlangt keine PWA-Sichtbarkeit von OpenAPI-Stubs; FIN-0 sieht Frontend **nur bei expliziter PR-Vereinbarung** vor (Gate Abschnitt 2 / Weiterleitung Abschnitt 5).
+**PR-Scope-Zeile:** `FIN-0 UI/Doku-Vertiefung only; kein FIN-2.`
+
+**Was diese Runde geändert hat:** Die Seite **Finanz (Vorbereitung)** verlinkt zusätzlich die QA-**Stub-Testmatrix** [`qa-fin-0-stub-test-matrix.md`](../docs/contracts/qa-fin-0-stub-test-matrix.md); die Doku-Navigation ist mit `aria-label` / `aria-describedby` und sichtbarem **:focus-visible** für Tastaturnutzer klarer. Inhaltlich unverändert: **keine** Buchungs-, Zahlungs- oder Mahn-Oberfläche und **keine** neuen Schreibpfade an Finanz-POSTs — weiterhin nur Orientierung an FIN-0 vs. späteren Phasen.
+
+**Ergebnis / UI:** Read-only **„Finanz (Vorbereitung)“** (`#/finanz-vorbereitung`): Kurztext + Links zu ADR 0007, FIN-2-Start-Gate, `finance-fin0-openapi-mapping.md`, Stub-Testmatrix (über `VITE_REPO_DOCS_BASE` oder lokale Pfade im UI). **Kein** Mahn-, Zahlungs- oder Buchungs-UI; Schreibaktionen weiter ausschließlich nach `GET …/allowed-actions`. **API-Client:** optionaler Lesepfad `getInvoice` → `GET /invoices/{invoiceId}` (OpenAPI-Stub). **API-Client allgemein:** Fehler-Envelope strikt an [`docs/contracts/error-codes.json`](../docs/contracts/error-codes.json) + Decision-Log (`Passthrough`; Fallback `x-request-id` / UUID + Code-Tabelle bei fehlenden Envelope-Feldern).
+
+### Finanz (FIN-0 vs. spätere Phasen)
+
+FIN-0 in der PWA bedeutet hier **nur** Orientierung an Verträgen und Gates — keine produktive Rechnungsbuchung und kein 8.4-Berechnungsmotor vor Freigabe **G1–G10** in [`FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md). **FIN-4** (Mahnwesen, Spez **8.10**) und **FIN-6** (u. a. Härtung, **8.14**, **12**, **15**) sind spätere Ausbaustufen; bis dahin keine Offline-**Schreib**pfade für Zahlung oder Mahnung in der PWA (vgl. Spez **8.14** und Abschnitt Offline oben — **dokumentiert**, nicht als neue Client-Schreiblogik implementiert). Produktive Finanzvolumina und Audit-relevante Laufzeit bleiben an Backend, PL-Einträge und Gate gebunden.
 
 **Ticket-Kommentar (Vorlage):** „FIN-0 Frontend: kein Finanz-/Mahn-/Buchungs-UI und kein optionaler Stub ohne PL; `GET …/allowed-actions` bleibt einziger SoT für Schreibaktionen. Envelope-Normalisierung in `api-error.ts` an `error-codes.json` / `decision-log-phase1-frontend.md`; `npm run test -w apps/web` + `npm run build:web` grün.“
 
@@ -86,8 +95,6 @@ FIN-/Export-Fehler — Stichprobe (1×)
 ```
 
 **Neue `domainErrorCodes`:** Zuerst [`docs/contracts/error-codes.json`](../docs/contracts/error-codes.json) im Repo ergänzen (`classes` inkl. `retryable`/`blocking`/`httpStatus` wie Backend). `src/lib/api-error.ts` liest die Tabelle aus dieser Datei — **keine Drift** zwischen Contract und Fallback. Nur wenn Backend einen Code laut `backendEnvelope.retryableDerivation` o. Ä. ausweist, der **noch nicht** in `classes` steht: vorübergehend `buildCodeTable()` in `api-error.ts` ergänzen **und** Ticket an PL/Backend für vollständige Eintragung in `error-codes.json`. Unbekannte Codes ohne Tabellenzeile: weiterhin konservatives Fallback (`retryable: false`, `blocking: true`, außer bekannte Spezialfälle).
-
-**Optionaler read-only „Finanz (vorbereitet)“-Stub:** weiterhin **nur** nach explizitem PL-Auftrag; sonst **kein weiterer UI-Change**.
 
 **Ticket-Kommentar „kein weiterer UI-Change“ (Vorlage):** „Frontend apps/web: kein zusätzlicher Finanz-/Mahn-/Buchungs-UI und kein Stub ohne PL; Schreibpfade unverändert nur über `GET …/allowed-actions`. Envelope-Logik unverändert; bei neuen Backend-Codes siehe Sync `error-codes.json` ↔ `api-error.ts`. `npm run test -w apps/web` + `npm run build:web` grün. Erste FIN-/Export-Stichprobe: **ausstehend** bis Backend reproduzierbaren Fehler-JSON liefert (siehe Vorlage ‚Ticket an Backend‘).“
 

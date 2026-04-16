@@ -40,6 +40,7 @@ components:
       description: |
         Pflicht für Zahlungseingang (8.7) sobald Endpunkt produktiv; technische Eindeutigkeit `(tenant_id, idempotency_key)` gemäß ADR-0007.
         FIN-0 dokumentiert nur den Contract — kein produktiver Buchungsweg.
+        FIN-0-Backend: Header wird **case-insensitive** gelesen (HTTP-Üblichkeit); Wert muss **UUID** sein, sonst `400` / `VALIDATION_FAILED`.
   schemas:
     AllowedActionsResponse:
       type: object

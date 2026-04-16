@@ -1,7 +1,7 @@
 # QA — FIN-0 Gate-Readiness & FIN-2-Start-Gate (Testbarkeit)
 
 **Rolle:** QA Engineer (Repository).  
-**Kontext:** FIN-0 = primär Dokumentation/Verträge; Regression = **gesamte** CI / lokaler `npm test` grün. **Merge auf `main`/`master`:** kanonische Evidence = **grüner GitHub Actions-Run** (Job wie [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)); lokale CI-Parität (89/0) **ersetzt** den Remote-Run **nicht**. FIN-2 = später; P0-Matrix nur **Stub** (siehe `qa-fin-2-start-gate-stub-matrix.md`).  
+**Kontext:** FIN-0 = primär Dokumentation/Verträge; Regression = **gesamte** CI / lokaler `npm test` grün. **Merge auf `main`/`master`:** kanonische Evidence = **grüner GitHub Actions-Run** (Job wie [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)); lokaler Erfolg (auch **99/99**, **0 skipped** lokal) **ersetzt** den Remote-Run **nicht**. FIN-2 = später; P0-Matrix nur **Stub** (siehe `qa-fin-2-start-gate-stub-matrix.md`).  
 **MVP-Abnahme später:** `ERP Systembeschreibung v1.3.md` **§15** *Validierung und Quality Gate* — dort u. a. Finanzlogik (Abschnitt 8) konsistent mit Lebenszyklen und Traceability, AuditEvent-Modell, Rollen inkl. Zahlungs-/Mahnaktionen.
 
 ---
@@ -77,18 +77,20 @@ Bei Eskalation, nach relevantem **Merge-PR-Review**, oder auf **PL-Anforderung**
 
 Siehe: [`qa-fin-2-start-gate-stub-matrix.md`](./qa-fin-2-start-gate-stub-matrix.md).
 
+**FIN-0 HTTP-Stubs (Happy / Edge / Negative):** [`qa-fin-0-stub-test-matrix.md`](./qa-fin-0-stub-test-matrix.md) — Aufrufe und erwartete Codes laut [`finance-fin0-openapi-mapping.md`](./finance-fin0-openapi-mapping.md); Tests verlinkt nach [`test/finance-fin0-stubs.test.ts`](../../test/finance-fin0-stubs.test.ts) (keine Duplikation der Assertions).
+
 ---
 
 ## 3) Regression — Evidenz (lokal)
 
 | Befehl | Ergebnis | Datum |
 | --- | --- | --- |
-| `npm test` (ohne `PERSISTENCE_DB_TEST_URL`) | **77** bestanden, **12** übersprungen (**89** gesamt); Skips = gesamte Datei `test/persistence.integration.test.ts` | 2026-04-14 |
-| CI-Kette lokal (Postgres 16, `DATABASE_URL` + `PERSISTENCE_DB_TEST_URL` wie Workflow) | `npx prisma migrate deploy` → `npm run prisma:validate` → `npm run typecheck` → `npm test`: **89/89**, **0 skipped**, **6/6** Test-Dateien | 2026-04-14 |
+| `npm test` (ohne `PERSISTENCE_DB_TEST_URL`) | **87** bestanden, **12** übersprungen (**99** Vitest-Tests gesamt); Skips = gesamte Datei `test/persistence.integration.test.ts` | 2026-04-17 |
+| CI-Kette lokal (Postgres 16, `DATABASE_URL` + `PERSISTENCE_DB_TEST_URL` wie Workflow) | `npx prisma migrate deploy` → `npm run prisma:validate` → `npm run typecheck` → `npm test`: **99/99**, **0 skipped**, **7/7** Test-Dateien | 2026-04-17 |
 
-**CI-Zielzustand (kanonisch):** [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) — in **GitHub Actions** (`npm ci`, `npx prisma migrate deploy`, `npm run prisma:validate`, `npm run typecheck`, `npm test` mit Postgres + `PERSISTENCE_DB_TEST_URL` → **89/89**, **0 skipped**).
+**CI-Zielzustand (kanonisch):** [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) — in **GitHub Actions** (`npm ci`, `npx prisma migrate deploy`, `npm run prisma:validate`, `npm run typecheck`, `npm test` mit Postgres + `PERSISTENCE_DB_TEST_URL` → **99/99**, **0 skipped**). *Bei abweichender Testanzahl im Branch den **grünen** `backend`-Run in GitHub als Maßstab verwenden und diese Tabelle nachziehen.*
 
-**Merge-Evidence — Pflicht für jeden Merge auf `main`/`master`:** Im **selben PR** (oder unmittelbar nach Merge in einer nachverfolgbaren Notiz am PR/Merge) **HTTPS-Link zum grünen GitHub Actions-Run** einfordern — Workflow wie [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), Job **`backend`**, und der ausgelöste **Commit-SHA** des Runs muss sich gegen den **Merge auf `main`** belegen lassen (siehe **3a** zu Squash vs. Merge: **nicht raten**). **Lokale 89/0** = **Zusatz**, **kein** Ersatz für den Remote-Run. **Ohne** einen im PR nachweisbaren **grünen** GitHub-Actions-Link, der den Merge auf **`main`** / **`master`** belegt → **vor Merge** Vorlage **§5b** (keine Merge-Empfehlung). Zusätzlich: Pipeline **rot** oder **SHA-Bezug** (Squash vs. Merge) **unklar** → **nicht interpretieren** → **Merge blockieren** und **§5b** (Run + Step + **ausschließlich wörtliches** Log aus Actions — **keine** Paraphrase, **keine** Zusammenfassung).
+**Merge-Evidence — Pflicht für jeden Merge auf `main`/`master`:** Im **selben PR** (oder unmittelbar nach Merge in einer nachverfolgbaren Notiz am PR/Merge) **HTTPS-Link zum grünen GitHub Actions-Run** einfordern — Workflow wie [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), Job **`backend`**, und der ausgelöste **Commit-SHA** des Runs muss sich gegen den **Merge auf `main`** belegen lassen (siehe **3a** zu Squash vs. Merge: **nicht raten**). **Lokale 99/0** = **Zusatz**, **kein** Ersatz für den Remote-Run. **Ohne** einen im PR nachweisbaren **grünen** GitHub-Actions-Link, der den Merge auf **`main`** / **`master`** belegt → **vor Merge** Vorlage **§5b** (keine Merge-Empfehlung). Zusätzlich: Pipeline **rot** oder **SHA-Bezug** (Squash vs. Merge) **unklar** → **nicht interpretieren** → **Merge blockieren** und **§5b** (Run + Step + **ausschließlich wörtliches** Log aus Actions — **keine** Paraphrase, **keine** Zusammenfassung).
 
 *Kein „grün genug“:* Jeder rote Test oder fehlgeschlagene CI-Job = **Blocker** bis Log im PR dokumentiert und behoben.
 
@@ -120,9 +122,62 @@ Für den geplanten **Doku-PR** (Ziel: nur [`prompts/`](../../prompts/) `*` inkl.
 
 ## 5) QA-Kommentar (Copy-Paste)
 
-**Regel:** Pro Merge-PR **exakt ein** QA-Kommentar (ein GitHub-Kommentar / ein Block), dessen Kern **immer** entweder **§5a** oder **§5b** ist — **kein** leerer QA-Kommentar, **kein** **zweiter** QA-**Kern**-Kommentar (5a/5b) zum **selben** Merge, der dem ersten **widerspricht**. Bei Korrektur: **bestehenden** Kommentar **editieren** und auf **Team-Klarheit** (Evidence, SHA-Regel) drängen — nicht einen neuen Kern-Kommentar parallel posten. **§5c** nur **im selben** Kommentar **unterhalb** von §5a oder §5b (FIN-2 / G8 / Kontext). **§5a** = grün + Run-URL + SHA + **Pflicht:** eine bestätigte Zeile **Team-Regel Evidence-SHA**. **§5b** = Blocker (Grund); Log nur **Copy-Paste** aus Actions (**keine** Paraphrase). **Fehlender Link** / **rot** / **SHA unklar** → **§5b**; QA **ratet** Squash/Merge-Zuordnung **nicht**. Eskalation oder formale **Rückmeldung an Projektleitung:** Format **„Rückmeldung an Projektleitung“** weiter oben in dieser Datei — **immer** mit Pflichtzeilen **Actions-Link vorhanden** (ja/nein), **Merge blockiert** (ja/nein) und bei Review-Eskalation dem Abschnitt **blocking** (siehe dort).
+### §5a — Felder (pre-merge und post-merge; nur echte Werte; nicht ausdenken)
+
+Im **§5a**-Kernkommentar sind Platzhalter **ausschließlich** durch echte Werte aus der **GitHub Actions-UI** (und bei Post-Merge zusätzlich aus dem Merge auf `main`) zu ersetzen — **keine** erfundenen URLs oder SHAs. **Post-Merge:** Vorlage **5a)** und Tabelle unten (Run belegt Merge auf `main`). **Pre-Merge** (PR noch nicht auf `main`): Vorlage **5a-pre)** — siehe nächster Absatz.
+
+**Vor Merge auf `main` (Szenario A — Review verlangt Evidence vor Approve):** Es darf **keine** falsche Behauptung `Commit <SHA> = Merge auf main` stehen, solange noch **kein** Merge auf `main` erfolgt ist. Stattdessen **§5a (PR-Evidence)** unten (**Vorlage 5a-pre**) verwenden: Run-URL und SHA aus dem **grünen** `backend`-Lauf auf dem **PR-Head** (Run-Detail in GitHub), plus **eine** vom **Projektleitung / Team** bestätigte Zeile **Team-Regel Evidence-SHA**, die klarstellt, dass der SHA den **vom Run geprüften PR-Commit** bezeichnet und ein Merge auf `main` **erst nach** Approve erfolgt. Nach erfolgreichem Merge kann dieselbe §5a-Zelle **editiert** werden auf die **Post-Merge**-Form (**Vorlage 5a)** mit Merge-Commit und passendem Run auf `main` — **nur** wenn das Team das so vereinbart; sonst neuer klar benannter Nachweis-Kommentar ohne Widerspruch zum Kern.
+
+| Feld | Herkunft | Platzhalter bis zur Nachreichung |
+| --- | --- | --- |
+| Run-URL | GitHub → Actions → grüner Workflow-Run für den Merge-Commit | `https://github.com/<ORG>/<REPO>/actions/runs/<RUN_ID>` |
+| SHA | Commit des Runs = Merge auf `main` (laut **Team-Regel Evidence-SHA**) | `<SHA>` |
+| Team-Regel Evidence-SHA | Eine bestätigte Zeile vom Team (Squash vs. Merge) | `<Team-Regelzeile>` |
+
+*Tabelle primär für **Post-Merge**. **Vor** Merge auf `main`: Run-URL = grüner Lauf zum **PR-Head**; SHA = Commit aus **Run-Detail** (nicht „Merge-Commit“ behaupten) — Vorlage **5a-pre)**.*
+
+Erst **nach** grünem `backend`-Job und belegbarem SHA die Zeile **„Actions (grün): …“** im PR posten — siehe Vorlage **5a-pre)** (vor Merge) bzw. **5a)** (nach Merge).
+
+**§5a — Pflicht-Bausteine im PR-Kommentar (vor Merge: 5a-pre); empfohlen zusätzlich:**  
+- **Nach Merge auf `main`:** siehe Bausteine wie in Vorlage **5a)** (Merge-Commit / Run auf `main`).  
+- **Vor Merge (Szenario A):** Vorlage **5a-pre)** — gleiche Pflicht-Bausteine, aber **ohne** die Behauptung „= Merge auf main“ in der Actions-Zeile; **Team-Regel Evidence-SHA** muss den PR-Kontext eindeutig machen.
+
+1. **Zeile Actions:** `Actions (grün):` + HTTPS Run-URL mit **echter** `RUN_ID` + **echtes** `SHA` + `Job backend` (Werte nur aus GitHub kopieren).  
+2. **Zeile Team-Regel:** `Team-Regel Evidence-SHA:` + **eine** vom Team bestätigte Zeile (Squash vs. Merge — QA ratet nicht).  
+3. **Optional (Team-Beschluss — Nachvollziehbarkeit):** eine Zeile **`QA-Kern (Permalink):`** + HTTPS-URL des **GitHub-Kommentars**, der diesen §5a-Block enthält (Kommentar-Zeitstempel in der UI anklicken → Adresszeile kopieren). **Ersetzt nicht** Run-URL + SHA; ergänzt nur den wörtlichen PR-Kontext.  
+4. **Optional:** Verweis auf diese Datei / [`qa-fin-0-stub-test-matrix.md`](./qa-fin-0-stub-test-matrix.md) und PR-Scope („reine Doku“ laut **§3b**, falls zutreffend).
+
+**Regel:** Pro Merge-PR **exakt ein** QA-Kommentar (ein GitHub-Kommentar / ein Block), dessen Kern **immer** entweder **§5a** oder **§5b** ist — **kein** leerer QA-Kommentar, **kein** **zweiter** QA-**Kern**-Kommentar (5a/5b) zum **selben** Merge, der dem ersten **widerspricht**. Bei Korrektur: **bestehenden** Kommentar **editieren** und auf **Team-Klarheit** (Evidence, SHA-Regel) drängen — nicht einen neuen Kern-Kommentar parallel posten. **§5c** nur **im selben** Kommentar **unterhalb** von §5a oder §5b (FIN-2 / G8 / Kontext). **§5a** = grün + Run-URL + SHA + **Pflicht:** eine bestätigte Zeile **Team-Regel Evidence-SHA**; **empfohlen (Team):** Permalink-Zeile zum QA-Kern-Kommentar (siehe Baustein 3 oben). **§5b** = Blocker (Grund); Log nur **Copy-Paste** aus Actions (**keine** Paraphrase). **Fehlender Link** / **rot** / **SHA unklar** → **§5b**; QA **ratet** Squash/Merge-Zuordnung **nicht**. Eskalation oder formale **Rückmeldung an Projektleitung:** Format **„Rückmeldung an Projektleitung“** weiter oben in dieser Datei — **immer** mit Pflichtzeilen **Actions-Link vorhanden** (ja/nein), **Merge blockiert** (ja/nein) und bei Review-Eskalation dem Abschnitt **blocking** (siehe dort).
+
+### 5a-pre) Grün — PR-Evidence **vor** Merge auf `main` (Szenario A)
+
+*Verwenden, solange der PR noch **nicht** auf `main` gemergt ist und der Reviewer §5a vor Approve verlangt. Keine erfundenen Werte.*
+
+```text
+## QA — Merge-Evidence (PR — pre-merge)
+
+Actions (grün): https://github.com/<ORG>/<REPO>/actions/runs/<RUN_ID> — Commit <SHA> — geprüfter PR-Head, Job `backend`
+
+Team-Regel Evidence-SHA (Pflicht: genau eine Zeile, vom PL/Team bestätigt; QA ratet nicht): <z. B. „SHA = Commit aus Run-Detail (PR-Head); Merge auf main erst nach Approve unter dieser Evidence.“>
+
+QA-Kern (Permalink) — optional, Team empfohlen: <HTTPS-URL des GitHub-Kommentars (Zeitstempel des Kommentars anklicken)>
+
+Kontext FIN-0 / Gate: `docs/contracts/qa-fin-0-gate-readiness.md` | FIN-2-Start-Gate: `docs/tickets/FIN-2-START-GATE.md`
+```
+
+*Für **Team-Regel Evidence-SHA** (Pre-Merge): wortgleiche **Standardzeile** aus dem Abschnitt **„PL-Bestätigung — Standardzeile …“** direkt unter dieser Vorlage verwenden — sofern die Projektleitung keine abweichende **eine** Zeile schriftlich vorgibt.*
+
+#### PL-Bestätigung — Standardzeile **Team-Regel Evidence-SHA** (Pre-Merge)
+
+Sofern die **Projektleitung** keine **abweichende** Zeile schriftlich vorgibt (Ticket/PR-Kommentar mit Datum), gilt für **FIN-0**-PRs in diesem Koordinationszyklus die folgende **eine** Zeile als **bestätigt** — **QA** darf sie in **Team-Regel Evidence-SHA** **wortgleich** einfügen (kein Raten):
+
+`SHA = Commit aus Run-Detail (PR-Head); Merge auf main erst nach Approve unter dieser Evidence.`
+
+**Abweichung:** Nur mit expliziter, schriftlicher anderer **eine** Zeile durch die Projektleitung; QA verwendet ausschließlich diese.
 
 ### 5a) Grün — Merge-Evidence (Pflichtzeile)
+
+*Nach erfolgreichem Merge auf `main` — oder wenn der Run ausdrücklich den Merge-Commit auf `main` belegt.*
 
 ```text
 ## QA — Merge-Evidence (main)
@@ -150,7 +205,7 @@ Oder **(B)** anderer Blocker in **einer** kurzen Zeile, z. B. `fehlender grüner
 **Log-Snippet** — **ausschließlich wörtlich** aus dem GitHub-Actions-Log des genannten Steps (Copy-Paste): **keine** Paraphrase, **keine** Zusammenfassung. Bei fehlendem Link ohne Run: eine Zeile wörtlich: `Evidence: kein grüner Actions-Link / keine §5a-Zeile vor Merge`
 <10–40 Zeilen stderr/stdout hier einfügen, sofern Run vorhanden>
 
-**Vorgeschriebene Evidence nach Fix (vollständiges §5a vom Team einfügen):**
+**Vorgeschriebene Evidence nach Fix (vollständiges §5a vom Team einfügen):** PR noch **nicht** auf `main` → **Vorlage 5a-pre)** (kein „= Merge auf main“). Bereits gemergt → **Vorlage 5a)**, z. B.:
 Actions (grün): https://github.com/<ORG>/<REPO>/actions/runs/<RUN_ID> — Commit <SHA> = Merge auf main — Job `backend`
 Team-Regel Evidence-SHA (eine Zeile, vom Team bestätigt): <…>
 
@@ -164,11 +219,13 @@ Bitte Fix; danach **dieselbe** QA-Kommentar-Zelle **editieren** auf **§5a** (vo
 
 **G8 (Contract-PR, vgl. §4):** `docs/api-contract.yaml` ↔ `docs/contracts/error-codes.json` ↔ `docs/contracts/finance-fin0-openapi-mapping.md` — bei Abweichung Merge blockieren. SHA-Unklarheit: **§5b** oben, nicht interpretieren.
 
-**Lokal (ohne DB):** `npm test` z. B. **77 passed, 12 skipped (89)** — Skips = `test/persistence.integration.test.ts`; ersetzt keinen grünen Remote-Run.
+**Lokal (ohne DB):** `npm test` z. B. **87 passed, 12 skipped (99)** — Skips = `test/persistence.integration.test.ts`; ersetzt keinen grünen Remote-Run.
+
+**Manuelle Stichproben (optional im PR, kein Ersatz für Actions):** z. B. lokal `npm test` / CI-parallele Befehle wie §3; bei Contract-Änderungen G8-Stichprobe OpenAPI ↔ `error-codes.json` ↔ `finance-fin0-openapi-mapping.md`; Web nur wenn der PR `apps/web` berührt. **Lokales Grün ersetzt keinen grünen GitHub-`backend`-Run.**
 
 **MVP später:** `ERP Systembeschreibung v1.3.md` §15.
 
-**Stub-Matrix:** `docs/contracts/qa-fin-2-start-gate-stub-matrix.md`
+**Stub-Matrix FIN-0:** `docs/contracts/qa-fin-0-stub-test-matrix.md` | **FIN-2 P0 (später):** `docs/contracts/qa-fin-2-start-gate-stub-matrix.md`
 ```
 
 ---

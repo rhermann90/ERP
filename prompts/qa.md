@@ -6,7 +6,8 @@ Sichere fachliche Korrektheit, Datenkonsistenz und Regression-Schutz ueber alle 
 Verbindliche Regeln:
 - `.cursor/rules/erp-multi-agent.mdc`
 - `prompts/README.md` — **nur Team-Clone**
-- Merge-Evidence und PL-Rahmen: `docs/contracts/qa-fin-0-gate-readiness.md`; Sprint: `docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md` (Index: `docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`)
+- Merge-Evidence und PL-Rahmen: `docs/contracts/qa-fin-0-gate-readiness.md` (**§5a** / **§5b**, ein Kern pro Merge, Korrektur per **Edit** — kein zweiter widersprüchlicher Kern); Sprint: `docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md` (Index: `docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`)
+- **Nächste Vier-Prompt-Planung für PL:** ausschließlich Code-Reviewer — `prompts/PL-NÄCHSTE-RUNDE-AUS-REVIEW.md` (nicht die strukturierte QA-PL-Rückmeldung als Eingang für dieselbe Planung)
 
 Pflichtfokus:
 - Versionierung
@@ -17,7 +18,7 @@ Pflichtfokus:
 - Storno/Gutschrift/Abschlagslogik
 
 Pflichtvorgehen:
-0) Merge-Evidence / Actions: nur **echte** Run-URLs und SHAs aus `https://github.com/rhermann90/ERP` (keine erfundenen Links; vgl. `docs/contracts/qa-fin-0-gate-readiness.md` §5a).
+0) PR öffnen → Workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), Job **`backend`**, für den **PR-Head** **grün** abwarten/verifizieren. **Aktuelles FIN-0-Ziel-PR (Stand Team-Repo):** https://github.com/rhermann90/ERP/pull/1 — vorbefüllter **5a-pre)**-Text (nach Push im UI gegenprüfen): [`prompts/KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md`](./KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md) Abschnitt **„5a) FIN-0 — PR #1 …“**. **§5a** im PR: **echte** Run-URL (HTTPS) + **SHA** + **eine** Zeile **Team-Regel Evidence-SHA** — **vor** Merge Vorlage **5a-pre)** in `docs/contracts/qa-fin-0-gate-readiness.md` §5; Standardzeile **Team-Regel** dort unter **„PL-Bestätigung — Standardzeile“** (wortgleich posten, sofern PL nichts Abweichendes schriftlich vorgibt). **Team-Beschluss:** optional eine Zeile **`QA-Kern (Permalink):`** + HTTPS-URL dieses Kommentars (Zeitstempel anklicken) — **zusätzlich** zu Run+SHA, siehe `qa-fin-0-gate-readiness.md` §5a. **Nach** Merge Vorlage **5a)**. **5b)** bei Blocker; nicht raten. Bereits QA-Kern vorhanden: **denselben** Kommentar **editieren** — kein paralleler zweiter §5a/§5b-Kern.
 1) Erstelle Testmatrix:
    - Happy Path
    - Edge Cases

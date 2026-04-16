@@ -35,14 +35,33 @@ function assertFin0MutatingFailClosed(): never {
   throw new DomainError("TRACEABILITY_LINK_MISSING", FIN0_FAIL_CLOSED_MESSAGE, 422);
 }
 
+function headerValueInsensitive(
+  headers: Record<string, string | string[] | undefined>,
+  canonicalName: string,
+): string | undefined {
+  const want = canonicalName.toLowerCase();
+  for (const [key, val] of Object.entries(headers)) {
+    if (key.toLowerCase() === want) {
+      return Array.isArray(val) ? val[0] : val;
+    }
+  }
+  return undefined;
+}
+
+/** OpenAPI-Parameter `Idempotency-Key` (case-insensitive wie HTTP). */
 function parseIdempotencyKey(headers: Record<string, string | string[] | undefined>): string {
-  const raw = headers["idempotency-key"];
-  const value = Array.isArray(raw) ? raw[0] : raw;
-  return z.string().uuid().parse(value);
+  const raw = headerValueInsensitive(headers, "Idempotency-Key");
+  return z.string().uuid().parse(raw);
 }
 
 /**
- * FIN-0: HTTP-Stubs für docs/api-contract.yaml (Finance-Tag). Keine Persistenz, kein FIN-2 bis Gate.
+ * FIN-0: HTTP-Stubs für `docs/api-contract.yaml` (operationIds `finPaymentTermsVersionCreate`,
+ * `finInvoiceDraftCreate`, `finInvoiceGet`, `finPaymentIntakeCreate`).
+ *
+ * **FIN-2 Implementation out of scope**; FIN-0 HTTP stubs only — siehe `docs/tickets/FIN-2-START-GATE.md`
+ * und `docs/adr/0007-finance-persistence-and-invoice-boundaries.md`. Fail-closed:
+ * `docs/contracts/finance-fin0-openapi-mapping.md` (nur bestehende Domain-Codes aus `error-codes.json`).
+ * Keine Prisma-Rechnung/Zahlung, keine produktive Buchung.
  */
 export function registerFinanceFin0Stubs(app: FastifyInstance): void {
   app.post("/finance/payment-terms/versions", async (request, reply) => {
