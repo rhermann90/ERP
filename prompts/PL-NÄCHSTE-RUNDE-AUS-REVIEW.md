@@ -33,7 +33,11 @@ Der Reviewer sendet **ein** zusammenhängendes Textstück (Chat/Ticket). **Pflic
 
 ### Lieferung Code-Review (aktuelle Runde — Branch `feat/fin-0-web-finance-vorbereitung` vs `origin/main`)
 
-`git pull origin main` im Team-Clone: **Already up to date.** Review ohne GitHub-PR-Nummer (kein `gh`); Diff lokal `origin/main..HEAD`.
+**PL-Vorspann (Review-Eingang):** Workspace Team-Clone; Remote `git@github.com:rhermann90/ERP.git`. Sprint: `docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md` · Index `docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`. **Eingang dieser Runde:** ausschließlich Code-Reviewer-Rückmeldung — **Szenario A** (§5a unvollständig); **blocking** wortgleich GitHub. Branch-Kontext: `feat/fin-0-web-finance-vorbereitung` vs `origin/main` — **keine** erfundenen Actions-URLs/SHAs. Domäne / Regeln: `ERP Systembeschreibung v1.3.md` · `.cursor/rules/erp-multi-agent.mdc`. FIN-2 nur nach `docs/tickets/FIN-2-START-GATE.md`. Regeln: `prompts/README.md` · Merge-Evidence: `docs/contracts/qa-fin-0-gate-readiness.md` §5a / §5b.
+
+**Harte Regel:** **Kein** Approve und **kein** Merge auf `main`, bis QA **§5a vollständig** im **selben** PR nachgereicht hat (Run-URL + SHA + **eine** Zeile Team-Regel Evidence-SHA). Danach: **Files changed** erneut prüfen (FIN-0-Konsistenz, OpenAPI/Mapping/`error-codes.json` wo berührt, Tenant, kein FIN-2-Produktivpfad, kein Audit-Laufzeit-Change ohne PL-Eintrag in `docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`). Erst bei **Szenario B** (`prompts/AGENTEN-PROMPT-LEITFADEN.md` §5): **Approve**; anschließend **neue** „Rückmeldung an Projektleitung“ nach `prompts/FIN-0-rollenprompts.md` (Pflichtzeilen, **blocking** wortgleich GitHub) — **einziger** Eingang für die **übernächste** Vier-Prompt-Runde. Review-Vorlage: `docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`.
+
+`git pull origin main` im Team-Clone: vor jedem Review erneut ausführen. Review ohne GitHub-PR-Nummer möglich; **§5a** nur mit **echten** Werten aus der GitHub-UI.
 
 ```text
 ## Rückmeldung an Projektleitung (Kurzfassung für nächste Prompts)
@@ -45,18 +49,41 @@ Ein zusammenhängender Branch enthält FIN-0-Frontend (read-only „Finanz (Vorb
 Merge-Evidence laut `qa-fin-0-gate-readiness.md` **§5a** im PR noch nicht vollständig (grüner Actions-Link + SHA + Team-Regel Evidence-SHA) — **kein Approve** bis zur Nachreichung.
 
 ### Pflicht (Merge-Evidence / QA-Sicht)
-- Grüner GitHub-Actions-Link für Merge auf main: nein — fehlt (in dieser Review-Sitzung kein Run verlinkt; keine erfundene URL)
+- Grüner GitHub-Actions-Link für Merge auf main: nein — fehlt (keine erfundene URL)
 - Merge auf main aus QA-Sicht blockiert: ja — §5a für den konkreten Merge unvollständig
 
 ### Nächster fokussierter Scope (Vorschlag für PL, max. 5 Aufzählungspunkte)
 - QA: Nach grünem CI vollständiges §5a im PR (Run-URL + SHA + eine Zeile Team-Regel Evidence-SHA); bei mehreren offenen PRs klären, welcher Run den Merge auf `main` belegt.
-- PL/Team: PR-Beschreibung/Scope-Zeile — ob bewusst **ein** Bundle-PR (Frontend+QA+kleine Backend-Stub-Ergänzung) oder Aufteilung nach Wunsch; bei getrennter Kommunikation „nur Frontend/QA“ follow-up für Transparenz.
-- Frontend: Nach Merge — Stichprobe `apps/web` gegen Gate-Vorlage (keine Schreibaktionen auf Finanz-Vorbereitungsseite; weiterhin nur `allowed-actions`-SoT für Mutationen).
-- Backend: In dieser Runde nur Stub-Test/Kommentar mitreviewt; kein Audit-Laufzeit-Change.
-- Kein FIN-2 produktiv; Audit nur mit PL-Eintrag FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md.
+- Code Review: Nach §5a-Nachreichung erneut Files changed + FIN-0-Checkliste (Vorlage) — erst dann Approve (Szenario B).
+- PL/Team: PR-Beschreibung/Scope-Zeile — bewusstes Bundle vs. Aufteilung transparent halten.
+- Frontend/Backend: kein Audit-Laufzeit-Change ohne PL-Eintrag; kein FIN-2 produktiv vor Gate.
+- Tracker: Backend-Issue-URL echt ins PR (keine erfundenen Links).
 ```
 
-**GitHub-Review am PR:** Markdown mit Vorbedingung PL, Umfang „Files changed“, Kurz-8-Punkte, Frontend/QA/Backend-Stichprobe — Abschnitt **blocking** wortgleich der Zeile unter „### blocking“ oben (Szenario A laut `prompts/AGENTEN-PROMPT-LEITFADEN.md` §5).
+**GitHub-Review am PR:** Markdown nach `docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md` — Abschnitt **blocking** wortgleich der Zeile unter „### blocking“ im Kasten oben (Szenario A).
+
+#### Platzhalter — nach §5a-Nachreichung + erneutem Review (Szenario B)
+
+*(Vom Code Reviewer **ersetzen**; solange nicht ausgefüllt: gilt weiterhin Szenario A oben.)*
+
+```text
+## Rückmeldung an Projektleitung (Kurzfassung für nächste Prompts — nach §5a)
+
+### Ergebnis
+Branch feat/fin-0-web-finance-vorbereitung erneut geprüft: §5a vollständig im PR; Files changed unverändert FIN-0-konform (Tenant, kein FIN-2-Produktivpfad, Mapping/error-codes konsistent wo berührt, kein Audit ohne PL-Eintrag).
+
+### blocking
+kein blocking
+
+### Pflicht (Merge-Evidence / QA-Sicht)
+- Grüner GitHub-Actions-Link für Merge auf main: ja — <HTTPS Run-URL wörtlich aus GitHub>
+- Merge auf main aus QA-Sicht blockiert: nein — vorbehaltlich keine neue Rotstelle / kein SHA-Widerspruch
+
+### Nächster fokussierter Scope (Vorschlag für PL, max. 5 Aufzählungspunkte)
+- Merge auf main nach Org-Prozess; Merge-Kommentar FIN-2-Gate (Vorlage) setzen.
+- Übernächste Vier-Prompt-Runde aus **dieser** aktualisierten Rückmeldung ableiten (blocking wortgleich GitHub-Review Szenario B).
+- …
+```
 
 ---
 
@@ -139,7 +166,7 @@ Output: GitHub-Review + strukturierte PL-Rückmeldung für die **übernächste**
 
 ---
 
-## 4) Beispiel: **Kurze** Review-Rückmeldung (fiktiv, Run-ID Platzhalter)
+## 4) Beispiel: **Kurze** Review-Rückmeldung (**nur** Lehrtext — **nicht** mit Platzhalter-Run-ID in echte PRs kopieren)
 
 ```text
 ## Rückmeldung an Projektleitung (Kurzfassung für nächste Prompts)
@@ -249,3 +276,22 @@ Output: GitHub-Reviews + PL-Rückmeldungstext für PL-NÄCHSTE-RUNDE-AUS-REVIEW.
 ## 6) Wartung
 
 Änderungen an Pflichtzeilen oder Review-Format: **gemeinsam** `docs/contracts/qa-fin-0-gate-readiness.md`, `prompts/FIN-0-rollenprompts.md`, `prompts/AGENTEN-PROMPT-LEITFADEN.md` und **dieses** Dokument anpassen, damit keine parallelen Wahrheiten entstehen.
+
+---
+
+## 7) GitHub PR — Evidence-Abschnitt **„Backend“** (feste Links; **keine** erfundene PR-/Actions-URL)
+
+Diesen Block in die **GitHub-PR-Beschreibung** übernehmen (oder als ersten strukturierten Kommentar), wenn die **PR-Nummer** noch unbekannt ist — die Links sind **ohne Platzhalter** gültig. **§5a** (grüner Actions-Run + SHA + Team-Regelzeile) trägt **QA** nach grünem Lauf **im PR** nach (`docs/contracts/qa-fin-0-gate-readiness.md` §5a); Backend erfindet **keine** Run-IDs/SHAs.
+
+```markdown
+### Backend (Evidence)
+
+- **Remote:** `git@github.com:rhermann90/ERP.git`
+- **Repository:** https://github.com/rhermann90/ERP
+- **Branch:** https://github.com/rhermann90/ERP/tree/feat/fin-0-web-finance-vorbereitung
+- **Diff vs. `main`:** https://github.com/rhermann90/ERP/compare/main...feat/fin-0-web-finance-vorbereitung?expand=1
+
+**Scope-Zeile:** FIN-0 (HTTP-Stubs / Web-Vorbereitung / Tests & Doku im Bundle-Branch); **FIN-2 produktiv out of scope** bis `docs/tickets/FIN-2-START-GATE.md`; keine Audit-Laufzeitänderung ohne PL-Eintrag in `docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`.
+
+**§5a (Merge-Evidence):** QA ergänzt nach **grünem** Workflow (`.github/workflows/ci.yml`, Job `backend`) im **selben** PR: HTTPS-Run-URL, Commit-SHA des Runs, eine Zeile Team-Regel Evidence-SHA — bis dahin **Merge QA-blockiert** (Szenario A).
+```
