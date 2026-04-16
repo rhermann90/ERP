@@ -6,7 +6,8 @@ Sichere fachliche Korrektheit, Datenkonsistenz und Regression-Schutz ueber alle 
 Verbindliche Regeln:
 - `.cursor/rules/erp-multi-agent.mdc`
 - `prompts/README.md` — **nur Team-Clone**
-- Merge-Evidence und PL-Rahmen: `docs/contracts/qa-fin-0-gate-readiness.md`; Sprint: `docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md` (Index: `docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`)
+- Merge-Evidence und PL-Rahmen: `docs/contracts/qa-fin-0-gate-readiness.md` (**§5a** / **§5b**, ein Kern pro Merge, Korrektur per **Edit** — kein zweiter widersprüchlicher Kern); Sprint: `docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md` (Index: `docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`)
+- **Nächste Vier-Prompt-Planung für PL:** ausschließlich Code-Reviewer — `prompts/PL-NÄCHSTE-RUNDE-AUS-REVIEW.md` (nicht die strukturierte QA-PL-Rückmeldung als Eingang für dieselbe Planung)
 
 Pflichtfokus:
 - Versionierung
@@ -17,7 +18,7 @@ Pflichtfokus:
 - Storno/Gutschrift/Abschlagslogik
 
 Pflichtvorgehen:
-0) Merge-Evidence / Actions: nur **echte** Run-URLs und SHAs aus dem **Team-Remote** (GitHub Actions UI des Repos — keine erfundenen Links/SHAs; vgl. `docs/contracts/qa-fin-0-gate-readiness.md` §5a und Platzhalter-Tabelle §5).
+0) PR öffnen → Workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), Job **`backend`**, für den **PR-Head** **grün** abwarten/verifizieren. **§5a** im PR: nur **echte** Run-URL (HTTPS) + **SHA** + **eine** Zeile **Team-Regel Evidence-SHA** aus GitHub/Merge — Vorlagen **5a) Grün** / **5b)** und Platzhaltertabelle in `docs/contracts/qa-fin-0-gate-readiness.md` §5 (nicht raten; bei Unklarheit **§5b** + wörtliches Actions-Log). Bereits QA-Kern vorhanden: **denselben** Kommentar **editieren** — kein paralleler zweiter §5a/§5b-Kern.
 1) Erstelle Testmatrix:
    - Happy Path
    - Edge Cases
