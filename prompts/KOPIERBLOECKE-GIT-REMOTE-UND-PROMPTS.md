@@ -141,6 +141,24 @@ Team-Regel Evidence-SHA (Pflicht: genau eine Zeile, vom Team bestätigt; QA rate
 Kontext FIN-0 / Gate: docs/contracts/qa-fin-0-gate-readiness.md | FIN-2-Start-Gate: docs/tickets/FIN-2-START-GATE.md
 ```
 
+### 5a) FIN-0 — PR #1 (`feat/fin-0-web-finance-vorbereitung`) — **5a-pre)** vorbefüllt
+
+**Merge-Ziel-PR:** https://github.com/rhermann90/ERP/pull/1  
+
+**Hinweis:** `RUN_ID` und vollständiger `SHA` stammen aus der **GitHub Actions API** (grüner Lauf zum PR-Head). **Vor dem Einfügen am PR** in der Browser-UI prüfen: Run noch **success**, Commit in den Run-Details = aktueller PR-Head. **Nach jedem Push** neuen grünen Run öffnen und URL + SHA **erneut** kopieren (diese Zeilen veralten sonst).
+
+```text
+## QA — Merge-Evidence (PR — pre-merge)
+
+Actions (grün): https://github.com/rhermann90/ERP/actions/runs/24535744620 — Commit b4e5f5c08557f46a0882e1af453f8f310be4cc74 — geprüfter PR-Head, Job `backend`
+
+Team-Regel Evidence-SHA (Pflicht: genau eine Zeile, vom PL/Team bestätigt; QA ratet nicht): SHA = Commit aus Run-Detail (PR-Head); Merge auf main erst nach Approve unter dieser Evidence.
+
+Kontext FIN-0 / Gate: docs/contracts/qa-fin-0-gate-readiness.md | FIN-2-Start-Gate: docs/tickets/FIN-2-START-GATE.md
+```
+
+Optional **darunter** (gleicher Kommentar, laut `qa-fin-0-gate-readiness.md` §5c): Stub-Matrix / manuelle Stichproben — **kein** Ersatz für den grünen `backend`-Run.
+
 **Direktlink Root-Import** (nach Push):
 
 `https://github.com/rhermann90/ERP/commit/0f12ea9c78a45328f0ec638d2e66a6b642b01738`

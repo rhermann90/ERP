@@ -37,7 +37,9 @@ Der Reviewer sendet **ein** zusammenhängendes Textstück (Chat/Ticket). **Pflic
 
 **Harte Regel:** **Kein** Approve und **kein** Merge auf `main`, bis QA **§5a vollständig** im **Ziel-PR** nachgereicht hat (Run-URL + SHA + **eine** Zeile Team-Regel Evidence-SHA). Danach: **Files changed** erneut prüfen (FIN-0-Konsistenz, OpenAPI/Mapping/`error-codes.json` wo berührt, Tenant, kein FIN-2-Produktivpfad, kein Audit-Laufzeit-Change ohne PL-Eintrag in `docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`). Erst bei **Szenario B** (`prompts/AGENTEN-PROMPT-LEITFADEN.md` §5): **Approve**; anschließend **neue** „Rückmeldung an Projektleitung“ nach `prompts/FIN-0-rollenprompts.md` (Pflichtzeilen, **blocking** wortgleich GitHub) — **einziger** Eingang für die **nächste** planbare Vier-Prompt-Runde (`PL-NÄCHSTE-RUNDE-AUS-REVIEW.md` §1), sofern nicht erneut explizit anders beauftragt (`AGENTEN-PROMPT-LEITFADEN.md` §0). Review-Vorlage: `docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`.
 
-`git pull origin main` im Team-Clone: vor jedem Review erneut ausführen. **§5a** nur mit **echten** Werten aus der GitHub-UI am PR. **PL/Session:** PR-Nummer(n) / Links zum Merge-Ziel festhalten.
+`git pull origin main` im Team-Clone: vor jedem Review erneut ausführen. **§5a** nur mit **echten** Werten aus der GitHub-UI am PR.
+
+**Kanonisches Merge-Ziel FIN-0 (öffentlich, Branch = PR-Head):** https://github.com/rhermann90/ERP/pull/1 — `feat/fin-0-web-finance-vorbereitung`. Vorbefüllter **5a-pre)**-Kopierblock (Run + SHA, Stand Repo-Abfrage): [`prompts/KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md`](./KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md) Abschnitt **„5a) FIN-0 — PR #1 …“**. **Vor dem Posten am PR:** in GitHub Actions prüfen, dass der genannte Run noch **success** ist und der **Commit** noch dem **PR-Head** entspricht; nach jedem Push neue `RUN_ID` / `SHA` aus der UI kopieren.
 
 ```text
 ## Rückmeldung an Projektleitung (Kurzfassung für nächste Prompts)
@@ -62,8 +64,8 @@ Merge-Evidence laut qa-fin-0-gate-readiness.md §5a im PR noch nicht vollständi
 - Jeder Push invalidiert die letzte CI-/Evidence-Annahme.
 
 ### Offene Punkte / PL-Entscheidung nötig
-- QA: §5a am konkreten Merge-PR nachreichen bzw. Reviewer-Verifikation auf GitHub.
-- PR-Nummer(n) / Links für die PL in der Session festhalten.
+- QA: §5a **im GitHub-PR** nachreichen (Kommentar/Beschreibung): fertigen Block aus `prompts/KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md` Abschnitt **5a) FIN-0 — PR #1** kopieren — **vor** dem Absenden Run in der GitHub-UI auf **success** + SHA = PR-Head prüfen.
+- Merge-Ziel-PR ist festgelegt: **https://github.com/rhermann90/ERP/pull/1** (bei Abweichung diesen Absatz im Repo aktualisieren).
 
 ### Nächster fokussierter Scope (Vorschlag für PL, max. 5 Aufzählungspunkte)
 - QA: Vollständiges §5a am Ziel-PR (HTTPS Run-URL + SHA des PR-Head-Runs + eine Zeile Team-Regel Evidence-SHA); Vorlage 5a-pre in qa-fin-0-gate-readiness.md §5.
