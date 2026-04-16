@@ -66,7 +66,7 @@ npm run test     # Frontend-Unit-Tests (SoT, Session, Envelope, Text-Rendering)
 
 Gelesen: [`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`](../docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md), [`docs/tickets/FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md).
 
-**PR-Scope-Zeile:** `FIN-0 UI/Doku post-merge; kein FIN-2.`
+**PR-Scope-Zeile:** `FIN-0; kein FIN-2.`
 
 ### Stand nach Merge PR #1
 
