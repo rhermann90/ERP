@@ -164,6 +164,8 @@ Actions (grün): https://github.com/rhermann90/ERP/actions/runs/<RUN_ID> — Com
 
 Team-Regel Evidence-SHA (Pflicht: genau eine Zeile, vom PL/Team bestätigt; QA ratet nicht): SHA = Commit aus Run-Detail (PR-Head); Merge auf main erst nach Approve unter dieser Evidence.
 
+QA-Kern (Permalink) — optional (Team empfohlen): <nach dem Posten: Kommentar-Zeitstempel in GitHub anklicken, HTTPS-URL der Seite kopieren>
+
 Kontext FIN-0 / Gate: docs/contracts/qa-fin-0-gate-readiness.md | FIN-2-Start-Gate: docs/tickets/FIN-2-START-GATE.md
 ```
 

@@ -17,6 +17,8 @@
 - [FIN-2-START-GATE](FIN-2-START-GATE.md)
 - [FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD](FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) → **„PL-Eintrag“** (vier Zellen)
 
+**GitHub-Kommentar / Review-Text:** Im PR-Kommentar sind **Repo-relative** Markdown-Links wie `(docs/…)` oft **nicht** klickbar. Für Reviewer und PL **volle** `https://github.com/<ORG>/<REPO>/blob/<branch-oder-SHA>/…`-URLs verwenden — oder Pfade als **Klartext** ohne kaputten Link.
+
 ### 8-Punkte-Checkliste
 
 - [ ] **§8.1** — Traceability; kein Schatten-LV / keine widersprüchliche Nettobasis

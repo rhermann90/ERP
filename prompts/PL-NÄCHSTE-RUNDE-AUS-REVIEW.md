@@ -100,9 +100,11 @@ kein blocking
 - Merge auf main aus QA-Sicht blockiert: nein — vorbehaltlich keine neue Rotstelle / kein SHA-Widerspruch
 
 ### Nächster fokussierter Scope (Vorschlag für PL, max. 5 Aufzählungspunkte)
-- Merge auf main nach Org-Prozess; Merge-Kommentar FIN-2-Gate (Vorlage) setzen.
+- Merge PR #1 nach Org-Prozess; Merge-Kommentar FIN-2-Gate (Vorlage `GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`) setzen.
 - Übernächste Vier-Prompt-Runde aus **dieser** aktualisierten Rückmeldung ableiten (blocking wortgleich GitHub-Review Szenario B).
-- …
+- QA: im §5a-Kern optional **Zeile „QA-Kern (Permalink)“** ergänzen (Team-Beschluss; siehe `qa-fin-0-gate-readiness.md` §5a Baustein 3).
+- Code Review: im GitHub-Review **absolute** Repo-URLs nutzen (Hinweis in `GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md` oben).
+- Weiter FIN-0/App-Inkremente; kein FIN-2 produktiv vor Gate; Audit nur mit PL-Eintrag FOLLOWUP.
 ```
 
 ---
