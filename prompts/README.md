@@ -6,8 +6,10 @@
 
 ## Verbindliche Arbeitsumgebung
 
-- **Nur Team-Clone:** Alle Agenten arbeiten **ausschließlich** im **geklonten Team-Repository** (lokaler Pfad eures Team-Clones), mit vorhandenem **`.git`** und **`origin`** auf das **kanonische Remote** (z. B. GitHub-Organisation). **Keine** Orchestrierungs- oder Merge-Ziel-Runden aus isolierten Ordnern **ohne** Git.
-- **Branch** immer vom aktuellen `main`/`master` des Team-Remotes; PRs nur dorthin.
+- **Nur Team-Clone:** Alle Agenten arbeiten **ausschließlich** im **geklonten Team-Repository** (lokaler Pfad eures Team-Clones), mit vorhandenem **`.git`** und **`origin`** auf das **kanonische Team-Remote**. **Keine** Orchestrierungs- oder Merge-Ziel-Runden aus isolierten Ordnern **ohne** Git.
+- **Kanonisches Remote (dieses Repo):** `git@github.com:rhermann90/ERP.git` (SSH, empfohlen auf Entwickler-Rechnern) **oder** `https://github.com/rhermann90/ERP.git` (HTTPS mit PAT / `gh auth login`, z. B. in nicht-interaktiven Umgebungen). Befehle und §5a-Vorlagen: [`prompts/KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md`](./KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md).
+- **Secrets / Schlüssel:** Private SSH-Schlüssel, Passwörter und API-Tokens **nie** im Projektbaum ablegen (nur unter `~/.ssh/` bzw. sichere Secret-Stores). `.env` und typische Key-Dateinamen sind per `.gitignore` ausgeschlossen — bei versehentlich erzeugten Dateien im Clone zusätzlich **lokal** `.git/info/exclude` nutzen und Dateien **aus dem Arbeitsbaum entfernen**, nicht nur ignorieren.
+- **Branch** immer vom aktuellen `main` des Team-Remotes; PRs nur dorthin.
 
 ---
 
@@ -21,6 +23,7 @@
 | 4 | [`prompts/FIN-0-rollenprompts.md`](./FIN-0-rollenprompts.md) | Rollenbeschreibungen + **Rückmeldeformat** |
 | 5 | [`docs/contracts/qa-fin-0-gate-readiness.md`](../docs/contracts/qa-fin-0-gate-readiness.md) | §5a/§5b, §3b Doku-PR, Sonderfall „kein PR“ |
 | 6 | [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](../docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md) | Review-Checkliste (Code Reviewer) |
+| 7 | [`prompts/KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md`](./KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md) | Remote setzen, SSH/HTTPS, Push, PL-/Agenten-Blöcke, §5a |
 
 ---
 

@@ -6,7 +6,7 @@ Steuere die 4 Umsetzungsagenten so, dass das ERP-Projekt phasenweise, nachvollzi
 Kontext:
 - Verbindliche Spezifikation: `ERP Systembeschreibung v1.3.md` (v1.2 nur noch historische Referenz bei Bedarf).
 - Sprint-Rahmen (aktueller Zyklus): `docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md` — neue Zyklen: `docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md` + `docs/contracts/qa-fin-0-gate-readiness.md` §0 anpassen.
-- Einstieg Agenten: `prompts/README.md` (**nur Team-Clone**)
+- Einstieg Agenten: `prompts/README.md` (**nur Team-Clone**, kanonisches Remote `rhermann90/ERP`, keine Secrets im Arbeitsbaum)
 - Orchestrierung künftiger Agenten-Runden: `prompts/AGENTEN-PROMPT-LEITFADEN.md` — **nächste kopierbare Prompts** aus der **Rückmeldung an Projektleitung** des **Code Reviewers** allein (§0)
 - Produktziel: Modulares, mandantenfaehiges, rechtssicheres ERP als PWA fuer Geruestbauunternehmen.
 

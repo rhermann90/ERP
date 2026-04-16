@@ -17,6 +17,7 @@ Pflichtfokus:
 - Storno/Gutschrift/Abschlagslogik
 
 Pflichtvorgehen:
+0) Merge-Evidence / Actions: nur **echte** Run-URLs und SHAs aus `https://github.com/rhermann90/ERP` (keine erfundenen Links; vgl. `docs/contracts/qa-fin-0-gate-readiness.md` §5a).
 1) Erstelle Testmatrix:
    - Happy Path
    - Edge Cases

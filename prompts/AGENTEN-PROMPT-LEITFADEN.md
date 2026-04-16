@@ -8,7 +8,8 @@
 
 ## 0) Team-Clone und Eingang für die **nächsten** Prompts
 
-- **Nur Team-Clone:** Agenten-Umsetzung und Reviews nur im **geklonten** Repository mit `.git` und `origin` zum **kanonischen Team-Remote**. Keine Prompt-Runden mit Merge-/§5a-Ziel aus Arbeitsverzeichnissen **ohne** Git-Anbindung.  
+- **Nur Team-Clone:** Agenten-Umsetzung und Reviews nur im **geklonten** Repository mit `.git` und `origin` zum **kanonischen Team-Remote** (`git@github.com:rhermann90/ERP.git` per SSH oder `https://github.com/rhermann90/ERP.git` per HTTPS — siehe `prompts/README.md`). Keine Prompt-Runden mit Merge-/§5a-Ziel aus Arbeitsverzeichnissen **ohne** Git-Anbindung.  
+- **Repo-Hygiene:** Private SSH-Schlüssel und andere Secrets **nicht** im Projektverzeichnis ablegen; nur `~/.ssh/` bzw. zugelassene Secret-Mechanismen. Versehentliche Dateien: aus dem Baum entfernen und bei Bedarf lokal `.git/info/exclude` (wird nicht gepusht).  
 - **Nächste kopierbare Prompts (PL):** Die Projektleitung bezieht sich für die **Planung und den Text der nächsten Vier-Prompt-Runde** **ausschließlich** auf die **„Rückmeldung an Projektleitung“** des **Code Reviewers** — inhaltlich konsistent mit dem **GitHub-Review** (wortgleiches **blocking**, Szenario A / B / C). **Nicht** maßgeblich für diese Planung: strukturierte PL-Rückmeldungen von Backend, Frontend oder QA (deren Arbeit gilt über **PR**, **QA-§5a/§5b-Kommentar**, **Tracker**).  
 - **Code Reviewer** liefert diese Rückmeldung **verbindlich** nach jeder Review-Runde (oder nach explizitem PL-Auftrag bei Sonderfall C).
 
@@ -104,6 +105,8 @@ Kein PR in dieser Runde bewertet.
 
 - [ ] Aktueller Sprint-Snapshot gelesen (Link in `PL-SYSTEM-ZUERST-VORLAGE.md` oben).  
 - [ ] Dieser Leitfaden (`prompts/AGENTEN-PROMPT-LEITFADEN.md`) bei Orchestrierungs-Themen mitgelesen.  
+- [ ] `git remote -v`: **`origin`** zeigt auf das **kanonische** Team-Remote (siehe `prompts/README.md`); bei Wechsel von HTTPS zu SSH: `git remote set-url origin git@github.com:rhermann90/ERP.git`.  
+- [ ] `git status`: **keine** versehentlichen Secrets/Key-Dateien im Commit-Umfang; Arbeitsbaum für die Runde **Scope-klar** (offene Änderungen benannt oder weggeräumt).  
 - [ ] Ziel der Runde **ein Satz** (Doku-PR / Bugfix / Feature — und ob **Git** vorhanden).  
 - [ ] Pro Rolle: **max. 5–8 nummerierte** Aufgaben, ein **Output**, ein **Qualitätsbefehl** (`typecheck` / `test` / Web-Build).  
 - [ ] Explizit: **kein** Audit-Code ohne PL-Eintrag; **kein** produktives FIN-2 vor Gate.  
@@ -125,7 +128,7 @@ PL / System — zuerst:
 Diese Runde: <ein Satz Ziel>
 
 Regeln für Agenten:
-- Einstieg: `prompts/README.md` — **nur Team-Clone**; kein Merge-Ziel aus Verzeichnissen ohne Git.
+- Einstieg: `prompts/README.md` — **nur Team-Clone**; kanonisches Remote `rhermann90/ERP`; kein Merge-Ziel aus Verzeichnissen ohne Git; keine Secrets/SSH-Privatekeys im Projektbaum.
 - Orchestrierung & Zukunft: `prompts/AGENTEN-PROMPT-LEITFADEN.md` (Lieferkette, Pflichtzeilen, Review Szenario A/B + Sonderfall C „kein PR“; **nächste Prompts** nur aus **Code-Review-Rückmeldung**).
 - Keine erfundenen GitHub-Actions-URLs oder SHAs.
 - Rückmeldung an Projektleitung nach `prompts/FIN-0-rollenprompts.md` inkl. Pflichtzeilen (Sonderfall „kein PR“: `docs/contracts/qa-fin-0-gate-readiness.md` — Merge blockiert = **nein**, wenn kein Merge-Gegenstand).

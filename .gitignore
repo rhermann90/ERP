@@ -13,6 +13,13 @@ build/
 .env.*
 !.env.example
 
+# SSH / crypto material belongs in ~/.ssh — never commit standard key basenames from workspace
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+*.pem
+
 # OS / IDE
 .DS_Store
 Thumbs.db

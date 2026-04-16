@@ -1,11 +1,14 @@
 # Kopierblöcke — Git-Remote, Push, Prompts, §5a (Vorlagen)
 
+**Team-Remote (SSH, empfohlen):** `git@github.com:rhermann90/ERP.git`  
 **Team-Remote (HTTPS):** `https://github.com/rhermann90/ERP.git`  
-**Aktueller lokaler HEAD:** `5d354c7ad4a7005fbc15988917faa29986f8903c`  
+**Aktuellen Commit für Browser-Links:** `git rev-parse HEAD` (nicht raten; alte SHAs in dieser Datei veralten sonst).  
 **Root-Import (historisch):** `0f12ea9c78a45328f0ec638d2e66a6b642b01738`  
-**Workspace (lokal):** `/Users/romanhermann/Projekte/ERP`
+**Workspace-Beispiel:** `/Users/romanhermann/Projekte/ERP` (jeder Team-Clone: eigener Pfad)
 
 **Platzhalter:** In Abschnitt 5 weiterhin **`RUN_ID`** und **`SHA`** nur aus der echten GitHub-Actions-UI kopieren (nicht erfinden).
+
+**Schlüssel:** Private Keys **nur** unter `~/.ssh/`, **nie** im Repo-Ordner; Standard-Keynamen sind in `.gitignore` ausgeschlossen.
 
 ---
 
@@ -22,10 +25,11 @@ git branch -M main
 git push -u origin main
 ```
 
-**Nach erfolgreichem Push** (lokal mit GitHub-Auth: PAT, `gh auth login`, oder SSH-Remote):
+**Nach erfolgreichem Push** (lokal: SSH-Agent mit GitHub-Key **oder** HTTPS mit PAT / `gh auth login`):
 
 - Repo im Browser: `https://github.com/rhermann90/ERP`
-- HEAD im Browser: `https://github.com/rhermann90/ERP/commit/5d354c7ad4a7005fbc15988917faa29986f8903c`
+- Aktueller Commit im Browser (lokal im Clone ausführen):  
+  `echo "https://github.com/rhermann90/ERP/commit/$(git rev-parse HEAD)"`
 
 ---
 
