@@ -145,12 +145,22 @@ Kontext FIN-0 / Gate: docs/contracts/qa-fin-0-gate-readiness.md | FIN-2-Start-Ga
 
 **Merge-Ziel-PR:** https://github.com/rhermann90/ERP/pull/1  
 
-**Hinweis:** `RUN_ID` und vollständiger `SHA` stammen aus der **GitHub Actions API** (grüner Lauf zum PR-Head). **Vor dem Einfügen am PR** in der Browser-UI prüfen: Run noch **success**, Commit in den Run-Details = aktueller PR-Head. **Nach jedem Push** neuen grünen Run öffnen und URL + SHA **erneut** kopieren (diese Zeilen veralten sonst).
+**Hinweis:** `RUN_ID` und vollständiger `SHA` stammen aus der **GitHub Actions API** (grüner Lauf zum PR-Head). **Vor dem Einfügen am PR** in der Browser-UI prüfen: Run noch **success**, Commit in den Run-Details = aktueller PR-Head. **Nach jedem Push** neuen grünen Run öffnen und URL + SHA **erneut** kopieren (feste Werte im Repo veralten sonst sofort).
+
+**Aktuelle Werte (letzte Agent-Aktualisierung — vor Posten mit PR „Files“ / Checks abgleichen):** PR-Head `6c01eefc847f9244368d2bae12cf923b63fc2976`, grüner Lauf `24535937343`.
+
+**Optional (Terminal, öffentliche API):** neuesten Run auf dem Branch prüfen — `head_sha` muss dem PR-Head entsprechen:
+
+```bash
+curl -sS "https://api.github.com/repos/rhermann90/ERP/pulls/1" | jq -r '"PR head: " + .head.sha'
+curl -sS "https://api.github.com/repos/rhermann90/ERP/actions/runs?branch=feat/fin-0-web-finance-vorbereitung&per_page=1" \
+  | jq -r '.workflow_runs[0] | "Neuester Run: " + (.id|tostring) + " conclusion=" + .conclusion + " head_sha=" + .head_sha'
+```
 
 ```text
 ## QA — Merge-Evidence (PR — pre-merge)
 
-Actions (grün): https://github.com/rhermann90/ERP/actions/runs/24535864389 — Commit 96d83997e3abb2569aa49bf5dd7a93ad55c3824f — geprüfter PR-Head, Job `backend`
+Actions (grün): https://github.com/rhermann90/ERP/actions/runs/24535937343 — Commit 6c01eefc847f9244368d2bae12cf923b63fc2976 — geprüfter PR-Head, Job `backend`
 
 Team-Regel Evidence-SHA (Pflicht: genau eine Zeile, vom PL/Team bestätigt; QA ratet nicht): SHA = Commit aus Run-Detail (PR-Head); Merge auf main erst nach Approve unter dieser Evidence.
 
