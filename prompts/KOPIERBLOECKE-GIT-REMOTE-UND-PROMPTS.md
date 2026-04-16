@@ -150,7 +150,7 @@ Kontext FIN-0 / Gate: docs/contracts/qa-fin-0-gate-readiness.md | FIN-2-Start-Ga
 ```text
 ## QA — Merge-Evidence (PR — pre-merge)
 
-Actions (grün): https://github.com/rhermann90/ERP/actions/runs/24535744620 — Commit b4e5f5c08557f46a0882e1af453f8f310be4cc74 — geprüfter PR-Head, Job `backend`
+Actions (grün): https://github.com/rhermann90/ERP/actions/runs/24535864389 — Commit 96d83997e3abb2569aa49bf5dd7a93ad55c3824f — geprüfter PR-Head, Job `backend`
 
 Team-Regel Evidence-SHA (Pflicht: genau eine Zeile, vom PL/Team bestätigt; QA ratet nicht): SHA = Commit aus Run-Detail (PR-Head); Merge auf main erst nach Approve unter dieser Evidence.
 
