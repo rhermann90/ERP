@@ -35,7 +35,7 @@ Der Reviewer sendet **ein** zusammenhängendes Textstück (Chat/Ticket). **Pflic
 
 ### Aktueller Planungsstand (main nach squash-merge PR #1 — 2026-04-16)
 
-PR #1 squash-merge auf `main`; HEAD `ffa8151745465249535b8e29c112026a21bdc7fb`. §5a war pre-merge vollständig; optional kann QA denselben §5a-Kern auf **5a)** mit Run auf `main` + diesem SHA nachziehen (`docs/contracts/qa-fin-0-gate-readiness.md`).
+PR #1 squash-merge auf `main`; squash-Commit (PR-Inhalt) `ffa8151745465249535b8e29c112026a21bdc7fb`. Spätere Commits auf `main` (z. B. reine Doku) ändern diese Merge-Evidence nicht — vor Arbeit immer `git pull origin main` und für **neue** App-/Contract-PRs jeweils aktuellen Tip-SHA und CI-Run verwenden. §5a war pre-merge vollständig; optional kann QA denselben §5a-Kern auf **5a)** mit Run auf `main` + diesem SHA nachziehen (`docs/contracts/qa-fin-0-gate-readiness.md`).
 
 ```text
 ## Rückmeldung an Projektleitung (Kurzfassung für nächste Prompts — nach Merge)
@@ -51,7 +51,7 @@ kein blocking
 - Merge auf main aus QA-Sicht blockiert: nein — vorbehaltlich keine neue Rotstelle / kein SHA-Widerspruch
 
 ### Nächster fokussierter Scope (Vorschlag für PL, max. 5 Aufzählungspunkte)
-- Neue Feature-Branches von `main` (aktueller HEAD oben); keine Phantom-SHAs/Run-URLs in Prompts.
+- Neue Feature-Branches von `main` (nach `git pull origin main` aktueller Tip); keine Phantom-SHAs/Run-URLs in Prompts.
 - Nächste Vier-Prompt-Runde (Backend → Frontend → QA → Review) aus **dieser** Rückmeldung ableiten (`AGENTEN-PROMPT-LEITFADEN.md` §7); blocking wortgleich GitHub-Review.
 - QA optional: §5a-Kern im PR #1-Thread auf **5a)** mit HTTPS-Run auf `main` + SHA ffa8151745465249535b8e29c112026a21bdc7fb; optional Zeile „QA-Kern (Permalink)“.
 - Code Review: absolute Repo-URLs in Kommentaren (`GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`).
