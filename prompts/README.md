@@ -24,6 +24,7 @@
 | 5 | [`docs/contracts/qa-fin-0-gate-readiness.md`](../docs/contracts/qa-fin-0-gate-readiness.md) | §5a/§5b, §3b Doku-PR, Sonderfall „kein PR“ |
 | 6 | [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](../docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md) | Review-Checkliste (Code Reviewer) |
 | 7 | [`prompts/KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md`](./KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md) | Remote setzen, SSH/HTTPS, Push, PL-/Agenten-Blöcke, §5a |
+| 8 | [`prompts/AGENTEN-RUNDE-2026-04-16-FIN0-GROSSSCHRITT.md`](./AGENTEN-RUNDE-2026-04-16-FIN0-GROSSSCHRITT.md) | **Aktuelle PL-Runde (Großschritt):** FIN-0 HTTP-Stubs, Frontend-Vorbereitung, QA, Review |
 
 ---
 
