@@ -66,9 +66,13 @@ npm run test     # Frontend-Unit-Tests (SoT, Session, Envelope, Text-Rendering)
 
 Gelesen: [`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`](../docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md), [`docs/tickets/FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md).
 
-**PR-Scope-Zeile:** `FIN-0 UI/Doku-Vertiefung only; kein FIN-2.`
+**PR-Scope-Zeile:** `FIN-0 UI/Doku post-merge; kein FIN-2.`
 
-**Was diese Runde geändert hat:** Die Seite **Finanz (Vorbereitung)** verlinkt zusätzlich die QA-**Stub-Testmatrix** [`qa-fin-0-stub-test-matrix.md`](../docs/contracts/qa-fin-0-stub-test-matrix.md); die Doku-Navigation ist mit `aria-label` / `aria-describedby` und sichtbarem **:focus-visible** für Tastaturnutzer klarer. Inhaltlich unverändert: **keine** Buchungs-, Zahlungs- oder Mahn-Oberfläche und **keine** neuen Schreibpfade an Finanz-POSTs — weiterhin nur Orientierung an FIN-0 vs. späteren Phasen.
+### Stand nach Merge PR #1
+
+Nach **Squash-Merge von PR #1** auf `main` ist die read-only Seite **Finanz (Vorbereitung)** (`#/finanz-vorbereitung`) mit Doku-Navigation und optionalem `getInvoice`-Lesepfad (`GET /invoices/{id}`) im Team-`main` konsolidiert. **Keine** Buchungs-, Zahlungs- oder Mahn-Oberfläche; Schreibpfade in der Shell weiter nur über `GET …/allowed-actions`. Für Contract-/QA-Transparenz bleiben die **Stub-Testmatrix** [`qa-fin-0-stub-test-matrix.md`](../docs/contracts/qa-fin-0-stub-test-matrix.md) und das **OpenAPI-Mapping** [`finance-fin0-openapi-mapping.md`](../docs/contracts/finance-fin0-openapi-mapping.md) zentrale Referenzen. **FIN-4** / **FIN-6** und Offline **8.14** werden hier weiter **nur dokumentiert**, nicht als Client-Schreiblogik umgesetzt.
+
+**Was diese Runde geändert hat:** Auf **main** aufsetzend: README-Abschnitt „Stand nach Merge PR #1“; auf **Finanz (Vorbereitung)** zusätzliche **DOC_LINKS** zu MVP-Phasendokument und PL-Sprint-Snapshot (`PL-SYSTEM-ZUERST-2026-04-14.md`) für Nachvollziehbarkeit nach dem Merge — weiterhin read-only, keine neuen Finanz-POSTs aus der UI.
 
 **Ergebnis / UI:** Read-only **„Finanz (Vorbereitung)“** (`#/finanz-vorbereitung`): Kurztext + Links zu ADR 0007, FIN-2-Start-Gate, `finance-fin0-openapi-mapping.md`, Stub-Testmatrix (über `VITE_REPO_DOCS_BASE` oder lokale Pfade im UI). **Kein** Mahn-, Zahlungs- oder Buchungs-UI; Schreibaktionen weiter ausschließlich nach `GET …/allowed-actions`. **API-Client:** optionaler Lesepfad `getInvoice` → `GET /invoices/{invoiceId}` (OpenAPI-Stub). **API-Client allgemein:** Fehler-Envelope strikt an [`docs/contracts/error-codes.json`](../docs/contracts/error-codes.json) + Decision-Log (`Passthrough`; Fallback `x-request-id` / UUID + Code-Tabelle bei fehlenden Envelope-Feldern).
 
