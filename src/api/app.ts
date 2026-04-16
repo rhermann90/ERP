@@ -1,8 +1,4 @@
 import Fastify, { FastifyInstance } from "fastify";
-import { randomUUID } from "node:crypto";
-import { ZodError } from "zod";
-import { AuthContext, verifyBearerToken } from "../auth/token-auth.js";
-import { DomainError } from "../errors/domain-error.js";
 import { assertSystemTextNotInUpdatePayload } from "../domain/lv-text-structure-policy.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import { AuditService } from "../services/audit-service.js";
@@ -55,6 +51,8 @@ import {
   PrismaLvMeasurementPersistence,
   type LvMeasurementPersistencePort,
 } from "../persistence/lv-measurement-persistence.js";
+import { registerFinanceFin0Stubs } from "./finance-fin0-stubs.js";
+import { handleHttpError, parseAuthContext } from "./http-response.js";
 
 export type BuildAppOptions = {
   seedDemoData?: boolean;
@@ -125,7 +123,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
 
   app.post("/lv/catalogs", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       authorizationService.assertCanCreateLvCatalog(auth.role);
       const body = createLvCatalogSchema.parse(request.body);
       const result = await lvService.createCatalogWithSkeleton({
@@ -135,13 +133,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.post("/lv/catalogs/:lvCatalogId/version", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       const params = request.params as { lvCatalogId: string };
       const body = createLvCatalogVersionSchema.parse(request.body);
       authorizationService.assertLvCreateNextVersionForCatalog(auth.tenantId, auth.role, params.lvCatalogId);
@@ -153,13 +151,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.post("/lv/versions/:lvVersionId/status", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       const params = request.params as { lvVersionId: string };
       const body = transitionLvVersionStatusSchema.parse(request.body);
       authorizationService.assertCanTransitionLvVersion(auth.role, body.nextStatus);
@@ -172,13 +170,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.post("/lv/versions/:lvVersionId/nodes", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       authorizationService.assertCanAddLvStructureNode(auth.role);
       const params = request.params as { lvVersionId: string };
       const body = addLvStructureNodeSchema.parse(request.body);
@@ -195,13 +193,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.patch("/lv/nodes/:nodeId/editing-text", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       authorizationService.assertCanUpdateLvNodeEditing(auth.role);
       const params = request.params as { nodeId: string };
       assertSystemTextNotInUpdatePayload(request.body as Record<string, unknown>, "systemText");
@@ -215,13 +213,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.post("/lv/versions/:lvVersionId/positions", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       authorizationService.assertCanAddLvPosition(auth.role);
       const params = request.params as { lvVersionId: string };
       const body = addLvPositionSchema.parse(request.body);
@@ -233,13 +231,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.patch("/lv/positions/:positionId", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       authorizationService.assertCanUpdateLvPosition(auth.role);
       const params = request.params as { positionId: string };
       assertSystemTextNotInUpdatePayload(request.body as Record<string, unknown>, "systemText");
@@ -257,13 +255,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.post("/measurements", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       authorizationService.assertCanCreateMeasurement(auth.role);
       const body = createMeasurementSchema.parse(request.body);
       const result = await measurementService.createMeasurement({
@@ -273,13 +271,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.post("/measurements/status", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       const body = transitionMeasurementStatusSchema.parse(request.body);
       authorizationService.assertCanTransitionMeasurementStatus(auth.role, body.nextStatus);
       const result = await measurementService.transitionStatus({
@@ -289,13 +287,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.post("/measurements/version", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       const body = createMeasurementVersionSchema.parse(request.body);
       authorizationService.assertMeasurementCreateVersionForMeasurement(auth.tenantId, auth.role, body.measurementId);
       const result = await measurementService.createVersion({
@@ -306,13 +304,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.post("/measurements/:measurementVersionId/positions", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       authorizationService.assertCanUpdateMeasurementPositions(auth.role);
       const params = request.params as { measurementVersionId: string };
       const body = updateMeasurementPositionsSchema.parse(request.body);
@@ -325,24 +323,24 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send({ positions: result });
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.get("/measurements/:measurementVersionId", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       const params = request.params as { measurementVersionId: string };
       const result = measurementService.getVersionDetail(auth.tenantId, params.measurementVersionId);
       return reply.status(200).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.post("/offers/version", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       const body = createOfferVersionSchema.parse(request.body);
       authorizationService.assertOfferCreateVersionForOffer(auth.tenantId, auth.role, body.offerId);
       const result = await offerService.createVersion({
@@ -352,13 +350,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.post("/offers/:offerId/supplements", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       authorizationService.assertCanCreateSupplement(auth.role);
       const params = request.params as { offerId: string };
       const body = createSupplementSchema.parse(request.body);
@@ -370,13 +368,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.post("/supplements/status", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       const body = transitionSupplementStatusSchema.parse(request.body);
       authorizationService.assertCanTransitionSupplementStatus(auth.role, body.nextStatus);
       const result = supplementService.transitionStatus({
@@ -386,13 +384,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.post("/supplements/:supplementVersionId/billing-impact", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       authorizationService.assertCanApplySupplementBillingImpact(auth.role);
       const params = request.params as { supplementVersionId: string };
       const body = applySupplementBillingImpactSchema.parse(request.body);
@@ -405,24 +403,24 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.get("/supplements/:supplementVersionId", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       const params = request.params as { supplementVersionId: string };
       const result = supplementService.getById(auth.tenantId, params.supplementVersionId);
       return reply.status(200).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.post("/offers/status", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       const body = transitionOfferStatusSchema.parse(request.body);
       authorizationService.assertCanTransitionOfferStatus(auth.role, body.nextStatus);
       const result = await offerService.transitionStatus({
@@ -432,13 +430,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.post("/exports", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       const body = prepareExportSchema.parse(request.body);
       authorizationService.assertCanExport(auth.role, body.entityType, body.format);
       if (body.entityType === "INVOICE") {
@@ -451,13 +449,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(run);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.get("/audit-events", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       const query = auditListQuerySchema.parse(request.query);
       const result = await audit.listByTenant({
         tenantId: auth.tenantId,
@@ -467,13 +465,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
 
   app.get("/documents/:id/allowed-actions", async (request, reply) => {
     try {
-      const auth = getAuthContext(request.headers);
+      const auth = parseAuthContext(request.headers);
       const params = request.params as { id: string };
       const query = allowedActionsQuerySchema.parse(request.query);
       const allowedActions = authorizationService.getAllowedActions(auth.tenantId, query.entityType, params.id, auth.role);
@@ -483,56 +481,11 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
         allowedActions,
       });
     } catch (error) {
-      return handleError(error, reply);
+      return handleHttpError(error, reply);
     }
   });
+
+  registerFinanceFin0Stubs(app);
+
   return app;
-}
-
-function getAuthContext(rawHeaders: unknown): AuthContext {
-  const headers = authHeaderSchema.parse(rawHeaders);
-  const auth = verifyBearerToken(headers.authorization);
-  if (headers["x-tenant-id"] && headers["x-tenant-id"] !== auth.tenantId) {
-    throw new DomainError("TENANT_SCOPE_VIOLATION", "Tenant-Scope passt nicht zum Auth-Token", 403);
-  }
-  return auth;
-}
-
-function handleError(error: unknown, reply: { status: (code: number) => { send: (body: unknown) => unknown } }) {
-  const correlationId = randomUUID();
-  if (error instanceof DomainError) {
-    const isRetryable = new Set(["AUTH_SESSION_EXPIRED", "VALIDATION_FAILED", "EXPORT_CHANNEL_UNAVAILABLE"]).has(
-      error.code,
-    );
-    return reply
-      .status(error.statusCode)
-      .send({
-        code: error.code,
-        message: error.message,
-        correlationId,
-        retryable: isRetryable,
-        blocking: !isRetryable,
-        details: error.details ?? undefined,
-      });
-  }
-  if (error instanceof ZodError) {
-    const first = error.issues[0];
-    const message = first
-      ? `${first.path.length ? `${first.path.join(".")}: ` : ""}${first.message}`
-      : "Validierung fehlgeschlagen";
-    return reply.status(400).send({
-      code: "VALIDATION_FAILED",
-      message,
-      correlationId,
-      retryable: true,
-      blocking: false,
-    });
-  }
-  return reply.status(400).send({
-    code: "VALIDATION_FAILED",
-    message: String(error),
-    correlationId,
-    retryable: true,
-    blocking: false,
-  });
 }
