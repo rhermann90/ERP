@@ -145,11 +145,9 @@ Kontext FIN-0 / Gate: docs/contracts/qa-fin-0-gate-readiness.md | FIN-2-Start-Ga
 
 **Merge-Ziel-PR:** https://github.com/rhermann90/ERP/pull/1  
 
-**Hinweis:** `RUN_ID` und vollständiger `SHA` stammen aus der **GitHub Actions API** (grüner Lauf zum PR-Head). **Vor dem Einfügen am PR** in der Browser-UI prüfen: Run noch **success**, Commit in den Run-Details = aktueller PR-Head. **Nach jedem Push** neuen grünen Run öffnen und URL + SHA **erneut** kopieren (feste Werte im Repo veralten sonst sofort).
+**Hinweis:** `RUN_ID` und vollständiger `SHA` aus der **GitHub-UI** oder per **`curl|jq`** unten (öffentliche API). **Vor dem Posten am PR:** Run **success**; `head_sha` des Laufs = **PR-Head** (erstes `curl`). Fest eingetragene Beispiel-Zahlen im Repo **veralten** nach jedem Push — deshalb im Copy-Block unten **Platzhalter**; Werte immer frisch holen.
 
-**Zuletzt im Repo abgeglichen (vor Posten mit PR „Checks“ / Run-Detail verifizieren):** PR-Head `931efc3afb143c722aa469cd67d84a4f279e89f8`, grüner Lauf `24535993105`. *Jeder weitere Push auf den Branch macht diese Zahlen ggf. ungültig — dann `curl|jq` unten erneut ausführen oder alles aus der GitHub-UI kopieren.*
-
-**Optional (Terminal, öffentliche API):** neuesten Run auf dem Branch prüfen — `head_sha` muss dem PR-Head entsprechen:
+**Optional (Terminal, öffentliche API):** neuesten Run auf dem Branch — `head_sha` muss dem PR-Head entsprechen:
 
 ```bash
 curl -sS "https://api.github.com/repos/rhermann90/ERP/pulls/1" | jq -r '"PR head: " + .head.sha'
@@ -157,10 +155,12 @@ curl -sS "https://api.github.com/repos/rhermann90/ERP/actions/runs?branch=feat/f
   | jq -r '.workflow_runs[0] | "Neuester Run: " + (.id|tostring) + " conclusion=" + .conclusion + " head_sha=" + .head_sha'
 ```
 
+*Orientierungsbeispiel (nach Push oft falsch — nur gegenprüfen): Run `24536049460`, Head `e42a5d71ad244bcd0bfdb1e835ee51c629c48b11`, `success`.*
+
 ```text
 ## QA — Merge-Evidence (PR — pre-merge)
 
-Actions (grün): https://github.com/rhermann90/ERP/actions/runs/24535993105 — Commit 931efc3afb143c722aa469cd67d84a4f279e89f8 — geprüfter PR-Head, Job `backend`
+Actions (grün): https://github.com/rhermann90/ERP/actions/runs/<RUN_ID> — Commit <SHA_AUS_RUN_DETAIL_PR_HEAD> — geprüfter PR-Head, Job `backend`
 
 Team-Regel Evidence-SHA (Pflicht: genau eine Zeile, vom PL/Team bestätigt; QA ratet nicht): SHA = Commit aus Run-Detail (PR-Head); Merge auf main erst nach Approve unter dieser Evidence.
 
