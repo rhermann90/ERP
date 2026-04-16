@@ -155,7 +155,7 @@ curl -sS "https://api.github.com/repos/rhermann90/ERP/actions/runs?branch=feat/f
   | jq -r '.workflow_runs[0] | "Neuester Run: " + (.id|tostring) + " conclusion=" + .conclusion + " head_sha=" + .head_sha'
 ```
 
-*Orientierungsbeispiel (nach Push oft falsch — nur gegenprüfen): Run `24536049460`, Head `e42a5d71ad244bcd0bfdb1e835ee51c629c48b11`, `success`.*
+*Orientierungsbeispiel (nach Push oft falsch — nur gegenprüfen): Run `24536117032`, Head `3b9b8f00e5a5a724596f1f8c80a4db9e37fe74e7`, `success`.*
 
 ```text
 ## QA — Merge-Evidence (PR — pre-merge)
