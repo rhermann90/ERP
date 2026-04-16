@@ -24,7 +24,8 @@
 | 5 | [`docs/contracts/qa-fin-0-gate-readiness.md`](../docs/contracts/qa-fin-0-gate-readiness.md) | §5a/§5b, §3b Doku-PR, Sonderfall „kein PR“ |
 | 6 | [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](../docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md) | Review-Checkliste (Code Reviewer) |
 | 7 | [`prompts/KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md`](./KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md) | Remote setzen, SSH/HTTPS, Push, PL-/Agenten-Blöcke, §5a |
-| 8 | [`prompts/AGENTEN-RUNDE-2026-04-16-FIN0-GROSSSCHRITT.md`](./AGENTEN-RUNDE-2026-04-16-FIN0-GROSSSCHRITT.md) | **Aktuelle PL-Runde (Großschritt):** FIN-0 HTTP-Stubs, Frontend-Vorbereitung, QA, Review |
+| 8 | [`prompts/AGENTEN-RUNDE-2026-04-16-FIN0-GROSSSCHRITT.md`](./AGENTEN-RUNDE-2026-04-16-FIN0-GROSSSCHRITT.md) | FIN-0-Großschritt (Historie / Referenz) |
+| 9 | [`prompts/PL-NÄCHSTE-RUNDE-AUS-REVIEW.md`](./PL-NÄCHSTE-RUNDE-AUS-REVIEW.md) | **PL:** Nächste vier Prompts **nur** aus Code-Reviewer-Kurzfassung; Skelett + Beispiel |
 
 ---
 
@@ -32,7 +33,7 @@
 
 1. **PL-Vorspann** + **vier** Copy-Paste-Prompts in fester Reihenfolge: **Backend** → **Frontend** → **QA** → **Code Review** (siehe [`AGENTEN-PROMPT-LEITFADEN.md`](./AGENTEN-PROMPT-LEITFADEN.md) §7).  
 2. Umsetzung **nur im Team-Clone**; Artefakte: PR, QA-Kommentar §5a/§5b, Tracker-Links.  
-3. **Nächste Prompt-Runde:** Die Projektleitung stützt sich **ausschließlich** auf die **„Rückmeldung an Projektleitung“** des **Code Reviewers** (identisch zu **blocking** im GitHub-Review). **Nicht** maßgeblich für die nächsten Prompts: strukturierte PL-Rückmeldungen von Backend, Frontend, QA — deren Ergebnisse gelten über PR/CI/Tracker.
+3. **Nächste Prompt-Runde:** Die Projektleitung stützt sich **ausschließlich** auf die **„Rückmeldung an Projektleitung“** des **Code Reviewers** (identisch zu **blocking** im GitHub-Review). Konkrete Vorlage und Beispiel-Prompts: [`prompts/PL-NÄCHSTE-RUNDE-AUS-REVIEW.md`](./PL-NÄCHSTE-RUNDE-AUS-REVIEW.md). **Nicht** maßgeblich für die nächsten Prompts: strukturierte PL-Rückmeldungen von Backend, Frontend, QA — deren Ergebnisse gelten über PR/CI/Tracker.
 
 ---
 
