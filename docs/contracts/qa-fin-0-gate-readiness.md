@@ -122,9 +122,11 @@ Für den geplanten **Doku-PR** (Ziel: nur [`prompts/`](../../prompts/) `*` inkl.
 
 ## 5) QA-Kommentar (Copy-Paste)
 
-### §5a — Felder nach Merge des Ziel-PRs (nur echte Werte; nicht ausdenken)
+### §5a — Felder (pre-merge und post-merge; nur echte Werte; nicht ausdenken)
 
-Wenn der **grüne** GitHub Actions-Run auf den Merge nach `main` vorliegt, sind im **§5a**-Kernkommentar folgende Platzhalter **durch echte Werte aus der Actions-UI / dem Merge** zu ersetzen (keine erfundenen URLs oder SHAs):
+Wenn der **grüne** GitHub Actions-Run auf den **Merge nach `main`** vorliegt, sind im **§5a**-Kernkommentar folgende Platzhalter **durch echte Werte aus der Actions-UI / dem Merge** zu ersetzen (keine erfundenen URLs oder SHAs):
+
+**Vor Merge auf `main` (Szenario A — Review verlangt Evidence vor Approve):** Es darf **keine** falsche Behauptung `Commit <SHA> = Merge auf main` stehen, solange noch **kein** Merge auf `main` erfolgt ist. Stattdessen **§5a (PR-Evidence)** unten (**Vorlage 5a-pre**) verwenden: Run-URL und SHA aus dem **grünen** `backend`-Lauf auf dem **PR-Head** (Run-Detail in GitHub), plus **eine** vom **Projektleitung / Team** bestätigte Zeile **Team-Regel Evidence-SHA**, die klarstellt, dass der SHA den **vom Run geprüften PR-Commit** bezeichnet und ein Merge auf `main` **erst nach** Approve erfolgt. Nach erfolgreichem Merge kann dieselbe §5a-Zelle **editiert** werden auf die **Post-Merge**-Form (**Vorlage 5a)** mit Merge-Commit und passendem Run auf `main` — **nur** wenn das Team das so vereinbart; sonst neuer klar benannter Nachweis-Kommentar ohne Widerspruch zum Kern.
 
 | Feld | Herkunft | Platzhalter bis zur Nachreichung |
 | --- | --- | --- |
@@ -132,16 +134,37 @@ Wenn der **grüne** GitHub Actions-Run auf den Merge nach `main` vorliegt, sind 
 | SHA | Commit des Runs = Merge auf `main` (laut **Team-Regel Evidence-SHA**) | `<SHA>` |
 | Team-Regel Evidence-SHA | Eine bestätigte Zeile vom Team (Squash vs. Merge) | `<Team-Regelzeile>` |
 
-Erst **nach** grünem `backend`-Job und belegbarem SHA die Zeile **„Actions (grün): …“** im PR posten — siehe Vorlage **§5a** unten.
+*Tabelle primär für **Post-Merge**. **Vor** Merge auf `main`: Run-URL = grüner Lauf zum **PR-Head**; SHA = Commit aus **Run-Detail** (nicht „Merge-Commit“ behaupten) — Vorlage **5a-pre)**.*
 
-**§5a — drei Bausteine im PR-Kommentar (nach nächstem relevanten Merge auf `main`):**  
+Erst **nach** grünem `backend`-Job und belegbarem SHA die Zeile **„Actions (grün): …“** im PR posten — siehe Vorlage **5a-pre)** (vor Merge) bzw. **5a)** (nach Merge).
+
+**§5a — drei Bausteine im PR-Kommentar:**  
+- **Nach Merge auf `main`:** siehe drei Bausteine wie in Vorlage **5a)** (Merge-Commit / Run auf `main`).  
+- **Vor Merge (Szenario A):** Vorlage **5a-pre)** — gleiche Bausteine, aber **ohne** die Behauptung „= Merge auf main“ in der Actions-Zeile; **Team-Regel Evidence-SHA** muss den PR-Kontext eindeutig machen.
+
 1. **Zeile Actions:** `Actions (grün):` + HTTPS Run-URL mit **echter** `RUN_ID` + **echtes** `SHA` + `Job backend` (Werte nur aus GitHub kopieren).  
 2. **Zeile Team-Regel:** `Team-Regel Evidence-SHA:` + **eine** vom Team bestätigte Zeile (Squash vs. Merge — QA ratet nicht).  
 3. **Optional:** Verweis auf diese Datei / [`qa-fin-0-stub-test-matrix.md`](./qa-fin-0-stub-test-matrix.md) und PR-Scope („reine Doku“ laut **§3b**, falls zutreffend).
 
 **Regel:** Pro Merge-PR **exakt ein** QA-Kommentar (ein GitHub-Kommentar / ein Block), dessen Kern **immer** entweder **§5a** oder **§5b** ist — **kein** leerer QA-Kommentar, **kein** **zweiter** QA-**Kern**-Kommentar (5a/5b) zum **selben** Merge, der dem ersten **widerspricht**. Bei Korrektur: **bestehenden** Kommentar **editieren** und auf **Team-Klarheit** (Evidence, SHA-Regel) drängen — nicht einen neuen Kern-Kommentar parallel posten. **§5c** nur **im selben** Kommentar **unterhalb** von §5a oder §5b (FIN-2 / G8 / Kontext). **§5a** = grün + Run-URL + SHA + **Pflicht:** eine bestätigte Zeile **Team-Regel Evidence-SHA**. **§5b** = Blocker (Grund); Log nur **Copy-Paste** aus Actions (**keine** Paraphrase). **Fehlender Link** / **rot** / **SHA unklar** → **§5b**; QA **ratet** Squash/Merge-Zuordnung **nicht**. Eskalation oder formale **Rückmeldung an Projektleitung:** Format **„Rückmeldung an Projektleitung“** weiter oben in dieser Datei — **immer** mit Pflichtzeilen **Actions-Link vorhanden** (ja/nein), **Merge blockiert** (ja/nein) und bei Review-Eskalation dem Abschnitt **blocking** (siehe dort).
 
+### 5a-pre) Grün — PR-Evidence **vor** Merge auf `main` (Szenario A)
+
+*Verwenden, solange der PR noch **nicht** auf `main` gemergt ist und der Reviewer §5a vor Approve verlangt. Keine erfundenen Werte.*
+
+```text
+## QA — Merge-Evidence (PR — pre-merge)
+
+Actions (grün): https://github.com/<ORG>/<REPO>/actions/runs/<RUN_ID> — Commit <SHA> — geprüfter PR-Head, Job `backend`
+
+Team-Regel Evidence-SHA (Pflicht: genau eine Zeile, vom PL/Team bestätigt; QA ratet nicht): <z. B. „SHA = Commit aus Run-Detail (PR-Head); Merge auf main erst nach Approve unter dieser Evidence.“>
+
+Kontext FIN-0 / Gate: `docs/contracts/qa-fin-0-gate-readiness.md` | FIN-2-Start-Gate: `docs/tickets/FIN-2-START-GATE.md`
+```
+
 ### 5a) Grün — Merge-Evidence (Pflichtzeile)
+
+*Nach erfolgreichem Merge auf `main` — oder wenn der Run ausdrücklich den Merge-Commit auf `main` belegt.*
 
 ```text
 ## QA — Merge-Evidence (main)
