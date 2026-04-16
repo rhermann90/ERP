@@ -37,6 +37,8 @@ Der Reviewer sendet **ein** zusammenhängendes Textstück (Chat/Ticket). **Pflic
 
 PR #1 squash-merge auf `main`; squash-Commit (PR-Inhalt) `ffa8151745465249535b8e29c112026a21bdc7fb`. Spätere Commits auf `main` (z. B. reine Doku) ändern diese Merge-Evidence nicht — vor Arbeit immer `git pull origin main` und für **neue** App-/Contract-PRs jeweils aktuellen Tip-SHA und CI-Run verwenden. §5a war pre-merge vollständig; optional kann QA denselben §5a-Kern auf **5a)** mit Run auf `main` + diesem SHA nachziehen (`docs/contracts/qa-fin-0-gate-readiness.md`).
 
+**Kopierbare Vier-Prompt-Runde (PL, aus dieser Rückmeldung abgeleitet):** [`prompts/AGENTEN-RUNDE-2026-04-18-FIN0-nach-merge-pr1.md`](./AGENTEN-RUNDE-2026-04-18-FIN0-nach-merge-pr1.md).
+
 ```text
 ## Rückmeldung an Projektleitung (Kurzfassung für nächste Prompts — nach Merge)
 

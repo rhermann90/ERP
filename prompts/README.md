@@ -26,6 +26,7 @@
 | 7 | [`prompts/KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md`](./KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md) | Remote setzen, SSH/HTTPS, Push, PL-/Agenten-Blöcke, §5a |
 | 8 | [`prompts/AGENTEN-RUNDE-2026-04-16-FIN0-GROSSSCHRITT.md`](./AGENTEN-RUNDE-2026-04-16-FIN0-GROSSSCHRITT.md) | FIN-0-Großschritt (Historie / Referenz) |
 | 9 | [`prompts/PL-NÄCHSTE-RUNDE-AUS-REVIEW.md`](./PL-NÄCHSTE-RUNDE-AUS-REVIEW.md) | **PL:** Nächste vier Prompts **nur** aus Code-Reviewer-Kurzfassung; Skelett + Beispiel |
+| 10 | [`prompts/AGENTEN-RUNDE-2026-04-18-FIN0-nach-merge-pr1.md`](./AGENTEN-RUNDE-2026-04-18-FIN0-nach-merge-pr1.md) | **Aktuelle Runde (post-merge PR #1):** vier kopierbare Prompts aus Review-Eingang Szenario B |
 
 ---
 
