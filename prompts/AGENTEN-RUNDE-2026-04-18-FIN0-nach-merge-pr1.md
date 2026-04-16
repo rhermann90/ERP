@@ -9,6 +9,15 @@
 
 ---
 
+## Für den Chat (Copy-Paste)
+
+**So kopieren:** Es folgen **fünf** getrennte Codeblöcke (Sprachmarke: `text`). Pro Rolle nur den **Inhalt innerhalb** des Blocks kopieren — nicht die umschließenden Markdown-Zeilen mit drei Backticks (Vorspann einmal in die Session, danach Backend, Frontend, QA, Review in die passenden Chats).
+
+**Alternative (Browser):** Rohdatei öffnen und dort markieren:  
+https://raw.githubusercontent.com/rhermann90/ERP/main/prompts/AGENTEN-RUNDE-2026-04-18-FIN0-nach-merge-pr1.md
+
+---
+
 ## PL / System — Vorspann (ein Block, zuerst in die Session)
 
 ```text
