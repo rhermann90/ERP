@@ -124,7 +124,7 @@ Für den geplanten **Doku-PR** (Ziel: nur [`prompts/`](../../prompts/) `*` inkl.
 
 ### §5a — Felder (pre-merge und post-merge; nur echte Werte; nicht ausdenken)
 
-Wenn der **grüne** GitHub Actions-Run auf den **Merge nach `main`** vorliegt, sind im **§5a**-Kernkommentar folgende Platzhalter **durch echte Werte aus der Actions-UI / dem Merge** zu ersetzen (keine erfundenen URLs oder SHAs):
+Im **§5a**-Kernkommentar sind Platzhalter **ausschließlich** durch echte Werte aus der **GitHub Actions-UI** (und bei Post-Merge zusätzlich aus dem Merge auf `main`) zu ersetzen — **keine** erfundenen URLs oder SHAs. **Post-Merge:** Vorlage **5a)** und Tabelle unten (Run belegt Merge auf `main`). **Pre-Merge** (PR noch nicht auf `main`): Vorlage **5a-pre)** — siehe nächster Absatz.
 
 **Vor Merge auf `main` (Szenario A — Review verlangt Evidence vor Approve):** Es darf **keine** falsche Behauptung `Commit <SHA> = Merge auf main` stehen, solange noch **kein** Merge auf `main` erfolgt ist. Stattdessen **§5a (PR-Evidence)** unten (**Vorlage 5a-pre**) verwenden: Run-URL und SHA aus dem **grünen** `backend`-Lauf auf dem **PR-Head** (Run-Detail in GitHub), plus **eine** vom **Projektleitung / Team** bestätigte Zeile **Team-Regel Evidence-SHA**, die klarstellt, dass der SHA den **vom Run geprüften PR-Commit** bezeichnet und ein Merge auf `main` **erst nach** Approve erfolgt. Nach erfolgreichem Merge kann dieselbe §5a-Zelle **editiert** werden auf die **Post-Merge**-Form (**Vorlage 5a)** mit Merge-Commit und passendem Run auf `main` — **nur** wenn das Team das so vereinbart; sonst neuer klar benannter Nachweis-Kommentar ohne Widerspruch zum Kern.
 
@@ -162,6 +162,14 @@ Team-Regel Evidence-SHA (Pflicht: genau eine Zeile, vom PL/Team bestätigt; QA r
 Kontext FIN-0 / Gate: `docs/contracts/qa-fin-0-gate-readiness.md` | FIN-2-Start-Gate: `docs/tickets/FIN-2-START-GATE.md`
 ```
 
+#### PL-Bestätigung — Standardzeile **Team-Regel Evidence-SHA** (Pre-Merge)
+
+Sofern die **Projektleitung** keine **abweichende** Zeile schriftlich vorgibt (Ticket/PR-Kommentar mit Datum), gilt für **FIN-0**-PRs in diesem Koordinationszyklus die folgende **eine** Zeile als **bestätigt** — **QA** darf sie in **Team-Regel Evidence-SHA** **wortgleich** einfügen (kein Raten):
+
+`SHA = Commit aus Run-Detail (PR-Head); Merge auf main erst nach Approve unter dieser Evidence.`
+
+**Abweichung:** Nur mit expliziter, schriftlicher anderer **eine** Zeile durch die Projektleitung; QA verwendet ausschließlich diese.
+
 ### 5a) Grün — Merge-Evidence (Pflichtzeile)
 
 *Nach erfolgreichem Merge auf `main` — oder wenn der Run ausdrücklich den Merge-Commit auf `main` belegt.*
@@ -192,7 +200,7 @@ Oder **(B)** anderer Blocker in **einer** kurzen Zeile, z. B. `fehlender grüner
 **Log-Snippet** — **ausschließlich wörtlich** aus dem GitHub-Actions-Log des genannten Steps (Copy-Paste): **keine** Paraphrase, **keine** Zusammenfassung. Bei fehlendem Link ohne Run: eine Zeile wörtlich: `Evidence: kein grüner Actions-Link / keine §5a-Zeile vor Merge`
 <10–40 Zeilen stderr/stdout hier einfügen, sofern Run vorhanden>
 
-**Vorgeschriebene Evidence nach Fix (vollständiges §5a vom Team einfügen):**
+**Vorgeschriebene Evidence nach Fix (vollständiges §5a vom Team einfügen):** PR noch **nicht** auf `main` → **Vorlage 5a-pre)** (kein „= Merge auf main“). Bereits gemergt → **Vorlage 5a)**, z. B.:
 Actions (grün): https://github.com/<ORG>/<REPO>/actions/runs/<RUN_ID> — Commit <SHA> = Merge auf main — Job `backend`
 Team-Regel Evidence-SHA (eine Zeile, vom Team bestätigt): <…>
 

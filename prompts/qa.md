@@ -18,7 +18,7 @@ Pflichtfokus:
 - Storno/Gutschrift/Abschlagslogik
 
 Pflichtvorgehen:
-0) PR öffnen → Workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), Job **`backend`**, für den **PR-Head** **grün** abwarten/verifizieren. **§5a** im PR: nur **echte** Run-URL (HTTPS) + **SHA** + **eine** Zeile **Team-Regel Evidence-SHA** aus GitHub — **vor** Merge auf `main` Vorlage **5a-pre)** in `docs/contracts/qa-fin-0-gate-readiness.md` §5 (kein fingiertes „= Merge auf main“); **nach** Merge Vorlage **5a)**. **5b)** bei Blocker; nicht raten. Bereits QA-Kern vorhanden: **denselben** Kommentar **editieren** — kein paralleler zweiter §5a/§5b-Kern.
+0) PR öffnen → Workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), Job **`backend`**, für den **PR-Head** **grün** abwarten/verifizieren. **§5a** im PR: nur **echte** Run-URL (HTTPS) + **SHA** + **eine** Zeile **Team-Regel Evidence-SHA** — **vor** Merge Vorlage **5a-pre)** in `docs/contracts/qa-fin-0-gate-readiness.md` §5; Standardzeile **Team-Regel** dort unter **„PL-Bestätigung — Standardzeile“** (wortgleich posten, sofern PL nichts Abweichendes schriftlich vorgibt). **Nach** Merge Vorlage **5a)**. **5b)** bei Blocker; nicht raten. Bereits QA-Kern vorhanden: **denselben** Kommentar **editieren** — kein paralleler zweiter §5a/§5b-Kern.
 1) Erstelle Testmatrix:
    - Happy Path
    - Edge Cases
