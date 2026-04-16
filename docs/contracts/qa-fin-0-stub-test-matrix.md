@@ -21,18 +21,20 @@
 
 ## Abdeckung in `test/finance-fin0-stubs.test.ts` (keine Duplikation der Assertions)
 
-| Vitest-Beschreibung (Kurz) | Matrix-Kategorie | Route | Erwartung |
+Reihenfolge der Zeilen = Reihenfolge der `it(…)`-Blöcke in [`test/finance-fin0-stubs.test.ts`](../../test/finance-fin0-stubs.test.ts) (leichter Abgleich bei Reviews).
+
+| `it(…)`-Titel (1:1 aus Testdatei) | Matrix-Kategorie | Route | Erwartung |
 | --- | --- | --- | --- |
-| POST payment-terms … 422 TRACEABILITY… | Edge (fail-closed) | POST `/finance/payment-terms/versions` | `422` / `TRACEABILITY_LINK_MISSING` |
-| POST /invoices … 422 TRACEABILITY… | Edge | POST `/invoices` | `422` / `TRACEABILITY_LINK_MISSING` |
-| GET /invoices/:id … 404 DOCUMENT… | Negative | GET `/invoices/{id}` | `404` / `DOCUMENT_NOT_FOUND` |
-| POST intake requires Idempotency-Key | Edge | POST `/finance/payments/intake` | `400` / `VALIDATION_FAILED` |
-| POST intake non-UUID Idempotency-Key | Edge | POST `/finance/payments/intake` | `400` / `VALIDATION_FAILED` (Header `Idempotency-Key` OpenAPI-kanonisch, HTTP case-insensitive) |
-| POST intake … 422 … | Edge | POST `/finance/payments/intake` | `422` / `TRACEABILITY_LINK_MISSING` |
-| POST /invoices body reason zu kurz | Edge | POST `/invoices` | `400` / `VALIDATION_FAILED` |
-| rejects tenant header mismatch | Negative | POST `/invoices` | `403` / `TENANT_SCOPE_VIOLATION` |
-| rejects invalid Bearer … | Negative | POST `/finance/payment-terms/versions` | `401` / `UNAUTHORIZED` |
-| GET /invoices/:id invalid Bearer | Negative | GET `/invoices/{id}` | `401` / `UNAUTHORIZED` |
+| POST /finance/payment-terms/versions returns 422 TRACEABILITY_LINK_MISSING when body valid | Edge (fail-closed) | POST `/finance/payment-terms/versions` | `422` / `TRACEABILITY_LINK_MISSING` |
+| POST /invoices returns 422 TRACEABILITY_LINK_MISSING when body valid | Edge (fail-closed) | POST `/invoices` | `422` / `TRACEABILITY_LINK_MISSING` |
+| GET /invoices/:id returns 404 DOCUMENT_NOT_FOUND | Negative | GET `/invoices/{id}` | `404` / `DOCUMENT_NOT_FOUND` |
+| POST /finance/payments/intake requires Idempotency-Key UUID | Edge | POST `/finance/payments/intake` | `400` / `VALIDATION_FAILED` |
+| POST /finance/payments/intake rejects non-UUID Idempotency-Key with 400 | Edge | POST `/finance/payments/intake` | `400` / `VALIDATION_FAILED` (Header `Idempotency-Key` OpenAPI-kanonisch, HTTP case-insensitive) |
+| POST /finance/payments/intake returns 422 when header and body valid | Edge | POST `/finance/payments/intake` | `422` / `TRACEABILITY_LINK_MISSING` |
+| rejects tenant header mismatch with 403 | Negative | POST `/invoices` | `403` / `TENANT_SCOPE_VIOLATION` |
+| GET /invoices/:id rejects invalid Bearer with 401 UNAUTHORIZED | Negative | GET `/invoices/{id}` | `401` / `UNAUTHORIZED` |
+| POST /invoices returns 400 VALIDATION_FAILED when reason too short | Edge | POST `/invoices` | `400` / `VALIDATION_FAILED` |
+| rejects invalid Bearer with 401 UNAUTHORIZED (POST /finance/payment-terms/versions) | Negative | POST `/finance/payment-terms/versions` | `401` / `UNAUTHORIZED` |
 
 ---
 
