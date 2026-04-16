@@ -1,7 +1,7 @@
 # QA — FIN-0 Gate-Readiness & FIN-2-Start-Gate (Testbarkeit)
 
 **Rolle:** QA Engineer (Repository).  
-**Kontext:** FIN-0 = primär Dokumentation/Verträge; Regression = **gesamte** CI / lokaler `npm test` grün. **Merge auf `main`/`master`:** kanonische Evidence = **grüner GitHub Actions-Run** (Job wie [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)); lokale CI-Parität (89/0) **ersetzt** den Remote-Run **nicht**. FIN-2 = später; P0-Matrix nur **Stub** (siehe `qa-fin-2-start-gate-stub-matrix.md`).  
+**Kontext:** FIN-0 = primär Dokumentation/Verträge; Regression = **gesamte** CI / lokaler `npm test` grün. **Merge auf `main`/`master`:** kanonische Evidence = **grüner GitHub Actions-Run** (Job wie [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)); lokale CI-Parität (96/0) **ersetzt** den Remote-Run **nicht**. FIN-2 = später; P0-Matrix nur **Stub** (siehe `qa-fin-2-start-gate-stub-matrix.md`).  
 **MVP-Abnahme später:** `ERP Systembeschreibung v1.3.md` **§15** *Validierung und Quality Gate* — dort u. a. Finanzlogik (Abschnitt 8) konsistent mit Lebenszyklen und Traceability, AuditEvent-Modell, Rollen inkl. Zahlungs-/Mahnaktionen.
 
 ---
@@ -77,18 +77,20 @@ Bei Eskalation, nach relevantem **Merge-PR-Review**, oder auf **PL-Anforderung**
 
 Siehe: [`qa-fin-2-start-gate-stub-matrix.md`](./qa-fin-2-start-gate-stub-matrix.md).
 
+**FIN-0 HTTP-Stubs (Happy / Edge / Negative):** [`qa-fin-0-stub-test-matrix.md`](./qa-fin-0-stub-test-matrix.md) — Aufrufe und erwartete Codes laut [`finance-fin0-openapi-mapping.md`](./finance-fin0-openapi-mapping.md); Tests verlinkt nach [`test/finance-fin0-stubs.test.ts`](../../test/finance-fin0-stubs.test.ts) (keine Duplikation der Assertions).
+
 ---
 
 ## 3) Regression — Evidenz (lokal)
 
 | Befehl | Ergebnis | Datum |
 | --- | --- | --- |
-| `npm test` (ohne `PERSISTENCE_DB_TEST_URL`) | **77** bestanden, **12** übersprungen (**89** gesamt); Skips = gesamte Datei `test/persistence.integration.test.ts` | 2026-04-14 |
-| CI-Kette lokal (Postgres 16, `DATABASE_URL` + `PERSISTENCE_DB_TEST_URL` wie Workflow) | `npx prisma migrate deploy` → `npm run prisma:validate` → `npm run typecheck` → `npm test`: **89/89**, **0 skipped**, **6/6** Test-Dateien | 2026-04-14 |
+| `npm test` (ohne `PERSISTENCE_DB_TEST_URL`) | **84** bestanden, **12** übersprungen (**96** gesamt); Skips = gesamte Datei `test/persistence.integration.test.ts` | 2026-04-14 |
+| CI-Kette lokal (Postgres 16, `DATABASE_URL` + `PERSISTENCE_DB_TEST_URL` wie Workflow) | `npx prisma migrate deploy` → `npm run prisma:validate` → `npm run typecheck` → `npm test`: **96/96**, **0 skipped**, **7/7** Test-Dateien | 2026-04-14 |
 
-**CI-Zielzustand (kanonisch):** [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) — in **GitHub Actions** (`npm ci`, `npx prisma migrate deploy`, `npm run prisma:validate`, `npm run typecheck`, `npm test` mit Postgres + `PERSISTENCE_DB_TEST_URL` → **89/89**, **0 skipped**).
+**CI-Zielzustand (kanonisch):** [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) — in **GitHub Actions** (`npm ci`, `npx prisma migrate deploy`, `npm run prisma:validate`, `npm run typecheck`, `npm test` mit Postgres + `PERSISTENCE_DB_TEST_URL` → **96/96**, **0 skipped**).
 
-**Merge-Evidence — Pflicht für jeden Merge auf `main`/`master`:** Im **selben PR** (oder unmittelbar nach Merge in einer nachverfolgbaren Notiz am PR/Merge) **HTTPS-Link zum grünen GitHub Actions-Run** einfordern — Workflow wie [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), Job **`backend`**, und der ausgelöste **Commit-SHA** des Runs muss sich gegen den **Merge auf `main`** belegen lassen (siehe **3a** zu Squash vs. Merge: **nicht raten**). **Lokale 89/0** = **Zusatz**, **kein** Ersatz für den Remote-Run. **Ohne** einen im PR nachweisbaren **grünen** GitHub-Actions-Link, der den Merge auf **`main`** / **`master`** belegt → **vor Merge** Vorlage **§5b** (keine Merge-Empfehlung). Zusätzlich: Pipeline **rot** oder **SHA-Bezug** (Squash vs. Merge) **unklar** → **nicht interpretieren** → **Merge blockieren** und **§5b** (Run + Step + **ausschließlich wörtliches** Log aus Actions — **keine** Paraphrase, **keine** Zusammenfassung).
+**Merge-Evidence — Pflicht für jeden Merge auf `main`/`master`:** Im **selben PR** (oder unmittelbar nach Merge in einer nachverfolgbaren Notiz am PR/Merge) **HTTPS-Link zum grünen GitHub Actions-Run** einfordern — Workflow wie [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), Job **`backend`**, und der ausgelöste **Commit-SHA** des Runs muss sich gegen den **Merge auf `main`** belegen lassen (siehe **3a** zu Squash vs. Merge: **nicht raten**). **Lokale 96/0** = **Zusatz**, **kein** Ersatz für den Remote-Run. **Ohne** einen im PR nachweisbaren **grünen** GitHub-Actions-Link, der den Merge auf **`main`** / **`master`** belegt → **vor Merge** Vorlage **§5b** (keine Merge-Empfehlung). Zusätzlich: Pipeline **rot** oder **SHA-Bezug** (Squash vs. Merge) **unklar** → **nicht interpretieren** → **Merge blockieren** und **§5b** (Run + Step + **ausschließlich wörtliches** Log aus Actions — **keine** Paraphrase, **keine** Zusammenfassung).
 
 *Kein „grün genug“:* Jeder rote Test oder fehlgeschlagene CI-Job = **Blocker** bis Log im PR dokumentiert und behoben.
 
@@ -119,6 +121,23 @@ Für den geplanten **Doku-PR** (Ziel: nur [`prompts/`](../../prompts/) `*` inkl.
 ---
 
 ## 5) QA-Kommentar (Copy-Paste)
+
+### §5a — Felder nach Merge des Ziel-PRs (nur echte Werte; nicht ausdenken)
+
+Wenn der **grüne** GitHub Actions-Run auf den Merge nach `main` vorliegt, sind im **§5a**-Kernkommentar folgende Platzhalter **durch echte Werte aus der Actions-UI / dem Merge** zu ersetzen (keine erfundenen URLs oder SHAs):
+
+| Feld | Herkunft | Platzhalter bis zur Nachreichung |
+| --- | --- | --- |
+| Run-URL | GitHub → Actions → grüner Workflow-Run für den Merge-Commit | `https://github.com/<ORG>/<REPO>/actions/runs/<RUN_ID>` |
+| SHA | Commit des Runs = Merge auf `main` (laut **Team-Regel Evidence-SHA**) | `<SHA>` |
+| Team-Regel Evidence-SHA | Eine bestätigte Zeile vom Team (Squash vs. Merge) | `<Team-Regelzeile>` |
+
+Erst **nach** grünem `backend`-Job und belegbarem SHA die Zeile **„Actions (grün): …“** im PR posten — siehe Vorlage **§5a** unten.
+
+**§5a — drei Bausteine im PR-Kommentar (nach nächstem relevanten Merge auf `main`):**  
+1. **Zeile Actions:** `Actions (grün):` + HTTPS Run-URL mit **echter** `RUN_ID` + **echtes** `SHA` + `Job backend` (Werte nur aus GitHub kopieren).  
+2. **Zeile Team-Regel:** `Team-Regel Evidence-SHA:` + **eine** vom Team bestätigte Zeile (Squash vs. Merge — QA ratet nicht).  
+3. **Optional:** Verweis auf diese Datei / [`qa-fin-0-stub-test-matrix.md`](./qa-fin-0-stub-test-matrix.md) und PR-Scope („reine Doku“ laut **§3b**, falls zutreffend).
 
 **Regel:** Pro Merge-PR **exakt ein** QA-Kommentar (ein GitHub-Kommentar / ein Block), dessen Kern **immer** entweder **§5a** oder **§5b** ist — **kein** leerer QA-Kommentar, **kein** **zweiter** QA-**Kern**-Kommentar (5a/5b) zum **selben** Merge, der dem ersten **widerspricht**. Bei Korrektur: **bestehenden** Kommentar **editieren** und auf **Team-Klarheit** (Evidence, SHA-Regel) drängen — nicht einen neuen Kern-Kommentar parallel posten. **§5c** nur **im selben** Kommentar **unterhalb** von §5a oder §5b (FIN-2 / G8 / Kontext). **§5a** = grün + Run-URL + SHA + **Pflicht:** eine bestätigte Zeile **Team-Regel Evidence-SHA**. **§5b** = Blocker (Grund); Log nur **Copy-Paste** aus Actions (**keine** Paraphrase). **Fehlender Link** / **rot** / **SHA unklar** → **§5b**; QA **ratet** Squash/Merge-Zuordnung **nicht**. Eskalation oder formale **Rückmeldung an Projektleitung:** Format **„Rückmeldung an Projektleitung“** weiter oben in dieser Datei — **immer** mit Pflichtzeilen **Actions-Link vorhanden** (ja/nein), **Merge blockiert** (ja/nein) und bei Review-Eskalation dem Abschnitt **blocking** (siehe dort).
 
@@ -164,7 +183,7 @@ Bitte Fix; danach **dieselbe** QA-Kommentar-Zelle **editieren** auf **§5a** (vo
 
 **G8 (Contract-PR, vgl. §4):** `docs/api-contract.yaml` ↔ `docs/contracts/error-codes.json` ↔ `docs/contracts/finance-fin0-openapi-mapping.md` — bei Abweichung Merge blockieren. SHA-Unklarheit: **§5b** oben, nicht interpretieren.
 
-**Lokal (ohne DB):** `npm test` z. B. **77 passed, 12 skipped (89)** — Skips = `test/persistence.integration.test.ts`; ersetzt keinen grünen Remote-Run.
+**Lokal (ohne DB):** `npm test` z. B. **84 passed, 12 skipped (96)** — Skips = `test/persistence.integration.test.ts`; ersetzt keinen grünen Remote-Run.
 
 **MVP später:** `ERP Systembeschreibung v1.3.md` §15.
 
