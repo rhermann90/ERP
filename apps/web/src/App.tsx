@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
 import { AppShell } from "./components/AppShell.js";
 import { DocumentTextPanels } from "./components/DocumentTextPanels.js";
+import { FinancePreparation } from "./components/FinancePreparation.js";
+import { FINANCE_PREP_HASH, useHashRoute } from "./lib/hash-route.js";
 import {
   CANONICAL_EXPORT_INVOICE_ACTION_ID,
   ENTITY_TYPES,
@@ -127,6 +129,9 @@ export default function App() {
 
   const tokenTenant = token ? decodeTokenTenantId(token) : null;
   const tenantMismatch = tokenTenant && tenantId && tokenTenant !== tenantId;
+
+  const hashPath = useHashRoute();
+  const showFinancePrep = hashPath === "/finanz-vorbereitung";
 
   useEffect(() => {
     if (tenantId !== prevTenant) {
@@ -367,6 +372,11 @@ export default function App() {
 
   return (
     <AppShell offlineNote="Offline: nur App-Shell/Assets (Workbox). Keine Buchung ohne Backend.">
+      <nav className="shell-nav" aria-label="Hauptnavigation">
+        <a href="#/">Shell / Dokument</a>
+        {" · "}
+        <a href={FINANCE_PREP_HASH}>Finanz (Vorbereitung)</a>
+      </nav>
       {banner?.kind === "error" ? (
         <div className="error-banner" role="alert">
           <strong>{banner.code ? `${banner.code}: ` : ""}</strong>
@@ -392,6 +402,12 @@ export default function App() {
         </div>
       ) : null}
 
+      {showFinancePrep ? (
+        <FinancePreparation />
+      ) : null}
+
+      {!showFinancePrep ? (
+        <>
       <section className="panel">
         <h2>Sitzung &amp; API</h2>
         <div className="field-grid two">
@@ -536,6 +552,8 @@ export default function App() {
             </div>
           </div>
         </div>
+      ) : null}
+        </>
       ) : null}
     </AppShell>
   );

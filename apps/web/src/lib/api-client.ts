@@ -11,6 +11,8 @@ export type ApiClient = {
   getAllowedActions(documentId: string, entityType: string): Promise<AllowedActionsResponse>;
   getMeasurementVersion(measurementVersionId: string): Promise<unknown>;
   getSupplementVersion(supplementVersionId: string): Promise<unknown>;
+  /** FIN-0 Stub: GET /invoices/{invoiceId} (OpenAPI `finInvoiceGet`) — Lesepfad, tenant-isoliert. */
+  getInvoice(invoiceId: string): Promise<unknown>;
 };
 
 export function createApiClient(options: {
@@ -64,6 +66,9 @@ export function createApiClient(options: {
     },
     getSupplementVersion(supplementVersionId) {
       return requestJson("GET", `/supplements/${encodeURIComponent(supplementVersionId)}`);
+    },
+    getInvoice(invoiceId) {
+      return requestJson("GET", `/invoices/${encodeURIComponent(invoiceId)}`);
     },
   };
 }
