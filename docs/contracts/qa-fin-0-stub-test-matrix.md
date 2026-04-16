@@ -27,9 +27,12 @@
 | POST /invoices … 422 TRACEABILITY… | Edge | POST `/invoices` | `422` / `TRACEABILITY_LINK_MISSING` |
 | GET /invoices/:id … 404 DOCUMENT… | Negative | GET `/invoices/{id}` | `404` / `DOCUMENT_NOT_FOUND` |
 | POST intake requires Idempotency-Key | Edge | POST `/finance/payments/intake` | `400` / `VALIDATION_FAILED` |
+| POST intake non-UUID Idempotency-Key | Edge | POST `/finance/payments/intake` | `400` / `VALIDATION_FAILED` (Header `Idempotency-Key` OpenAPI-kanonisch, HTTP case-insensitive) |
 | POST intake … 422 … | Edge | POST `/finance/payments/intake` | `422` / `TRACEABILITY_LINK_MISSING` |
+| POST /invoices body reason zu kurz | Edge | POST `/invoices` | `400` / `VALIDATION_FAILED` |
 | rejects tenant header mismatch | Negative | POST `/invoices` | `403` / `TENANT_SCOPE_VIOLATION` |
 | rejects invalid Bearer … | Negative | POST `/finance/payment-terms/versions` | `401` / `UNAUTHORIZED` |
+| GET /invoices/:id invalid Bearer | Negative | GET `/invoices/{id}` | `401` / `UNAUTHORIZED` |
 
 ---
 
@@ -51,6 +54,8 @@
 | Route | Fall | HTTP | `code` (Domain) | Quelle Mapping |
 | --- | --- | --- | --- | --- |
 | POST `/finance/payments/intake` | Body ok, **ohne** gültigen `Idempotency-Key` (UUID) | `400` | `VALIDATION_FAILED` | OpenAPI `400`; Mapping Zahlungs-Schema |
+| POST `/finance/payments/intake` | Header gesetzt, Wert **keine** UUID | `400` | `VALIDATION_FAILED` | Zod-UUID auf `Idempotency-Key` |
+| POST `/invoices` | `reason` kürzer als `minLength` | `400` | `VALIDATION_FAILED` | Request-Schema |
 | POST `/finance/payments/intake` | Header + Body formal ok, Traceability nicht erfüllt | `422` | `TRACEABILITY_LINK_MISSING` | Mapping Zeile „Mutierender Finanz-Endpunkt …“ |
 | POST `/invoices` | Body formal ok, Traceability nicht erfüllt | `422` | `TRACEABILITY_LINK_MISSING` | idem |
 | POST `/finance/payment-terms/versions` | Body formal ok, Traceability nicht erfüllt | `422` | `TRACEABILITY_LINK_MISSING` | idem |

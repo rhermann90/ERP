@@ -35,10 +35,23 @@ function assertFin0MutatingFailClosed(): never {
   throw new DomainError("TRACEABILITY_LINK_MISSING", FIN0_FAIL_CLOSED_MESSAGE, 422);
 }
 
+function headerValueInsensitive(
+  headers: Record<string, string | string[] | undefined>,
+  canonicalName: string,
+): string | undefined {
+  const want = canonicalName.toLowerCase();
+  for (const [key, val] of Object.entries(headers)) {
+    if (key.toLowerCase() === want) {
+      return Array.isArray(val) ? val[0] : val;
+    }
+  }
+  return undefined;
+}
+
+/** OpenAPI-Parameter `Idempotency-Key` (case-insensitive wie HTTP). */
 function parseIdempotencyKey(headers: Record<string, string | string[] | undefined>): string {
-  const raw = headers["idempotency-key"];
-  const value = Array.isArray(raw) ? raw[0] : raw;
-  return z.string().uuid().parse(value);
+  const raw = headerValueInsensitive(headers, "Idempotency-Key");
+  return z.string().uuid().parse(raw);
 }
 
 /**
