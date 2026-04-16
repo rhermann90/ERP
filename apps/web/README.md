@@ -66,9 +66,11 @@ npm run test     # Frontend-Unit-Tests (SoT, Session, Envelope, Text-Rendering)
 
 Gelesen: [`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`](../docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md), [`docs/tickets/FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md).
 
-**PR-Scope-Zeile:** `FIN-0 UI-Vorbereitung only; kein FIN-2.`
+**PR-Scope-Zeile:** `FIN-0 UI/Doku-Vertiefung only; kein FIN-2.`
 
-**Ergebnis / UI:** Read-only **„Finanz (Vorbereitung)“** (`#/finanz-vorbereitung`): Kurztext + Links zu ADR 0007, FIN-2-Start-Gate, `finance-fin0-openapi-mapping.md` (über `VITE_REPO_DOCS_BASE` oder lokale Pfade im UI). **Kein** Mahn-, Zahlungs- oder Buchungs-UI; Schreibaktionen weiter ausschließlich nach `GET …/allowed-actions`. **API-Client:** optionaler Lesepfad `getInvoice` → `GET /invoices/{invoiceId}` (OpenAPI-Stub). **API-Client allgemein:** Fehler-Envelope strikt an [`docs/contracts/error-codes.json`](../docs/contracts/error-codes.json) + Decision-Log (`Passthrough`; Fallback `x-request-id` / UUID + Code-Tabelle bei fehlenden Envelope-Feldern).
+**Was diese Runde geändert hat:** Die Seite **Finanz (Vorbereitung)** verlinkt zusätzlich die QA-**Stub-Testmatrix** [`qa-fin-0-stub-test-matrix.md`](../docs/contracts/qa-fin-0-stub-test-matrix.md); die Doku-Navigation ist mit `aria-label` / `aria-describedby` und sichtbarem **:focus-visible** für Tastaturnutzer klarer. Inhaltlich unverändert: **keine** Buchungs-, Zahlungs- oder Mahn-Oberfläche und **keine** neuen Schreibpfade an Finanz-POSTs — weiterhin nur Orientierung an FIN-0 vs. späteren Phasen.
+
+**Ergebnis / UI:** Read-only **„Finanz (Vorbereitung)“** (`#/finanz-vorbereitung`): Kurztext + Links zu ADR 0007, FIN-2-Start-Gate, `finance-fin0-openapi-mapping.md`, Stub-Testmatrix (über `VITE_REPO_DOCS_BASE` oder lokale Pfade im UI). **Kein** Mahn-, Zahlungs- oder Buchungs-UI; Schreibaktionen weiter ausschließlich nach `GET …/allowed-actions`. **API-Client:** optionaler Lesepfad `getInvoice` → `GET /invoices/{invoiceId}` (OpenAPI-Stub). **API-Client allgemein:** Fehler-Envelope strikt an [`docs/contracts/error-codes.json`](../docs/contracts/error-codes.json) + Decision-Log (`Passthrough`; Fallback `x-request-id` / UUID + Code-Tabelle bei fehlenden Envelope-Feldern).
 
 ### Finanz (FIN-0 vs. spätere Phasen)
 

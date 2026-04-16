@@ -14,6 +14,10 @@ const DOC_LINKS: { label: string; repoPath: string }[] = [
     label: "OpenAPI-Mapping FIN-0 (fail-closed)",
     repoPath: "docs/contracts/finance-fin0-openapi-mapping.md",
   },
+  {
+    label: "Stub-Testmatrix FIN-0 (QA)",
+    repoPath: "docs/contracts/qa-fin-0-stub-test-matrix.md",
+  },
 ];
 
 /**
@@ -22,20 +26,24 @@ const DOC_LINKS: { label: string; repoPath: string }[] = [
  */
 export function FinancePreparation() {
   return (
-    <section className="panel" aria-labelledby="finance-prep-heading">
+    <section className="panel finance-prep" aria-labelledby="finance-prep-heading">
       <h2 id="finance-prep-heading">Finanz (Vorbereitung)</h2>
-      <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginTop: 0 }}>
+      <p
+        id="finance-prep-intro"
+        style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginTop: 0 }}
+      >
         FIN-0: Orientierung und Verträge — <strong>kein</strong> produktives FIN-2 (Rechnungsbuchung, 8.4-Motor) vor Freigabe
         G1–G10. Diese Seite verlinkt nur Doku; Schreibpfade in der App weiter ausschließlich über{" "}
         <code>GET /documents/:id/allowed-actions</code>.
       </p>
       <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-        Zurück zur Shell: <a href="#/">Start</a>
+        <a href="#/">Zurück zur Shell (Start)</a>
         {" · "}
         <span style={{ color: "var(--text-secondary)" }}>diese Seite: </span>
         <code>{FINANCE_PREP_HASH}</code>
       </p>
-      <ul className="finance-prep-links">
+      <nav aria-label="FIN-0 Referenzdokumente im Repository">
+        <ul className="finance-prep-links" aria-describedby="finance-prep-intro">
         {DOC_LINKS.map(({ label, repoPath }) => {
           const href = repoDocHref(repoPath);
           return (
@@ -55,7 +63,8 @@ export function FinancePreparation() {
             </li>
           );
         })}
-      </ul>
+        </ul>
+      </nav>
     </section>
   );
 }
