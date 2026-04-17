@@ -188,6 +188,26 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     expect((res.json() as { code: string }).code).toBe("TENANT_SCOPE_VIOLATION");
   });
 
+  it("POST /finance/payments/intake rejects tenant header mismatch with 403", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/finance/payments/intake",
+      headers: {
+        ...buildHeaders(),
+        "x-tenant-id": randomUUID(),
+        "Idempotency-Key": randomUUID(),
+      },
+      payload: {
+        invoiceId: randomUUID(),
+        amountCents: 100,
+        externalReference: "ext-1",
+        reason: "wrong tenant on payment intake",
+      },
+    });
+    expect(res.statusCode).toBe(403);
+    expect((res.json() as { code: string }).code).toBe("TENANT_SCOPE_VIOLATION");
+  });
+
   it("GET /invoices/:id rejects invalid Bearer with 401 UNAUTHORIZED", async () => {
     const id = randomUUID();
     const res = await app.inject({

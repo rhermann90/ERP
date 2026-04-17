@@ -31,7 +31,10 @@ Reihenfolge der Zeilen = Reihenfolge der `it(…)`-Blöcke in [`test/finance-fin
 | POST /finance/payments/intake requires Idempotency-Key UUID | Edge | POST `/finance/payments/intake` | `400` / `VALIDATION_FAILED` |
 | POST /finance/payments/intake rejects non-UUID Idempotency-Key with 400 | Edge | POST `/finance/payments/intake` | `400` / `VALIDATION_FAILED` (Header `Idempotency-Key` OpenAPI-kanonisch, HTTP case-insensitive) |
 | POST /finance/payments/intake returns 422 when header and body valid | Edge | POST `/finance/payments/intake` | `422` / `TRACEABILITY_LINK_MISSING` |
+| POST /finance/payments/intake accepts Idempotency-Key header name case-insensitive (UPPERCASE) | Edge | POST `/finance/payments/intake` | `422` / `TRACEABILITY_LINK_MISSING` |
+| POST /finance/payments/intake trims Idempotency-Key value before UUID parse | Edge | POST `/finance/payments/intake` | `422` / `TRACEABILITY_LINK_MISSING` |
 | rejects tenant header mismatch with 403 | Negative | POST `/invoices` | `403` / `TENANT_SCOPE_VIOLATION` |
+| POST /finance/payments/intake rejects tenant header mismatch with 403 | Negative | POST `/finance/payments/intake` | `403` / `TENANT_SCOPE_VIOLATION` |
 | GET /invoices/:id rejects invalid Bearer with 401 UNAUTHORIZED | Negative | GET `/invoices/{id}` | `401` / `UNAUTHORIZED` |
 | POST /invoices returns 400 VALIDATION_FAILED when reason too short | Edge | POST `/invoices` | `400` / `VALIDATION_FAILED` |
 | rejects invalid Bearer with 401 UNAUTHORIZED (POST /finance/payment-terms/versions) | Negative | POST `/finance/payment-terms/versions` | `401` / `UNAUTHORIZED` |
@@ -70,6 +73,7 @@ Reihenfolge der Zeilen = Reihenfolge der `it(…)`-Blöcke in [`test/finance-fin
 | --- | --- | --- | --- | --- |
 | POST `/finance/payment-terms/versions` | Ungültiger Bearer | `401` | `UNAUTHORIZED` | ja |
 | POST `/invoices` | `x-tenant-id` ≠ Tenant im Token | `403` | `TENANT_SCOPE_VIOLATION` | ja |
+| POST `/finance/payments/intake` | `x-tenant-id` ≠ Tenant im Token | `403` | `TENANT_SCOPE_VIOLATION` | ja |
 | GET `/invoices/{invoiceId}` | Beliebige UUID, kein Dokument | `404` | `DOCUMENT_NOT_FOUND` | ja |
 
 Weitere Kombinationen (`AUTH_ROLE_FORBIDDEN`, `EXPORT_PREFLIGHT_FAILED`, `TRACEABILITY_FIELD_MISMATCH`) gemäß OpenAPI-`responses` ergänzen, sobald im Backend explizit ausgeliefert — jeweils mit Contract-Update (G8).
