@@ -33,31 +33,35 @@ Der Reviewer sendet **ein** zusammenhängendes Textstück (Chat/Ticket). **Pflic
 
 **Verbindlich für die PL:** Zuerst **Aktueller Planungsstand** lesen und die nächste Vier-Prompt-Runde **nur** daraus ableiten. Alles unter **Archiv: Szenario A** ist **kein** aktueller Merge-Status auf `main` — nur Gate-Mechanik und Wortlaut-Vorlage für **künftige** PRs ohne vollständiges §5a.
 
-### Aktueller Planungsstand (main nach squash-merge PR #1 — 2026-04-16)
+### Aktueller Planungsstand (PR #1 Archiv + Fortsetzung 2026-04-20)
 
-PR #1 squash-merge auf `main`; squash-Commit (PR-Inhalt) `ffa8151745465249535b8e29c112026a21bdc7fb`. Spätere Commits auf `main` (z. B. reine Doku) ändern diese Merge-Evidence nicht — vor Arbeit immer `git pull origin main` und für **neue** App-/Contract-PRs jeweils aktuellen Tip-SHA und CI-Run verwenden. §5a war pre-merge vollständig; optional kann QA denselben §5a-Kern auf **5a)** mit Run auf `main` + diesem SHA nachziehen (`docs/contracts/qa-fin-0-gate-readiness.md`).
+**Archiv — Squash PR #1 auf `main`:** Commit (PR-Inhalt) `ffa8151745465249535b8e29c112026a21bdc7fb`; Evidence-Run `https://github.com/rhermann90/ERP/actions/runs/24538762870` — nicht neu erfinden. Spätere Commits auf `main` (z. B. Doku) ändern diese Evidence nicht; für **neue** Merge-PRs jeweils frischen PR-Head-Run und §5a verwenden (`docs/contracts/qa-fin-0-gate-readiness.md`).
 
-**Kopierbare Vier-Prompt-Runde (PL, aktuell):** [`prompts/AGENTEN-RUNDE-2026-04-20-FIN0-zwei-branches-pr-review.md`](./AGENTEN-RUNDE-2026-04-20-FIN0-zwei-branches-pr-review.md) · Vorlagen / Schritt-0-Ergänzung: [`prompts/AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md`](./AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md) · Referenz: [`prompts/AGENTEN-RUNDE-2026-04-18-FIN0-nach-merge-pr1.md`](./AGENTEN-RUNDE-2026-04-18-FIN0-nach-merge-pr1.md).
+**Kopierbare Vier-Prompt-Runde (PL, aktuell):** [`prompts/AGENTEN-RUNDE-2026-04-20-FIN0-zwei-branches-pr-review.md`](./AGENTEN-RUNDE-2026-04-20-FIN0-zwei-branches-pr-review.md) · Vorlagen: [`prompts/AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md`](./AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md) · Referenz: [`prompts/AGENTEN-RUNDE-2026-04-18-FIN0-nach-merge-pr1.md`](./AGENTEN-RUNDE-2026-04-18-FIN0-nach-merge-pr1.md).
+
+**Rückmeldung an Projektleitung (wortgleich letzter konsolidierter Review-/Koordinationsstand — Eingang für §2):**
 
 ```text
-## Rückmeldung an Projektleitung (Kurzfassung für nächste Prompts — nach Merge)
-
+## Rückmeldung an Projektleitung
+**Vorspann:** Fortsetzung nach prompts/AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md · Details in prompts/AGENTEN-RUNDE-2026-04-20-FIN0-zwei-branches-pr-review.md · **blocking** wortgleich unten.
 ### Ergebnis
-PR #1 squash-merge auf main abgeschlossen. Commit ffa8151745465249535b8e29c112026a21bdc7fb: CI grün (siehe Pflicht). FIN-0-konformität der gemergten Änderungen unverändert (Tenant, kein FIN-2-Produktivpfad, Mapping/error-codes konsistent wo berührt, kein Audit ohne PL-Eintrag).
-
+Schritt 0 (API/curl): keine offenen PRs in der Abfrage; zwei FIN-0-Remote-Branches zur PR-Erstellung: feat/fin-0-runde-2026-04-19-openapi-mapping-parity (Mapping), feat/fin-0-web-ui-doku-2026-04-19 (Web). Backend/Frontend melden grüne Checks lokal vor Push. Code-Review-Vorlagen in 04-19-Doku.
+### Begründung
+Nächster Schritt ist GitHub-PR + Review + §5a auf PR-Head — kein FIN-2, kein Audit ohne PL.
+### Risiken
+API vs. UI; paralleler Branch feat/fin-0-post-pr1-mapping-parity — Verwechslung.
+### Offene Punkte
+PRs anlegen (Links in AGENTEN-RUNDE-2026-04-20-…); optional Branch-Cleanup mit PL.
+**Pflicht (neuer Merge-PR):**
+- Grüner Actions-Link für **anstehenden** Merge-PR: nein — PR noch zu eröffnen bzw. CI auf PR-Head ausstehend
+- Merge auf main aus QA-Sicht blockiert: nein — kein Merge-Gegenstand ohne §5a (Sonderfall C)
+**Pflicht (Archiv PR #1):**
+- ja — https://github.com/rhermann90/ERP/actions/runs/24538762870 · SHA ffa8151745465249535b8e29c112026a21bdc7fb
 ### blocking
-kein blocking
-
-### Pflicht (Merge-Evidence / QA-Sicht)
-- Grüner GitHub-Actions-Link für main nach Merge: ja — https://github.com/rhermann90/ERP/actions/runs/24538762870
-- Merge auf main aus QA-Sicht blockiert: nein — vorbehaltlich keine neue Rotstelle / kein SHA-Widerspruch
-
-### Nächster fokussierter Scope (Vorschlag für PL, max. 5 Aufzählungspunkte)
-- Neue Feature-Branches von `main` (nach `git pull origin main` aktueller Tip); keine Phantom-SHAs/Run-URLs in Prompts.
-- Nächste Vier-Prompt-Runde (Backend → Frontend → QA → Review) aus **dieser** Rückmeldung ableiten (`AGENTEN-PROMPT-LEITFADEN.md` §7); blocking wortgleich GitHub-Review.
-- QA optional: §5a-Kern im PR #1-Thread auf **5a)** mit HTTPS-Run auf `main` + SHA ffa8151745465249535b8e29c112026a21bdc7fb; optional Zeile „QA-Kern (Permalink)“.
-- Code Review: absolute Repo-URLs in Kommentaren (`GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`).
-- Weiter FIN-0/App-Inkremente; kein FIN-2 produktiv vor Gate; Audit nur mit PL-Eintrag FOLLOWUP.
+- kein blocking
+### Evidence
+- Compare: https://github.com/rhermann90/ERP/compare/main...feat/fin-0-runde-2026-04-19-openapi-mapping-parity · https://github.com/rhermann90/ERP/compare/main...feat/fin-0-web-ui-doku-2026-04-19
+- PR-Nummern: <nach Anlage eintragen>
 ```
 
 ### Archiv: Szenario A (Vorlage — PR #1 **vor** Merge; **nicht** als IST-Zustand verwenden)
