@@ -26,8 +26,10 @@
 | 7 | [`prompts/KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md`](./KOPIERBLOECKE-GIT-REMOTE-UND-PROMPTS.md) | Remote setzen, SSH/HTTPS, Push, PL-/Agenten-Blöcke, §5a |
 | 8 | [`prompts/AGENTEN-RUNDE-2026-04-16-FIN0-GROSSSCHRITT.md`](./AGENTEN-RUNDE-2026-04-16-FIN0-GROSSSCHRITT.md) | FIN-0-Großschritt (Historie / Referenz) |
 | 9 | [`prompts/PL-NÄCHSTE-RUNDE-AUS-REVIEW.md`](./PL-NÄCHSTE-RUNDE-AUS-REVIEW.md) | **PL:** Nächste vier Prompts **nur** aus Code-Reviewer-Kurzfassung; Skelett + Beispiel |
-| 10 | [`prompts/AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md`](./AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md) | **Aktuelle Runde:** vier kopierbare Prompts aus Code-Review „Rückmeldung an PL“ (blocking wortgleich) |
-| 11 | [`prompts/AGENTEN-RUNDE-2026-04-18-FIN0-nach-merge-pr1.md`](./AGENTEN-RUNDE-2026-04-18-FIN0-nach-merge-pr1.md) | Vorherige Runde (post-merge PR #1 / Szenario B) — technische Aufgaben weiter referenzierbar |
+| 10 | [`prompts/AGENTEN-RUNDE-2026-04-20-FIN0-zwei-branches-pr-review.md`](./AGENTEN-RUNDE-2026-04-20-FIN0-zwei-branches-pr-review.md) | **Aktuelle Runde:** vier Prompts nach Rollen-Meldungen (zwei Branches → PR, Review, §5a) |
+| 11 | [`prompts/AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md`](./AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md) | Vorlagen Schritt 0 / GitHub-Review / PL A·B + curl-Fallback |
+| 12 | [`prompts/AGENTEN-RUNDE-2026-04-18-FIN0-nach-merge-pr1.md`](./AGENTEN-RUNDE-2026-04-18-FIN0-nach-merge-pr1.md) | Technische Referenz FIN-0 post-merge PR #1 |
+| 13 | [`apps/web/README.md`](../apps/web/README.md) | PWA / **FIN-0** Finanz read-only (`#/finanz-vorbereitung`), Build/Tests, Rückverweis auf dieses Playbook |
 
 ---
 

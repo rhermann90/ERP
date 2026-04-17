@@ -161,6 +161,14 @@ Output: GitHub-Review(s) + PL-Rückmeldung + §2-Stichpunkte für nächste Runde
 gh pr list --repo rhermann90/ERP --state open
 ```
 
+**Ohne `gh`:** anonyme GitHub-API (ohne Token nur öffentlich sichtbare PRs):
+
+```bash
+curl -sS "https://api.github.com/repos/rhermann90/ERP/pulls?state=open"
+```
+
+Leeres JSON-Array `[]` **ersetzt nicht** die UI: bei privatem Repo oder fehlendem Token **immer** https://github.com/rhermann90/ERP/pulls im Browser gegenprüfen.
+
 Alternativ: https://github.com/rhermann90/ERP/pulls — nur PRs mit **FIN-0-relevantem** Scope (Titel/Beschreibung/Labels).
 
 ---
@@ -182,9 +190,16 @@ Inhalt unten **1:1** in den GitHub-Kommentar/Review einfügen — `<NUMMER>` dur
 - [ ] Kein Audit-Laufzeit-Change ohne PL-Eintrag (siehe FOLLOWUP-Link)
 ### 2) §5a / §5b *(https://github.com/rhermann90/ERP/blob/main/prompts/AGENTEN-PROMPT-LEITFADEN.md §5)*
 - **Szenario B** nur bei vollständiger §5a am **diesem** PR (HTTPS Run + SHA PR-Head + eine Zeile Team-Regel Evidence-SHA), plausibel zum Merge-Commit.
-- Sonst **Szenario A** und **blocking** = eine Zeile aus Leitfaden §5 (§5a unvollständig — kein Approve bis Nachreichung).
+- Sonst **Szenario A** und **blocking** = **wortgleich** folgende Zeile (ein Bullet).
 ### blocking
-`<genau eine Zeile: entweder Szenario-A-Satz ODER: kein blocking>`
+*(Nur **eine** der beiden Optionen stehen lassen — die andere Zeile im Kommentar löschen.)*
+
+**Option Szenario A** (wortgleich PL-Rückmeldung):
+- Merge-Evidence laut `qa-fin-0-gate-readiness.md` **§5a** im PR noch nicht vollständig (grüner Actions-Link + SHA + Team-Regel Evidence-SHA) — **kein Approve** bis zur Nachreichung.
+
+**Option Szenario B:**
+- kein blocking
+
 ### PR-Entscheidung
 `<Changes requested | Approve nur Szenario B>`
 **Merge-Kommentar (bei Approve, Pflicht):**  
@@ -213,6 +228,8 @@ n. a. (kein PR-Gegenstand)
 **blocking** muss **wortgleich** dem letzten GitHub-Review sein. Platzhalter `<…>` vor dem Senden ersetzen.
 
 ### Variante A — mind. ein offener PR reviewed; blocking = `kein blocking` (Szenario B je PR)
+
+**Hinweis gemischte PRs:** Haben unterschiedliche PRs **unterschiedliches** blocking (z. B. ein PR Szenario A, ein anderer B), dann **nicht** in einer PL-Rückmeldung zu einem widersprüchlichen Sammel-`kein blocking` vermischen — entweder **pro PR** eine Rückmeldung / klare Tabelle mit PR-Nummer und zugehörigem **wortgleichem** blocking, oder konsolidieren, indem der **schärfste** blocking-Zustand (Szenario A) für die Gesamtrunde gilt, bis nachgebessert.
 
 ```text
 ## Rückmeldung an Projektleitung
