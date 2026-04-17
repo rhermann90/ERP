@@ -3,9 +3,9 @@
 **Datum:** 2026-04-20  
 **Eingang (konsolidiert aus Backend / Frontend / QA / Code-Review, Fortsetzung nach `AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md`):**
 
-- **Schritt 0:** `gh` war in Teilen der Umgebung **nicht** installiert; anonyme GET `https://api.github.com/repos/rhermann90/ERP/pulls?state=open` lieferte `[]` — **trotzdem** https://github.com/rhermann90/ERP/pulls im Browser prüfen (Token/Privateinstellungen). Details und `curl`-Fallback: [`AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md`](./AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md) Abschnitt **Schritt 0**.
+- **Schritt 0:** `gh` ggf. ohne `gh auth login` (dann PR nur im Browser/`curl` mit Token); anonyme GET `https://api.github.com/repos/rhermann90/ERP/pulls?state=open` lieferte `[]` — **trotzdem** https://github.com/rhermann90/ERP/pulls im Browser prüfen (Token/Privateinstellungen). PR für Branch `feat/fin-0-web-ui-doku-2026-04-19`: `https://api.github.com/repos/rhermann90/ERP/pulls?head=rhermann90:feat/fin-0-web-ui-doku-2026-04-19&state=all` → `[]` (Stand: kein PR). Details und `curl`-Fallback: [`AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md`](./AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md) Abschnitt **Schritt 0**.
 - **Backend (Remote):** Branch `feat/fin-0-runde-2026-04-19-openapi-mapping-parity` — nach Rebase auf `main` nur noch `docs/contracts/finance-fin0-openapi-mapping.md` (+1 Zeile Idempotency-Stub-Parität zu OpenAPI/Stubs); `npm run typecheck` && `npm test` grün laut Meldung; Tip-Meldung `d37397f` (nach Rebase; vor Push verifizieren).
-- **Frontend (Remote):** Branch `feat/fin-0-web-ui-doku-2026-04-19` — DOC_LINKS, A11y `visually-hidden`, README; `npm run test -w apps/web` && `npm run build:web` grün; Tip-Meldung `8e28fca`.
+- **Frontend (Remote):** Branch `feat/fin-0-web-ui-doku-2026-04-19` — DOC_LINKS, A11y `visually-hidden`, README; `npm run test -w apps/web` && `npm run build:web` grün; **nach Rebase auf `main`** (Konflikt `prompts/README.md` zugunsten aktueller Tabelle aufgelöst): Branch-Head **`9a10e5e`**, Force-Push auf `origin`. **GitHub-PR:** noch nicht angelegt — nach Anlage mit Scope-Zeile **„FIN-0 UI/Doku; kein FIN-2.“** die URL **`https://github.com/rhermann90/ERP/pull/<N>`** (*N* = von GitHub vergebene Nummer) **hier im Eingang** und im Tracker ersetzen.
 - **QA:** Sonderfall **kein Merge-Gegenstand** solange kein offener PR — **Merge blockiert: nein** mit Begründung laut [`docs/contracts/qa-fin-0-gate-readiness.md`](../docs/contracts/qa-fin-0-gate-readiness.md); optional **5a)**-Text für geschlossenen PR #1 nur mit echten URLs/SHA (Run `24538762870`, Commit `ffa8151745465249535b8e29c112026a21bdc7fb`).
 - **Code Review:** GitHub-/PL-Vorlagen und exakte **Szenario-A-blocking-Zeile** in [`AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md`](./AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md); Hinweis **gemischte PRs** bei Variante A.
 
@@ -13,6 +13,7 @@
 
 - Mapping: https://github.com/rhermann90/ERP/pull/new/feat/fin-0-runde-2026-04-19-openapi-mapping-parity  
 - Web UI/Doku: https://github.com/rhermann90/ERP/pull/new/feat/fin-0-web-ui-doku-2026-04-19  
+- **Frontend-PR (nach Anlage — Platzhalter bis *N* existiert):** https://github.com/rhermann90/ERP/pull/<N>  
 
 **Compare:**
 
