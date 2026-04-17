@@ -18,6 +18,14 @@ const DOC_LINKS: { label: string; repoPath: string }[] = [
     label: "Stub-Testmatrix FIN-0 (QA)",
     repoPath: "docs/contracts/qa-fin-0-stub-test-matrix.md",
   },
+  {
+    label: "MVP-Phasen (FIN-0 … FIN-6)",
+    repoPath: "docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md",
+  },
+  {
+    label: "PL / System — Sprint-Snapshot (Koordination)",
+    repoPath: "docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md",
+  },
 ];
 
 /**
@@ -42,6 +50,7 @@ export function FinancePreparation() {
         <span style={{ color: "var(--text-secondary)" }}>diese Seite: </span>
         <code>{FINANCE_PREP_HASH}</code>
       </p>
+      <h3 className="visually-hidden">Referenzdokumente im Repository</h3>
       <nav aria-label="FIN-0 Referenzdokumente im Repository">
         <ul className="finance-prep-links" aria-describedby="finance-prep-intro">
         {DOC_LINKS.map(({ label, repoPath }) => {
