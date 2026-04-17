@@ -51,7 +51,8 @@ function headerValueInsensitive(
 /** OpenAPI-Parameter `Idempotency-Key` (case-insensitive wie HTTP). */
 function parseIdempotencyKey(headers: Record<string, string | string[] | undefined>): string {
   const raw = headerValueInsensitive(headers, "Idempotency-Key");
-  return z.string().uuid().parse(raw);
+  const trimmed = typeof raw === "string" ? raw.trim() : raw;
+  return z.string().uuid().parse(trimmed);
 }
 
 /**

@@ -22,3 +22,4 @@
 ## Idempotency-Key (8.7)
 
 - OpenAPI dokumentiert Header `Idempotency-Key` für Zahlungseingang; technische Eindeutigkeit `(tenant_id, idempotency_key)` im FIN-2/FIN-3-Implementierungs-PR.
+- **FIN-0-Stub (`src/api/finance-fin0-stubs.ts`):** Header wird **case-insensitive** gelesen; Wert muss **UUID** sein — sonst `400` / `VALIDATION_FAILED` (Zod), konsistent zu `docs/api-contract.yaml` (`components.parameters.IdempotencyKey`) und `docs/contracts/qa-fin-0-stub-test-matrix.md`.
