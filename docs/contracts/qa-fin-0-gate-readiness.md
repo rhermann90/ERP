@@ -228,12 +228,31 @@ Bitte Fix; danach **dieselbe** QA-Kommentar-Zelle **editieren** auf **§5a** (vo
 **Stub-Matrix FIN-0:** `docs/contracts/qa-fin-0-stub-test-matrix.md` | **FIN-2 P0 (später):** `docs/contracts/qa-fin-2-start-gate-stub-matrix.md`
 ```
 
+### §5a / §5b — Abschluss (Definition **fertig**)
+
+**Vollständig geregelt** in diesem Abschnitt **„## 5) QA-Kommentar“**: Pflichtbausteine **§5a** (grün + HTTPS-Run + SHA + **eine** Zeile **Team-Regel Evidence-SHA**), Varianten **5a-pre)** (PR-Head vor Merge, **keine** falsche Behauptung „= Merge auf main“) und **5a)** (post-merge), Blocker **§5b**, optionaler Kontext **§5c**, sowie die **Regel** „ein Kern-Kommentar pro Merge, editieren statt widersprüchlich duplizieren“. **Keine** weiteren §5a-Textbausteine außerhalb dieses Dokuments als verbindlich ansehen. **Änderungen** an diesen Regeln nur mit **Projektleitung** und in **derselben** Datei (und ggf. parallel in [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](../tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md), falls dort auf §5 verwiesen wird), damit es keine parallelen Definitionen gibt.
+
+### Referenzbeispiel — erfülltes Post-Merge-§5a (**Archiv**, Squash PR #1 → `main`)
+
+*Nur zur Orientierung, wie ein **vollständiges** §5a nach Merge aussehen kann. Jeder **neue** Merge braucht **eigene** Run-URL und SHA aus GitHub — nicht wiederverwenden.*
+
+```text
+## QA — Merge-Evidence (main) — Referenz PR #1
+
+Actions (grün): https://github.com/rhermann90/ERP/actions/runs/24538762870 — Commit ffa8151745465249535b8e29c112026a21bdc7fb = Merge auf main — Job `backend`
+
+Team-Regel Evidence-SHA: SHA = Squash-Merge-Commit auf main.
+
+Kontext FIN-0 / Gate: docs/contracts/qa-fin-0-gate-readiness.md | FIN-2-Start-Gate: docs/tickets/FIN-2-START-GATE.md
+```
+
 ---
 
 ## Offene Punkte (QA)
 
+- **§5a / §5b:** Spezifikation **abgeschlossen** (siehe Abschnitt **„§5a / §5b — Abschluss“** oben); offen bleiben nur noch **operative** Nachweise je PR/Merge in GitHub.
 - **Rückmeldung an PL:** bei Eskalation oder auf PL-Wunsch das Format **„Rückmeldung an Projektleitung“** (Abschnitt oben) verwenden — inkl. **Pflichtzeilen** Actions-Link ja/nein und Merge blockiert ja/nein.
 - `FIN-2-START-GATE.md`: Spalte „erfüllt“ für **G4** manuell mit Repo-ADR abgleichen (Drift-Risiko, wenn Tabelle nicht gepflegt wird).
 - **Nach PL-Pflege** von **G1–G3** (ggf. **G7**): Nachweise in der Gate-Tabelle stichprobenartig gegen benannten PR/Commit und gegen Tests **sowie** grünen **Actions**-Run auf `main` prüfen; bei Widerspruch **an PL eskalieren** — **kein** stillschweigendes OK; QA setzt **erfüllt** / **Nachweis** **nicht** allein.
-- FIN-2 P0-Matrix: erst nach Gate-Freigabe voll ausschöpfen (laut Rollenprompt).
+- **FIN-2 P0-Matrix:** erst nach Gate-Freigabe (G1–G10) voll nutzen — siehe [`qa-fin-2-start-gate-stub-matrix.md`](./qa-fin-2-start-gate-stub-matrix.md) und [`FIN-2-START-GATE.md`](../tickets/FIN-2-START-GATE.md).
 - **Erinnerung an Projektleitung (optional, Branch-Schutz):** Status-Check **`backend`** (`.github/workflows/ci.yml`) auf **`main`** als **Required** aktivieren — technische Absicherung der Evidence-Pflicht und roter CI. Prozess/Org-Entscheid; QA hält die Empfehlung hier fest.

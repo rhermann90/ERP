@@ -18,7 +18,7 @@
 3. Kein produktives FIN-2-Finanzvolumen vor formalem Gate G1–G10.
 4. Audit-Verhalten (`AuditService`, Dual-Write, Transaktionsgrenze) **nicht** ändern, solange der **„PL-Eintrag“** im FOLLOWUP-Audit-Ticket noch Platzhalter **`—`** hat — **Ausnahme** nur reine Doku ohne Laufzeitänderung, klar im PR benannt.
 
-**Scope dieses Koordinationszyklus:** Inkrementelle, review-fähige PRs; keine stillen Architekturbrüche; keine Phantom-Fehlercodes; Merge-Evidence und QA-§5a/§5b wie in [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md); Agenten nur im **Team-Clone**; Lieferkette Git → PR → §5a → Tracker wie dort beschrieben; **Rückmeldung an Projektleitung** für die nächste Planungsrunde **nur** vom **Code Reviewer**; GitHub-Review nach [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](./GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md) bei gate- oder auditrelevanten PRs.
+**Scope dieses Koordinationszyklus:** Inkrementelle, review-fähige PRs; keine stillen Architekturbrüche; keine Phantom-Fehlercodes; Merge-Evidence und QA-§5a/§5b wie in [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) — **Spezifikation §5a/§5b dort abgeschlossen**; je Merge weiterhin **operativer** Nachweis (Run + SHA + Team-Regelzeile) im PR; Agenten nur im **Team-Clone**; Lieferkette Git → PR → §5a → Tracker wie dort beschrieben; **Rückmeldung an Projektleitung** für die nächste Planungsrunde **nur** vom **Code Reviewer**; GitHub-Review nach [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](./GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md) bei gate- oder auditrelevanten PRs.
 
 **Explizit nicht ohne separates PL-Go:**
 

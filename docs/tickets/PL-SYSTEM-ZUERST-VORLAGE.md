@@ -45,10 +45,9 @@
 | Sprint-Rahmen PL/System (Instanz) | [`PL-SYSTEM-ZUERST-2026-04-14.md`](./PL-SYSTEM-ZUERST-2026-04-14.md) |
 | FIN-2-Start-Gate | [`FIN-2-START-GATE.md`](./FIN-2-START-GATE.md) |
 | Audit Dual-Write / Merge-Sperre | [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) |
-| QA Merge-Evidence, §5a/§5b | [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) |
+| QA Merge-Evidence §5a/§5b, Rückmeldung an PL (Format) | [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) |
 | CI-Workflow (`backend`) | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) |
 | Persistenz-CI / Runbook | [`docs/runbook/ci-and-persistence-tests.md`](../runbook/ci-and-persistence-tests.md) |
-| Rückmeldung an PL + Merge-Evidence §5a/§5b | [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) |
 | Repo-Einstieg | [`README.md`](../../README.md) |
 | GitHub-Review-Vorlage (Gate) | [`GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](./GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md) |
 | Multi-Agent-Kernregeln | [`.cursor/rules/erp-multi-agent.mdc`](../../.cursor/rules/erp-multi-agent.mdc) |
