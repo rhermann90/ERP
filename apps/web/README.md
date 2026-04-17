@@ -64,7 +64,7 @@ npm run test     # Frontend-Unit-Tests (SoT, Session, Envelope, Text-Rendering)
 
 ## MVP Finanz (v1.3) — Frontend-Stand FIN-0
 
-Gelesen: [`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`](../docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md), [`docs/tickets/FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md). **Agenten-Einstieg (nur Team-Klon):** [`prompts/README.md`](../prompts/README.md).
+Gelesen: [`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`](../docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md), [`docs/tickets/FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md). **Koordination / Gates:** [`docs/contracts/qa-fin-0-gate-readiness.md`](../docs/contracts/qa-fin-0-gate-readiness.md), [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](../docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md).
 
 **PR-Scope-Zeile:** `FIN-0 UI/Doku; kein FIN-2.`
 
@@ -74,7 +74,7 @@ Gelesen: [`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`](../docs/ENTWICKLUNGSPHASEN-MVP-
 
 ### Stand / FIN-0 vs FIN-2
 
-Nach dem dokumentierten Merge-Kontext auf **`main`** (siehe z. B. [`prompts/AGENTEN-RUNDE-2026-04-18-FIN0-nach-merge-pr1.md`](../prompts/AGENTEN-RUNDE-2026-04-18-FIN0-nach-merge-pr1.md) §2 Frontend) bleibt die PWA bei **FIN-0**: read-only **Finanz (Vorbereitung)** mit Transparenz-Links — u. a. zur QA-**Stub-Testmatrix** [`qa-fin-0-stub-test-matrix.md`](../docs/contracts/qa-fin-0-stub-test-matrix.md) und zum **OpenAPI-Mapping** [`finance-fin0-openapi-mapping.md`](../docs/contracts/finance-fin0-openapi-mapping.md). **FIN-2** (produktive Rechnung / **8.4**-Motor) startet **erst** nach erfülltem [`FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md) (G1–G10); die UI implementiert **keinen** produktiven Buchungs-, Zahlungs- oder Mahnfluss davor.
+Nach dem dokumentierten Merge-Kontext auf **`main`** (z. B. geschlossener PR [#1](https://github.com/rhermann90/ERP/pull/1) auf dieses Repo) bleibt die PWA bei **FIN-0**: read-only **Finanz (Vorbereitung)** mit Transparenz-Links — u. a. zur QA-**Stub-Testmatrix** [`qa-fin-0-stub-test-matrix.md`](../docs/contracts/qa-fin-0-stub-test-matrix.md) und zum **OpenAPI-Mapping** [`finance-fin0-openapi-mapping.md`](../docs/contracts/finance-fin0-openapi-mapping.md). **FIN-2** (produktive Rechnung / **8.4**-Motor) startet **erst** nach erfülltem [`FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md) (G1–G10); die UI implementiert **keinen** produktiven Buchungs-, Zahlungs- oder Mahnfluss davor.
 
 **FIN-4** (Mahnwesen, Spez **8.10**) und **FIN-6** (u. a. **8.14**, **12**, **15**) sind spätere Phasen; Offline-**Schreib**pfade für Zahlung oder Mahnung in der PWA bleiben **unverändert ausgeschlossen** (vgl. Spez **8.14** und Abschnitt Offline oben — **nur dokumentiert**, keine neue Client-Schreiblogik). Produktive Finanzvolumina und Audit-Laufzeit folgen Backend, PL-Einträgen und Gate.
 

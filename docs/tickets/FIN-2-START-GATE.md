@@ -80,7 +80,7 @@ Team,
 2. **ADR FIN-2-Grenze (FIN-0):** `docs/adr/0007-finance-persistence-and-invoice-boundaries.md` — **G4** erst **ja** mit PR-/Commit-Nachweis in der Gate-Tabelle.  
 3. **OpenAPI / Contracts (FIN-0):** `docs/api-contract.yaml` (Version **1.3.0-fin0**, Tag Finance), `docs/contracts/finance-fin0-openapi-mapping.md`, `docs/contracts/error-codes.json` (**contractVersion** 1.5.0-fin0).  
 4. **QA:** `docs/contracts/qa-fin-0-gate-readiness.md`, `docs/contracts/qa-fin-2-start-gate-stub-matrix.md`  
-5. **Rollenprompts:** `prompts/FIN-0-rollenprompts.md`  
+5. **Koordination / QA-Gate:** `docs/contracts/qa-fin-0-gate-readiness.md`  
 6. **Phasenüberblick:** `docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`  
 7. **MVP-Abnahme später:** `ERP Systembeschreibung v1.3.md` **§15**.
 

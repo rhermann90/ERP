@@ -1,6 +1,6 @@
 # Vorlage — „PL / System — zuerst“ (kommunizierter Rahmen)
 
-**Zweck:** Einmal ausfüllen und als **Referenz** in Team-Tickets, PR-Beschreibungen, Merge-Kommentaren oder Eskalation einfügen. Damit liegt der von **Projektleitung / System** kommunizierte Rahmen **schriftlich** vor (Voraussetzung in [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) §0 und in [`prompts/FIN-0-rollenprompts.md`](../../prompts/FIN-0-rollenprompts.md)).
+**Zweck:** Einmal ausfüllen und als **Referenz** in Team-Tickets, PR-Beschreibungen, Merge-Kommentaren oder Eskalation einfügen. Damit liegt der von **Projektleitung / System** kommunizierte Rahmen **schriftlich** vor (Voraussetzung in [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) §0).
 
 **Eingetragene Sprint-Instanz (Beispiel / aktuell):** [`PL-SYSTEM-ZUERST-2026-04-14.md`](./PL-SYSTEM-ZUERST-2026-04-14.md) — verbindlicher **„PL / System — zuerst“**-Rahmen vom **2026-04-14**; neuere Sprints als eigene Datei `PL-SYSTEM-ZUERST-<Datum>.md` anlegen und hier verlinken.
 
@@ -48,9 +48,8 @@
 | QA Merge-Evidence, §5a/§5b | [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) |
 | CI-Workflow (`backend`) | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) |
 | Persistenz-CI / Runbook | [`docs/runbook/ci-and-persistence-tests.md`](../runbook/ci-and-persistence-tests.md) |
-| Rollenprompts + Agenten-Rückmeldungen | [`prompts/FIN-0-rollenprompts.md`](../../prompts/FIN-0-rollenprompts.md) |
-| Agenten-Playbook (Team-Clone, Ablauf) | [`prompts/README.md`](../../prompts/README.md) |
-| Agenten-Orchestrierung (Pflichtzeilen, Lieferkette, Review A/B/C, Eingang nächste Prompts) | [`prompts/AGENTEN-PROMPT-LEITFADEN.md`](../../prompts/AGENTEN-PROMPT-LEITFADEN.md) |
+| Rückmeldung an PL + Merge-Evidence §5a/§5b | [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) |
+| Repo-Einstieg | [`README.md`](../../README.md) |
 | GitHub-Review-Vorlage (Gate) | [`GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](./GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md) |
 | Multi-Agent-Kernregeln | [`.cursor/rules/erp-multi-agent.mdc`](../../.cursor/rules/erp-multi-agent.mdc) |
 | Domänenquelle MVP | [`ERP Systembeschreibung v1.3.md`](../../ERP%20Systembeschreibung%20v1.3.md) |

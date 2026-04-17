@@ -48,8 +48,7 @@ Siehe Vorlage: [`.env.example`](./.env.example)
 - OpenAPI: [`docs/api-contract.yaml`](./docs/api-contract.yaml)
 - Contracts: [`docs/contracts/`](./docs/contracts/)
 - Entwicklungsphasen MVP (Finanz v1.3): [`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`](./docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md)
-- Agenten-Playbook (Team-Clone, kopierbare Prompts, Eingang nur Code-Review für nächste Runde): [`prompts/README.md`](./prompts/README.md)
-- Rollenprompts FIN-0 / Gate FIN-2 (inkl. PL zuerst + Rückmeldeformat für **Code Review**): [`prompts/FIN-0-rollenprompts.md`](./prompts/FIN-0-rollenprompts.md) — PL-Orchestrierung: [`prompts/AGENTEN-PROMPT-LEITFADEN.md`](./prompts/AGENTEN-PROMPT-LEITFADEN.md) — PL-Rahmen: Sprint-Snapshot [`docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md`](./docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md), Vorlage/Index [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](./docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md), Review [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](./docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md)
+- Koordination / Merge-Evidence / Rückmeldung an PL (Format): [`docs/contracts/qa-fin-0-gate-readiness.md`](./docs/contracts/qa-fin-0-gate-readiness.md) — PL-Rahmen: [`docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md`](./docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md), Vorlage [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](./docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md), GitHub-Review [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](./docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md), Multi-Agent-Regeln [`.cursor/rules/erp-multi-agent.mdc`](./.cursor/rules/erp-multi-agent.mdc)
 - FIN-2-Start-Gate (binär G1–G10): [`docs/tickets/FIN-2-START-GATE.md`](./docs/tickets/FIN-2-START-GATE.md)
 
 ## Hinweis zur Persistenz
