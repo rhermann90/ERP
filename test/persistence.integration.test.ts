@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { PrismaClient } from "@prisma/client";
@@ -39,7 +39,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     });
     const cleanup = new PrismaClient({ datasourceUrl: dbUrl });
     await cleanup.$executeRawUnsafe(
-      `TRUNCATE TABLE measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, audit_events, offer_versions, offers RESTART IDENTITY CASCADE`,
+      `TRUNCATE TABLE measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, audit_events, offer_versions, offers, password_reset_challenges, users RESTART IDENTITY CASCADE`,
     );
     await cleanup.$disconnect();
 
@@ -60,6 +60,212 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     });
     expect(row?.currentVersionId).toBe(SEED_IDS.offerVersionId);
     expect(row?.currentVersion?.id).toBe(SEED_IDS.offerVersionId);
+  });
+
+  it("POST /auth/login: Multi-User-Seed (Admin und Viewer) mit Mandanten-Scope", async () => {
+    const admin = await app.inject({
+      method: "POST",
+      url: "/auth/login",
+      payload: {
+        tenantId: SEED_IDS.tenantId,
+        email: "admin@localhost",
+        password: "dev-seed-admin-12",
+      },
+    });
+    expect(admin.statusCode).toBe(200);
+    const viewer = await app.inject({
+      method: "POST",
+      url: "/auth/login",
+      payload: {
+        tenantId: SEED_IDS.tenantId,
+        email: "viewer@localhost",
+        password: "dev-seed-viewer-12",
+      },
+    });
+    expect(viewer.statusCode).toBe(200);
+    const ja = admin.json() as { userId: string; role: string };
+    const jv = viewer.json() as { userId: string; role: string };
+    expect(ja.role).toBe("ADMIN");
+    expect(jv.role).toBe("VIEWER");
+    expect(ja.userId).not.toBe(jv.userId);
+  });
+
+  it("Benutzerverwaltung: ADMIN legt zusätzlichen Benutzer per POST /users an", async () => {
+    const login = await app.inject({
+      method: "POST",
+      url: "/auth/login",
+      payload: {
+        tenantId: SEED_IDS.tenantId,
+        email: "admin@localhost",
+        password: "dev-seed-admin-12",
+      },
+    });
+    expect(login.statusCode).toBe(200);
+    const { accessToken } = login.json() as { accessToken: string };
+    const email = `buchhaltung-${randomUUID().slice(0, 8)}@example.com`;
+    const create = await app.inject({
+      method: "POST",
+      url: "/users",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "x-tenant-id": SEED_IDS.tenantId,
+      },
+      payload: {
+        email,
+        password: "neu-passwort-12",
+        role: "BUCHHALTUNG",
+        reason: "Integrationstest Benutzerverwaltung",
+      },
+    });
+    expect(create.statusCode).toBe(201);
+    const list = await app.inject({
+      method: "GET",
+      url: "/users",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "x-tenant-id": SEED_IDS.tenantId,
+      },
+    });
+    expect(list.statusCode).toBe(200);
+    const users = (list.json() as { users: { email: string }[] }).users;
+    expect(users.some((u) => u.email === email)).toBe(true);
+  });
+
+  it("Benutzerverwaltung: ADMIN ändert Benutzer-E-Mail per PATCH", async () => {
+    const login = await app.inject({
+      method: "POST",
+      url: "/auth/login",
+      payload: {
+        tenantId: SEED_IDS.tenantId,
+        email: "admin@localhost",
+        password: "dev-seed-admin-12",
+      },
+    });
+    expect(login.statusCode).toBe(200);
+    const { accessToken } = login.json() as { accessToken: string };
+    const emailA = `patch-a-${randomUUID().slice(0, 8)}@example.com`;
+    const emailB = `patch-b-${randomUUID().slice(0, 8)}@example.com`;
+    const create = await app.inject({
+      method: "POST",
+      url: "/users",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "x-tenant-id": SEED_IDS.tenantId,
+      },
+      payload: {
+        email: emailA,
+        password: "neu-passwort-12",
+        role: "BUCHHALTUNG",
+        reason: "Integrationstest E-Mail-PATCH",
+      },
+    });
+    expect(create.statusCode).toBe(201);
+    const userId = (create.json() as { id: string }).id;
+    const patch = await app.inject({
+      method: "PATCH",
+      url: `/users/${encodeURIComponent(userId)}`,
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "x-tenant-id": SEED_IDS.tenantId,
+      },
+      payload: {
+        email: emailB,
+        reason: "Integrationstest E-Mail geändert",
+      },
+    });
+    expect(patch.statusCode).toBe(200);
+    const list = await app.inject({
+      method: "GET",
+      url: "/users",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "x-tenant-id": SEED_IDS.tenantId,
+      },
+    });
+    expect(list.statusCode).toBe(200);
+    const users = (list.json() as { users: { id: string; email: string }[] }).users;
+    const row = users.find((u) => u.id === userId);
+    expect(row?.email).toBe(emailB);
+  });
+
+  it("Passwort-Reset: Anfrage legt Challenge an; Confirm setzt neues Passwort", async () => {
+    const login = await app.inject({
+      method: "POST",
+      url: "/auth/login",
+      payload: {
+        tenantId: SEED_IDS.tenantId,
+        email: "admin@localhost",
+        password: "dev-seed-admin-12",
+      },
+    });
+    expect(login.statusCode).toBe(200);
+    const { accessToken } = login.json() as { accessToken: string };
+    const email = `reset-user-${randomUUID().slice(0, 8)}@example.com`;
+    const create = await app.inject({
+      method: "POST",
+      url: "/users",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "x-tenant-id": SEED_IDS.tenantId,
+      },
+      payload: {
+        email,
+        password: "initial-pass-12",
+        role: "VERTRIEB",
+        reason: "Integrationstest Passwort-Reset",
+      },
+    });
+    expect(create.statusCode).toBe(201);
+    const userId = (create.json() as { id: string }).id;
+
+    const beforeReq = await prisma.passwordResetChallenge.count({
+      where: { tenantId: SEED_IDS.tenantId, userId },
+    });
+    const resetReq = await app.inject({
+      method: "POST",
+      url: "/auth/request-password-reset",
+      payload: { tenantId: SEED_IDS.tenantId, email },
+    });
+    expect(resetReq.statusCode).toBe(200);
+    const afterReq = await prisma.passwordResetChallenge.count({
+      where: { tenantId: SEED_IDS.tenantId, userId },
+    });
+    expect(afterReq).toBe(beforeReq + 1);
+
+    const rawToken = "integration-reset-token-32chars!!";
+    const tokenDigest = createHash("sha256").update(rawToken).digest("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    await prisma.passwordResetChallenge.deleteMany({ where: { tenantId: SEED_IDS.tenantId, userId } });
+    await prisma.passwordResetChallenge.create({
+      data: {
+        id: randomUUID(),
+        tenantId: SEED_IDS.tenantId,
+        userId,
+        tokenDigest,
+        expiresAt,
+      },
+    });
+
+    const confirm = await app.inject({
+      method: "POST",
+      url: "/auth/confirm-password-reset",
+      payload: { token: rawToken, password: "confirmed-pass-12" },
+    });
+    expect(confirm.statusCode).toBe(200);
+
+    const oldLogin = await app.inject({
+      method: "POST",
+      url: "/auth/login",
+      payload: { tenantId: SEED_IDS.tenantId, email, password: "initial-pass-12" },
+    });
+    expect(oldLogin.statusCode).toBe(401);
+
+    const newLogin = await app.inject({
+      method: "POST",
+      url: "/auth/login",
+      payload: { tenantId: SEED_IDS.tenantId, email, password: "confirmed-pass-12" },
+    });
+    expect(newLogin.statusCode).toBe(200);
   });
 
   it("Seed: LV §9 + Aufmass sind in Postgres tenant-isoliert persistiert (Gate G1/G2)", async () => {
@@ -84,6 +290,25 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     });
     expect(ov?.lvVersionId).toBe(SEED_IDS.lvVersionId);
     expect(ov?.lvVersion?.id).toBe(SEED_IDS.lvVersionId);
+  });
+
+  it("rejects cross-tenant lv_structure_node insert (composite FK zu lv_versions; Gate G1 Tenant-Leck)", async () => {
+    /** Kein zusätzliches Katalog-/Versions-Setup: Seed-`lvVersionId` gehört zu `SEED_IDS.tenantId`. Ein Knoten mit anderem `tenant_id` + dieser `lvVersionId` verletzt die FK `(tenant_id, lv_version_id)` → `lv_versions`. */
+    const foreignTenant = randomUUID();
+    await expect(
+      prisma.lvStructureNode.create({
+        data: {
+          tenantId: foreignTenant,
+          id: randomUUID(),
+          lvVersionId: SEED_IDS.lvVersionId,
+          parentNodeId: null,
+          kind: "BEREICH",
+          sortOrdinal: "1",
+          systemText: "sys",
+          editingText: "ed",
+        },
+      }),
+    ).rejects.toMatchObject({ code: "P2003" });
   });
 
   it("Traceability: Rechnungs-Export nach Postgres-Seed fail-closed grün (Gate G3)", async () => {

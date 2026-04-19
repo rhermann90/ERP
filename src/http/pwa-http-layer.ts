@@ -15,7 +15,7 @@ export function normalizeCorsOrigins(origins: string[]): Set<string> {
 }
 
 const CORS_METHODS = "GET,HEAD,POST,PATCH,OPTIONS";
-const CORS_HEADERS = "Authorization, Content-Type, X-Tenant-Id, X-Request-Id";
+const CORS_HEADERS = "Authorization, Content-Type, X-Tenant-Id, X-Request-Id, X-Correlation-Id";
 
 function setCorsHeaders(reply: { header: (k: string, v: string) => void }, origin: string): void {
   reply.header("Access-Control-Allow-Origin", origin);
@@ -48,9 +48,14 @@ export function registerPwaHttpHooks(app: FastifyInstance, corsAllowlist: Set<st
   });
 
   app.addHook("onSend", async (request, reply, payload) => {
+    const id = request.id;
+    reply.header("x-correlation-id", id);
+    /** Gleiche ID wie `correlationId` im Error-Envelope; Fallback für Clients laut `error-codes.json` (`x-request-id`). */
+    reply.header("x-request-id", id);
     const origin = request.headers.origin;
     if (typeof origin === "string" && corsAllowlist.has(origin)) {
       setCorsHeaders(reply, origin);
+      reply.header("Access-Control-Expose-Headers", "x-correlation-id, x-request-id");
     }
     setSecurityHeaders(reply);
     return payload;

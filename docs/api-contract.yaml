@@ -1,16 +1,23 @@
 openapi: 3.0.3
 info:
   title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-0 Finance Stubs)
-  version: 1.3.0-fin0
+  version: 1.7.0-password-reset
   description: |
     **PWA / Browser-Anbindung**
     - **CORS**: Umgebungsvariable `CORS_ORIGINS` — kommagetrennte, exakte Origins (z. B. `https://app.example.com,http://localhost:5173`). Leer oder unset: keine `Access-Control-*`-Header (gleiche Origin oder Server-zu-Server).
-    - **Auth**: `Authorization: Bearer <signed-v1-token>` (siehe `bearerToken`); optionaler Header `X-Tenant-Id` muss zum Tenant im Token passen, sonst `TENANT_SCOPE_VIOLATION`. **Betrieb:** Token-Signatur mit Umgebungsvariable `AUTH_TOKEN_SECRET` (min. 32 Zeichen bei `NODE_ENV=production`); ohne gesetztes Secret startet der Server nicht — siehe Repo-`.env.example`. Nur lokaler Demo-Modus: `ERP_ALLOW_INSECURE_DEV_AUTH=1` und nicht `production` (mit Warnung, niemals deployen).
+    - **Auth**: `Authorization: Bearer <signed-v1-token>` (siehe `bearerToken`); optionaler Header `X-Tenant-Id` muss zum Tenant im Token passen, sonst `TENANT_SCOPE_VIOLATION`. **Passwort-Login:** `POST /auth/login` mit JSON `{ tenantId, email, password }` — siehe `docs/authentication-login.md`. **Passwort vergessen (öffentlich):** `POST /auth/request-password-reset`, `POST /auth/confirm-password-reset` — nur mit Postgres; Link `#/password-reset?token=…` (Basis `ERP_PUBLIC_APP_BASE_URL`); Produktion: SMTP + Basis-URL Pflicht. **Benutzerverwaltung:** `GET|POST /users`, `PATCH /users/{userId}` inkl. optional **E-Mail** (nur Rolle **ADMIN**, nur mit Postgres) — Audit-Ereignisse `USER` / `USER_CREATED` / `USER_UPDATED`. **Betrieb:** `AUTH_TOKEN_SECRET` (min. 32 Zeichen bei `NODE_ENV=production`); ohne Secret kein Start — siehe Repo-`.env.example`. Nur lokaler Demo-Modus: `ERP_ALLOW_INSECURE_DEV_AUTH=1` und nicht `production` (niemals deployen).
     - **Logs**: Strukturierte Fastify-Request-Logs enthalten keine `Authorization`- oder `Cookie`-Werte (`LOG_LEVEL`, `LOG_DISABLE=1` siehe Betrieb).
-    - **Fehler**: Antwort-JSON gemäß Schema `Error` — Felder `code`, `message`, `correlationId`, `retryable`, `blocking`, optional `details` (Frontend-Passthrough laut `docs/contracts/decision-log-phase1-frontend.md`).
+    - **Fehler**: Antwort-JSON gemäß Schema `Error` — Felder `code`, `message`, `correlationId`, `retryable`, `blocking`, optional `details` (Frontend-Passthrough laut `docs/contracts/decision-log-phase1-frontend.md`). **Header:** `x-correlation-id` und `x-request-id` sind gleich der Request-ID (`request.id`) und entsprechen `correlationId` im Body bei Fehlerantworten.
 servers:
   - url: http://localhost:3000
 tags:
+  - name: Auth
+    description: |
+      Passwort-Anmeldung (`POST /auth/login`) und öffentlicher Passwort-Reset per E-Mail (`POST /auth/request-password-reset`, `POST /auth/confirm-password-reset`, nur Postgres).
+      Ohne Postgres: In-Memory-Login optional über `ERP_LOGIN_*`; Reset-Endpunkte antworten mit `503` / `USER_MANAGEMENT_REQUIRES_DB`.
+  - name: Users (Admin)
+    description: |
+      Mandanten-isolierte Benutzerverwaltung (Tabelle `users`). Schreibzugriff nur mit Rolle **ADMIN**; ohne Postgres antwortet die API mit `503` / `USER_MANAGEMENT_REQUIRES_DB`.
   - name: Finance (FIN-0)
     description: |
       OpenAPI-Skelett für FIN-1 (Zahlungsbedingungen) / FIN-2 (Rechnung) / später FIN-3 (Zahlungseingang).
@@ -336,6 +343,146 @@ components:
         format:
           type: string
           enum: [XRECHNUNG, GAEB]
+    TenantUser:
+      type: object
+      required: [id, email, role, active, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [ADMIN, BUCHHALTUNG, GESCHAEFTSFUEHRUNG, VERTRIEB, VIEWER]
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    TenantUserListResponse:
+      type: object
+      required: [users]
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/TenantUser'
+    CreateTenantUserRequest:
+      type: object
+      required: [email, password, role, reason]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 12
+          maxLength: 2000
+        role:
+          type: string
+          enum: [ADMIN, BUCHHALTUNG, GESCHAEFTSFUEHRUNG, VERTRIEB, VIEWER]
+        reason:
+          type: string
+          minLength: 5
+    PatchTenantUserRequest:
+      type: object
+      required: [reason]
+      properties:
+        role:
+          type: string
+          enum: [ADMIN, BUCHHALTUNG, GESCHAEFTSFUEHRUNG, VERTRIEB, VIEWER]
+        active:
+          type: boolean
+        password:
+          type: string
+          minLength: 12
+          maxLength: 2000
+        email:
+          type: string
+          format: email
+          description: Neue E-Mail (normalisiert wie bei Login); mindestens ein Feld neben reason erforderlich.
+        reason:
+          type: string
+          minLength: 5
+    RequestPasswordResetRequest:
+      type: object
+      required: [tenantId, email]
+      properties:
+        tenantId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+    RequestPasswordResetResponse:
+      type: object
+      required: [ok, message]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+          description: Generische Bestätigung ohne Enumeration (ob Konto existiert).
+    ConfirmPasswordResetRequest:
+      type: object
+      required: [token, password]
+      properties:
+        token:
+          type: string
+          minLength: 20
+          maxLength: 500
+        password:
+          type: string
+          minLength: 12
+          maxLength: 2000
+    ConfirmPasswordResetResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+    LoginRequest:
+      type: object
+      required: [tenantId, email, password]
+      properties:
+        tenantId:
+          type: string
+          format: uuid
+          description: Mandanten-ID — Login nur für Benutzer dieses Tenants (strict tenant scope).
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+          maxLength: 2000
+    LoginResponse:
+      type: object
+      required: [accessToken, tokenType, expiresIn, tenantId, userId, role]
+      properties:
+        accessToken:
+          type: string
+          description: Signiertes v1-Token (unmittelbar als Bearer-Authorization nutzbar).
+        tokenType:
+          type: string
+          enum: [Bearer]
+        expiresIn:
+          type: integer
+          minimum: 1
+          description: Restliche Gültigkeit in Sekunden ab Ausstellung.
+        tenantId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [ADMIN, BUCHHALTUNG, GESCHAEFTSFUEHRUNG, VERTRIEB, VIEWER]
     HealthStatus:
       type: object
       required: [status]
@@ -355,6 +502,263 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthStatus'
+  /auth/login:
+    post:
+      tags: [Auth]
+      operationId: authPasswordLogin
+      summary: Passwort-Anmeldung (MVP / Demo-Betrieb)
+      description: |
+        Prüft **Mandant + E-Mail + Passwort**. Mit Postgres: Benutzer aus Tabelle `users` (Multi-User pro Mandant).
+        Ohne Postgres (In-Memory-Modus): optional `ERP_LOGIN_*` siehe `docs/authentication-login.md`.
+        Kein OAuth2. Fehlversuche: einheitliche `401` / `UNAUTHORIZED` ohne Enumeration.
+        Brute-Force-Schutz: IP-basiertes Fenster (siehe Doku).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Ausgestelltes Session-Token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: VALIDATION_FAILED (Zod)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: UNAUTHORIZED (falsche Zugangsdaten oder Login deaktiviert)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: AUTH_RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/request-password-reset:
+    post:
+      tags: [Auth]
+      operationId: authRequestPasswordReset
+      summary: Passwort-Reset anfordern (E-Mail mit Link)
+      description: |
+        Öffentlich, ohne Bearer. Mit Postgres; erzeugt Challenge und sendet E-Mail (Dev/Test ohne SMTP ggf. Konsolen-Fallback).
+        In **production** ohne SMTP oder ohne `ERP_PUBLIC_APP_BASE_URL`: **503** / `PASSWORD_RESET_MAIL_NOT_CONFIGURED` vor Benutzer-Lookup.
+        Antwort-Text bleibt generisch (keine Enumeration existierender Konten).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestPasswordResetRequest'
+      responses:
+        '200':
+          description: Anfrage entgegengenommen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestPasswordResetResponse'
+        '400':
+          description: VALIDATION_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: AUTH_RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: USER_MANAGEMENT_REQUIRES_DB | PASSWORD_RESET_MAIL_NOT_CONFIGURED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/confirm-password-reset:
+    post:
+      tags: [Auth]
+      operationId: authConfirmPasswordReset
+      summary: Neues Passwort mit Token aus E-Mail-Link setzen
+      description: Öffentlich, ohne Bearer. Token einmalig, TTL ca. 1 Stunde.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmPasswordResetRequest'
+      responses:
+        '200':
+          description: Passwort aktualisiert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfirmPasswordResetResponse'
+        '400':
+          description: VALIDATION_FAILED | PASSWORD_RESET_INVALID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: AUTH_RATE_LIMITED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: USER_MANAGEMENT_REQUIRES_DB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /users:
+    get:
+      tags: [Users (Admin)]
+      operationId: tenantUsersList
+      summary: Benutzer des Mandanten auflisten
+      description: Nur **ADMIN**. Ohne Postgres `503` / `USER_MANAGEMENT_REQUIRES_DB`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      responses:
+        '200':
+          description: Liste ohne Passwort-Hashes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantUserListResponse'
+        '400':
+          description: VALIDATION_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+        '401':
+          description: UNAUTHORIZED
+        '503':
+          description: USER_MANAGEMENT_REQUIRES_DB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags: [Users (Admin)]
+      operationId: tenantUserCreate
+      summary: Benutzer anlegen
+      description: Nur **ADMIN**; E-Mail mandantenweit eindeutig. Audit `USER_CREATED`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTenantUserRequest'
+      responses:
+        '201':
+          description: Angelegter Benutzer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantUser'
+        '400':
+          description: VALIDATION_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+        '401':
+          description: UNAUTHORIZED
+        '409':
+          description: USER_EMAIL_CONFLICT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: USER_MANAGEMENT_REQUIRES_DB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /users/{userId}:
+    patch:
+      tags: [Users (Admin)]
+      operationId: tenantUserPatch
+      summary: Benutzer aktualisieren (Rolle, aktiv, Passwort)
+      description: |
+        Nur **ADMIN**. Mindestens eines von `role`, `active`, `password` erforderlich (plus `reason`).
+        Schutz letzter aktiver Admin und kein Deaktivieren des eigenen Kontos. Audit `USER_UPDATED`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchTenantUserRequest'
+      responses:
+        '200':
+          description: Aktualisierter Benutzer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantUser'
+        '400':
+          description: VALIDATION_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+        '401':
+          description: UNAUTHORIZED
+        '404':
+          description: USER_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: USER_EMAIL_CONFLICT | USER_LAST_ADMIN_FORBIDDEN | USER_SELF_DEACTIVATION_FORBIDDEN
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: USER_MANAGEMENT_REQUIRES_DB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /lv/catalogs:
     post:
       description: Neuer LV-Katalog mit erster Version (ENTWURF) und Minimal-Skelett §9.

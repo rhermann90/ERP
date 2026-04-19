@@ -219,6 +219,12 @@ export class AuthorizationService {
     assertMeasurementCreateVersionAllowedForStatus(version.status);
   }
 
+  public assertCanManageTenantUsers(role: UserRole): void {
+    if (role !== "ADMIN") {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Nur Administratoren dürfen Benutzerkonten verwalten.", 403);
+    }
+  }
+
   public assertCanCreateLvCatalog(role: UserRole): void {
     if (!LV_ACTION_BY_ROLE[role].includes("LV_CATALOG_CREATE")) {
       throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer LV-Katalog", 403);

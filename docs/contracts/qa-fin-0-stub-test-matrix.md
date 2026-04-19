@@ -36,6 +36,7 @@ Reihenfolge der Zeilen = Reihenfolge der `it(…)`-Blöcke in [`test/finance-fin
 | rejects tenant header mismatch with 403 | Negative | POST `/invoices` | `403` / `TENANT_SCOPE_VIOLATION` |
 | POST /finance/payments/intake rejects tenant header mismatch with 403 | Negative | POST `/finance/payments/intake` | `403` / `TENANT_SCOPE_VIOLATION` |
 | GET /invoices/:id rejects invalid Bearer with 401 UNAUTHORIZED | Negative | GET `/invoices/{id}` | `401` / `UNAUTHORIZED` |
+| GET /invoices/:id rejects tenant header mismatch with 403 | Negative | GET `/invoices/{id}` | `403` / `TENANT_SCOPE_VIOLATION` |
 | POST /invoices returns 400 VALIDATION_FAILED when reason too short | Edge | POST `/invoices` | `400` / `VALIDATION_FAILED` |
 | rejects invalid Bearer with 401 UNAUTHORIZED (POST /finance/payment-terms/versions) | Negative | POST `/finance/payment-terms/versions` | `401` / `UNAUTHORIZED` |
 
@@ -75,6 +76,7 @@ Reihenfolge der Zeilen = Reihenfolge der `it(…)`-Blöcke in [`test/finance-fin
 | POST `/invoices` | `x-tenant-id` ≠ Tenant im Token | `403` | `TENANT_SCOPE_VIOLATION` | ja |
 | POST `/finance/payments/intake` | `x-tenant-id` ≠ Tenant im Token | `403` | `TENANT_SCOPE_VIOLATION` | ja |
 | GET `/invoices/{invoiceId}` | Beliebige UUID, kein Dokument | `404` | `DOCUMENT_NOT_FOUND` | ja |
+| GET `/invoices/{invoiceId}` | `x-tenant-id` ≠ Tenant im Token | `403` | `TENANT_SCOPE_VIOLATION` | ja |
 
 Weitere Kombinationen (`AUTH_ROLE_FORBIDDEN`, `EXPORT_PREFLIGHT_FAILED`, `TRACEABILITY_FIELD_MISMATCH`) gemäß OpenAPI-`responses` ergänzen, sobald im Backend explizit ausgeliefert — jeweils mit Contract-Update (G8).
 

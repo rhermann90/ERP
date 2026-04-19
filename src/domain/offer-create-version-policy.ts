@@ -2,7 +2,7 @@ import { DomainError } from "../errors/domain-error.js";
 import type { OfferStatus } from "./types.js";
 
 /**
- * ERP Systembeschreibung v1.2: Inhaltliche Anpassungen der Angebotsversion sind in
+ * docs/ERP-Systembeschreibung.md (Angebot/Lebenszyklus): Inhaltliche Anpassungen der Angebotsversion sind in
  * ENTWURF und bis vor verbindlicher Annahme zulässig — technisch als neue Version,
  * nicht als Überschreibung. Ab ANGENOMMEN nur noch Nachtrag (Folgedokument).
  *

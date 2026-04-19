@@ -22,6 +22,9 @@ describe("PWA HTTP basis (CORS, Security-Header, Health)", () => {
     const res = await app.inject({ method: "GET", url: "/health" });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ status: "ok" });
+    expect(typeof res.headers["x-correlation-id"]).toBe("string");
+    expect((res.headers["x-correlation-id"] as string).length).toBeGreaterThan(0);
+    expect(res.headers["x-request-id"]).toBe(res.headers["x-correlation-id"]);
   });
 
   it("Security-Header auf geschützter Route", async () => {
@@ -124,6 +127,8 @@ describe("PWA HTTP basis (CORS, Security-Header, Health)", () => {
     expect(body.code).toBe("VALIDATION_FAILED");
     expect(typeof body.message).toBe("string");
     expect(typeof body.correlationId).toBe("string");
+    expect(res.headers["x-correlation-id"]).toBe(body.correlationId);
+    expect(res.headers["x-request-id"]).toBe(body.correlationId);
     expect(body.retryable).toBe(true);
     expect(body.blocking).toBe(false);
     expect(res.headers["x-content-type-options"]).toBe("nosniff");
@@ -149,6 +154,8 @@ describe("PWA HTTP basis (CORS, Security-Header, Health)", () => {
     expect(body.code).toBe("UNAUTHORIZED");
     expect(typeof body.message).toBe("string");
     expect(typeof body.correlationId).toBe("string");
+    expect(res.headers["x-correlation-id"]).toBe(body.correlationId);
+    expect(res.headers["x-request-id"]).toBe(body.correlationId);
     expect(body.retryable).toBe(false);
     expect(body.blocking).toBe(true);
   });

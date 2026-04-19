@@ -222,6 +222,20 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     expect((res.json() as { code: string }).code).toBe("UNAUTHORIZED");
   });
 
+  it("GET /invoices/:id rejects tenant header mismatch with 403", async () => {
+    const id = randomUUID();
+    const res = await app.inject({
+      method: "GET",
+      url: `/invoices/${id}`,
+      headers: {
+        ...buildHeaders(),
+        "x-tenant-id": randomUUID(),
+      },
+    });
+    expect(res.statusCode).toBe(403);
+    expect((res.json() as { code: string }).code).toBe("TENANT_SCOPE_VIOLATION");
+  });
+
   it("POST /invoices returns 400 VALIDATION_FAILED when reason too short", async () => {
     const res = await app.inject({
       method: "POST",

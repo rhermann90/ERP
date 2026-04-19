@@ -208,7 +208,8 @@ export interface AuditEvent {
     | "LV_STRUCTURE_NODE"
     | "LV_POSITION"
     | "EXPORT_RUN"
-    | "INVOICE";
+    | "INVOICE"
+    | "USER";
   entityId: UUID;
   action:
     | "STATUS_CHANGED"
@@ -219,7 +220,9 @@ export interface AuditEvent {
     | "LV_POSITION_CREATED"
     | "EXPORT_STARTED"
     | "EXPORT_FAILED"
-    | "EXPORT_SUCCEEDED";
+    | "EXPORT_SUCCEEDED"
+    | "USER_CREATED"
+    | "USER_UPDATED";
   timestamp: Date;
   actorUserId: UserId;
   reason?: string;

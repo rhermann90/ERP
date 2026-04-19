@@ -5,8 +5,8 @@ import { buildApp } from "../src/api/app.js";
 import { SEED_IDS } from "../src/composition/seed.js";
 import { createSignedToken } from "../src/auth/token-auth.js";
 
-/** Tests aligned with ERP Systembeschreibung v1.2 (Angebot: Anpassung vor Annahme, nach ANGENOMMEN nur Nachtrag). */
-describe("ERP domain slice (v1.2)", () => {
+/** Tests aligned with docs/ERP-Systembeschreibung.md (Angebot: Anpassung vor Annahme, nach ANGENOMMEN nur Nachtrag). */
+describe("ERP domain slice (Teil I Domäne)", () => {
   let app: FastifyInstance;
   const userId = "77777777-7777-4777-8777-777777777777";
   const buildHeaders = (

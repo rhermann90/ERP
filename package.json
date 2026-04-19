@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "dev": "tsx src/index.ts",
+    "dev:all": "concurrently -k -n api,web -c cyan,magenta \"npm run dev\" \"npm run dev:web\"",
     "dev:token": "tsx scripts/print-dev-token.ts",
     "dev:web": "npm run dev -w apps/web",
     "build:web": "npm run build -w apps/web",
@@ -17,7 +18,15 @@
     "postinstall": "prisma generate",
     "prisma:validate": "node scripts/prisma-env-placeholder.mjs validate",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
+    "verify:ci": "npm run audit:prod && npm audit --audit-level=high && npm run prisma:validate && npm run typecheck && npm run build:web && npm test",
+    "verify:ci:with-migrate": "npx prisma migrate deploy && npm run verify:ci"
+  },
+  "overrides": {
+    "@rollup/plugin-terser@0.4.4": {
+      "serialize-javascript": "7.0.5"
+    }
   },
   "keywords": [],
   "author": "",
@@ -25,11 +34,16 @@
   "type": "module",
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.0",
     "fastify": "^5.8.5",
+    "nodemailer": "^8.0.5",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "concurrently": "^9.1.2",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^25.6.0",
+    "@types/nodemailer": "^6.4.17",
     "prisma": "^5.22.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",

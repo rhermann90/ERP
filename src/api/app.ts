@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import Fastify, { FastifyInstance } from "fastify";
 import { assertSystemTextNotInUpdatePayload } from "../domain/lv-text-structure-policy.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
@@ -33,6 +34,7 @@ import {
   updateMeasurementPositionsSchema,
 } from "../validation/schemas.js";
 import { seedDemoData } from "../composition/seed.js";
+import { seedAuthUsers } from "../composition/seed-auth-prisma.js";
 import {
   buildFastifyLoggerOptions,
   normalizeCorsOrigins,
@@ -52,6 +54,9 @@ import {
   type LvMeasurementPersistencePort,
 } from "../persistence/lv-measurement-persistence.js";
 import { registerFinanceFin0Stubs } from "./finance-fin0-stubs.js";
+import { registerAuthLoginRoutes } from "./auth-login-routes.js";
+import { registerPasswordResetRoutes } from "./password-reset-routes.js";
+import { registerUserAccountRoutes } from "./user-account-routes.js";
 import { handleHttpError, parseAuthContext } from "./http-response.js";
 
 export type BuildAppOptions = {
@@ -67,7 +72,19 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     process.env.NODE_ENV === "test" || process.env.LOG_DISABLE === "1"
       ? false
       : buildFastifyLoggerOptions();
-  const app = Fastify({ logger });
+  const app = Fastify({
+    logger,
+    routerOptions: { ignoreTrailingSlash: true },
+    /** Eine ID pro Request — Fehler-Body und Header `x-correlation-id` (Hook in `pwa-http-layer`). */
+    genReqId: (req) => {
+      const raw = req.headers["x-request-id"];
+      if (typeof raw === "string") {
+        const id = raw.trim().slice(0, 256);
+        if (/^[a-zA-Z0-9_.-]{8,256}$/.test(id)) return id;
+      }
+      return randomUUID();
+    },
+  });
   const corsList = options?.corsOrigins ?? parseCorsOriginsFromEnv();
   registerPwaHttpHooks(app, normalizeCorsOrigins(corsList));
 
@@ -111,6 +128,12 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     }
   }
 
+  if (prisma && (options?.seedDemoData ?? true)) {
+    await seedAuthUsers(prisma);
+  }
+
+  registerAuthLoginRoutes(app, () => prisma);
+
   const audit = new AuditService(repos, prisma);
   const lvRef = new LvReferenceValidator(repos);
   const offerService = new OfferService(repos, audit, lvRef, offerPersistence);
@@ -120,6 +143,8 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   const exportService = new ExportService(repos, audit);
   const traceabilityService = new TraceabilityService(repos);
   const authorizationService = new AuthorizationService(repos);
+
+  registerPasswordResetRoutes(app, { getPrisma: () => prisma, audit });
 
   app.post("/lv/catalogs", async (request, reply) => {
     try {
@@ -133,7 +158,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -151,7 +176,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -170,7 +195,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -193,7 +218,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -213,7 +238,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -231,7 +256,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -255,7 +280,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -271,7 +296,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -287,7 +312,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -304,7 +329,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -323,7 +348,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send({ positions: result });
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -334,7 +359,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       const result = measurementService.getVersionDetail(auth.tenantId, params.measurementVersionId);
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -350,7 +375,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -368,7 +393,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -384,7 +409,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -403,7 +428,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -414,7 +439,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       const result = supplementService.getById(auth.tenantId, params.supplementVersionId);
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -430,7 +455,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -449,7 +474,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(run);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -465,7 +490,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -481,8 +506,14 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
         allowedActions,
       });
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
+  });
+
+  registerUserAccountRoutes(app, {
+    getPrisma: () => prisma,
+    audit,
+    authorizationService,
   });
 
   registerFinanceFin0Stubs(app);

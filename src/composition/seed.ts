@@ -28,6 +28,9 @@ export const SEED_IDS = {
   lvBereichId: "ee101010-1010-4101-81ee-101010101010",
   lvTitelId: "ee202020-2020-4202-82ee-202020202020",
   lvUntertitelId: "ee303030-3030-4303-83ee-303030303030",
+  /** Persistente Login-Benutzer (Postgres-Seed), konsistent mit Dev-Token-Skript. */
+  seedAdminUserId: "77777777-7777-4777-8777-777777777777",
+  seedViewerUserId: "88888888-8888-4888-8888-888888888888",
 } as const;
 
 export function seedDemoData(repos: InMemoryRepositories): void {
