@@ -735,4 +735,38 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     });
     expect(svAfter?.status).toBe("IN_FREIGABE");
   });
+
+  it("Hydration-Smoke: zweiter Start ohne Seed lädt Nachtrag aus Postgres (GET /supplements/:id)", async () => {
+    const probe = await prisma.supplementVersion.findFirst({
+      where: {
+        tenantId: SEED_IDS.tenantId,
+        editingText: "Persistenz-Integration Nachtrag API",
+      },
+    });
+    expect(probe).not.toBeNull();
+
+    await app.close();
+    process.env.DATABASE_URL = dbUrl!;
+    app = await buildApp({ repositoryMode: "postgres", seedDemoData: false });
+    await app.ready();
+
+    const res = await app.inject({
+      method: "GET",
+      url: `/supplements/${probe!.id}`,
+      headers: adminHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    const json = res.json() as {
+      id: string;
+      status: string;
+      supplementOfferId: string;
+      baseOfferVersionId: string;
+      tenantId: string;
+    };
+    expect(json.id).toBe(probe!.id);
+    expect(json.status).toBe("IN_FREIGABE");
+    expect(json.supplementOfferId).toBe(probe!.supplementOfferId);
+    expect(json.baseOfferVersionId).toBe(SEED_IDS.offerVersionId);
+    expect(json.tenantId).toBe(SEED_IDS.tenantId);
+  });
 });
