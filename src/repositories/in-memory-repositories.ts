@@ -60,6 +60,14 @@ export class InMemoryRepositories {
     this.offerVersions.set(version.id, version);
   }
 
+  public putSupplementOffer(supplementOffer: SupplementOffer): void {
+    this.supplementOffers.set(supplementOffer.id, supplementOffer);
+  }
+
+  public putSupplementVersion(version: SupplementVersion): void {
+    this.supplementVersions.set(version.id, version);
+  }
+
   public getInvoiceByTenant(tenantId: TenantId, invoiceId: UUID): Invoice | undefined {
     const invoice = this.invoices.get(invoiceId);
     if (!invoice || invoice.tenantId !== tenantId) {

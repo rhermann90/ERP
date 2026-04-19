@@ -1079,6 +1079,7 @@ paths:
       description: |
         Aktion OFFER_CREATE_SUPPLEMENT (Minimal-API). AuthZ identisch zu GET /documents/{id}/allowed-actions
         für dieselbe Rolle (OFFER_CREATE_SUPPLEMENT in allowedActions).
+        Bei angebundenem Postgres (`DATABASE_URL`, nicht `ERP_REPOSITORY=memory`) Write-Through in `supplement_offers` / `supplement_versions`.
       security:
         - bearerToken: []
       parameters:
@@ -1104,6 +1105,8 @@ paths:
           description: Authentifizierung fehlgeschlagen
   /supplements/status:
     post:
+      description: |
+        Nachtrags-Lebenszyklus (Statuswechsel). Bei Postgres wird die betroffene `supplement_versions`-Zeile persistiert (Write-Through).
       security:
         - bearerToken: []
       parameters:
