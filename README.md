@@ -47,6 +47,8 @@ Siehe Vorlage: [`.env.example`](./.env.example)
 
 - OpenAPI: [`docs/api-contract.yaml`](./docs/api-contract.yaml)
 - Contracts: [`docs/contracts/`](./docs/contracts/)
+- Passwort-Login / Multi-User (Mandant): [`docs/authentication-login.md`](./docs/authentication-login.md)
+- Domäne (MVP): [`docs/ERP-Systembeschreibung.md`](./docs/ERP-Systembeschreibung.md)
 - Entwicklungsphasen MVP (Finanz v1.3): [`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`](./docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md)
 - Koordination / Merge-Evidence **§5a/§5b** (vollständige Vorlagen + Abschluss-Referenz): [`docs/contracts/qa-fin-0-gate-readiness.md`](./docs/contracts/qa-fin-0-gate-readiness.md) — PL-Rahmen: [`docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md`](./docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md), Vorlage [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](./docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md), GitHub-Review [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](./docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md), Multi-Agent-Regeln [`.cursor/rules/erp-multi-agent.mdc`](./.cursor/rules/erp-multi-agent.mdc)
 - FIN-2-Start-Gate (binär G1–G10): [`docs/tickets/FIN-2-START-GATE.md`](./docs/tickets/FIN-2-START-GATE.md)
@@ -54,7 +56,7 @@ Siehe Vorlage: [`.env.example`](./.env.example)
 ## Hinweis zur Persistenz
 
 - **Arbeits-Cache:** weiterhin `InMemoryRepositories` für alle Aggregate im Prozess (SoT im Prozess; Postgres ist Abbild für die unten genannten Slices).
-- **Postgres (Write-Through, `repositoryMode=postgres`):** Tabellen **`lv_*`**, **`measurement_*`**, **`offers`**, **`offer_versions`** (inkl. FK `offer_versions` → `lv_versions`, FIN-2-Gate **G5**), sowie **`audit_events`** bei Audit-Schreibpfad. Startup-Reihenfolge: **LV + Aufmass synchronisieren, danach Offers** (`src/api/app.ts`).
+- **Postgres (Write-Through, `repositoryMode=postgres`):** Tabellen **`lv_*`**, **`measurement_*`**, **`offers`**, **`offer_versions`** (inkl. FK `offer_versions` → `lv_versions`, FIN-2-Gate **G5**), **`users`** / **`password_reset_challenges`** (Login/Reset, siehe `docs/authentication-login.md`), sowie **`audit_events`** bei Audit-Schreibpfad. Startup-Reihenfolge: **LV + Aufmass synchronisieren, danach Offers** (`src/api/app.ts`).
 - **Ausschließlich In-Memory (keine Prisma-Tabellen in diesem Stand):** **`supplementOffers` / `supplementVersions` (Nachtrag)**, **`invoices`**, **`traceabilityLinks`**, **`exportRuns`**. Restart ohne Seed ⇒ diese Daten sind **nicht** aus Postgres wiederherstellbar.
 - **Nächster Persistenz-Slice:** nur nach **Projektleitung-Priorität** und Ticket — entweder **Nachtrag/Supplement** oder vorbereitend **FIN-1** (Zahlungsbedingungen 8.3/8.5) **ausschließlich nach schriftlichem Go**; nicht parallel ohne Auftrag. **FIN-2** (Rechnung / **8.4**-Motor): bis [`docs/tickets/FIN-2-START-GATE.md`](./docs/tickets/FIN-2-START-GATE.md) **G1–G10 = ja** **out of scope** (Gate-Pflege durch PL).
 - **LV löschen bei hängenden Angeboten:** FKs sind **`ON DELETE RESTRICT`** — kein stiller Fix. Offene fachliche Regel: [`docs/tickets/FOLLOWUP-LV-DELETE-WITH-DEPENDENT-OFFERS.md`](./docs/tickets/FOLLOWUP-LV-DELETE-WITH-DEPENDENT-OFFERS.md).

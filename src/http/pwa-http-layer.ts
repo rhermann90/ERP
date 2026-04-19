@@ -15,7 +15,7 @@ export function normalizeCorsOrigins(origins: string[]): Set<string> {
 }
 
 const CORS_METHODS = "GET,HEAD,POST,PATCH,OPTIONS";
-const CORS_HEADERS = "Authorization, Content-Type, X-Tenant-Id, X-Request-Id";
+const CORS_HEADERS = "Authorization, Content-Type, X-Tenant-Id, X-Request-Id, X-Correlation-Id";
 
 function setCorsHeaders(reply: { header: (k: string, v: string) => void }, origin: string): void {
   reply.header("Access-Control-Allow-Origin", origin);
@@ -48,9 +48,11 @@ export function registerPwaHttpHooks(app: FastifyInstance, corsAllowlist: Set<st
   });
 
   app.addHook("onSend", async (request, reply, payload) => {
+    reply.header("x-correlation-id", request.id);
     const origin = request.headers.origin;
     if (typeof origin === "string" && corsAllowlist.has(origin)) {
       setCorsHeaders(reply, origin);
+      reply.header("Access-Control-Expose-Headers", "x-correlation-id, x-request-id");
     }
     setSecurityHeaders(reply);
     return payload;

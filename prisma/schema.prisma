@@ -187,6 +187,35 @@ model MeasurementPosition {
   @@map("measurement_positions")
 }
 
+/// Anmeldekonto pro Mandant; E-Mail nur innerhalb des Mandanten eindeutig (Multi-Tenant-Scope).
+model User {
+  tenantId     String   @map("tenant_id") @db.Uuid
+  id           String   @db.Uuid
+  emailNorm    String   @map("email_norm")
+  passwordHash String   @map("password_hash")
+  role         String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@id([tenantId, id])
+  @@unique([tenantId, emailNorm])
+  @@map("users")
+}
+
+/// Einmal-Link Passwort-Reset (SHA-256-Digest des Klartext-Tokens, kein Klartext in DB).
+model PasswordResetChallenge {
+  id          String    @id @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  tokenDigest String    @unique @map("token_digest")
+  expiresAt   DateTime  @map("expires_at")
+  usedAt      DateTime? @map("used_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([tenantId, userId])
+  @@map("password_reset_challenges")
+}
+
 /// Persistente Audit-Zeile; Lesepfad API bleibt DSGVO-minimiert (kein before/after in GET).
 model AuditEvent {
   id          String   @id @db.Uuid

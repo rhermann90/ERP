@@ -71,7 +71,7 @@ export function registerFinanceFin0Stubs(app: FastifyInstance): void {
       createPaymentTermsVersionBodySchema.parse(request.body);
       assertFin0MutatingFailClosed();
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -81,7 +81,7 @@ export function registerFinanceFin0Stubs(app: FastifyInstance): void {
       createInvoiceDraftBodySchema.parse(request.body);
       assertFin0MutatingFailClosed();
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -95,7 +95,7 @@ export function registerFinanceFin0Stubs(app: FastifyInstance): void {
         404,
       );
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -106,7 +106,7 @@ export function registerFinanceFin0Stubs(app: FastifyInstance): void {
       paymentIntakeBodySchema.parse(request.body);
       assertFin0MutatingFailClosed();
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 }

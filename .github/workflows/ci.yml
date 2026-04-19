@@ -42,6 +42,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: npm audit (runtime, fail on high+, Phase A2)
+        run: npm run audit:prod
+
+      - name: npm audit (full tree incl. workspaces, Phase A2)
+        run: npm audit --audit-level=high
+
       - name: Prisma migrate deploy (test DB)
         run: npx prisma migrate deploy
 
@@ -50,6 +56,9 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Build web (PWA shell, Phase A1)
+        run: npm run build:web
 
       - name: Tests (inkl. Persistenz, ohne SKIP)
         run: npm test
