@@ -1,5 +1,97 @@
 import { ApiError } from "./api-error.js";
 
+/** Vite: leere `VITE_API_BASE_URL=""` bleibt leer → relative URLs auf :5173. Default wie Backend-Port 3000. */
+export const DEFAULT_API_BASE_URL = "http://localhost:3000";
+
+export function resolveApiBaseUrl(baseUrl: string | undefined): string {
+  const t = baseUrl?.trim();
+  return t && t.length > 0 ? t : DEFAULT_API_BASE_URL;
+}
+
+function correlationFromResponse(res: Response): string | undefined {
+  return res.headers.get("x-correlation-id") ?? res.headers.get("x-request-id") ?? undefined;
+}
+
+export type LoginResponse = {
+  accessToken: string;
+  tokenType: string;
+  expiresIn: number;
+  tenantId: string;
+  userId: string;
+  role: string;
+};
+
+export type LoginCredentials = { tenantId: string; email: string; password: string };
+
+export async function loginWithPassword(baseUrl: string, credentials: LoginCredentials): Promise<LoginResponse> {
+  const root = resolveApiBaseUrl(baseUrl).replace(/\/$/, "");
+  const res = await fetch(`${root}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      tenantId: credentials.tenantId.trim(),
+      email: credentials.email.trim(),
+      password: credentials.password,
+    }),
+  });
+  const text = await res.text();
+  let parsed: unknown;
+  try {
+    parsed = text ? JSON.parse(text) : undefined;
+  } catch {
+    parsed = undefined;
+  }
+  if (!res.ok) {
+    throw new ApiError(res.status, parsed ?? text, { requestIdFromHeader: correlationFromResponse(res) });
+  }
+  return parsed as LoginResponse;
+}
+
+export async function requestPasswordReset(
+  baseUrl: string,
+  body: { tenantId: string; email: string },
+): Promise<{ ok: true; message: string }> {
+  const root = resolveApiBaseUrl(baseUrl).replace(/\/$/, "");
+  const res = await fetch(`${root}/auth/request-password-reset`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tenantId: body.tenantId.trim(), email: body.email.trim() }),
+  });
+  const text = await res.text();
+  let parsed: unknown;
+  try {
+    parsed = text ? JSON.parse(text) : undefined;
+  } catch {
+    parsed = undefined;
+  }
+  if (!res.ok) {
+    throw new ApiError(res.status, parsed ?? text, { requestIdFromHeader: correlationFromResponse(res) });
+  }
+  return parsed as { ok: true; message: string };
+}
+
+export async function confirmPasswordReset(
+  baseUrl: string,
+  body: { token: string; password: string },
+): Promise<void> {
+  const root = resolveApiBaseUrl(baseUrl).replace(/\/$/, "");
+  const res = await fetch(`${root}/auth/confirm-password-reset`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token: body.token, password: body.password }),
+  });
+  const text = await res.text();
+  let parsed: unknown;
+  try {
+    parsed = text ? JSON.parse(text) : undefined;
+  } catch {
+    parsed = undefined;
+  }
+  if (!res.ok) {
+    throw new ApiError(res.status, parsed ?? text, { requestIdFromHeader: correlationFromResponse(res) });
+  }
+}
+
 export type AllowedActionsResponse = {
   documentId: string;
   entityType: string;
@@ -46,7 +138,7 @@ export function createApiClient(options: {
     }
     if (!res.ok) {
       throw new ApiError(res.status, parsed ?? text, {
-        requestIdFromHeader: res.headers.get("x-request-id") ?? undefined,
+        requestIdFromHeader: correlationFromResponse(res),
       });
     }
     return parsed as T;

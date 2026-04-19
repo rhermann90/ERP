@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState, type ReactElement } from "re
 import { AppShell } from "./components/AppShell.js";
 import { DocumentTextPanels } from "./components/DocumentTextPanels.js";
 import { FinancePreparation } from "./components/FinancePreparation.js";
+import { LoginPage } from "./components/LoginPage.js";
+import { PasswordResetPage } from "./components/PasswordResetPage.js";
 import { FINANCE_PREP_HASH, useHashRoute } from "./lib/hash-route.js";
 import {
   CANONICAL_EXPORT_INVOICE_ACTION_ID,
@@ -11,7 +13,7 @@ import {
   executeActionWithSotGuard,
 } from "./lib/action-executor.js";
 import { ApiError } from "./lib/api-error.js";
-import { createApiClient } from "./lib/api-client.js";
+import { createApiClient, resolveApiBaseUrl } from "./lib/api-client.js";
 import {
   clearDocumentScopedKeys,
   clearPersistedSession,
@@ -64,7 +66,11 @@ function saveDocPrefs(tenantId: string, documentId: string, entityType: EntityTy
 }
 
 export default function App() {
-  const defaultApi = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
+  const viteDefaultTenant =
+    typeof import.meta.env.VITE_DEFAULT_TENANT_ID === "string" && import.meta.env.VITE_DEFAULT_TENANT_ID.trim()
+      ? (import.meta.env.VITE_DEFAULT_TENANT_ID as string).trim()
+      : undefined;
+  const defaultApi = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL as string | undefined);
   const [apiBase, setApiBase] = useState(defaultApi);
   const persisted = loadPersistedSession();
   const [token, setToken] = useState(persisted.token);
@@ -120,7 +126,7 @@ export default function App() {
   const client = useMemo(
     () =>
       createApiClient({
-        baseUrl: apiBase,
+        baseUrl: resolveApiBaseUrl(apiBase),
         getToken: () => token,
         getTenantId: () => tenantId,
       }),
@@ -132,6 +138,8 @@ export default function App() {
 
   const hashPath = useHashRoute();
   const showFinancePrep = hashPath === "/finanz-vorbereitung";
+  const showLogin = hashPath === "/login";
+  const showPasswordReset = hashPath === "/password-reset";
 
   useEffect(() => {
     if (tenantId !== prevTenant) {
@@ -376,6 +384,10 @@ export default function App() {
         <a href="#/">Shell / Dokument</a>
         {" · "}
         <a href={FINANCE_PREP_HASH}>Finanz (Vorbereitung)</a>
+        {" · "}
+        <a href="#/login">Anmeldung</a>
+        {" · "}
+        <a href="#/password-reset">Passwort vergessen</a>
       </nav>
       {banner?.kind === "error" ? (
         <div className="error-banner" role="alert">
@@ -406,7 +418,27 @@ export default function App() {
         <FinancePreparation />
       ) : null}
 
-      {!showFinancePrep ? (
+      {showLogin ? (
+        <LoginPage
+          apiBase={apiBase}
+          defaultTenantId={viteDefaultTenant}
+          onSuccess={(r) => {
+            setToken(r.accessToken);
+            setTenantId(r.tenantId);
+            setSessionMode("session");
+            persistSession(r.accessToken, r.tenantId, "session");
+            setBanner({ kind: "ok", text: `Angemeldet — Rolle ${r.role}. Token in sessionStorage (Tab).` });
+            window.location.hash = "#/";
+          }}
+          onNavigateHome={() => {
+            window.location.hash = "#/";
+          }}
+        />
+      ) : null}
+
+      {showPasswordReset ? <PasswordResetPage apiBase={apiBase} defaultTenantId={viteDefaultTenant} /> : null}
+
+      {!showFinancePrep && !showLogin && !showPasswordReset ? (
         <>
       <section className="panel">
         <h2>Sitzung &amp; API</h2>
