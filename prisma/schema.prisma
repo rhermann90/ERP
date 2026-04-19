@@ -20,8 +20,9 @@ model Offer {
   createdAt        DateTime @map("created_at")
   createdBy        String   @map("created_by") @db.Uuid
 
-  versions       OfferVersion[] @relation("OfferVersions")
-  currentVersion OfferVersion   @relation("OfferCurrentVersion", fields: [tenantId, currentVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  versions         OfferVersion[]    @relation("OfferVersions")
+  currentVersion   OfferVersion      @relation("OfferCurrentVersion", fields: [tenantId, currentVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  supplementOffers SupplementOffer[]
 
   @@id([tenantId, id])
   @@map("offers")
@@ -40,9 +41,10 @@ model OfferVersion {
   createdBy     String    @map("created_by") @db.Uuid
   releasedAt    DateTime? @map("released_at")
 
-  offer       Offer     @relation("OfferVersions", fields: [tenantId, offerId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
-  asCurrentOf Offer[]   @relation("OfferCurrentVersion")
-  lvVersion   LvVersion @relation(fields: [tenantId, lvVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  offer                    Offer             @relation("OfferVersions", fields: [tenantId, offerId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  asCurrentOf              Offer[]           @relation("OfferCurrentVersion")
+  lvVersion                LvVersion         @relation(fields: [tenantId, lvVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  supplementOffersAsBase   SupplementOffer[] @relation("SupplementBaseOfferVersion")
 
   @@id([tenantId, id])
   @@unique([tenantId, offerId, versionNumber])
@@ -81,12 +83,50 @@ model LvVersion {
   catalogsCurrentOf LvCatalog[]       @relation("LvCatalogCurrentVersion")
   structureNodes    LvStructureNode[]
   positions         LvPosition[]
-  offerVersions     OfferVersion[]
-  measurements      Measurement[]
+  offerVersions       OfferVersion[]
+  measurements        Measurement[]
+  supplementVersions  SupplementVersion[]
 
   @@id([tenantId, id])
   @@unique([tenantId, lvCatalogId, versionNumber])
   @@map("lv_versions")
+}
+
+model SupplementOffer {
+  tenantId             String   @map("tenant_id") @db.Uuid
+  id                   String   @db.Uuid
+  offerId              String   @map("offer_id") @db.Uuid
+  baseOfferVersionId   String   @map("base_offer_version_id") @db.Uuid
+  createdAt            DateTime @map("created_at")
+  createdBy            String   @map("created_by") @db.Uuid
+
+  offer             Offer            @relation(fields: [tenantId, offerId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  baseOfferVersion  OfferVersion     @relation("SupplementBaseOfferVersion", fields: [tenantId, baseOfferVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  versions          SupplementVersion[]
+
+  @@id([tenantId, id])
+  @@map("supplement_offers")
+}
+
+model SupplementVersion {
+  tenantId            String   @map("tenant_id") @db.Uuid
+  id                  String   @db.Uuid
+  supplementOfferId   String   @map("supplement_offer_id") @db.Uuid
+  versionNumber       Int      @map("version_number")
+  status              String
+  lvVersionId         String   @map("lv_version_id") @db.Uuid
+  systemText          String   @map("system_text")
+  editingText         String   @map("editing_text")
+  createdAt           DateTime @map("created_at")
+  createdBy           String   @map("created_by") @db.Uuid
+
+  supplementOffer SupplementOffer @relation(fields: [tenantId, supplementOfferId], references: [tenantId, id], onUpdate: Restrict, onDelete: Cascade)
+  lvVersion       LvVersion       @relation(fields: [tenantId, lvVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, supplementOfferId, versionNumber])
+  @@index([tenantId, status])
+  @@map("supplement_versions")
 }
 
 model LvStructureNode {

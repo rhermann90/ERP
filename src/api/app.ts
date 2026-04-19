@@ -49,6 +49,11 @@ import {
 } from "../config/repository-mode.js";
 import { noopOfferPersistence, PrismaOfferPersistence, type OfferPersistencePort } from "../persistence/offer-persistence.js";
 import {
+  noopSupplementPersistence,
+  PrismaSupplementPersistence,
+  type SupplementPersistencePort,
+} from "../persistence/supplement-persistence.js";
+import {
   noopLvMeasurementPersistence,
   PrismaLvMeasurementPersistence,
   type LvMeasurementPersistencePort,
@@ -96,26 +101,30 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   const repositoryMode = resolveRepositoryMode({ repositoryMode: options?.repositoryMode });
   let prisma: PrismaClient | null = null;
   let offerPersistence: OfferPersistencePort = noopOfferPersistence;
+  let supplementPersistence: SupplementPersistencePort = noopSupplementPersistence;
   let lvMeasurementPersistence: LvMeasurementPersistencePort = noopLvMeasurementPersistence;
 
   if (repositoryMode === "postgres") {
     assertDatabaseUrlForPostgresMode(repositoryMode);
     prisma = new PrismaClient();
     offerPersistence = new PrismaOfferPersistence(prisma);
+    supplementPersistence = new PrismaSupplementPersistence(prisma);
     lvMeasurementPersistence = new PrismaLvMeasurementPersistence(prisma);
     if (options?.seedDemoData ?? true) {
       seedDemoData(repos);
       await lvMeasurementPersistence.syncAllFromMemory(repos);
       await offerPersistence.syncAllOffersFromMemory(repos);
+      await supplementPersistence.syncAllSupplementsFromMemory(repos);
     } else {
       await lvMeasurementPersistence.hydrateIntoMemory(repos);
       await offerPersistence.hydrateOffersIntoMemory(repos);
+      await supplementPersistence.hydrateSupplementsIntoMemory(repos);
     }
     app.addHook("onClose", async () => {
       await prisma?.$disconnect();
     });
     app.log.info(
-      "Persistenz: Postgres LV+Aufmass (ADR-0004/0005) + Offer+OfferVersion (ADR-0006); übrige Entitäten weiter In-Memory.",
+      "Persistenz: Postgres LV+Aufmass (ADR-0004/0005) + Offer+OfferVersion (ADR-0006) + Supplement (ADR-0002 D5); übrige Entitäten weiter In-Memory.",
     );
   } else {
     if (options?.seedDemoData ?? true) {
@@ -137,7 +146,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   const audit = new AuditService(repos, prisma);
   const lvRef = new LvReferenceValidator(repos);
   const offerService = new OfferService(repos, audit, lvRef, offerPersistence);
-  const supplementService = new SupplementService(repos, audit, lvRef);
+  const supplementService = new SupplementService(repos, audit, lvRef, supplementPersistence);
   const measurementService = new MeasurementService(repos, audit, lvRef, lvMeasurementPersistence);
   const lvService = new LvService(repos, audit, lvMeasurementPersistence);
   const exportService = new ExportService(repos, audit);
@@ -385,7 +394,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       authorizationService.assertCanCreateSupplement(auth.role);
       const params = request.params as { offerId: string };
       const body = createSupplementSchema.parse(request.body);
-      const result = supplementService.createFromAcceptedOffer({
+      const result = await supplementService.createFromAcceptedOffer({
         tenantId: auth.tenantId,
         offerId: params.offerId,
         actorUserId: auth.userId,
@@ -402,7 +411,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       const auth = parseAuthContext(request.headers);
       const body = transitionSupplementStatusSchema.parse(request.body);
       authorizationService.assertCanTransitionSupplementStatus(auth.role, body.nextStatus);
-      const result = supplementService.transitionStatus({
+      const result = await supplementService.transitionStatus({
         tenantId: auth.tenantId,
         actorUserId: auth.userId,
         ...body,
