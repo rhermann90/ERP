@@ -299,33 +299,33 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     const lvVid = randomUUID();
     const actor = randomUUID();
     const now = new Date();
-    /** Zyklische FK Katalog↔Version: `SET CONSTRAINTS ALL DEFERRED` + **sequenzielle** `$transaction([…])` (nicht interactive callback) — in CI validiert Prisma sonst die FK beim ersten Insert sofort. */
-    await prisma.$transaction([
-      prisma.$executeRawUnsafe("SET CONSTRAINTS ALL DEFERRED"),
-      prisma.lvCatalog.create({
-        data: {
-          tenantId: tenantB,
-          id: catId,
-          name: "tenant-b-lv-g1",
-          currentVersionId: lvVid,
-          createdAt: now,
-          createdBy: actor,
-        },
-      }),
-      prisma.lvVersion.create({
-        data: {
-          tenantId: tenantB,
-          id: lvVid,
-          lvCatalogId: catId,
-          versionNumber: 1,
-          status: "ENTWURF",
-          headerSystemText: "h",
-          headerEditingText: "h2",
-          createdAt: now,
-          createdBy: actor,
-        },
-      }),
-    ]);
+    /** Zyklische FK: nur **Raw-SQL** nach `SET CONSTRAINTS ALL DEFERRED` — `prisma.lvCatalog.create` triggert in CI trotz Transaktion sofortige FK-Prüfung (P2003 vor lv_version). */
+    await prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe("SET CONSTRAINTS ALL DEFERRED");
+      await tx.$executeRawUnsafe(
+        `INSERT INTO "lv_catalogs" ("tenant_id","id","name","current_version_id","created_at","created_by")
+         VALUES ($1::uuid, $2::uuid, $3, $4::uuid, $5::timestamptz, $6::uuid)`,
+        tenantB,
+        catId,
+        "tenant-b-lv-g1",
+        lvVid,
+        now,
+        actor,
+      );
+      await tx.$executeRawUnsafe(
+        `INSERT INTO "lv_versions" ("tenant_id","id","lv_catalog_id","version_number","status","header_system_text","header_editing_text","created_at","created_by")
+         VALUES ($1::uuid, $2::uuid, $3::uuid, $4::int, $5, $6, $7, $8::timestamptz, $9::uuid)`,
+        tenantB,
+        lvVid,
+        catId,
+        1,
+        "ENTWURF",
+        "h",
+        "h2",
+        now,
+        actor,
+      );
+    });
     await expect(
       prisma.lvStructureNode.create({
         data: {
