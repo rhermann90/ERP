@@ -299,29 +299,33 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     const lvVid = randomUUID();
     const actor = randomUUID();
     const now = new Date();
-    await prisma.lvCatalog.create({
-      data: {
-        tenantId: tenantB,
-        id: catId,
-        name: "tenant-b-lv-g1",
-        currentVersionId: lvVid,
-        createdAt: now,
-        createdBy: actor,
-      },
-    });
-    await prisma.lvVersion.create({
-      data: {
-        tenantId: tenantB,
-        id: lvVid,
-        lvCatalogId: catId,
-        versionNumber: 1,
-        status: "ENTWURF",
-        headerSystemText: "h",
-        headerEditingText: "h2",
-        createdAt: now,
-        createdBy: actor,
-      },
-    });
+    /** Zyklische FK Katalog↔Version: `SET CONSTRAINTS ALL DEFERRED` + **sequenzielle** `$transaction([…])` (nicht interactive callback) — in CI validiert Prisma sonst die FK beim ersten Insert sofort. */
+    await prisma.$transaction([
+      prisma.$executeRawUnsafe("SET CONSTRAINTS ALL DEFERRED"),
+      prisma.lvCatalog.create({
+        data: {
+          tenantId: tenantB,
+          id: catId,
+          name: "tenant-b-lv-g1",
+          currentVersionId: lvVid,
+          createdAt: now,
+          createdBy: actor,
+        },
+      }),
+      prisma.lvVersion.create({
+        data: {
+          tenantId: tenantB,
+          id: lvVid,
+          lvCatalogId: catId,
+          versionNumber: 1,
+          status: "ENTWURF",
+          headerSystemText: "h",
+          headerEditingText: "h2",
+          createdAt: now,
+          createdBy: actor,
+        },
+      }),
+    ]);
     await expect(
       prisma.lvStructureNode.create({
         data: {

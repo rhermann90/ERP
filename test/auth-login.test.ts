@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "../src/api/app.js";
+import { resetAuthLoginRateLimitStateForTests } from "../src/api/auth-login-routes.js";
 import { resetPasswordLoginRuntimeStateForTests } from "../src/auth/password-login.js";
 
 describe("POST /auth/login", () => {
@@ -13,6 +14,7 @@ describe("POST /auth/login", () => {
     vi.stubEnv("ERP_LOGIN_USER_ID", "77777777-7777-4777-8777-777777777777");
     vi.stubEnv("ERP_LOGIN_ROLE", "ADMIN");
     resetPasswordLoginRuntimeStateForTests();
+    resetAuthLoginRateLimitStateForTests();
     app = await buildApp({ seedDemoData: false, repositoryMode: "memory" });
     await app.ready();
   });
@@ -21,6 +23,7 @@ describe("POST /auth/login", () => {
     await app.close();
     vi.unstubAllEnvs();
     resetPasswordLoginRuntimeStateForTests();
+    resetAuthLoginRateLimitStateForTests();
   });
 
   it("returns signed bearer token for valid credentials", async () => {
@@ -85,4 +88,27 @@ describe("POST /auth/login", () => {
     });
     expect(res.statusCode).toBe(401);
   });
+
+  it(
+    "returns 429 AUTH_RATE_LIMITED after more than 30 attempts from same IP in the window",
+    async () => {
+      const payload = {
+        tenantId: "11111111-1111-4111-8111-111111111111",
+        email: "ops@example.com",
+        password: "wrong-password-here",
+      };
+      for (let i = 0; i < 30; i++) {
+        const res = await app.inject({ method: "POST", url: "/auth/login", payload });
+        expect(res.statusCode).toBe(401);
+      }
+      const blocked = await app.inject({ method: "POST", url: "/auth/login", payload });
+      expect(blocked.statusCode).toBe(429);
+      const body = blocked.json() as { code: string; correlationId?: string };
+      expect(body.code).toBe("AUTH_RATE_LIMITED");
+      expect(typeof body.correlationId).toBe("string");
+      expect(blocked.headers["x-request-id"]).toBe(body.correlationId);
+      expect(blocked.headers["x-correlation-id"]).toBe(body.correlationId);
+    },
+    20_000,
+  );
 });

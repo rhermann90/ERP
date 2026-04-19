@@ -48,7 +48,10 @@ export function registerPwaHttpHooks(app: FastifyInstance, corsAllowlist: Set<st
   });
 
   app.addHook("onSend", async (request, reply, payload) => {
-    reply.header("x-correlation-id", request.id);
+    const id = request.id;
+    reply.header("x-correlation-id", id);
+    /** Gleiche ID wie `correlationId` im Error-Envelope; Fallback für Clients laut `error-codes.json` (`x-request-id`). */
+    reply.header("x-request-id", id);
     const origin = request.headers.origin;
     if (typeof origin === "string" && corsAllowlist.has(origin)) {
       setCorsHeaders(reply, origin);

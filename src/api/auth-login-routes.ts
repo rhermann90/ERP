@@ -12,6 +12,11 @@ type Bucket = { count: number; windowStart: number };
 
 const rateBuckets = new Map<string, Bucket>();
 
+/** Nur für Tests — verhindert Reihenfolge-Flakes bei Rate-Limit-Szenarien. */
+export function resetAuthLoginRateLimitStateForTests(): void {
+  rateBuckets.clear();
+}
+
 function pruneRateBuckets(now: number): void {
   if (rateBuckets.size < 5000) return;
   for (const [ip, b] of rateBuckets) {
