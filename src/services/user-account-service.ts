@@ -83,7 +83,7 @@ export class UserAccountService {
       }
       throw e;
     }
-    this.audit.append({
+    await this.audit.append({
       id: randomUUID(),
       tenantId,
       entityType: "USER",
@@ -181,7 +181,7 @@ export class UserAccountService {
       select: { id: true, emailNorm: true, role: true, active: true, createdAt: true },
     });
 
-    this.audit.append({
+    await this.audit.append({
       id: randomUUID(),
       tenantId,
       entityType: "USER",

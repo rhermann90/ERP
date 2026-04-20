@@ -8,6 +8,8 @@ function makeClient(): ApiClient {
     getAllowedActions: vi.fn(),
     getMeasurementVersion: vi.fn(),
     getSupplementVersion: vi.fn(),
+    getPaymentTermsByProject: vi.fn(),
+    createInvoiceDraft: vi.fn(),
     getInvoice: vi.fn(),
   };
 }

@@ -53,7 +53,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     });
     const cleanup = new PrismaClient({ datasourceUrl: dbUrl });
     await cleanup.$executeRawUnsafe(
-      `TRUNCATE TABLE supplement_versions, supplement_offers, measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, audit_events, offer_versions, offers, password_reset_challenges, users RESTART IDENTITY CASCADE`,
+      `TRUNCATE TABLE payment_intakes, invoices, payment_terms_versions, payment_terms_heads, supplement_versions, supplement_offers, measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, audit_events, offer_versions, offers, password_reset_challenges, users RESTART IDENTITY CASCADE`,
     );
     await cleanup.$disconnect();
 

@@ -154,6 +154,38 @@ export class AuthorizationService {
     }
   }
 
+
+  public assertCanManagePaymentTerms(role: UserRole): void {
+    if (!new Set<UserRole>(["ADMIN", "GESCHAEFTSFUEHRUNG", "BUCHHALTUNG"]).has(role)) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Zahlungsbedingungen", 403);
+    }
+  }
+
+  public assertCanReadPaymentTerms(role: UserRole): void {
+    if (!new Set<UserRole>(["ADMIN", "GESCHAEFTSFUEHRUNG", "BUCHHALTUNG", "VERTRIEB", "VIEWER"]).has(role)) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung zum Lesen der Zahlungsbedingungen", 403);
+    }
+  }
+
+  public assertCanCreateInvoiceDraft(role: UserRole): void {
+    if (!new Set<UserRole>(["ADMIN", "GESCHAEFTSFUEHRUNG", "BUCHHALTUNG"]).has(role)) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Rechnungsentwurf", 403);
+    }
+  }
+
+  public assertCanReadInvoice(role: UserRole): void {
+    if (!new Set<UserRole>(["ADMIN", "GESCHAEFTSFUEHRUNG", "BUCHHALTUNG", "VERTRIEB", "VIEWER"]).has(role)) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Rechnung", 403);
+    }
+  }
+
+  /** FIN-3: Zahlungseingang buchen. */
+  public assertCanRecordPaymentIntake(role: UserRole): void {
+    if (!new Set<UserRole>(["ADMIN", "GESCHAEFTSFUEHRUNG", "BUCHHALTUNG"]).has(role)) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Zahlungseingang", 403);
+    }
+  }
+
   public assertCanApplySupplementBillingImpact(role: UserRole): void {
     if (!SUPPLEMENT_ACTION_BY_ROLE[role].includes("SUPPLEMENT_APPLY_BILLING_IMPACT")) {
       throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Abrechnungswirkung", 403);

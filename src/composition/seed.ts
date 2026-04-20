@@ -31,14 +31,17 @@ export const SEED_IDS = {
   /** Persistente Login-Benutzer (Postgres-Seed), konsistent mit Dev-Token-Skript. */
   seedAdminUserId: "77777777-7777-4777-8777-777777777777",
   seedViewerUserId: "88888888-8888-4888-8888-888888888888",
+  /** Stabil für Demos/API-Tests (FIN-1/FIN-2 an Projekt gebunden). */
+  projectId: "10101010-1010-4010-8010-101010101010",
+  customerId: "20202020-2020-4020-8020-202020202020",
 } as const;
 
 export function seedDemoData(repos: InMemoryRepositories): void {
   const offer: Offer = {
     id: SEED_IDS.offerId,
     tenantId: SEED_IDS.tenantId,
-    customerId: randomUUID(),
-    projectId: randomUUID(),
+    customerId: SEED_IDS.customerId,
+    projectId: SEED_IDS.projectId,
     currentVersionId: SEED_IDS.offerVersionId,
     createdAt: new Date(),
     createdBy: randomUUID(),
@@ -154,11 +157,14 @@ export function seedDemoData(repos: InMemoryRepositories): void {
     measurementId: SEED_IDS.measurementId,
     lvId: SEED_IDS.lvVersionId,
     offerId: offer.id,
+    offerVersionId: SEED_IDS.offerVersionId,
     status: "GEBUCHT_VERSENDET",
     immutableFromStatus: "GEBUCHT_VERSENDET",
     invoiceNumber: "RE-2026-0001",
     issueDate: "2026-04-14",
-    totalGrossCents: 145000,
+    lvNetCents: 125000,
+    vatCents: 23750,
+    totalGrossCents: 148750,
   };
   const draftInvoice: Invoice = {
     id: SEED_IDS.draftInvoiceId,
@@ -168,6 +174,7 @@ export function seedDemoData(repos: InMemoryRepositories): void {
     measurementId: SEED_IDS.measurementId,
     lvId: SEED_IDS.lvVersionId,
     offerId: offer.id,
+    offerVersionId: SEED_IDS.offerVersionId,
     status: "ENTWURF",
     immutableFromStatus: "GEBUCHT_VERSENDET",
   };
@@ -179,10 +186,13 @@ export function seedDemoData(repos: InMemoryRepositories): void {
     measurementId: SEED_IDS.measurementId,
     lvId: SEED_IDS.lvVersionId,
     offerId: offer.id,
+    offerVersionId: SEED_IDS.offerVersionId,
     status: "GEBUCHT_VERSENDET",
     immutableFromStatus: "GEBUCHT_VERSENDET",
     invoiceNumber: "RE-2026-0002",
     issueDate: "2026-04-14",
+    lvNetCents: 10000,
+    vatCents: 1900,
     totalGrossCents: 31000,
   };
 

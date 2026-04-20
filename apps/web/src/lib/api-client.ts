@@ -98,13 +98,48 @@ export type AllowedActionsResponse = {
   allowedActions: string[];
 };
 
+/** Antwort `GET /invoices/:invoiceId` (FIN-2 + 8.4 MVP). */
+export type InvoiceOverview = {
+  invoiceId: string;
+  projectId: string;
+  customerId: string;
+  measurementId: string;
+  lvVersionId: string;
+  offerId: string;
+  offerVersionId?: string;
+  status: string;
+  invoiceNumber?: string;
+  issueDate?: string;
+  lvNetCents?: number;
+  vatRateBps?: number;
+  vatCents?: number;
+  totalGrossCents?: number;
+  totalPaidCents?: number;
+  paymentTermsVersionId?: string;
+};
+
+export type CreateInvoiceDraftResponse = {
+  invoiceId: string;
+  lvNetCents: number;
+  vatRateBps: number;
+  vatCents: number;
+  totalGrossCents: number;
+};
+
 export type ApiClient = {
   requestJson<T>(method: string, path: string, body?: unknown): Promise<T>;
   getAllowedActions(documentId: string, entityType: string): Promise<AllowedActionsResponse>;
   getMeasurementVersion(measurementVersionId: string): Promise<unknown>;
   getSupplementVersion(supplementVersionId: string): Promise<unknown>;
-  /** FIN-0 Stub: GET /invoices/{invoiceId} (OpenAPI `finInvoiceGet`) — Lesepfad, tenant-isoliert. */
-  getInvoice(invoiceId: string): Promise<unknown>;
+  getPaymentTermsByProject(projectId: string): Promise<unknown>;
+  createInvoiceDraft(body: {
+    lvVersionId: string;
+    offerVersionId: string;
+    invoiceCurrencyCode: "EUR";
+    paymentTermsVersionId?: string;
+    reason: string;
+  }): Promise<CreateInvoiceDraftResponse>;
+  getInvoice(invoiceId: string): Promise<InvoiceOverview>;
 };
 
 export function createApiClient(options: {
@@ -159,8 +194,15 @@ export function createApiClient(options: {
     getSupplementVersion(supplementVersionId) {
       return requestJson("GET", `/supplements/${encodeURIComponent(supplementVersionId)}`);
     },
+    getPaymentTermsByProject(projectId) {
+      const q = new URLSearchParams({ projectId });
+      return requestJson("GET", `/finance/payment-terms?${q}`);
+    },
+    createInvoiceDraft(body) {
+      return requestJson<CreateInvoiceDraftResponse>("POST", "/invoices", body);
+    },
     getInvoice(invoiceId) {
-      return requestJson("GET", `/invoices/${encodeURIComponent(invoiceId)}`);
+      return requestJson<InvoiceOverview>("GET", `/invoices/${encodeURIComponent(invoiceId)}`);
     },
   };
 }

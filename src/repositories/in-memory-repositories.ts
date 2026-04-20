@@ -2,6 +2,9 @@ import {
   AuditEvent,
   ExportRun,
   Invoice,
+  PaymentIntake,
+  PaymentTermsHead,
+  PaymentTermsVersion,
   LvCatalog,
   LvPosition,
   LvStructureNode,
@@ -34,6 +37,11 @@ export class InMemoryRepositories {
   public exportRuns = new Map<UUID, ExportRun>();
   public traceabilityLinks = new Map<UUID, TraceabilityLink>();
   public invoices = new Map<UUID, Invoice>();
+  public paymentTermsHeads = new Map<UUID, PaymentTermsHead>();
+  public paymentTermsVersions = new Map<UUID, PaymentTermsVersion>();
+  public paymentIntakes = new Map<UUID, PaymentIntake>();
+  /** Schlüssel `${tenantId}:${idempotencyKey}` → paymentIntake.id */
+  public paymentIntakeByIdempotencyKey = new Map<string, UUID>();
 
   public getOfferByTenant(tenantId: TenantId, offerId: UUID): Offer | undefined {
     const offer = this.offers.get(offerId);
@@ -74,6 +82,23 @@ export class InMemoryRepositories {
       return undefined;
     }
     return invoice;
+  }
+
+  public getPaymentIntakeByIdempotency(tenantId: TenantId, idempotencyKey: UUID): PaymentIntake | undefined {
+    const id = this.paymentIntakeByIdempotencyKey.get(`${tenantId}:${idempotencyKey}`);
+    if (!id) return undefined;
+    const row = this.paymentIntakes.get(id);
+    if (!row || row.tenantId !== tenantId) return undefined;
+    return row;
+  }
+
+  public listPaymentIntakesForInvoice(tenantId: TenantId, invoiceId: UUID): PaymentIntake[] {
+    return [...this.paymentIntakes.values()].filter((p) => p.tenantId === tenantId && p.invoiceId === invoiceId);
+  }
+
+  public putPaymentIntake(row: PaymentIntake): void {
+    this.paymentIntakes.set(row.id, row);
+    this.paymentIntakeByIdempotencyKey.set(`${row.tenantId}:${row.idempotencyKey}`, row.id);
   }
 
   public getSupplementOfferByTenant(tenantId: TenantId, supplementOfferId: UUID): SupplementOffer | undefined {
@@ -155,4 +180,33 @@ export class InMemoryRepositories {
   public listLvPositionsForVersion(tenantId: TenantId, lvVersionId: UUID): LvPosition[] {
     return [...this.lvPositions.values()].filter((p) => p.tenantId === tenantId && p.lvVersionId === lvVersionId);
   }
+
+  public getPaymentTermsHeadByTenant(tenantId: TenantId, headId: UUID): PaymentTermsHead | undefined {
+    const h = this.paymentTermsHeads.get(headId);
+    if (!h || h.tenantId !== tenantId) {
+      return undefined;
+    }
+    return h;
+  }
+
+  public getPaymentTermsHeadByTenantProject(tenantId: TenantId, projectId: UUID): PaymentTermsHead | undefined {
+    return [...this.paymentTermsHeads.values()].find((h) => h.tenantId === tenantId && h.projectId === projectId);
+  }
+
+  public getPaymentTermsVersionByTenant(tenantId: TenantId, versionId: UUID): PaymentTermsVersion | undefined {
+    const v = this.paymentTermsVersions.get(versionId);
+    if (!v || v.tenantId !== tenantId) {
+      return undefined;
+    }
+    return v;
+  }
+
+  public putPaymentTermsHead(head: PaymentTermsHead): void {
+    this.paymentTermsHeads.set(head.id, head);
+  }
+
+  public putPaymentTermsVersion(version: PaymentTermsVersion): void {
+    this.paymentTermsVersions.set(version.id, version);
+  }
+
 }

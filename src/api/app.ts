@@ -10,6 +10,8 @@ import { LvService } from "../services/lv-service.js";
 import { MeasurementService } from "../services/measurement-service.js";
 import { OfferService } from "../services/offer-service.js";
 import { SupplementService } from "../services/supplement-service.js";
+import { PaymentTermsService } from "../services/payment-terms-service.js";
+import { InvoiceService } from "../services/invoice-service.js";
 import { TraceabilityService } from "../services/traceability-service.js";
 import {
   addLvPositionSchema,
@@ -54,11 +56,29 @@ import {
   type SupplementPersistencePort,
 } from "../persistence/supplement-persistence.js";
 import {
+  noopPaymentTermsPersistence,
+  PrismaPaymentTermsPersistence,
+  type PaymentTermsPersistencePort,
+} from "../persistence/payment-terms-persistence.js";
+import {
+  noopInvoicePersistence,
+  PrismaInvoicePersistence,
+  type InvoicePersistencePort,
+} from "../persistence/invoice-persistence.js";
+import {
   noopLvMeasurementPersistence,
   PrismaLvMeasurementPersistence,
   type LvMeasurementPersistencePort,
 } from "../persistence/lv-measurement-persistence.js";
-import { registerFinanceFin0Stubs } from "./finance-fin0-stubs.js";
+import {
+  noopPaymentIntakePersistence,
+  PrismaPaymentIntakePersistence,
+  type PaymentIntakePersistencePort,
+} from "../persistence/payment-intake-persistence.js";
+import { PaymentIntakeService } from "../services/payment-intake-service.js";
+import { registerPaymentIntakeRoutes } from "./finance-payment-intake-routes.js";
+import { registerPaymentTermsRoutes } from "./finance-payment-terms-routes.js";
+import { registerInvoiceFinanceRoutes } from "./finance-invoice-routes.js";
 import { registerAuthLoginRoutes } from "./auth-login-routes.js";
 import { registerPasswordResetRoutes } from "./password-reset-routes.js";
 import { registerUserAccountRoutes } from "./user-account-routes.js";
@@ -103,6 +123,9 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   let offerPersistence: OfferPersistencePort = noopOfferPersistence;
   let supplementPersistence: SupplementPersistencePort = noopSupplementPersistence;
   let lvMeasurementPersistence: LvMeasurementPersistencePort = noopLvMeasurementPersistence;
+  let paymentTermsPersistence: PaymentTermsPersistencePort = noopPaymentTermsPersistence;
+  let invoicePersistence: InvoicePersistencePort = noopInvoicePersistence;
+  let paymentIntakePersistence: PaymentIntakePersistencePort = noopPaymentIntakePersistence;
 
   if (repositoryMode === "postgres") {
     assertDatabaseUrlForPostgresMode(repositoryMode);
@@ -110,21 +133,30 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     offerPersistence = new PrismaOfferPersistence(prisma);
     supplementPersistence = new PrismaSupplementPersistence(prisma);
     lvMeasurementPersistence = new PrismaLvMeasurementPersistence(prisma);
+    paymentTermsPersistence = new PrismaPaymentTermsPersistence(prisma);
+    invoicePersistence = new PrismaInvoicePersistence(prisma);
+    paymentIntakePersistence = new PrismaPaymentIntakePersistence(prisma);
     if (options?.seedDemoData ?? true) {
       seedDemoData(repos);
       await lvMeasurementPersistence.syncAllFromMemory(repos);
       await offerPersistence.syncAllOffersFromMemory(repos);
       await supplementPersistence.syncAllSupplementsFromMemory(repos);
+      await paymentTermsPersistence.syncAllPaymentTermsFromMemory(repos);
+      await invoicePersistence.syncAllInvoicesFromMemory(repos);
+      await paymentIntakePersistence.hydrateIntoMemory(repos);
     } else {
       await lvMeasurementPersistence.hydrateIntoMemory(repos);
       await offerPersistence.hydrateOffersIntoMemory(repos);
       await supplementPersistence.hydrateSupplementsIntoMemory(repos);
+      await paymentTermsPersistence.hydratePaymentTermsIntoMemory(repos);
+      await invoicePersistence.hydrateInvoicesIntoMemory(repos);
+      await paymentIntakePersistence.hydrateIntoMemory(repos);
     }
     app.addHook("onClose", async () => {
       await prisma?.$disconnect();
     });
     app.log.info(
-      "Persistenz: Postgres LV+Aufmass (ADR-0004/0005) + Offer+OfferVersion (ADR-0006) + Supplement (ADR-0002 D5); übrige Entitäten weiter In-Memory.",
+      "Persistenz: Postgres LV+Aufmass (ADR-0004/0005) + Offer+OfferVersion (ADR-0006) + Supplement (ADR-0002 D5) + Zahlungsbedingungen (FIN-1) + Rechnungen (FIN-2) + Zahlungseingang (FIN-3); übrige Entitäten weiter In-Memory.",
     );
   } else {
     if (options?.seedDemoData ?? true) {
@@ -147,6 +179,9 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   const lvRef = new LvReferenceValidator(repos);
   const offerService = new OfferService(repos, audit, lvRef, offerPersistence);
   const supplementService = new SupplementService(repos, audit, lvRef, supplementPersistence);
+  const paymentTermsService = new PaymentTermsService(repos, audit, paymentTermsPersistence);
+  const invoiceService = new InvoiceService(repos, audit, invoicePersistence);
+  const paymentIntakeService = new PaymentIntakeService(repos, audit, invoicePersistence, paymentIntakePersistence);
   const measurementService = new MeasurementService(repos, audit, lvRef, lvMeasurementPersistence);
   const lvService = new LvService(repos, audit, lvMeasurementPersistence);
   const exportService = new ExportService(repos, audit);
@@ -428,7 +463,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       authorizationService.assertCanApplySupplementBillingImpact(auth.role);
       const params = request.params as { supplementVersionId: string };
       const body = applySupplementBillingImpactSchema.parse(request.body);
-      const result = supplementService.applyBillingImpact({
+      const result = await supplementService.applyBillingImpact({
         tenantId: auth.tenantId,
         supplementVersionId: params.supplementVersionId,
         invoiceId: body.invoiceId,
@@ -476,7 +511,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       if (body.entityType === "INVOICE") {
         traceabilityService.assertInvoiceTraceability(auth.tenantId, body.entityId);
       }
-      const run = exportService.prepareExport({
+      const run = await exportService.prepareExport({
         tenantId: auth.tenantId,
         actorUserId: auth.userId,
         ...body,
@@ -525,7 +560,20 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     authorizationService,
   });
 
-  registerFinanceFin0Stubs(app);
+  registerPaymentTermsRoutes(app, {
+    authorizationService,
+    paymentTermsService,
+  });
+
+  registerInvoiceFinanceRoutes(app, {
+    authorizationService,
+    invoiceService,
+  });
+
+  registerPaymentIntakeRoutes(app, {
+    authorizationService,
+    paymentIntakeService,
+  });
 
   return app;
 }

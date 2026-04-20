@@ -54,11 +54,17 @@ jobs:
       - name: Prisma validate
         run: npm run prisma:validate
 
+      - name: Validate docs/api-contract.yaml (YAML syntax)
+        run: npm run validate:api-contract-yaml
+
       - name: Typecheck
         run: npm run typecheck
 
       - name: Build web (PWA shell, Phase A1)
         run: npm run build:web
+
+      - name: Tests (apps/web workspace)
+        run: npm run test -w apps/web
 
       - name: Tests (inkl. Persistenz, ohne SKIP)
         run: npm test
