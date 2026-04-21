@@ -114,7 +114,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   });
   const corsList = options?.corsOrigins ?? parseCorsOriginsFromEnv();
   registerPwaHttpHooks(app, normalizeCorsOrigins(corsList));
-  await app.register(rateLimit, { global: true, max: 600, timeWindow: "1 minute" });
+  await app.register(rateLimit, { global: false });
 
   app.get("/health", async (_request, reply) => {
     return reply.status(200).send({ status: "ok" as const });
@@ -475,14 +475,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
 
   app.get(
     "/offer-versions/:offerVersionId",
-    {
-      config: {
-        rateLimit: {
-          max: 100,
-          timeWindow: "1 minute",
-        },
-      },
-    },
+    { preHandler: app.rateLimit({ max: 100, timeWindow: "1 minute" }) },
     async (request, reply) => {
       try {
         const auth = parseAuthContext(request.headers);
