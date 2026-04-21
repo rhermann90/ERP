@@ -4,7 +4,7 @@ const ROLE_SET = new Set<UserRole>([
   "ADMIN",
   "BUCHHALTUNG",
   "GESCHAEFTSFUEHRUNG",
-  "VERTRIEB",
+  "VERTRIEB_BAULEITUNG",
   "VIEWER",
 ]);
 
@@ -38,7 +38,8 @@ export function getPasswordLoginProfile(): PasswordLoginProfile | null {
   const emailNorm = (process.env.ERP_LOGIN_EMAIL ?? "admin@localhost").trim().toLowerCase();
   const tenantId = (process.env.ERP_LOGIN_TENANT_ID ?? "11111111-1111-4111-8111-111111111111").trim();
   const userId = (process.env.ERP_LOGIN_USER_ID ?? "77777777-7777-4777-8777-777777777777").trim();
-  const roleRaw = (process.env.ERP_LOGIN_ROLE ?? "ADMIN").trim().toUpperCase() as UserRole;
+  const roleUpper = (process.env.ERP_LOGIN_ROLE ?? "ADMIN").trim().toUpperCase();
+  const roleRaw = (roleUpper === "VERTRIEB" ? "VERTRIEB_BAULEITUNG" : roleUpper) as UserRole;
 
   if (!isUuid(tenantId)) {
     console.warn("[erp] ERP_LOGIN_TENANT_ID is not a valid UUID; password login disabled.");

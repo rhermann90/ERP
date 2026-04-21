@@ -57,5 +57,5 @@
 
 ## ADR-12 SoT: OFFER_CREATE_SUPPLEMENT in allowed-actions
 - Kontext: UI und API dürfen den Nachtrag nach Annahme nicht auseinanderlaufen; Senior-Review verlangt deckungsgleiche SoT.
-- Entscheidung: `actionId` **OFFER_CREATE_SUPPLEMENT** erscheint in `GET /documents/{id}/allowed-actions?entityType=OFFER_VERSION` genau wenn Status `ANGENOMMEN` und Rolle in {ADMIN, VERTRIEB, GESCHAEFTSFUEHRUNG}. `assertCanCreateSupplement` prüft dieselbe Rollenmatrix (`OFFER_STATUS_ACTION_BY_ROLE`). Kein neues `entityType=OFFER` in diesem Schritt.
+- Entscheidung: `actionId` **OFFER_CREATE_SUPPLEMENT** erscheint in `GET /documents/{id}/allowed-actions?entityType=OFFER_VERSION` genau wenn Status `ANGENOMMEN` und Rolle in {ADMIN, VERTRIEB_BAULEITUNG, GESCHAEFTSFUEHRUNG}. `assertCanCreateSupplement` prüft dieselbe Rollenmatrix (`OFFER_STATUS_ACTION_BY_ROLE`). Kein neues `entityType=OFFER` in diesem Schritt.
 - Trade-off: Zusätzliche Einträge in der Aktionsmatrix; dafür keine versteckte Ausführbarkeit von `POST /offers/.../supplements` ohne SoT-Eintrag.

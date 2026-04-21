@@ -6,11 +6,14 @@ function makeClient(): ApiClient {
   return {
     requestJson: vi.fn().mockResolvedValue({ ok: true }),
     getAllowedActions: vi.fn(),
+    getOfferVersion: vi.fn(),
     getMeasurementVersion: vi.fn(),
     getSupplementVersion: vi.fn(),
     getPaymentTermsByProject: vi.fn(),
     createInvoiceDraft: vi.fn(),
     getInvoice: vi.fn(),
+    recordPaymentIntake: vi.fn(),
+    getAuditEvents: vi.fn(),
   };
 }
 

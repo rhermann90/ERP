@@ -29,7 +29,13 @@ Ohne `PERSISTENCE_DB_TEST_URL` schlagen die Persistenz-Suites in CI nicht fehl d
    npm test
    ```
 
-Ohne `PERSISTENCE_DB_TEST_URL` laufen die In-Memory- und Schema-Tests; die beiden Postgres-Integrationssuites werden **bewusst übersprungen** (`describe.skipIf`).
+Ohne `PERSISTENCE_DB_TEST_URL` laufen die In-Memory- und Schema-Tests; die Postgres-Integrationssuite wird **bewusst übersprungen** (`describe.skip` statt aktiver Suite).
+
+### Repo-`docker-compose.yml` (Host-Port **15432** → Container 5432, DB `erp_test`)
+
+1. `npm run ensure:local-test-db` — `docker compose up -d`, wartet auf Postgres, legt **`erp_test`** an falls noch fehlend (idempotent; hilft bei alten Volumes mit nur DB `erp`).
+2. `npm run verify:ci:local-db` — setzt `DATABASE_URL` / `PERSISTENCE_DB_TEST_URL` standardmäßig auf `127.0.0.1:15432/erp_test` und führt dieselbe Kette wie CI aus (**inkl. `migrate deploy`**, Persistenz-Suites **ohne SKIP**, sofern die DB erreichbar ist).
+3. Anderer Host-Port: Compose `ports` anpassen und URLs setzen, z. B. `DATABASE_URL=postgresql://… PERSISTENCE_DB_TEST_URL=postgresql://… npm run verify:ci:with-migrate`.
 
 ## Relevante Tests
 

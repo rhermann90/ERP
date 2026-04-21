@@ -169,6 +169,27 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     }
   }
 
+  app.get("/ready", async (_request, reply) => {
+    if (repositoryMode !== "postgres" || !prisma) {
+      return reply.status(200).send({
+        status: "ready" as const,
+        checks: { database: "not_configured" as const },
+      });
+    }
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return reply.status(200).send({
+        status: "ready" as const,
+        checks: { database: "ok" as const },
+      });
+    } catch {
+      return reply.status(503).send({
+        status: "not_ready" as const,
+        checks: { database: "error" as const },
+      });
+    }
+  });
+
   if (prisma && (options?.seedDemoData ?? true)) {
     await seedAuthUsers(prisma);
   }
@@ -418,6 +439,17 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
         ...body,
       });
       return reply.status(201).send(result);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.get("/offer-versions/:offerVersionId", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      const params = request.params as { offerVersionId: string };
+      const result = offerService.getVersionDetail(auth.tenantId, params.offerVersionId);
+      return reply.status(200).send(result);
     } catch (error) {
       return handleHttpError(error, request, reply);
     }

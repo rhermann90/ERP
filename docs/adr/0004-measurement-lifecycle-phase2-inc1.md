@@ -33,7 +33,7 @@
 
 ### D5 — Rollen (Projekt-Slice)
 
-- **VERTRIEB**: Anlage, Positionen (ENTWURF), `GEPRUEFT`, neue Version.
+- **VERTRIEB_BAULEITUNG**: Anlage, Positionen (ENTWURF), `GEPRUEFT`, neue Version.
 - **GESCHAEFTSFUEHRUNG**: `FREIGEGEBEN`, `ARCHIVIERT`, neue Version.
 - **BUCHHALTUNG**: `ABGERECHNET`.
 - **ADMIN**: vollständig.

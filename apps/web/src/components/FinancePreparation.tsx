@@ -1,8 +1,21 @@
 import { useCallback, useState } from "react";
 import { FINANCE_PREP_HASH } from "../lib/hash-route.js";
+import { DEMO_SEED_IDS } from "../lib/demo-seed-ids.js";
 import { repoDocHref } from "../lib/repo-doc-links.js";
 import type { ApiClient, InvoiceOverview } from "../lib/api-client.js";
 import { ApiError } from "../lib/api-error.js";
+
+const SOT_ENTITY_TYPES = [
+  "INVOICE",
+  "OFFER_VERSION",
+  "SUPPLEMENT_VERSION",
+  "MEASUREMENT_VERSION",
+  "LV_VERSION",
+  "LV_STRUCTURE_NODE",
+  "LV_POSITION",
+] as const;
+
+type SotEntityType = (typeof SOT_ENTITY_TYPES)[number];
 
 const DOC_LINKS: { label: string; repoPath: string }[] = [
   {
@@ -33,6 +46,10 @@ const DOC_LINKS: { label: string; repoPath: string }[] = [
     label: "PL / System — Sprint-Snapshot (Koordination)",
     repoPath: "docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md",
   },
+  {
+    label: "UI — v1.3-Fachrollen → API-Rollen (Mapping)",
+    repoPath: "docs/contracts/ui-role-mapping-v1-3.md",
+  },
 ];
 
 /** Seed-Projekt aus Backend `SEED_IDS.projectId` (Demos). */
@@ -46,6 +63,12 @@ function formatEurFromCents(cents: number | undefined): string {
   return `${(cents / 100).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR`;
 }
 
+function openAmountCents(overview: InvoiceOverview | null): number | null {
+  if (!overview) return null;
+  if (overview.totalGrossCents === undefined || overview.totalPaidCents === undefined) return null;
+  return Math.max(0, overview.totalGrossCents - overview.totalPaidCents);
+}
+
 export function FinancePreparation({ api }: { api: ApiClient }) {
   const [projectId, setProjectId] = useState(DEMO_PROJECT_ID);
   const [termsLabel, setTermsLabel] = useState("14 Tage netto");
@@ -53,6 +76,13 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
   const [draftJson, setDraftJson] = useState<string>("");
   const [invoiceIdRead, setInvoiceIdRead] = useState(DEMO_INVOICE_ID);
   const [invoiceOverview, setInvoiceOverview] = useState<InvoiceOverview | null>(null);
+  const [intakeAmountCents, setIntakeAmountCents] = useState("100");
+  const [intakeExternalRef, setIntakeExternalRef] = useState("PWA-DEMO-INTAKE-1");
+  const [intakeResultJson, setIntakeResultJson] = useState<string>("");
+  const [auditJson, setAuditJson] = useState<string>("");
+  const [sotEntityType, setSotEntityType] = useState<SotEntityType>("OFFER_VERSION");
+  const [sotDocumentId, setSotDocumentId] = useState<string>(DEMO_SEED_IDS.offerVersionId);
+  const [sotJson, setSotJson] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -122,6 +152,71 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
     }
   }, [api, invoiceIdRead]);
 
+  const loadSotAllowedActions = useCallback(async () => {
+    setErr(null);
+    setBusy(true);
+    try {
+      const res = await api.getAllowedActions(sotDocumentId.trim(), sotEntityType);
+      setSotJson(JSON.stringify(res, null, 2));
+    } catch (e) {
+      setSotJson("");
+      setErr(e instanceof ApiError ? `${e.status}: ${JSON.stringify(e.envelope)}` : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }, [api, sotDocumentId, sotEntityType]);
+
+  const applyOpenBalanceToIntake = useCallback(() => {
+    const open = openAmountCents(invoiceOverview);
+    if (open != null && open > 0) setIntakeAmountCents(String(open));
+  }, [invoiceOverview]);
+
+  const submitPaymentIntake = useCallback(async () => {
+    setErr(null);
+    setBusy(true);
+    setIntakeResultJson("");
+    try {
+      const amount = Number.parseInt(intakeAmountCents.trim(), 10);
+      if (!Number.isFinite(amount) || amount < 1) {
+        setErr("Zahlungsbetrag (Cent) muss eine ganze Zahl ≥ 1 sein.");
+        return;
+      }
+      const idem = crypto.randomUUID();
+      const out = await api.recordPaymentIntake(
+        {
+          invoiceId: invoiceIdRead.trim(),
+          amountCents: amount,
+          externalReference: intakeExternalRef.trim() || "PWA-INTAKE",
+          reason: "Zahlungseingang aus Finanz-Vorbereitung (FIN-3 Demo)",
+        },
+        idem,
+      );
+      setIntakeResultJson(JSON.stringify(out, null, 2));
+      await loadInvoice();
+    } catch (e) {
+      setIntakeResultJson("");
+      setErr(e instanceof ApiError ? `${e.status}: ${JSON.stringify(e.envelope)}` : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }, [api, intakeAmountCents, intakeExternalRef, invoiceIdRead, loadInvoice]);
+
+  const loadAuditEvents = useCallback(async () => {
+    setErr(null);
+    setBusy(true);
+    try {
+      const data = await api.getAuditEvents(1, 15);
+      setAuditJson(JSON.stringify(data, null, 2));
+    } catch (e) {
+      setAuditJson("");
+      setErr(e instanceof ApiError ? `${e.status}: ${JSON.stringify(e.envelope)}` : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }, [api]);
+
+  const openCents = openAmountCents(invoiceOverview);
+
   return (
     <section className="panel finance-prep" aria-labelledby="finance-prep-heading">
       <h2 id="finance-prep-heading">Finanz (Vorbereitung)</h2>
@@ -129,8 +224,9 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
         id="finance-prep-intro"
         style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginTop: 0 }}
       >
-        <strong>FIN-1</strong> Zahlungsbedingungen, <strong>FIN-2</strong> Rechnung (Entwurf + Lesen mit 8.4-Beträgen) — nur mit gültiger
-        Anmeldung; Demo nutzt feste Seed-UUIDs aus dem Backend.
+        <strong>FIN-1</strong> Zahlungsbedingungen, <strong>FIN-2</strong> Rechnung (Entwurf + Lesen mit 8.4-Beträgen), <strong>FIN-3</strong>{" "}
+        Zahlungseingang — nur mit gültiger Anmeldung; Demo nutzt feste Seed-UUIDs aus dem Backend. Nach Buchungen hilft{" "}
+        <strong>Audit</strong> (<code>GET /audit-events</code>) zur Nachvollziehbarkeit im Mandanten.
       </p>
       <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
         <a href="#/">Zurück zur Shell (Start)</a>
@@ -232,6 +328,166 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
               {JSON.stringify(invoiceOverview, null, 2)}
             </pre>
           </div>
+        ) : null}
+
+        <h3 style={{ fontSize: "1rem", marginTop: "1.25rem" }}>SoT — erlaubte Aktionen (Schritt 4)</h3>
+        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
+          <code>GET /documents/:id/allowed-actions</code> — gleiche Quelle wie die Dokument-Shell; <code>id</code> ist die UUID der gewählten Entität (nicht immer die Rechnungs-ID).
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.5rem" }}>
+          <button
+            type="button"
+            onClick={() => {
+              setSotEntityType("OFFER_VERSION");
+              setSotDocumentId(DEMO_SEED_IDS.offerVersionId);
+            }}
+            disabled={busy}
+          >
+            Voreinstellung: Angebotsversion
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSotEntityType("MEASUREMENT_VERSION");
+              setSotDocumentId(DEMO_SEED_IDS.measurementVersionId);
+            }}
+            disabled={busy}
+          >
+            Voreinstellung: Aufmaßversion
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSotEntityType("LV_VERSION");
+              setSotDocumentId(DEMO_SEED_IDS.lvVersionId);
+            }}
+            disabled={busy}
+          >
+            Voreinstellung: LV-Version
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSotEntityType("LV_STRUCTURE_NODE");
+              setSotDocumentId(DEMO_SEED_IDS.lvBereichId);
+            }}
+            disabled={busy}
+          >
+            Voreinstellung: LV-Bereich
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSotEntityType("LV_POSITION");
+              setSotDocumentId(DEMO_SEED_IDS.lvPositionId);
+            }}
+            disabled={busy}
+          >
+            Voreinstellung: LV-Position
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSotEntityType("INVOICE");
+              setSotDocumentId(invoiceIdRead.trim());
+            }}
+            disabled={busy}
+          >
+            Rechnungs-ID aus Feld übernehmen
+          </button>
+        </div>
+        <label style={{ display: "block", marginBottom: "0.5rem" }}>
+          entityType
+          <select
+            value={sotEntityType}
+            onChange={(e) => setSotEntityType(e.target.value as SotEntityType)}
+            aria-label="entityType für allowed-actions"
+            style={{ display: "block", width: "100%", marginTop: "0.25rem", maxWidth: "28rem" }}
+          >
+            {SOT_ENTITY_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label style={{ display: "block", marginBottom: "0.5rem" }}>
+          Dokument-ID (UUID)
+          <input
+            type="text"
+            value={sotDocumentId}
+            onChange={(e) => setSotDocumentId(e.target.value)}
+            aria-label="Dokument-ID für allowed-actions"
+            style={{ width: "100%", fontFamily: "monospace", fontSize: "0.85rem", marginTop: "0.25rem" }}
+          />
+        </label>
+        <button type="button" onClick={() => void loadSotAllowedActions()} disabled={busy}>
+          Erlaubte Aktionen laden
+        </button>
+        {sotJson ? <pre style={{ fontSize: "0.75rem", overflow: "auto", marginTop: "0.5rem", maxHeight: "12rem" }}>{sotJson}</pre> : null}
+
+        <h3 style={{ fontSize: "1rem", marginTop: "1.25rem" }}>Zahlungseingang (FIN-3) — drei Klicks</h3>
+        <ol style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginTop: 0, paddingLeft: "1.2rem" }}>
+          <li>
+            Rechnung laden (Abschnitt oben: <strong>GET Rechnung laden</strong>).
+          </li>
+          <li>
+            Offenen Restbetrag übernehmen oder Cent-Betrag anpassen
+            {openCents != null && openCents > 0 ? (
+              <>
+                {" "}
+                (aktuell offen: <strong>{openCents}</strong> Cent).
+              </>
+            ) : (
+              <> (zuerst Rechnung laden, wenn keine Daten angezeigt werden).</>
+            )}
+          </li>
+          <li>
+            <strong>Zahlung buchen</strong> — pro Klick neuer <code>Idempotency-Key</code> (UUID); Wiederholung mit gleichem Key liefert Replay (HTTP 200).
+          </li>
+        </ol>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center", marginBottom: "0.5rem" }}>
+          <button type="button" onClick={() => applyOpenBalanceToIntake()} disabled={busy || openCents == null || openCents < 1}>
+            Offenen Betrag übernehmen
+          </button>
+        </div>
+        <label style={{ display: "block", marginBottom: "0.5rem" }}>
+          Betrag (Cent, ganzzahlig)
+          <input
+            type="text"
+            inputMode="numeric"
+            value={intakeAmountCents}
+            onChange={(e) => setIntakeAmountCents(e.target.value)}
+            aria-label="Zahlungsbetrag in Cent"
+            style={{ width: "100%", fontFamily: "monospace", fontSize: "0.85rem", marginTop: "0.25rem" }}
+          />
+        </label>
+        <label style={{ display: "block", marginBottom: "0.5rem" }}>
+          Externe Referenz (Bank / CSV)
+          <input
+            type="text"
+            value={intakeExternalRef}
+            onChange={(e) => setIntakeExternalRef(e.target.value)}
+            style={{ width: "100%", marginTop: "0.25rem" }}
+          />
+        </label>
+        <button type="button" onClick={() => void submitPaymentIntake()} disabled={busy}>
+          Zahlung buchen (POST /finance/payments/intake)
+        </button>
+        {intakeResultJson ? (
+          <pre style={{ fontSize: "0.75rem", overflow: "auto", marginTop: "0.5rem", maxHeight: "10rem" }}>{intakeResultJson}</pre>
+        ) : null}
+
+        <h3 style={{ fontSize: "1rem", marginTop: "1.25rem" }}>Nachvollziehbarkeit — Audit (Schritt 4)</h3>
+        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
+          <code>GET /audit-events</code> — Leserecht nur für <strong>ADMIN</strong>, <strong>BUCHHALTUNG</strong>, <strong>GESCHAEFTSFUEHRUNG</strong> (sonst 403{" "}
+          <code>FORBIDDEN_AUDIT_READ</code>).
+        </p>
+        <button type="button" onClick={() => void loadAuditEvents()} disabled={busy}>
+          Audit-Ereignisse laden (letzte 15)
+        </button>
+        {auditJson ? (
+          <pre style={{ fontSize: "0.75rem", overflow: "auto", marginTop: "0.5rem", maxHeight: "14rem" }}>{auditJson}</pre>
         ) : null}
         {err ? (
           <p role="alert" style={{ color: "var(--danger, #c00)", fontSize: "0.85rem", marginTop: "0.5rem" }}>

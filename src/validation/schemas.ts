@@ -211,7 +211,7 @@ export const loginRequestSchema = z.object({
   password: z.string().min(1).max(2000),
 });
 
-const userRoleEnum = z.enum(["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG", "VERTRIEB", "VIEWER"]);
+const userRoleEnum = z.enum(["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG", "VERTRIEB_BAULEITUNG", "VIEWER"]);
 
 export const createTenantUserSchema = z.object({
   email: authEmailInputSchema,

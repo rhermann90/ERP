@@ -71,7 +71,7 @@ components:
             type: string
           description: |
             Backend Source-of-Truth. Für entityType=OFFER_VERSION und status=ANGENOMMEN können berechtigte Rollen
-            (ADMIN, VERTRIEB, GESCHAEFTSFUEHRUNG) die Aktion OFFER_CREATE_SUPPLEMENT erhalten (Mapping zu POST /offers/{offerId}/supplements).
+            (ADMIN, VERTRIEB_BAULEITUNG, GESCHAEFTSFUEHRUNG) die Aktion OFFER_CREATE_SUPPLEMENT erhalten (Mapping zu POST /offers/{offerId}/supplements).
             OFFER_CREATE_VERSION endet spätestens vor ANGENOMMEN/ABGELEHNT/ARCHIVIERT (Policy offer-create-version-policy).
             entityType=MEASUREMENT_VERSION: Aktionen gemäß §5.4 v1.2 (z. B. MEASUREMENT_CREATE_VERSION nur nach FREIGEGEBEN/ABGERECHNET;
             historische Versionen: leere allowedActions).
@@ -462,7 +462,7 @@ components:
           format: email
         role:
           type: string
-          enum: [ADMIN, BUCHHALTUNG, GESCHAEFTSFUEHRUNG, VERTRIEB, VIEWER]
+          enum: [ADMIN, BUCHHALTUNG, GESCHAEFTSFUEHRUNG, VERTRIEB_BAULEITUNG, VIEWER]
         active:
           type: boolean
         createdAt:
@@ -489,7 +489,7 @@ components:
           maxLength: 2000
         role:
           type: string
-          enum: [ADMIN, BUCHHALTUNG, GESCHAEFTSFUEHRUNG, VERTRIEB, VIEWER]
+          enum: [ADMIN, BUCHHALTUNG, GESCHAEFTSFUEHRUNG, VERTRIEB_BAULEITUNG, VIEWER]
         reason:
           type: string
           minLength: 5
@@ -499,7 +499,7 @@ components:
       properties:
         role:
           type: string
-          enum: [ADMIN, BUCHHALTUNG, GESCHAEFTSFUEHRUNG, VERTRIEB, VIEWER]
+          enum: [ADMIN, BUCHHALTUNG, GESCHAEFTSFUEHRUNG, VERTRIEB_BAULEITUNG, VIEWER]
         active:
           type: boolean
         password:
@@ -589,7 +589,7 @@ components:
           format: uuid
         role:
           type: string
-          enum: [ADMIN, BUCHHALTUNG, GESCHAEFTSFUEHRUNG, VERTRIEB, VIEWER]
+          enum: [ADMIN, BUCHHALTUNG, GESCHAEFTSFUEHRUNG, VERTRIEB_BAULEITUNG, VIEWER]
     HealthStatus:
       type: object
       required: [status]
@@ -597,6 +597,34 @@ components:
         status:
           type: string
           enum: [ok]
+    ReadinessOk:
+      type: object
+      required: [status, checks]
+      properties:
+        status:
+          type: string
+          enum: [ready]
+        checks:
+          type: object
+          required: [database]
+          properties:
+            database:
+              type: string
+              enum: [ok, not_configured]
+    ReadinessFailed:
+      type: object
+      required: [status, checks]
+      properties:
+        status:
+          type: string
+          enum: [not_ready]
+        checks:
+          type: object
+          required: [database]
+          properties:
+            database:
+              type: string
+              enum: [error]
 paths:
   /health:
     get:
@@ -609,6 +637,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthStatus'
+  /ready:
+    get:
+      summary: Readiness (tenant-neutral, ohne Auth)
+      description: |
+        Prüft optional die Postgres-Verbindung, wenn `repositoryMode=postgres` (Prisma).
+        Im In-Memory-Modus ist `checks.database` immer `not_configured` — trotzdem HTTP 200 (Prozess bereit).
+        Bei nicht erreichbarer DB im Postgres-Modus **503** mit `not_ready`.
+      responses:
+        '200':
+          description: Bereit (DB ok oder nicht konfiguriert)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessOk'
+        '503':
+          description: Postgres-Modus, DB nicht erreichbar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessFailed'
   /auth/login:
     post:
       tags: [Auth]
@@ -1181,6 +1229,28 @@ paths:
           description: AUTH_ROLE_FORBIDDEN oder TENANT_SCOPE_VIOLATION
         '401':
           description: Authentifizierung fehlgeschlagen
+  /offer-versions/{offerVersionId}:
+    get:
+      description: Liest Angebotsversion (System-/Bearbeitungstext, Status) tenant-gefiltert.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: offerVersionId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OfferVersion (JSON; Datumswerte als ISO-8601-Strings)
+        '404':
+          description: OFFER_VERSION_NOT_FOUND
+        '403':
+          description: TENANT_SCOPE_VIOLATION
+        '401':
+          description: Authentifizierung fehlgeschlagen
   /offers/{offerId}/supplements:
     post:
       description: |
@@ -1315,7 +1385,7 @@ paths:
     get:
       description: |
         Liefert erlaubte actionIds für das Dokument (Backend-SoT). Kein separates entityType=OFFER in Phase 1.
-        Beispiel nach Annahme: bei OFFER_VERSION im Status ANGENOMMEN erscheint für ADMIN/VERTRIEB/GESCHAEFTSFUEHRUNG
+        Beispiel nach Annahme: bei OFFER_VERSION im Status ANGENOMMEN erscheint für ADMIN/VERTRIEB_BAULEITUNG/GESCHAEFTSFUEHRUNG
         OFFER_CREATE_SUPPLEMENT (nicht OFFER_CREATE_VERSION).
         Für §9 LV: `id` ist jeweils die Entitäts-ID passend zu `entityType` (LV_VERSION → lvVersionId, LV_STRUCTURE_NODE → nodeId, LV_POSITION → positionId); siehe ADR-0005.
       security:
@@ -1350,7 +1420,7 @@ paths:
                 $ref: '#/components/schemas/AllowedActionsResponse'
               examples:
                 offerVersionAcceptedSales:
-                  summary: OFFER_VERSION ANGENOMMEN, Rolle VERTRIEB
+                  summary: OFFER_VERSION ANGENOMMEN, Rolle VERTRIEB_BAULEITUNG
                   value:
                     documentId: "33333333-3333-4333-8333-333333333333"
                     entityType: OFFER_VERSION

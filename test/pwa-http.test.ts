@@ -25,6 +25,16 @@ describe("PWA HTTP basis (CORS, Security-Header, Health)", () => {
     expect(typeof res.headers["x-correlation-id"]).toBe("string");
     expect((res.headers["x-correlation-id"] as string).length).toBeGreaterThan(0);
     expect(res.headers["x-request-id"]).toBe(res.headers["x-correlation-id"]);
+    expect(res.headers["content-security-policy"]).toContain("default-src 'none'");
+  });
+
+  it("GET /ready ist 200 im Memory-Modus (DB nicht konfiguriert)", async () => {
+    const res = await app.inject({ method: "GET", url: "/ready" });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      status: "ready",
+      checks: { database: "not_configured" },
+    });
   });
 
   it("Security-Header auf geschützter Route", async () => {
