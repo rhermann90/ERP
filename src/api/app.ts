@@ -475,7 +475,14 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
 
   app.get(
     "/offer-versions/:offerVersionId",
-    {},
+    {
+      config: {
+        rateLimit: {
+          max: 100,
+          timeWindow: "1 minute",
+        },
+      },
+    },
     async (request, reply) => {
       try {
         const auth = parseAuthContext(request.headers);
