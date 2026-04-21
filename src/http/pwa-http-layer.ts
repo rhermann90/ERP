@@ -27,6 +27,11 @@ function setSecurityHeaders(reply: { header: (k: string, v: string) => void }): 
   reply.header("X-Frame-Options", "DENY");
   reply.header("Referrer-Policy", "strict-origin-when-cross-origin");
   reply.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  /** Reine JSON-API: kein Laden fremder Ressourcen; PWA bleibt eigene Origin. */
+  reply.header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
+  if (process.env.ERP_ENABLE_HSTS === "1") {
+    reply.header("Strict-Transport-Security", "max-age=15552000; includeSubDomains");
+  }
 }
 
 /**

@@ -112,6 +112,32 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     expect(body.versionNumber).toBe(2);
   });
 
+  it("GET /offer-versions/:id returns seed offer version detail", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: `/offer-versions/${SEED_IDS.offerVersionId}`,
+      headers,
+    });
+    expect(res.statusCode).toBe(200);
+    const j = res.json() as { id: string; offerId: string; status: string; systemText: string; editingText: string };
+    expect(j.id).toBe(SEED_IDS.offerVersionId);
+    expect(j.offerId).toBe(SEED_IDS.offerId);
+    expect(j.status).toBe("ENTWURF");
+    expect(j.systemText.length).toBeGreaterThan(0);
+    expect(j.editingText.length).toBeGreaterThan(0);
+  });
+
+  it("GET /offer-versions/:id returns 404 for unknown version", async () => {
+    const unknownId = "33333333-3333-4333-8333-333333333399";
+    const res = await app.inject({
+      method: "GET",
+      url: `/offer-versions/${unknownId}`,
+      headers,
+    });
+    expect(res.statusCode).toBe(404);
+    expect(res.json().code).toBe("OFFER_VERSION_NOT_FOUND");
+  });
+
   it("blocks invalid status transition (negative)", async () => {
     const response = await app.inject({
       method: "POST",

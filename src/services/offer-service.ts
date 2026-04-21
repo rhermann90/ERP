@@ -76,6 +76,15 @@ export class OfferService {
     return version;
   }
 
+  /** Lesepfad für PWA-Shell — gleiche Tenant-Isolation wie Repos. */
+  public getVersionDetail(tenantId: TenantId, offerVersionId: UUID): OfferVersion {
+    const version = this.repos.getOfferVersionByTenant(tenantId, offerVersionId);
+    if (!version) {
+      throw new DomainError("OFFER_VERSION_NOT_FOUND", "Angebotsversion nicht gefunden", 404);
+    }
+    return version;
+  }
+
   public async transitionStatus(input: {
     tenantId: TenantId;
     offerVersionId: UUID;
