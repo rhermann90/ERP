@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import Fastify, { FastifyInstance } from "fastify";
+import rateLimit from "@fastify/rate-limit";
 import type { FastifyReply, FastifyRequest, preHandlerHookHandler } from "fastify";
 import { assertSystemTextNotInUpdatePayload } from "../domain/lv-text-structure-policy.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
@@ -113,6 +114,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   });
   const corsList = options?.corsOrigins ?? parseCorsOriginsFromEnv();
   registerPwaHttpHooks(app, normalizeCorsOrigins(corsList));
+  await app.register(rateLimit, { global: false });
 
   app.get("/health", async (_request, reply) => {
     return reply.status(200).send({ status: "ok" as const });
@@ -473,7 +475,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
 
   app.get(
     "/offer-versions/:offerVersionId",
-    { preHandler: createIpRateLimiter({ windowMs: 60_000, max: 120 }) },
+    { config: { rateLimit: { max: 120, timeWindow: "1 minute" } } },
     async (request, reply) => {
       try {
         const auth = parseAuthContext(request.headers);
