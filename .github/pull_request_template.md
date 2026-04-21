@@ -4,6 +4,16 @@
 
 **Branch-Schutz (Repo-Admin):** Pflicht-Statuscheck **`backend`** — [`docs/runbooks/github-branch-protection-backend.md`](../docs/runbooks/github-branch-protection-backend.md).
 
+### Schnell-Check (kleine PRs: Refactor, Typos, keine Finanz-/Contract-Änderung)
+
+- [ ] `npm run verify:ci` lokal grün **oder** bewusst auf Remote-CI vertraut
+- [ ] Keine Secrets / keine echten Kundendaten in Diff oder Fixtures
+- [ ] Bei Touch von `src/` + Mandanten/Finanz: mindestens bestehende Tests für den Pfad mitbedacht
+
+**Finanz, Zahlungsfluss, Rechnung, OpenAPI, `error-codes.json`, `prisma/migrations`:** unten **Merge-Evidence §5a** vollständig; bei Unsicherheit PL/Review einbeziehen.
+
+---
+
 ## Merge-Evidence (vor Merge auf `main` / `master`)
 
 Siehe [`docs/contracts/qa-fin-0-gate-readiness.md`](docs/contracts/qa-fin-0-gate-readiness.md) — **§5a** (grün) bzw. **§5b** (blockiert).
