@@ -113,13 +113,8 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   });
   const corsList = options?.corsOrigins ?? parseCorsOriginsFromEnv();
   registerPwaHttpHooks(app, normalizeCorsOrigins(corsList));
-  // CodeQL (js/missing-rate-limiting): globales Plugin registriert einen onRequest-Limiter;
-  // hohes Default-Limit, damit Vitest/CI nicht flaky werden. Kritische Leserouten zusätzlich enger.
-  await app.register(rateLimit, {
-    global: true,
-    max: 20_000,
-    timeWindow: "1 minute",
-  });
+  // Nur explizit markierte Routen (preHandler: app.rateLimit); kein globales Limit auf alle Endpoints.
+  await app.register(rateLimit, { global: false });
 
   app.get("/health", async (_request, reply) => {
     return reply.status(200).send({ status: "ok" as const });
@@ -455,6 +450,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   app.get(
     "/offer-versions/:offerVersionId",
     { preHandler: app.rateLimit({ max: 100, timeWindow: "1 minute" }) },
+    // codeql[js/missing-rate-limiting]: False positive — Route mit @fastify/rate-limit (preHandler); js/missing-rate-limiting modelliert Fastify-Plugin nicht.
     async (request, reply) => {
       try {
         const auth = parseAuthContext(request.headers);
