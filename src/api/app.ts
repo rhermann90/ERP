@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import Fastify, { FastifyInstance } from "fastify";
 import rateLimit from "@fastify/rate-limit";
-import type { FastifyReply, FastifyRequest, preHandlerHookHandler } from "fastify";
 import { assertSystemTextNotInUpdatePayload } from "../domain/lv-text-structure-policy.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import { AuditService } from "../services/audit-service.js";
@@ -114,37 +113,17 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   });
   const corsList = options?.corsOrigins ?? parseCorsOriginsFromEnv();
   registerPwaHttpHooks(app, normalizeCorsOrigins(corsList));
-  await app.register(rateLimit, { global: false });
+  // CodeQL (js/missing-rate-limiting): globales Plugin registriert einen onRequest-Limiter;
+  // hohes Default-Limit, damit Vitest/CI nicht flaky werden. Kritische Leserouten zusätzlich enger.
+  await app.register(rateLimit, {
+    global: true,
+    max: 20_000,
+    timeWindow: "1 minute",
+  });
 
   app.get("/health", async (_request, reply) => {
     return reply.status(200).send({ status: "ok" as const });
   });
-
-  /**
-   * Minimaler In-Process Rate-Limiter (per IP) für einzelne Endpoints.
-   * Ziel: Schutz gegen triviale Brute-Force/DoS auf autorisierten Routen, ohne neue Dependencies.
-   * Hinweis: Pro-Process (nicht cluster-/multi-instance global).
-   */
-  function createIpRateLimiter(input: { windowMs: number; max: number }): preHandlerHookHandler {
-    const buckets = new Map<string, { count: number; resetAt: number }>();
-    const windowMs = input.windowMs;
-    const max = input.max;
-
-    return async function ipRateLimit(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-      const now = Date.now();
-      const key = request.ip || "unknown";
-      const prev = buckets.get(key);
-      if (!prev || prev.resetAt <= now) {
-        buckets.set(key, { count: 1, resetAt: now + windowMs });
-        return;
-      }
-      prev.count += 1;
-      if (prev.count > max) {
-        reply.header("retry-after", Math.ceil((prev.resetAt - now) / 1000));
-        await reply.status(429).send({ code: "RATE_LIMITED", message: "Too many requests" });
-      }
-    };
-  }
 
   const repos = new InMemoryRepositories();
   const repositoryMode = resolveRepositoryMode({ repositoryMode: options?.repositoryMode });
