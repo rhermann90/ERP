@@ -91,6 +91,11 @@ export type BuildAppOptions = {
   corsOrigins?: string[];
   /** Explizit In-Memory erzwingen (Vitest, lokale Demos ohne DB). */
   repositoryMode?: RepositoryMode;
+  /** Optionales Test-/Runtime-Override fuer das globale HTTP-Rate-Limit. */
+  rateLimit?: {
+    max?: number;
+    timeWindow?: number | string;
+  };
 };
 
 export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstance> {
@@ -113,12 +118,31 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   });
   const corsList = options?.corsOrigins ?? parseCorsOriginsFromEnv();
   registerPwaHttpHooks(app, normalizeCorsOrigins(corsList));
-  // Nur explizit markierte Routen (preHandler: app.rateLimit); kein globales Limit auf alle Endpoints.
-  await app.register(rateLimit, { global: false });
-
-  app.get("/health", async (_request, reply) => {
-    return reply.status(200).send({ status: "ok" as const });
+  // HTTP-Rate-Limiting: `@fastify/rate-limit` mit `global: true` — jede registrierte Route erhaelt
+  // ein Limit (Plugin-Hook `onRoute`), sofern nicht explizit `config: { rateLimit: false }` gesetzt
+  // (z. B. `/health` fuer Probes). Zusaetzlich setzen wir auf besonders missbrauchsgefaehrdeten
+  // Routen (Login, Reset, Benutzerverwaltung) engere `config.rateLimit`-Werte (Defense in Depth).
+  //
+  // Code scanning: Die Regel `js/missing-rate-limiting` erkennt dieses globale Fastify-Muster nicht
+  // zuverlaessig; die Repo-Konfiguration liegt unter `.github/codeql/codeql-config.yml` (in GitHub
+  // unter Code scanning als Custom configuration file verknuepfen, wenn Default setup genutzt wird).
+  await app.register(rateLimit, {
+    global: true,
+    max: options?.rateLimit?.max ?? 100,
+    timeWindow: options?.rateLimit?.timeWindow ?? "1 minute",
   });
+
+  app.get(
+    "/health",
+    {
+      config: {
+        rateLimit: false,
+      },
+    },
+    async (_request, reply) => {
+      return reply.status(200).send({ status: "ok" as const });
+    },
+  );
 
   const repos = new InMemoryRepositories();
   const repositoryMode = resolveRepositoryMode({ repositoryMode: options?.repositoryMode });
@@ -447,27 +471,16 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     }
   });
 
-  app.get(
-    "/offer-versions/:offerVersionId",
-    {
-      config: {
-        rateLimit: {
-          max: 100,
-          timeWindow: "1 minute",
-        },
-      },
-    },
-    async (request, reply) => {
-      try {
-        const auth = parseAuthContext(request.headers);
-        const params = request.params as { offerVersionId: string };
-        const result = offerService.getVersionDetail(auth.tenantId, params.offerVersionId);
-        return reply.status(200).send(result);
-      } catch (error) {
-        return handleHttpError(error, request, reply);
-      }
-    },
-  );
+  app.get("/offer-versions/:offerVersionId", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      const params = request.params as { offerVersionId: string };
+      const result = offerService.getVersionDetail(auth.tenantId, params.offerVersionId);
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
 
   app.post("/offers/:offerId/supplements", async (request, reply) => {
     try {

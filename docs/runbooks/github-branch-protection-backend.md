@@ -15,6 +15,7 @@
 ## Hinweise
 
 - Zusätzliche Automatisierung (ohne Änderung der empfohlenen Pflichtchecks): **CodeQL** über GitHub **Default setup** (kein zweites Workflow-File nötig), **Dependency review** (nur PRs), **Dependabot** (`.github/dependabot.yml`) — bei Bedarf in den Repo-Einstellungen **Dependency graph** / Security Features prüfen.
+- **CodeQL-PR-Check („CodeQL“ / GHAS):** Wenn dieser Check in den Rulesets als *required* eingetragen ist, blockiert er den Merge bei offenen Security-Alerts — unabhängig davon, ob die klassische REST-API `GET …/branches/main/protection` einen Eintrag liefert (z. B. 404, wenn nur Rulesets genutzt werden). Repository **Settings** → **Code security and analysis** → **Code scanning** → ggf. **Custom configuration file** auf [`.github/codeql/codeql-config.yml`](../../.github/codeql/codeql-config.yml) setzen (enthält die dokumentierte Anpassung für `js/missing-rate-limiting` bei globalem Fastify-Rate-Limit).
 - Der sichtbare Check-Name kann je nach GitHub-UI leicht abweichen — in der **Actions**-Ansicht des grünen Runs den genauen Namen übernehmen.
 - Ohne Org-Rechte: Ticket an Admin mit Verweis auf diese Datei und auf **QA**-Pflicht §5a in `qa-fin-0-gate-readiness.md`.
 

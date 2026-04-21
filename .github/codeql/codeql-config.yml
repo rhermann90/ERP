@@ -1,0 +1,14 @@
+# CodeQL — Konfiguration für GitHub Code scanning (Default setup oder `init` mit `config-file`).
+#
+# js/missing-rate-limiting: Die API setzt ein globales Limit über `@fastify/rate-limit` in
+# `src/api/app.ts` (`global: true`); Ausnahmen nur explizit via `config.rateLimit: false`.
+# CodeQL modelliert dieses globale Fastify-Muster nicht zuverlässig als „jede Route limitiert“
+# und würde sonst jeden Handler mit `parseAuthContext` melden (siehe Plan „CodeQL Rate-Limiting“).
+#
+# Merge-Gate: Ob der separate PR-Check „CodeQL“ (GHAS) blockiert, hängt von den in GitHub
+# **Rules / Branch protection** als *required* eingetragenen Checks ab — unabhängig davon, ob
+# klassische REST-Branch-Protection per `gh api …/branches/main/protection` sichtbar ist.
+name: ERP CodeQL
+query-filters:
+  - exclude:
+      id: js/missing-rate-limiting
