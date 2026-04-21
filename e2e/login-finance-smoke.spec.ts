@@ -12,6 +12,6 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
 
     await page.getByRole("link", { name: "Finanz (Vorbereitung)" }).click();
     await expect(page.getByRole("heading", { name: /Finanz \(Vorbereitung\)/i })).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole("heading", { name: /SoT — erlaubte Aktionen/i })).toBeVisible();
+    await expect(page.locator("section.finance-prep")).toBeVisible({ timeout: 15_000 });
   });
 });

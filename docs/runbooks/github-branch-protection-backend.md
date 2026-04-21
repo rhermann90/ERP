@@ -14,7 +14,7 @@
 
 ## Hinweise
 
-- Zusätzliche Workflows (ohne Änderung der empfohlenen Pflichtchecks): **CodeQL** (`.github/workflows/codeql.yml`), **Dependency review** (nur PRs), **Dependabot** (`.github/dependabot.yml`) — bei Bedarf in den Repo-Einstellungen **Dependency graph** / Security Features prüfen.
+- Zusätzliche Automatisierung (ohne Änderung der empfohlenen Pflichtchecks): **CodeQL** über GitHub **Default setup** (kein zweites Workflow-File nötig), **Dependency review** (nur PRs), **Dependabot** (`.github/dependabot.yml`) — bei Bedarf in den Repo-Einstellungen **Dependency graph** / Security Features prüfen.
 - Der sichtbare Check-Name kann je nach GitHub-UI leicht abweichen — in der **Actions**-Ansicht des grünen Runs den genauen Namen übernehmen.
 - Ohne Org-Rechte: Ticket an Admin mit Verweis auf diese Datei und auf **QA**-Pflicht §5a in `qa-fin-0-gate-readiness.md`.
 
