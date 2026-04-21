@@ -62,7 +62,8 @@ Dieses Dokument wird nach jedem abgeschlossenen Entwicklungsschritt aktualisiert
 
 ### Noch offen (für Schritt 4)
 
-- Optional **Playwright-Rauchtest** (Login → Finanz-Shell); ggf. **Lesepfade** (z. B. `GET` Ergänzungen) außerhalb der Finanz-Seite in der Haupt-Shell.
+- **Playwright-Rauchtest** „Login → Finanz“ ist auf **`main`** in CI (`e2e-smoke`); optional als **Pflicht-Check** in Branch Protection ergänzen (Runbook).
+- Optional **Lesepfade** in der **Haupt-Shell** weiter ausbauen (z. B. weitere `GET`-Details wie `GET /offer-versions/...`).
 
 ### Schritt 4 — Status
 
@@ -76,8 +77,8 @@ Dieses Dokument wird nach jedem abgeschlossenen Entwicklungsschritt aktualisiert
 
 ## Nächster Schritt (Empfehlung)
 
-1. **Playwright-Rauchtest** „Login → Finanz (Vorbereitung)“ (Schritt 2-Hinweis): stabilisiert Regression für Token, Hash-Route und SoT-Buttons.
-2. Alternativ oder danach: **Mandanten-Policies** / Rollenfeinschliff laut „Danach in Aussicht“.
+1. **WIP-Branch aufteilen:** `feat/wip-recovery-from-stash-2026-04-21` enthält viele Themen — in **2–3 fokussierte PRs** nach `main` splitten (z. B. Migration `VERTRIEB_BAULEITUNG` + Auth; UI `RoleQuickNav`/Mapping; verbleibende Doku/Contracts), jeweils mit `verify:ci` / bei DB `verify:ci:local-db`.
+2. **FIN-2 starten (kleinster Slice):** Gate ist frei (`FIN-2-START-GATE.md`); erster PR nur **eine** klar umrissene Backend-Funktion laut **ADR-0007** (kein „alles auf einmal“).
 
 ## Danach in Aussicht
 
