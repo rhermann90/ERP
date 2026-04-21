@@ -1,5 +1,6 @@
 // ADR-0003/0006: Offer + OfferVersion; ADR Inkrement 2: current_version FK (deferrable), audit_events
 // ADR-0005/0004: LV §9 + Aufmass; offer_versions.lv_version_id -> lv_versions (FIN-2 Gate G5)
+// ADR-0008: payment_terms_heads / payment_terms_versions (FIN-1)
 
 generator client {
   provider = "prisma-client-js"
@@ -225,6 +226,87 @@ model MeasurementPosition {
   @@id([tenantId, id])
   @@index([tenantId, measurementVersionId])
   @@map("measurement_positions")
+}
+
+
+/// FIN-1 (8.5): ein Kopf pro Projekt, append-only Versionszeilen.
+model PaymentTermsHead {
+  tenantId    String   @map("tenant_id") @db.Uuid
+  id          String   @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  customerId  String   @map("customer_id") @db.Uuid
+  createdAt   DateTime @map("created_at")
+  createdBy   String   @map("created_by") @db.Uuid
+
+  versions PaymentTermsVersion[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, projectId])
+  @@map("payment_terms_heads")
+}
+
+model PaymentTermsVersion {
+  tenantId      String   @map("tenant_id") @db.Uuid
+  id            String   @db.Uuid
+  headId        String   @map("head_id") @db.Uuid
+  versionNumber Int      @map("version_number")
+  termsLabel    String   @map("terms_label")
+  createdAt     DateTime @map("created_at")
+  createdBy     String   @map("created_by") @db.Uuid
+
+  head PaymentTermsHead @relation(fields: [tenantId, headId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, headId, versionNumber])
+  @@index([tenantId, headId])
+  @@map("payment_terms_versions")
+}
+
+
+/// FIN-2: Rechnung; optionale Referenz auf Zahlungsbedingungs-Version (FIN-1).
+model Invoice {
+  tenantId                String   @map("tenant_id") @db.Uuid
+  id                      String   @db.Uuid
+  projectId               String   @map("project_id") @db.Uuid
+  customerId              String   @map("customer_id") @db.Uuid
+  measurementId           String   @map("measurement_id") @db.Uuid
+  lvId                    String   @map("lv_id") @db.Uuid
+  offerId                 String   @map("offer_id") @db.Uuid
+  offerVersionId          String?  @map("offer_version_id") @db.Uuid
+  status                  String
+  immutableFromStatus     String   @map("immutable_from_status")
+  invoiceNumber           String?  @map("invoice_number")
+  issueDate               String?  @map("issue_date")
+  totalGrossCents         Int?     @map("total_gross_cents")
+  lvNetCents              Int?     @map("lv_net_cents")
+  vatCents                Int?     @map("vat_cents")
+  supplementOfferId       String?  @map("supplement_offer_id") @db.Uuid
+  supplementVersionId     String?  @map("supplement_version_id") @db.Uuid
+  paymentTermsVersionId   String?  @map("payment_terms_version_id") @db.Uuid
+
+  paymentIntakes PaymentIntake[]
+
+  @@id([tenantId, id])
+  @@index([tenantId, projectId])
+  @@map("invoices")
+}
+
+/// FIN-3: Zahlungseingang; Idempotenz (tenant_id, idempotency_key).
+model PaymentIntake {
+  tenantId          String   @map("tenant_id") @db.Uuid
+  id                String   @db.Uuid
+  invoiceId         String   @map("invoice_id") @db.Uuid
+  idempotencyKey    String   @map("idempotency_key") @db.Uuid
+  amountCents       Int      @map("amount_cents")
+  externalReference String   @map("external_reference")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  invoice Invoice @relation(fields: [tenantId, invoiceId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, invoiceId])
+  @@map("payment_intakes")
 }
 
 /// Anmeldekonto pro Mandant; E-Mail nur innerhalb des Mandanten eindeutig (Multi-Tenant-Scope).

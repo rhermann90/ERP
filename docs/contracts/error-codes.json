@@ -1,5 +1,5 @@
 {
-  "contractVersion": "1.6.0-password-reset",
+  "contractVersion": "1.7.0-audit-fail-hard",
   "phase": "phase-2-inc2-lv+fin0-contract",
   "qaClosure": {
     "defectId": "QA-P1-001",
@@ -17,6 +17,7 @@
     "correlationIdDerivation": "UUID generated per error response in handleError (not from request header in phase 1)."
   },
   "domainErrorCodesEmitted": [
+    "AUDIT_PERSIST_FAILED",
     "AUTH_RATE_LIMITED",
     "AUTH_ROLE_FORBIDDEN",
     "DOCUMENT_NOT_FOUND",
@@ -269,6 +270,13 @@
           "retryable": false,
           "blocking": true,
           "uiReaction": "Interner Fehler bei LV-Versionskopie; Support/Vorgang erneut versuchen."
+        },
+        {
+          "code": "AUDIT_PERSIST_FAILED",
+          "httpStatus": 500,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Audit konnte nicht gespeichert werden; Vorgang nicht als erfolgreich werten; Support/Betrieb."
         }
       ]
     },

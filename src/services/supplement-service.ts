@@ -77,7 +77,7 @@ export class SupplementService {
     });
     this.repos.putSupplementVersion(supplementVersion);
     await this.supplementPersistence.syncSupplementSubgraphFromMemory(this.repos, input.tenantId, supplementOfferId);
-    this.auditService.append({
+    await this.auditService.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "SUPPLEMENT_VERSION",
@@ -137,7 +137,7 @@ export class SupplementService {
       input.tenantId,
       updated.supplementOfferId,
     );
-    this.auditService.append({
+    await this.auditService.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "SUPPLEMENT_VERSION",
@@ -152,13 +152,13 @@ export class SupplementService {
     return updated;
   }
 
-  public applyBillingImpact(input: {
+  public async applyBillingImpact(input: {
     tenantId: TenantId;
     supplementVersionId: UUID;
     invoiceId: UUID;
     actorUserId: UserId;
     reason: string;
-  }): { invoiceId: UUID; supplementVersionId: UUID } {
+  }): Promise<{ invoiceId: UUID; supplementVersionId: UUID }> {
     const supplement = this.repos.getSupplementVersionByTenant(input.tenantId, input.supplementVersionId);
     if (!supplement) {
       throw new DomainError("SUPPLEMENT_NOT_FOUND", "Nachtragsversion nicht gefunden", 404);
@@ -194,7 +194,7 @@ export class SupplementService {
       supplementOfferId: supplementOffer.id,
       supplementVersionId: supplement.id,
     });
-    this.auditService.append({
+    await this.auditService.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "INVOICE",

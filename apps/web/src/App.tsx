@@ -415,7 +415,7 @@ export default function App() {
       ) : null}
 
       {showFinancePrep ? (
-        <FinancePreparation />
+        <FinancePreparation api={client} />
       ) : null}
 
       {showLogin ? (

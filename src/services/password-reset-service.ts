@@ -93,7 +93,7 @@ export class PasswordResetService {
       }),
     ]);
 
-    this.audit.append({
+    await this.audit.append({
       id: randomUUID(),
       tenantId: row.tenantId,
       entityType: "USER",

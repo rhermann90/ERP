@@ -61,7 +61,7 @@ export class OfferService {
     this.repos.putOfferVersion(version);
     this.repos.putOffer({ ...offer, currentVersionId: version.id });
     await this.offerPersistence.syncOfferSubgraphFromMemory(this.repos, input.tenantId, offer.id);
-    this.auditService.append({
+    await this.auditService.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "OFFER_VERSION",
@@ -99,7 +99,7 @@ export class OfferService {
     };
     this.repos.putOfferVersion(updated);
     await this.offerPersistence.syncOfferSubgraphFromMemory(this.repos, input.tenantId, version.offerId);
-    this.auditService.append({
+    await this.auditService.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "OFFER_VERSION",

@@ -136,7 +136,8 @@ export class LvService {
     };
     this.repos.lvPositions.set(positionId, pos);
 
-    this.audit.append({
+    await this.persistence.syncLvCatalogSubgraphFromMemory(this.repos, input.tenantId, catalogId);
+    await this.audit.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "LV_VERSION",
@@ -147,7 +148,6 @@ export class LvService {
       reason: input.reason,
       afterState: { lvCatalogId: catalogId, versionNumber: 1, skeleton: true },
     });
-    await this.persistence.syncLvCatalogSubgraphFromMemory(this.repos, input.tenantId, catalogId);
     return { lvCatalogId: catalogId, lvVersionId: versionId, samplePositionId: positionId };
   }
 
@@ -174,7 +174,8 @@ export class LvService {
     const before = { status: version.status };
     version.status = input.nextStatus;
     this.repos.lvVersions.set(version.id, version);
-    this.audit.append({
+    await this.persistence.syncLvCatalogSubgraphFromMemory(this.repos, input.tenantId, catalog.id);
+    await this.audit.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "LV_VERSION",
@@ -186,7 +187,6 @@ export class LvService {
       beforeState: before,
       afterState: { status: input.nextStatus },
     });
-    await this.persistence.syncLvCatalogSubgraphFromMemory(this.repos, input.tenantId, catalog.id);
     return version;
   }
 
@@ -271,7 +271,8 @@ export class LvService {
     catalog.currentVersionId = newId;
     this.repos.lvCatalogs.set(catalog.id, catalog);
 
-    this.audit.append({
+    await this.persistence.syncLvCatalogSubgraphFromMemory(this.repos, input.tenantId, catalog.id);
+    await this.audit.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "LV_VERSION",
@@ -282,7 +283,6 @@ export class LvService {
       reason: input.reason,
       afterState: { lvCatalogId: catalog.id, versionNumber: nextNum, predecessorVersionId: current.id },
     });
-    await this.persistence.syncLvCatalogSubgraphFromMemory(this.repos, input.tenantId, catalog.id);
     return { lvVersionId: newId, versionNumber: nextNum };
   }
 
@@ -322,7 +322,11 @@ export class LvService {
       editingText: input.editingText,
     };
     this.repos.lvStructureNodes.set(id, node);
-    this.audit.append({
+    const cat = this.repos.getLvCatalogByTenant(input.tenantId, version.lvCatalogId);
+    if (cat) {
+      await this.persistence.syncLvCatalogSubgraphFromMemory(this.repos, input.tenantId, cat.id);
+    }
+    await this.audit.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "LV_STRUCTURE_NODE",
@@ -333,10 +337,6 @@ export class LvService {
       reason: input.reason,
       afterState: { kind: input.kind, sortOrdinal: input.sortOrdinal },
     });
-    const cat = this.repos.getLvCatalogByTenant(input.tenantId, version.lvCatalogId);
-    if (cat) {
-      await this.persistence.syncLvCatalogSubgraphFromMemory(this.repos, input.tenantId, cat.id);
-    }
     return node;
   }
 
@@ -356,7 +356,11 @@ export class LvService {
     const before = { editingText: node.editingText };
     node.editingText = input.editingText;
     this.repos.lvStructureNodes.set(node.id, node);
-    this.audit.append({
+    const cat = this.repos.getLvCatalogByTenant(input.tenantId, version.lvCatalogId);
+    if (cat) {
+      await this.persistence.syncLvCatalogSubgraphFromMemory(this.repos, input.tenantId, cat.id);
+    }
+    await this.audit.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "LV_STRUCTURE_NODE",
@@ -368,10 +372,6 @@ export class LvService {
       beforeState: before,
       afterState: { editingText: input.editingText },
     });
-    const cat = this.repos.getLvCatalogByTenant(input.tenantId, version.lvCatalogId);
-    if (cat) {
-      await this.persistence.syncLvCatalogSubgraphFromMemory(this.repos, input.tenantId, cat.id);
-    }
     return node;
   }
 
@@ -415,7 +415,11 @@ export class LvService {
       stammPositionsRef: input.stammPositionsRef,
     };
     this.repos.lvPositions.set(id, pos);
-    this.audit.append({
+    const cat = this.repos.getLvCatalogByTenant(input.tenantId, version.lvCatalogId);
+    if (cat) {
+      await this.persistence.syncLvCatalogSubgraphFromMemory(this.repos, input.tenantId, cat.id);
+    }
+    await this.audit.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "LV_POSITION",
@@ -426,10 +430,6 @@ export class LvService {
       reason: input.reason,
       afterState: { sortOrdinal: input.sortOrdinal, kind: input.kind },
     });
-    const cat = this.repos.getLvCatalogByTenant(input.tenantId, version.lvCatalogId);
-    if (cat) {
-      await this.persistence.syncLvCatalogSubgraphFromMemory(this.repos, input.tenantId, cat.id);
-    }
     return pos;
   }
 
@@ -473,7 +473,11 @@ export class LvService {
       pos.sortOrdinal = input.sortOrdinal;
     }
     this.repos.lvPositions.set(pos.id, pos);
-    this.audit.append({
+    const cat = this.repos.getLvCatalogByTenant(input.tenantId, version.lvCatalogId);
+    if (cat) {
+      await this.persistence.syncLvCatalogSubgraphFromMemory(this.repos, input.tenantId, cat.id);
+    }
+    await this.audit.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "LV_POSITION",
@@ -491,10 +495,6 @@ export class LvService {
         sortOrdinal: pos.sortOrdinal,
       },
     });
-    const cat = this.repos.getLvCatalogByTenant(input.tenantId, version.lvCatalogId);
-    if (cat) {
-      await this.persistence.syncLvCatalogSubgraphFromMemory(this.repos, input.tenantId, cat.id);
-    }
     return pos;
   }
 

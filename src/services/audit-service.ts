@@ -4,40 +4,49 @@ import { InMemoryRepositories } from "../repositories/in-memory-repositories.js"
 import { DomainError } from "../errors/domain-error.js";
 
 export class AuditService {
-  private persistChain: Promise<void> = Promise.resolve();
-
   constructor(
     private readonly repos: InMemoryRepositories,
     private readonly prisma: PrismaClient | null = null,
   ) {}
 
-  public append(event: AuditEvent): void {
-    this.repos.auditEvents.push(event);
-    if (!this.prisma) return;
+  /**
+   * Schreibt das Audit-Ereignis. Bei Postgres: **fail-hard** — DB-Insert muss gelingen, sonst `DomainError` 500
+   * (kein stilles Fortfahren; In-Memory wird erst nach erfolgreichem DB-Write gesetzt).
+   */
+  public async append(event: AuditEvent): Promise<void> {
+    if (!this.prisma) {
+      this.repos.auditEvents.push(event);
+      return;
+    }
 
-    this.persistChain = this.persistChain
-      .then(async () => {
-        const data: Prisma.AuditEventCreateInput = {
-          id: event.id,
-          tenantId: event.tenantId,
-          entityType: event.entityType,
-          entityId: event.entityId,
-          action: event.action,
-          timestamp: event.timestamp,
-          actorUserId: event.actorUserId,
-          reason: event.reason ?? null,
-        };
-        if (event.beforeState !== undefined) {
-          data.beforeState = event.beforeState as Prisma.InputJsonValue;
-        }
-        if (event.afterState !== undefined) {
-          data.afterState = event.afterState as Prisma.InputJsonValue;
-        }
-        await this.prisma!.auditEvent.create({ data });
-      })
-      .catch((err: unknown) => {
-        console.error("[erp] audit_event persist failed", err);
-      });
+    const data: Prisma.AuditEventCreateInput = {
+      id: event.id,
+      tenantId: event.tenantId,
+      entityType: event.entityType,
+      entityId: event.entityId,
+      action: event.action,
+      timestamp: event.timestamp,
+      actorUserId: event.actorUserId,
+      reason: event.reason ?? null,
+    };
+    if (event.beforeState !== undefined) {
+      data.beforeState = event.beforeState as Prisma.InputJsonValue;
+    }
+    if (event.afterState !== undefined) {
+      data.afterState = event.afterState as Prisma.InputJsonValue;
+    }
+
+    try {
+      await this.prisma.auditEvent.create({ data });
+    } catch (err: unknown) {
+      console.error("[erp] audit_event persist failed", err);
+      throw new DomainError(
+        "AUDIT_PERSIST_FAILED",
+        "Audit-Ereignis konnte nicht persistiert werden",
+        500,
+      );
+    }
+    this.repos.auditEvents.push(event);
   }
 
   public async listByTenant(input: {
@@ -50,8 +59,6 @@ export class AuditService {
     if (!allowedRoles.has(input.role)) {
       throw new DomainError("FORBIDDEN_AUDIT_READ", "Keine Berechtigung für Audit-Ansicht", 403);
     }
-
-    await this.persistChain;
 
     if (this.prisma) {
       const where = { tenantId: input.tenantId };

@@ -85,7 +85,8 @@ export class MeasurementService {
       };
       this.repos.measurementPositions.set(pos.id, pos);
     }
-    this.audit.append({
+    await this.persistence.syncMeasurementSubgraphFromMemory(this.repos, input.tenantId, measurementId);
+    await this.audit.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "MEASUREMENT_VERSION",
@@ -96,7 +97,6 @@ export class MeasurementService {
       reason: input.reason,
       afterState: { measurementId, versionNumber: 1, status: "ENTWURF" },
     });
-    await this.persistence.syncMeasurementSubgraphFromMemory(this.repos, input.tenantId, measurementId);
     return { measurementId, measurementVersionId: versionId };
   }
 
@@ -123,7 +123,8 @@ export class MeasurementService {
     const before = { status: version.status };
     version.status = input.nextStatus;
     this.repos.measurementVersions.set(version.id, version);
-    this.audit.append({
+    await this.persistence.syncMeasurementSubgraphFromMemory(this.repos, input.tenantId, measurement.id);
+    await this.audit.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "MEASUREMENT_VERSION",
@@ -135,7 +136,6 @@ export class MeasurementService {
       beforeState: before,
       afterState: { status: input.nextStatus },
     });
-    await this.persistence.syncMeasurementSubgraphFromMemory(this.repos, input.tenantId, measurement.id);
     return version;
   }
 
@@ -185,7 +185,8 @@ export class MeasurementService {
     }
     measurement.currentVersionId = newVersionId;
     this.repos.measurements.set(measurement.id, measurement);
-    this.audit.append({
+    await this.persistence.syncMeasurementSubgraphFromMemory(this.repos, input.tenantId, measurement.id);
+    await this.audit.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "MEASUREMENT_VERSION",
@@ -201,7 +202,6 @@ export class MeasurementService {
         predecessorVersionId: current.id,
       },
     });
-    await this.persistence.syncMeasurementSubgraphFromMemory(this.repos, input.tenantId, measurement.id);
     return { measurementVersionId: newVersionId, versionNumber: nextNumber };
   }
 
@@ -256,7 +256,8 @@ export class MeasurementService {
       this.repos.measurementPositions.set(pos.id, pos);
       created.push(pos);
     }
-    this.audit.append({
+    await this.persistence.syncMeasurementSubgraphFromMemory(this.repos, input.tenantId, measurement.id);
+    await this.audit.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "MEASUREMENT_VERSION",
@@ -268,7 +269,6 @@ export class MeasurementService {
       beforeState: { positions: beforeSummary },
       afterState: { positions: input.positions.map((p) => ({ lvPositionId: p.lvPositionId, quantity: p.quantity })) },
     });
-    await this.persistence.syncMeasurementSubgraphFromMemory(this.repos, input.tenantId, measurement.id);
     return created;
   }
 
