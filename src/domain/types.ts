@@ -1,7 +1,7 @@
 export type UUID = string;
 export type TenantId = string;
 export type UserId = string;
-export type UserRole = "ADMIN" | "BUCHHALTUNG" | "GESCHAEFTSFUEHRUNG" | "VERTRIEB" | "VIEWER";
+export type UserRole = "ADMIN" | "BUCHHALTUNG" | "GESCHAEFTSFUEHRUNG" | "VERTRIEB_BAULEITUNG" | "VIEWER";
 
 export type OfferStatus =
   | "ENTWURF"

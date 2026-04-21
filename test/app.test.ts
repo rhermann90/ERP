@@ -10,7 +10,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
   let app: FastifyInstance;
   const userId = "77777777-7777-4777-8777-777777777777";
   const buildHeaders = (
-    role: "ADMIN" | "BUCHHALTUNG" | "GESCHAEFTSFUEHRUNG" | "VERTRIEB" | "VIEWER" = "ADMIN",
+    role: "ADMIN" | "BUCHHALTUNG" | "GESCHAEFTSFUEHRUNG" | "VERTRIEB_BAULEITUNG" | "VIEWER" = "ADMIN",
     tenantId: string = SEED_IDS.tenantId,
   ) => {
     const token = createSignedToken({
@@ -281,7 +281,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     const response = await app.inject({
       method: "POST",
       url: "/exports",
-      headers: buildHeaders("VERTRIEB"),
+      headers: buildHeaders("VERTRIEB_BAULEITUNG"),
       payload: {
         entityType: "INVOICE",
         entityId: SEED_IDS.invoiceId,
@@ -326,7 +326,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     const response = await app.inject({
       method: "GET",
       url: `/documents/${SEED_IDS.offerVersionId}/allowed-actions?entityType=OFFER_VERSION`,
-      headers: buildHeaders("VERTRIEB"),
+      headers: buildHeaders("VERTRIEB_BAULEITUNG"),
     });
     expect(response.statusCode).toBe(200);
     const body = response.json();
@@ -447,7 +447,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     const allowed = await app.inject({
       method: "GET",
       url: `/documents/${SEED_IDS.offerVersionId}/allowed-actions?entityType=OFFER_VERSION`,
-      headers: buildHeaders("VERTRIEB"),
+      headers: buildHeaders("VERTRIEB_BAULEITUNG"),
     });
     expect(allowed.statusCode).toBe(200);
     expect(allowed.json().allowedActions).not.toContain("OFFER_CREATE_VERSION");
@@ -485,7 +485,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     const allowed = await app.inject({
       method: "GET",
       url: `/documents/${SEED_IDS.offerVersionId}/allowed-actions?entityType=OFFER_VERSION`,
-      headers: buildHeaders("VERTRIEB"),
+      headers: buildHeaders("VERTRIEB_BAULEITUNG"),
     });
     expect(allowed.statusCode).toBe(200);
     expect(allowed.json().allowedActions).not.toContain("OFFER_CREATE_VERSION");
@@ -521,7 +521,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     const allowed = await app.inject({
       method: "GET",
       url: `/documents/${SEED_IDS.offerVersionId}/allowed-actions?entityType=OFFER_VERSION`,
-      headers: buildHeaders("VERTRIEB"),
+      headers: buildHeaders("VERTRIEB_BAULEITUNG"),
     });
     expect(allowed.statusCode).toBe(200);
     expect(allowed.json().allowedActions).not.toContain("OFFER_CREATE_VERSION");
@@ -554,7 +554,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     expect(accepted.json().status).toBe("ANGENOMMEN");
   });
 
-  it("P0: SoT lists OFFER_CREATE_SUPPLEMENT after ANGENOMMEN for ADMIN, VERTRIEB, GESCHAEFTSFUEHRUNG", async () => {
+  it("P0: SoT lists OFFER_CREATE_SUPPLEMENT after ANGENOMMEN for ADMIN, VERTRIEB_BAULEITUNG, GESCHAEFTSFUEHRUNG", async () => {
     for (const nextStatus of ["IN_FREIGABE", "FREIGEGEBEN", "VERSENDET"] as const) {
       await app.inject({
         method: "POST",
@@ -577,7 +577,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
         reason: "Annahme fuer SoT Nachtrag",
       },
     });
-    for (const role of ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"] as const) {
+    for (const role of ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"] as const) {
       const r = await app.inject({
         method: "GET",
         url: `/documents/${SEED_IDS.offerVersionId}/allowed-actions?entityType=OFFER_VERSION`,
@@ -785,7 +785,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     const versendet = await app.inject({
       method: "POST",
       url: "/supplements/status",
-      headers: buildHeaders("VERTRIEB"),
+      headers: buildHeaders("VERTRIEB_BAULEITUNG"),
       payload: { supplementVersionId, nextStatus: "VERSENDET", reason: "P0 transition" },
     });
     expect(versendet.statusCode).toBe(200);
@@ -805,7 +805,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     const transitions = [
       { nextStatus: "IN_FREIGABE", role: "ADMIN" as const },
       { nextStatus: "FREIGEGEBEN", role: "GESCHAEFTSFUEHRUNG" as const },
-      { nextStatus: "VERSENDET", role: "VERTRIEB" as const },
+      { nextStatus: "VERSENDET", role: "VERTRIEB_BAULEITUNG" as const },
     ];
     for (const t of transitions) {
       const r = await app.inject({
@@ -1021,7 +1021,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     const allowedVertrieb = await app.inject({
       method: "GET",
       url: `/documents/${supplementVersionId}/allowed-actions?entityType=SUPPLEMENT_VERSION`,
-      headers: buildHeaders("VERTRIEB"),
+      headers: buildHeaders("VERTRIEB_BAULEITUNG"),
     });
     expect(allowedVertrieb.statusCode).toBe(200);
     expect(allowedVertrieb.json().allowedActions).toContain("SUPPLEMENT_SET_IN_FREIGABE");
@@ -1079,7 +1079,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     await app.inject({
       method: "POST",
       url: "/supplements/status",
-      headers: buildHeaders("VERTRIEB"),
+      headers: buildHeaders("VERTRIEB_BAULEITUNG"),
       payload: { supplementVersionId, nextStatus: "VERSENDET", reason: "to VERSENDET" },
     });
     await checkActions("VERSENDET", ["SUPPLEMENT_SET_BEAUFTRAGT", "SUPPLEMENT_SET_ABGELEHNT"], "SUPPLEMENT_SET_IN_FREIGABE");
@@ -1150,7 +1150,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     const blockedExport = await app.inject({
       method: "POST",
       url: "/exports",
-      headers: buildHeaders("VERTRIEB"),
+      headers: buildHeaders("VERTRIEB_BAULEITUNG"),
       payload: { entityType: "SUPPLEMENT_VERSION", entityId: supplementVersionId, format: "GAEB" },
     });
     expect(blockedExport.statusCode).toBe(422);
@@ -1171,7 +1171,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     const releasedExport = await app.inject({
       method: "POST",
       url: "/exports",
-      headers: buildHeaders("VERTRIEB"),
+      headers: buildHeaders("VERTRIEB_BAULEITUNG"),
       payload: { entityType: "SUPPLEMENT_VERSION", entityId: supplementVersionId, format: "GAEB" },
     });
     expect(releasedExport.statusCode).toBe(201);
@@ -1192,7 +1192,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     const allowed = await app.inject({
       method: "GET",
       url: `/documents/${SEED_IDS.offerVersionId}/allowed-actions?entityType=OFFER_VERSION`,
-      headers: buildHeaders("VERTRIEB"),
+      headers: buildHeaders("VERTRIEB_BAULEITUNG"),
     });
     expect(allowed.statusCode).toBe(200);
     expect(allowed.json().allowedActions).toContain("OFFER_CREATE_VERSION");
@@ -1200,7 +1200,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     const create = await app.inject({
       method: "POST",
       url: "/offers/version",
-      headers: buildHeaders("VERTRIEB"),
+      headers: buildHeaders("VERTRIEB_BAULEITUNG"),
       payload: {
         offerId: SEED_IDS.offerId,
         lvVersionId: SEED_IDS.lvVersionId,
@@ -1270,7 +1270,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const created = await app.inject({
         method: "POST",
         url: "/measurements",
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: {
           projectId,
           customerId,
@@ -1292,7 +1292,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       expect(events.some((e) => e.entityId === measurementVersionId && e.action === "VERSION_CREATED")).toBe(true);
 
       for (const [role, next] of [
-        ["VERTRIEB", "GEPRUEFT"],
+        ["VERTRIEB_BAULEITUNG", "GEPRUEFT"],
         ["GESCHAEFTSFUEHRUNG", "FREIGEGEBEN"],
         ["BUCHHALTUNG", "ABGERECHNET"],
         ["GESCHAEFTSFUEHRUNG", "ARCHIVIERT"],
@@ -1337,7 +1337,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const created = await app.inject({
         method: "POST",
         url: "/measurements",
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: {
           projectId,
           customerId,
@@ -1350,7 +1350,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       await app.inject({
         method: "POST",
         url: "/measurements/status",
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: {
           measurementVersionId,
           nextStatus: "GEPRUEFT",
@@ -1370,7 +1370,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const blocked = await app.inject({
         method: "POST",
         url: `/measurements/${measurementVersionId}/positions`,
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: {
           positions: [{ lvPositionId: posId, quantity: 99, unit: "m" }],
           reason: "P2-M-03 must fail",
@@ -1387,7 +1387,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const created = await app.inject({
         method: "POST",
         url: "/measurements",
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: {
           projectId,
           customerId,
@@ -1400,7 +1400,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const ver = await app.inject({
         method: "POST",
         url: "/measurements/version",
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: { measurementId, reason: "P2-M-04 must be forbidden" },
       });
       expect(ver.statusCode).toBe(409);
@@ -1422,7 +1422,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const created = await app.inject({
         method: "POST",
         url: "/measurements",
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: {
           projectId,
           customerId,
@@ -1451,7 +1451,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const created = await app.inject({
         method: "POST",
         url: "/measurements",
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: {
           projectId,
           customerId,
@@ -1465,7 +1465,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
         measurementVersionId: string;
       };
       for (const [role, next] of [
-        ["VERTRIEB", "GEPRUEFT"],
+        ["VERTRIEB_BAULEITUNG", "GEPRUEFT"],
         ["GESCHAEFTSFUEHRUNG", "FREIGEGEBEN"],
       ] as const) {
         await app.inject({
@@ -1478,7 +1478,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const v2res = await app.inject({
         method: "POST",
         url: "/measurements/version",
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: { measurementId, reason: "P2-M-06 neue Version" },
       });
       expect(v2res.statusCode).toBe(201);
@@ -1536,7 +1536,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const before = await app.inject({
         method: "PATCH",
         url: `/lv/positions/${samplePositionId}`,
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: { editingText: "Kundenfreundlich", reason: "Nur Bearbeitungstext" },
       });
       expect(before.statusCode).toBe(200);
@@ -1549,7 +1549,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const res = await app.inject({
         method: "PATCH",
         url: `/lv/positions/${samplePositionId}`,
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: {
           editingText: "Ok",
           systemText: "Illegal",
@@ -1565,7 +1565,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const res = await app.inject({
         method: "PATCH",
         url: `/lv/positions/${samplePositionId}`,
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: {
           editingText: "Ok",
           reason: "Strict body shape",
@@ -1581,7 +1581,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const posProbe = await app.inject({
         method: "PATCH",
         url: `/lv/positions/${samplePositionId}`,
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: { editingText: "Probe", reason: "Resolve parent node id" },
       });
       expect(posProbe.statusCode).toBe(200);
@@ -1589,7 +1589,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const res = await app.inject({
         method: "PATCH",
         url: `/lv/nodes/${nodeId}/editing-text`,
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: {
           editingText: "Knoten-Ed",
           reason: "Strict body shape",
@@ -1605,14 +1605,14 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const posProbe = await app.inject({
         method: "PATCH",
         url: `/lv/positions/${samplePositionId}`,
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: { editingText: "Probe2", reason: "Resolve parent node id" },
       });
       const nodeId = posProbe.json().parentNodeId as string;
       const res = await app.inject({
         method: "PATCH",
         url: `/lv/nodes/${nodeId}/editing-text`,
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: {
           editingText: "X",
           systemText: "No",
@@ -1628,7 +1628,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const res = await app.inject({
         method: "PATCH",
         url: `/lv/positions/${samplePositionId}`,
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: {
           editingText: "Ok",
           systemText: "Illegal",
@@ -1662,7 +1662,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const res = await app.inject({
         method: "POST",
         url: `/lv/versions/${SEED_IDS.lvVersionId}/nodes`,
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
         payload: {
           parentNodeId: null,
           kind: "BEREICH",
@@ -1701,7 +1701,7 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       const sotNew = await app.inject({
         method: "GET",
         url: `/documents/${v2}/allowed-actions?entityType=LV_VERSION`,
-        headers: buildHeaders("VERTRIEB"),
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
       });
       expect(sotNew.json().allowedActions).toContain("LV_ADD_POSITION");
     });

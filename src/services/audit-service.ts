@@ -51,7 +51,7 @@ export class AuditService {
 
   public async listByTenant(input: {
     tenantId: TenantId;
-    role: "ADMIN" | "BUCHHALTUNG" | "GESCHAEFTSFUEHRUNG" | "VERTRIEB" | "VIEWER";
+    role: "ADMIN" | "BUCHHALTUNG" | "GESCHAEFTSFUEHRUNG" | "VERTRIEB_BAULEITUNG" | "VIEWER";
     page: number;
     pageSize: number;
   }): Promise<{ data: AuditEventView[]; page: number; pageSize: number; total: number }> {
