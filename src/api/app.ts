@@ -447,10 +447,10 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     }
   });
 
+  // codeql[js/missing-rate-limiting] False positive: Route nutzt @fastify/rate-limit (preHandler app.rateLimit); Standard-Query modelliert Fastify nicht.
   app.get(
     "/offer-versions/:offerVersionId",
     { preHandler: app.rateLimit({ max: 100, timeWindow: "1 minute" }) },
-    // codeql[js/missing-rate-limiting]: False positive — Route mit @fastify/rate-limit (preHandler); js/missing-rate-limiting modelliert Fastify-Plugin nicht.
     async (request, reply) => {
       try {
         const auth = parseAuthContext(request.headers);
