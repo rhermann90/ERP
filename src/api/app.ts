@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import Fastify, { FastifyInstance } from "fastify";
+import type { FastifyReply, FastifyRequest, preHandlerHookHandler } from "fastify";
 import { assertSystemTextNotInUpdatePayload } from "../domain/lv-text-structure-policy.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import { AuditService } from "../services/audit-service.js";
@@ -116,6 +117,32 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   app.get("/health", async (_request, reply) => {
     return reply.status(200).send({ status: "ok" as const });
   });
+
+  /**
+   * Minimaler In-Process Rate-Limiter (per IP) für einzelne Endpoints.
+   * Ziel: Schutz gegen triviale Brute-Force/DoS auf autorisierten Routen, ohne neue Dependencies.
+   * Hinweis: Pro-Process (nicht cluster-/multi-instance global).
+   */
+  function createIpRateLimiter(input: { windowMs: number; max: number }): preHandlerHookHandler {
+    const buckets = new Map<string, { count: number; resetAt: number }>();
+    const windowMs = input.windowMs;
+    const max = input.max;
+
+    return async function ipRateLimit(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+      const now = Date.now();
+      const key = request.ip || "unknown";
+      const prev = buckets.get(key);
+      if (!prev || prev.resetAt <= now) {
+        buckets.set(key, { count: 1, resetAt: now + windowMs });
+        return;
+      }
+      prev.count += 1;
+      if (prev.count > max) {
+        reply.header("retry-after", Math.ceil((prev.resetAt - now) / 1000));
+        await reply.status(429).send({ code: "RATE_LIMITED", message: "Too many requests" });
+      }
+    };
+  }
 
   const repos = new InMemoryRepositories();
   const repositoryMode = resolveRepositoryMode({ repositoryMode: options?.repositoryMode });
@@ -444,16 +471,20 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     }
   });
 
-  app.get("/offer-versions/:offerVersionId", async (request, reply) => {
-    try {
-      const auth = parseAuthContext(request.headers);
-      const params = request.params as { offerVersionId: string };
-      const result = offerService.getVersionDetail(auth.tenantId, params.offerVersionId);
-      return reply.status(200).send(result);
-    } catch (error) {
-      return handleHttpError(error, request, reply);
-    }
-  });
+  app.get(
+    "/offer-versions/:offerVersionId",
+    { preHandler: createIpRateLimiter({ windowMs: 60_000, max: 120 }) },
+    async (request, reply) => {
+      try {
+        const auth = parseAuthContext(request.headers);
+        const params = request.params as { offerVersionId: string };
+        const result = offerService.getVersionDetail(auth.tenantId, params.offerVersionId);
+        return reply.status(200).send(result);
+      } catch (error) {
+        return handleHttpError(error, request, reply);
+      }
+    },
+  );
 
   app.post("/offers/:offerId/supplements", async (request, reply) => {
     try {
