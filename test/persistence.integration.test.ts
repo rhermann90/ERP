@@ -225,7 +225,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
       payload: {
         email,
         password: "initial-pass-12",
-        role: "VERTRIEB",
+        role: "VERTRIEB_BAULEITUNG",
         reason: "Integrationstest Passwort-Reset",
       },
     });

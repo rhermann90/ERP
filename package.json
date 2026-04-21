@@ -24,7 +24,7 @@
     "verify:ci:with-migrate": "npx prisma migrate deploy && npm run verify:ci",
     "docker:db-up": "docker compose up -d",
     "ensure:local-test-db": "node scripts/ensure-local-postgres-test-db.mjs",
-    "verify:ci:local-db": "npm run ensure:local-test-db && sh -c 'export DATABASE_URL=${DATABASE_URL:-postgresql://erp:erp@127.0.0.1:15432/erp_test} PERSISTENCE_DB_TEST_URL=${PERSISTENCE_DB_TEST_URL:-postgresql://erp:erp@127.0.0.1:15432/erp_test} && npm run verify:ci:with-migrate'",
+    "verify:ci:local-db": "npm run ensure:local-test-db && sh -c 'export DATABASE_URL=${DATABASE_URL:-postgresql://erp:erp@127.0.0.1:5432/erp_test} PERSISTENCE_DB_TEST_URL=${PERSISTENCE_DB_TEST_URL:-postgresql://erp:erp@127.0.0.1:5432/erp_test} && npm run verify:ci:with-migrate'",
     "validate:api-contract-yaml": "node scripts/validate-api-contract-yaml.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
