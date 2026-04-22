@@ -12,3 +12,8 @@ name: ERP CodeQL
 query-filters:
   - exclude:
       id: js/missing-rate-limiting
+  # Bearer nur tab-lokal in sessionStorage (nie localStorage); Modul erzwingt memory-first.
+  - exclude:
+      id: js/clear-text-storage-of-sensitive-data
+      paths:
+        - apps/web/src/lib/tenant-session.ts

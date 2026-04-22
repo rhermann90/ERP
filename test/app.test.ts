@@ -138,6 +138,48 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     expect(res.json().code).toBe("OFFER_VERSION_NOT_FOUND");
   });
 
+  it("applies the global rate limit to API routes", async () => {
+    await app.close();
+    app = await buildApp({
+      seedDemoData: true,
+      repositoryMode: "memory",
+      rateLimit: { max: 2, timeWindow: "1 minute" },
+    });
+    await app.ready();
+
+    for (let i = 0; i < 2; i++) {
+      const ok = await app.inject({
+        method: "GET",
+        url: `/offer-versions/${SEED_IDS.offerVersionId}`,
+        headers,
+      });
+      expect(ok.statusCode).toBe(200);
+    }
+
+    const blocked = await app.inject({
+      method: "GET",
+      url: `/offer-versions/${SEED_IDS.offerVersionId}`,
+      headers,
+    });
+    expect(blocked.statusCode).toBe(429);
+  });
+
+  it("does not rate-limit /health", async () => {
+    await app.close();
+    app = await buildApp({
+      seedDemoData: false,
+      repositoryMode: "memory",
+      rateLimit: { max: 1, timeWindow: "1 minute" },
+    });
+    await app.ready();
+
+    const first = await app.inject({ method: "GET", url: "/health" });
+    const second = await app.inject({ method: "GET", url: "/health" });
+
+    expect(first.statusCode).toBe(200);
+    expect(second.statusCode).toBe(200);
+  });
+
   it("blocks invalid status transition (negative)", async () => {
     const response = await app.inject({
       method: "POST",
