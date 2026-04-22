@@ -50,12 +50,12 @@
     "@playwright/test": "^1.59.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^25.6.0",
-    "@types/nodemailer": "^6.4.17",
+    "@types/nodemailer": "^8.0.0",
     "concurrently": "^9.1.2",
-    "prisma": "^5.22.0",
+    "prisma": "^7.8.0",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.2",
-    "vitest": "^4.1.4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5",
     "yaml": "^2.8.3"
   }
 }
