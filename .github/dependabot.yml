@@ -11,6 +11,9 @@ updates:
         dependency-type: development
         patterns:
           - "*"
+        exclude-patterns:
+          - "prisma"
+          - "@prisma/client"
 
   - package-ecosystem: github-actions
     directory: "/"
