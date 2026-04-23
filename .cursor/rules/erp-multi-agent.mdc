@@ -5,7 +5,7 @@ alwaysApply: true
 
 # ERP Multi-Agent Core Rules
 
-Authoritative domain source is `ERP Systembeschreibung v1.3.md` (v1.2 nur noch historische Referenz bei Bedarf).
+Authoritative domain source is [`docs/ERP-Systembeschreibung.md`](../docs/ERP-Systembeschreibung.md) (konsolidiert v2.0; Abschnitte 1–17 entsprechen der historischen v1.3-Struktur). Archivierte Einzelstände: `docs/_archiv/systembeschreibung-und-phasen-legacy/`. Repository-Orientierung für Agenten: [`AGENTS.md`](../AGENTS.md).
 
 Non-negotiable rules:
 - Do not simplify domain logic.
@@ -18,6 +18,7 @@ Non-negotiable rules:
 Delivery rules:
 - Work in phases with explicit quality gates.
 - Before merging to `main` / `master`: green GitHub Actions job **`backend`** (see `.github/workflows/ci.yml`); follow `.github/pull_request_template.md` and QA §5a in `docs/contracts/qa-fin-0-gate-readiness.md`. Branch protection: `docs/runbooks/github-branch-protection-backend.md`.
+- For production go-live on invoicing / tax / e-invoice topics: use the non-code checklist [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) with tax counsel / DPO / PL — it does not replace legal advice or the README’s separate release GO for GoBD/compliance.
 - Do not commit secrets (env files with credentials, private SSH keys, tokens); canonical Git remote is the team repo `rhermann90/ERP` (see root `README.md`).
 - Every output must include: result, rationale, risks, open questions.
 - Explain impact on legal compliance, data consistency, maintainability, and PWA readiness.

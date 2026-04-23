@@ -2,6 +2,8 @@
 
 ## GitHub Actions
 
+**PR-Hygiene:** Produkt-PRs (z. B. Finanz/Mahnwesen) nicht mit **Dependabot-PRs** vermischen — getrennte Branches von `main`, getrennte Reviews; siehe [`.github/pull_request_template.md`](../../.github/pull_request_template.md) (Abschnitt „Abhängigkeiten vs. Produkt“).
+
 Workflow: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)
 
 - **Postgres 16** als Service-Container auf Port5432.
@@ -35,7 +37,7 @@ Ohne `PERSISTENCE_DB_TEST_URL` laufen die In-Memory- und Schema-Tests; die beide
 
 | Datei | Zweck |
 | --- | --- |
-| `test/persistence.integration.test.ts` | `prisma migrate deploy`, Tabellen inkl. `audit_events`, tenant-FK, `offers_current_version_fkey`, Audit-Schreib-/Lesepfad, Reconnect-Stichprobe, `GET /audit-events` Tenant-Filter |
+| `test/persistence.integration.test.ts` | `prisma migrate deploy`, Tabellen inkl. `audit_events`, tenant-FK, `offers_current_version_fkey`, Audit-Schreib-/Lesepfad, Reconnect-Stichprobe, `GET /audit-events` Tenant-Filter; FIN-4 **`dunning_tenant_stage_config`** (inkl. Migrationen mit **`deleted_at`**) und Konfig-HTTP (GET/PUT/PATCH/DELETE) gemäß ADR-0009 |
 | `test/persistence-schema-repro.test.ts` | `prisma validate` ohne Live-DB |
 
 ## PR-Checkliste (Persistenz / Schema)

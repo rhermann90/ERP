@@ -76,13 +76,58 @@ import {
   PrismaPaymentIntakePersistence,
   type PaymentIntakePersistencePort,
 } from "../persistence/payment-intake-persistence.js";
+import {
+  noopDunningReminderPersistence,
+  PrismaDunningReminderPersistence,
+  type DunningReminderPersistencePort,
+} from "../persistence/dunning-reminder-persistence.js";
+import {
+  noopDunningStageConfigPersistence,
+  PrismaDunningStageConfigPersistence,
+  type DunningStageConfigPersistencePort,
+} from "../persistence/dunning-stage-config-persistence.js";
+import {
+  noopDunningTemplatePersistence,
+  PrismaDunningTemplatePersistence,
+  type DunningTemplatePersistencePort,
+} from "../persistence/dunning-template-persistence.js";
+import {
+  noopDunningEmailFooterPersistence,
+  PrismaDunningEmailFooterPersistence,
+  type DunningEmailFooterPersistencePort,
+} from "../persistence/dunning-email-footer-persistence.js";
+import {
+  noopDunningEmailSendPersistence,
+  PrismaDunningEmailSendPersistence,
+  type DunningEmailSendPersistencePort,
+} from "../persistence/dunning-email-send-persistence.js";
+import {
+  MemoryDunningReminderRunIntentPersistence,
+  PrismaDunningReminderRunIntentPersistence,
+} from "../persistence/dunning-reminder-run-intent-persistence.js";
+import {
+  noopDunningTenantAutomationPersistence,
+  PrismaDunningTenantAutomationPersistence,
+} from "../persistence/dunning-tenant-automation-persistence.js";
+import { createSmtpMailTransportFromEnv, type MailTransportPort } from "../integrations/smtp-mail-transport.js";
+import { DunningReminderCandidatesService } from "../services/dunning-reminder-candidates-service.js";
+import { DunningReminderConfigService } from "../services/dunning-reminder-config-service.js";
+import { DunningReminderTemplateService } from "../services/dunning-reminder-template-service.js";
+import { DunningEmailFooterService } from "../services/dunning-email-footer-service.js";
+import { DunningReminderEmailService } from "../services/dunning-reminder-email-service.js";
+import { DunningReminderRunService } from "../services/dunning-reminder-run-service.js";
+import { DunningReminderService } from "../services/dunning-reminder-service.js";
+import { DunningTenantAutomationService } from "../services/dunning-tenant-automation-service.js";
+import { runDunningAutomationCronTick } from "../services/dunning-automation-cron-tick.js";
 import { PaymentIntakeService } from "../services/payment-intake-service.js";
 import { registerPaymentIntakeRoutes } from "./finance-payment-intake-routes.js";
 import { registerPaymentTermsRoutes } from "./finance-payment-terms-routes.js";
+import { registerDunningReminderConfigRoutes } from "./finance-dunning-config-routes.js";
 import { registerInvoiceFinanceRoutes } from "./finance-invoice-routes.js";
 import { registerAuthLoginRoutes } from "./auth-login-routes.js";
 import { registerPasswordResetRoutes } from "./password-reset-routes.js";
 import { registerUserAccountRoutes } from "./user-account-routes.js";
+import { DomainError } from "../errors/domain-error.js";
 import { handleHttpError, parseAuthContext } from "./http-response.js";
 
 export type BuildAppOptions = {
@@ -91,6 +136,8 @@ export type BuildAppOptions = {
   corsOrigins?: string[];
   /** Explizit In-Memory erzwingen (Vitest, lokale Demos ohne DB). */
   repositoryMode?: RepositoryMode;
+  /** Vitest: Mock-SMTP fuer Mahn-E-Mail-Versand (M4 Slice 5a). */
+  mailTransport?: MailTransportPort;
   /** Optionales Test-/Runtime-Override fuer das globale HTTP-Rate-Limit. */
   rateLimit?: {
     max?: number;
@@ -153,6 +200,12 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   let paymentTermsPersistence: PaymentTermsPersistencePort = noopPaymentTermsPersistence;
   let invoicePersistence: InvoicePersistencePort = noopInvoicePersistence;
   let paymentIntakePersistence: PaymentIntakePersistencePort = noopPaymentIntakePersistence;
+  let dunningReminderPersistence: DunningReminderPersistencePort = noopDunningReminderPersistence;
+  let dunningStageConfigPersistence: DunningStageConfigPersistencePort = noopDunningStageConfigPersistence;
+  let dunningTemplatePersistence: DunningTemplatePersistencePort = noopDunningTemplatePersistence;
+  let dunningEmailFooterPersistence: DunningEmailFooterPersistencePort = noopDunningEmailFooterPersistence;
+  let dunningEmailSendPersistence: DunningEmailSendPersistencePort = noopDunningEmailSendPersistence;
+  let dunningTenantAutomationPersistence = noopDunningTenantAutomationPersistence;
 
   if (repositoryMode === "postgres") {
     assertDatabaseUrlForPostgresMode(repositoryMode);
@@ -163,6 +216,12 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     paymentTermsPersistence = new PrismaPaymentTermsPersistence(prisma);
     invoicePersistence = new PrismaInvoicePersistence(prisma);
     paymentIntakePersistence = new PrismaPaymentIntakePersistence(prisma);
+    dunningReminderPersistence = new PrismaDunningReminderPersistence(prisma);
+    dunningStageConfigPersistence = new PrismaDunningStageConfigPersistence(prisma);
+    dunningTemplatePersistence = new PrismaDunningTemplatePersistence(prisma);
+    dunningEmailFooterPersistence = new PrismaDunningEmailFooterPersistence(prisma);
+    dunningEmailSendPersistence = new PrismaDunningEmailSendPersistence(prisma);
+    dunningTenantAutomationPersistence = new PrismaDunningTenantAutomationPersistence(prisma);
     if (options?.seedDemoData ?? true) {
       seedDemoData(repos);
       await lvMeasurementPersistence.syncAllFromMemory(repos);
@@ -171,6 +230,8 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       await paymentTermsPersistence.syncAllPaymentTermsFromMemory(repos);
       await invoicePersistence.syncAllInvoicesFromMemory(repos);
       await paymentIntakePersistence.hydrateIntoMemory(repos);
+      await dunningReminderPersistence.hydrateIntoMemory(repos);
+      await dunningEmailSendPersistence.hydrateIntoMemory(repos);
     } else {
       await lvMeasurementPersistence.hydrateIntoMemory(repos);
       await offerPersistence.hydrateOffersIntoMemory(repos);
@@ -178,12 +239,14 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       await paymentTermsPersistence.hydratePaymentTermsIntoMemory(repos);
       await invoicePersistence.hydrateInvoicesIntoMemory(repos);
       await paymentIntakePersistence.hydrateIntoMemory(repos);
+      await dunningReminderPersistence.hydrateIntoMemory(repos);
+      await dunningEmailSendPersistence.hydrateIntoMemory(repos);
     }
     app.addHook("onClose", async () => {
       await prisma?.$disconnect();
     });
     app.log.info(
-      "Persistenz: Postgres LV+Aufmass (ADR-0004/0005) + Offer+OfferVersion (ADR-0006) + Supplement (ADR-0002 D5) + Zahlungsbedingungen (FIN-1) + Rechnungen (FIN-2) + Zahlungseingang (FIN-3); übrige Entitäten weiter In-Memory.",
+      "Persistenz: Postgres LV+Aufmass (ADR-0004/0005) + Offer+OfferVersion (ADR-0006) + Supplement (ADR-0002 D5) + Zahlungsbedingungen (FIN-1) + Rechnungen (FIN-2) + Zahlungseingang (FIN-3) + Mahn-Ereignisse (FIN-4) + Mahnstufen-Konfig + Mahn-Vorlagen Lesepfad (FIN-4/M4) + E-Mail-Footer-Stammdaten (M4 Slice 3); übrige Entitäten weiter In-Memory.",
     );
   } else {
     if (options?.seedDemoData ?? true) {
@@ -195,6 +258,11 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       );
     }
   }
+
+  const dunningReminderRunIntentPersistence =
+    repositoryMode === "postgres" && prisma
+      ? new PrismaDunningReminderRunIntentPersistence(prisma)
+      : new MemoryDunningReminderRunIntentPersistence();
 
   app.get("/ready", async (_request, reply) => {
     if (repositoryMode !== "postgres" || !prisma) {
@@ -225,15 +293,41 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
 
   const audit = new AuditService(repos, prisma);
   const lvRef = new LvReferenceValidator(repos);
+  const traceabilityService = new TraceabilityService(repos);
   const offerService = new OfferService(repos, audit, lvRef, offerPersistence);
   const supplementService = new SupplementService(repos, audit, lvRef, supplementPersistence);
   const paymentTermsService = new PaymentTermsService(repos, audit, paymentTermsPersistence);
-  const invoiceService = new InvoiceService(repos, audit, invoicePersistence);
+  const invoiceService = new InvoiceService(repos, audit, invoicePersistence, traceabilityService);
   const paymentIntakeService = new PaymentIntakeService(repos, audit, invoicePersistence, paymentIntakePersistence);
+  const dunningReminderService = new DunningReminderService(repos, audit, dunningReminderPersistence);
+  const dunningReminderConfigService = new DunningReminderConfigService(dunningStageConfigPersistence, audit, prisma);
+  const dunningReminderCandidatesService = new DunningReminderCandidatesService(repos, dunningReminderConfigService);
+  const dunningReminderRunService = new DunningReminderRunService(
+    dunningReminderCandidatesService,
+    dunningReminderService,
+    dunningReminderRunIntentPersistence,
+  );
+  const dunningReminderTemplateService = new DunningReminderTemplateService(dunningTemplatePersistence, audit, prisma);
+  const dunningEmailFooterService = new DunningEmailFooterService(dunningEmailFooterPersistence, audit, prisma);
+  const mailTransport = options?.mailTransport ?? createSmtpMailTransportFromEnv();
+  const dunningReminderEmailService = new DunningReminderEmailService(
+    invoiceService,
+    dunningReminderConfigService,
+    dunningReminderTemplateService,
+    dunningEmailFooterService,
+    audit,
+    repos,
+    dunningEmailSendPersistence,
+    mailTransport,
+  );
+  const dunningTenantAutomationService = new DunningTenantAutomationService(
+    dunningTenantAutomationPersistence,
+    audit,
+    prisma,
+  );
   const measurementService = new MeasurementService(repos, audit, lvRef, lvMeasurementPersistence);
   const lvService = new LvService(repos, audit, lvMeasurementPersistence);
   const exportService = new ExportService(repos, audit);
-  const traceabilityService = new TraceabilityService(repos);
   const authorizationService = new AuthorizationService(repos);
 
   registerPasswordResetRoutes(app, { getPrisma: () => prisma, audit });
@@ -624,9 +718,50 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     paymentTermsService,
   });
 
+  registerDunningReminderConfigRoutes(app, {
+    authorizationService,
+    dunningReminderConfigService,
+    dunningReminderTemplateService,
+    dunningEmailFooterService,
+    dunningReminderCandidatesService,
+    dunningReminderRunService,
+    dunningTenantAutomationService,
+  });
+
+  const dunningCronSecret = process.env.ERP_INTERNAL_DUNNING_CRON_SECRET?.trim();
+  if (prisma && dunningCronSecret) {
+    app.post(
+      "/internal/cron/dunning-automation",
+      {
+        config: {
+          rateLimit: false,
+        },
+      },
+      async (request, reply) => {
+        try {
+          const raw = request.headers["x-internal-cron-secret"];
+          const secretHeader = typeof raw === "string" ? raw.trim() : undefined;
+          if (secretHeader !== dunningCronSecret) {
+            throw new DomainError("UNAUTHORIZED", "Ungueltiges Cron-Geheimnis", 401);
+          }
+          const summary = await runDunningAutomationCronTick({
+            prisma,
+            dunningReminderCandidatesService,
+            dunningReminderRunService,
+          });
+          return reply.status(200).send({ data: summary });
+        } catch (error) {
+          return handleHttpError(error, request, reply);
+        }
+      },
+    );
+  }
+
   registerInvoiceFinanceRoutes(app, {
     authorizationService,
     invoiceService,
+    dunningReminderService,
+    dunningReminderEmailService,
   });
 
   registerPaymentIntakeRoutes(app, {

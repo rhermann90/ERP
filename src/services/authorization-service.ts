@@ -87,6 +87,15 @@ const EXPORT_ACTIONS_BY_ROLE: Record<UserRole, string[]> = {
   VIEWER: [],
 };
 
+/** FIN-3: Zahlungseingang — gleiche Rollen wie `assertCanRecordPaymentIntake`. */
+const PAYMENT_INTAKE_ROLES = new Set<UserRole>(["ADMIN", "GESCHAEFTSFUEHRUNG", "BUCHHALTUNG"]);
+
+/** FIN-4 Schreibpfad: Mahn-Ereignis protokollieren — gleiche Rollen wie Zahlungseingang. */
+const DUNNING_REMINDER_ROLES = PAYMENT_INTAKE_ROLES;
+
+/** FIN-2 Buchung SoT — gleiche Rollen wie `assertCanBookInvoice`. */
+const BOOK_INVOICE_ROLES = new Set<UserRole>(["ADMIN", "GESCHAEFTSFUEHRUNG", "BUCHHALTUNG"]);
+
 const MEASUREMENT_ACTION_BY_ROLE: Record<UserRole, string[]> = {
   ADMIN: [
     "MEASUREMENT_CREATE",
@@ -173,6 +182,12 @@ export class AuthorizationService {
     }
   }
 
+  public assertCanBookInvoice(role: UserRole): void {
+    if (!new Set<UserRole>(["ADMIN", "GESCHAEFTSFUEHRUNG", "BUCHHALTUNG"]).has(role)) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung zum Buchen der Rechnung", 403);
+    }
+  }
+
   public assertCanReadInvoice(role: UserRole): void {
     if (!new Set<UserRole>(["ADMIN", "GESCHAEFTSFUEHRUNG", "BUCHHALTUNG", "VERTRIEB_BAULEITUNG", "VIEWER"]).has(role)) {
       throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Rechnung", 403);
@@ -181,8 +196,22 @@ export class AuthorizationService {
 
   /** FIN-3: Zahlungseingang buchen. */
   public assertCanRecordPaymentIntake(role: UserRole): void {
-    if (!new Set<UserRole>(["ADMIN", "GESCHAEFTSFUEHRUNG", "BUCHHALTUNG"]).has(role)) {
+    if (!PAYMENT_INTAKE_ROLES.has(role)) {
       throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Zahlungseingang", 403);
+    }
+  }
+
+  /** FIN-4: Mahn-Ereignis (Lesepfad-Eintrag) anlegen. */
+  public assertCanRecordDunningReminder(role: UserRole): void {
+    if (!DUNNING_REMINDER_ROLES.has(role)) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Mahn-Ereignis", 403);
+    }
+  }
+
+  /** FIN-4: Mandanten-Mahnstufen in Postgres ersetzen — gleiche Rollen wie Zahlungseingang. */
+  public assertCanManageDunningTenantStageConfig(role: UserRole): void {
+    if (!PAYMENT_INTAKE_ROLES.has(role)) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Mahnstufen-Konfiguration", 403);
     }
   }
 
@@ -407,7 +436,8 @@ export class AuthorizationService {
   }
 
   /**
-   * Rechnungsexport: kanonische actionId **EXPORT_INVOICE** (Exportformat `XRECHNUNG` | `GAEB` nur im Body von POST /exports).
+   * Rechnungen: **BOOK_INVOICE** (ENTWURF, Rollen wie `assertCanBookInvoice`), **EXPORT_INVOICE** (Exportformat `XRECHNUNG` | `GAEB` nur im Body von POST /exports),
+   * **RECORD_PAYMENT_INTAKE** (GEBUCHT_VERSENDET | TEILBEZAHLT), **RECORD_DUNNING_REMINDER** (GEBUCHT_VERSENDET | TEILBEZAHLT).
    * **EXPORT_INVOICE_XRECHNUNG** ist kein SoT-Action — nicht verwenden (verhindert Drift zu assertCanExport / EXPORT_ACTIONS_BY_ROLE).
    */
   private allowedInvoiceActionsByStatus(status: InvoiceStatus, role: UserRole): string[] {
@@ -421,7 +451,18 @@ export class AuthorizationService {
       BEZAHLT: ["EXPORT_INVOICE"],
       STORNIERT: [],
     };
-    return byStatus[status].filter((action) => roleActions.has(action));
+    const exportAllowed = byStatus[status].filter((action) => roleActions.has(action));
+    const bookAllowed =
+      status === "ENTWURF" && BOOK_INVOICE_ROLES.has(role) ? ["BOOK_INVOICE"] : [];
+    const payAllowed =
+      PAYMENT_INTAKE_ROLES.has(role) && (status === "GEBUCHT_VERSENDET" || status === "TEILBEZAHLT")
+        ? ["RECORD_PAYMENT_INTAKE"]
+        : [];
+    const dunningAllowed =
+      DUNNING_REMINDER_ROLES.has(role) && (status === "GEBUCHT_VERSENDET" || status === "TEILBEZAHLT")
+        ? ["RECORD_DUNNING_REMINDER"]
+        : [];
+    return [...bookAllowed, ...exportAllowed, ...payAllowed, ...dunningAllowed];
   }
 
   private allowedMeasurementActionsByVersion(

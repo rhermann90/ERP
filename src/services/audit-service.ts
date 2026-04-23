@@ -1,4 +1,5 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
+import type { PrismaTransactionClient } from "../persistence/prisma-tx-types.js";
 import { AuditEvent, AuditEventView, TenantId } from "../domain/types.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import { DomainError } from "../errors/domain-error.js";
@@ -9,16 +10,7 @@ export class AuditService {
     private readonly prisma: PrismaClient | null = null,
   ) {}
 
-  /**
-   * Schreibt das Audit-Ereignis. Bei Postgres: **fail-hard** — DB-Insert muss gelingen, sonst `DomainError` 500
-   * (kein stilles Fortfahren; In-Memory wird erst nach erfolgreichem DB-Write gesetzt).
-   */
-  public async append(event: AuditEvent): Promise<void> {
-    if (!this.prisma) {
-      this.repos.auditEvents.push(event);
-      return;
-    }
-
+  private toAuditCreateInput(event: AuditEvent): Prisma.AuditEventCreateInput {
     const data: Prisma.AuditEventCreateInput = {
       id: event.id,
       tenantId: event.tenantId,
@@ -35,9 +27,41 @@ export class AuditService {
     if (event.afterState !== undefined) {
       data.afterState = event.afterState as Prisma.InputJsonValue;
     }
+    return data;
+  }
+
+  /** Nur In-Memory (z. B. nach erfolgreicher DB-Transaktion). */
+  public appendInMemoryOnly(event: AuditEvent): void {
+    this.repos.auditEvents.push(event);
+  }
+
+  /** Audit-Zeile innerhalb einer laufenden Prisma-Transaktion (ohne In-Memory). */
+  public async appendAuditEventTx(tx: PrismaTransactionClient, event: AuditEvent): Promise<void> {
+    const data = this.toAuditCreateInput(event);
+    try {
+      await tx.auditEvent.create({ data });
+    } catch (err: unknown) {
+      console.error("[erp] audit_event persist failed (tx)", err);
+      throw new DomainError(
+        "AUDIT_PERSIST_FAILED",
+        "Audit-Ereignis konnte nicht persistiert werden",
+        500,
+      );
+    }
+  }
+
+  /**
+   * Schreibt das Audit-Ereignis. Bei Postgres: **fail-hard** — DB-Insert muss gelingen, sonst `DomainError` 500
+   * (kein stilles Fortfahren; In-Memory wird erst nach erfolgreichem DB-Write gesetzt).
+   */
+  public async append(event: AuditEvent): Promise<void> {
+    if (!this.prisma) {
+      this.repos.auditEvents.push(event);
+      return;
+    }
 
     try {
-      await this.prisma.auditEvent.create({ data });
+      await this.prisma.auditEvent.create({ data: this.toAuditCreateInput(event) });
     } catch (err: unknown) {
       console.error("[erp] audit_event persist failed", err);
       throw new DomainError(

@@ -33,6 +33,11 @@ export type ActionFormFields = {
   positionKind?: "NORMAL" | "ALTERNATIV" | "EVENTUAL";
   nodeEditingText?: string;
   positionPatchJson?: string;
+  /** Optional ISO `yyyy-mm-dd` für `POST /invoices/{id}/book` (BOOK_INVOICE). */
+  issueDate?: string;
+  /** Für RECORD_DUNNING_REMINDER: Stufe 1–9 (String wird geparst). */
+  dunningStageOrdinal?: string;
+  dunningNote?: string;
 };
 
 const OFFER_NEXT: Record<string, string> = {
@@ -175,6 +180,25 @@ export async function executeAllowedAction(
     throw new Error(
       "EXPORT_INVOICE_XRECHNUNG ist kein SoT-actionId. Kanonisch nur EXPORT_INVOICE (Format XRECHNUNG in POST /exports; siehe docs/contracts/action-contracts.json).",
     );
+  }
+
+  if (actionId === "BOOK_INVOICE") {
+    const body: { reason: string; issueDate?: string } = { reason };
+    const issueDate = fields.issueDate?.trim();
+    if (issueDate) body.issueDate = issueDate;
+    return client.requestJson("POST", `/invoices/${encodeURIComponent(documentId)}/book`, body);
+  }
+
+  if (actionId === "RECORD_DUNNING_REMINDER") {
+    const raw = fields.dunningStageOrdinal?.trim() ?? "1";
+    const stageOrdinal = Number.parseInt(raw, 10);
+    if (!Number.isFinite(stageOrdinal) || stageOrdinal < 1 || stageOrdinal > 9) {
+      throw new Error("Mahn-Stufe (dunningStageOrdinal): ganze Zahl 1–9.");
+    }
+    const body: { stageOrdinal: number; reason: string; note?: string } = { stageOrdinal, reason };
+    const note = fields.dunningNote?.trim();
+    if (note) body.note = note;
+    return client.requestJson("POST", `/invoices/${encodeURIComponent(documentId)}/dunning-reminders`, body);
   }
 
   if (

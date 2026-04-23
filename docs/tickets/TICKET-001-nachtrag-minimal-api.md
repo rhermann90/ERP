@@ -1,7 +1,7 @@
 # TICKET-001 — Minimal-API Nachtragsangebot (v1.2 Folgeprozess)
 
 ## Kontext
-`ERP Systembeschreibung v1.2.md` verlangt nach verbindlicher Annahme (`ANGENOMMEN`) Änderungen **ausschließlich über Nachtragsangebot** mit Referenz auf die konkrete Basis-Angebotsversion.
+`docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md` verlangt nach verbindlicher Annahme (`ANGENOMMEN`) Änderungen **ausschließlich über Nachtragsangebot** mit Referenz auf die konkrete Basis-Angebotsversion.
 
 ## Phase-1-Scope
 **Umgesetzt (Minimal-API)** im aktuellen Backend-Slice.
@@ -17,7 +17,7 @@
 3. Tests Positiv/Negativ (`ANGENOMMEN` notwendig) ✅
 
 ## Verweise
-- `docs/contracts/delta-backend-spec-v1.2.md` (Abschnitt Nachtrag)
+- `docs/_archiv/historische-phase1-qa-und-kontraktdiff/delta-backend-spec-v1.2.md` (Abschnitt Nachtrag; **Archiv** — v1.2-Delta, nicht aktuelle Leitplanke)
 - `docs/adr/0001-phase1-critical-decisions.md` (ADR-1, ADR-10)
 
 ## Folge-Ticket

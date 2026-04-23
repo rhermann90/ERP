@@ -283,11 +283,17 @@ model Invoice {
   supplementOfferId       String?  @map("supplement_offer_id") @db.Uuid
   supplementVersionId     String?  @map("supplement_version_id") @db.Uuid
   paymentTermsVersionId   String?  @map("payment_terms_version_id") @db.Uuid
+  // B2-1a / 8.4(2): Skonto in Basispunkten (0–10_000) auf LV-Netto nach Schritt 1 vor USt.
+  skontoBps                 Int      @default(0) @map("skonto_bps")
 
   paymentIntakes PaymentIntake[]
+  dunningReminders DunningReminder[]
+  dunningEmailSends DunningEmailSend[]
 
   @@id([tenantId, id])
   @@index([tenantId, projectId])
+  /// Gebuchte Rechnungsnummern je Mandant eindeutig (NULL fuer Entwuerfe ohne Nummer — Postgres erlaubt mehrere NULLs).
+  @@unique([tenantId, invoiceNumber], map: "invoices_tenant_invoice_number_key")
   @@map("invoices")
 }
 
@@ -307,6 +313,112 @@ model PaymentIntake {
   @@unique([tenantId, idempotencyKey])
   @@index([tenantId, invoiceId])
   @@map("payment_intakes")
+}
+
+/// FIN-4 Kern: Mandantenspezifische Mahnstufen-Metadaten (`docs/adr/0009-fin4-mahnwesen-slice.md`). 9 aktive Zeilen (`deleted_at` null) → GET `TENANT_DATABASE`, sonst MVP-Fallback.
+model DunningTenantStageConfig {
+  tenantId     String    @map("tenant_id") @db.Uuid
+  stageOrdinal Int       @map("stage_ordinal")
+  daysAfterDue Int       @map("days_after_due")
+  feeCents     Int       @map("fee_cents")
+  label        String    @map("label") @db.VarChar(200)
+  deletedAt    DateTime? @map("deleted_at")
+
+  @@id([tenantId, stageOrdinal])
+  @@index([tenantId, deletedAt])
+  @@map("dunning_tenant_stage_config")
+}
+
+/// FIN-4 / M4: Mahn-Vorlagen je Mandant, Stufe und Kanal (Slice 1 — Lesepfad; §8.10). `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`.
+model DunningTenantStageTemplate {
+  tenantId     String    @map("tenant_id") @db.Uuid
+  stageOrdinal Int       @map("stage_ordinal")
+  channel      String    @map("channel") @db.VarChar(10)
+  templateType String    @map("template_type") @db.VarChar(32)
+  body         String    @map("body") @db.Text
+  deletedAt    DateTime? @map("deleted_at")
+
+  @@id([tenantId, stageOrdinal, channel])
+  @@index([tenantId, deletedAt])
+  @@map("dunning_tenant_stage_templates")
+}
+
+/// FIN-4 / M4 Slice 3: Mandanten-Impressum für Mahn-E-Mail-Footer (§8.10), eine Zeile pro Mandant. `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`.
+model DunningTenantEmailFooter {
+  tenantId            String @id @map("tenant_id") @db.Uuid
+  companyLegalName    String @default("") @map("company_legal_name") @db.VarChar(300)
+  streetLine          String @default("") @map("street_line") @db.VarChar(300)
+  postalCode          String @default("") @map("postal_code") @db.VarChar(20)
+  city                String @default("") @map("city") @db.VarChar(120)
+  countryCode         String @default("DE") @map("country_code") @db.VarChar(2)
+  publicEmail         String @default("") @map("public_email") @db.VarChar(320)
+  publicPhone         String @default("") @map("public_phone") @db.VarChar(80)
+  legalRepresentative String @default("") @map("legal_representative") @db.VarChar(300)
+  registerCourt       String @default("") @map("register_court") @db.VarChar(200)
+  registerNumber      String @default("") @map("register_number") @db.VarChar(120)
+  vatId               String @default("") @map("vat_id") @db.VarChar(32)
+  signatureLine       String @default("") @map("signature_line") @db.VarChar(200)
+
+  @@map("dunning_tenant_email_footer")
+}
+
+/// FIN-4 Mahnwesen: Mahn-Ereignis je Rechnung (Slice; siehe `docs/adr/0009-fin4-mahnwesen-slice.md`).
+model DunningReminder {
+  tenantId     String   @map("tenant_id") @db.Uuid
+  id           String   @db.Uuid
+  invoiceId  String   @map("invoice_id") @db.Uuid
+  stageOrdinal Int      @map("stage_ordinal")
+  note         String?  @map("note") @db.VarChar(500)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  invoice Invoice @relation(fields: [tenantId, invoiceId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+
+  @@id([tenantId, id])
+  @@index([tenantId, invoiceId])
+  @@map("dunning_reminders")
+}
+
+/// FIN-4 / M4 Slice 5a: erfolgreicher Mahn-E-Mail-Versand (Idempotenz je Mandant + Idempotency-Key). `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`.
+model DunningEmailSend {
+  tenantId         String   @map("tenant_id") @db.Uuid
+  id               String   @id @db.Uuid
+  invoiceId        String   @map("invoice_id") @db.Uuid
+  idempotencyKey   String   @map("idempotency_key") @db.Uuid
+  stageOrdinal     Int      @map("stage_ordinal")
+  recipientEmail   String   @map("recipient_email") @db.VarChar(320)
+  auditEventId     String   @map("audit_event_id") @db.Uuid
+  smtpMessageId    String?  @map("smtp_message_id") @db.VarChar(500)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  invoice Invoice @relation(fields: [tenantId, invoiceId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, invoiceId])
+  @@map("dunning_email_sends")
+}
+
+/// FIN-4 / M4 Slice 5b-1: Idempotenz fuer Mahnlauf-EXECUTE (Mandant + Idempotency-Key). `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`.
+model DunningReminderRunIntent {
+  id             String   @id @db.Uuid
+  tenantId       String   @map("tenant_id") @db.Uuid
+  idempotencyKey String   @map("idempotency_key") @db.Uuid
+  fingerprint    String   @map("fingerprint") @db.VarChar(128)
+  responseJson   String   @map("response_json") @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId])
+  @@map("dunning_reminder_run_intents")
+}
+
+/// FIN-4 / M4: Mandanten-Modus Mahnlauf (OFF | SEMI | AUTO). ADR-0010 Erweiterung.
+model DunningTenantAutomation {
+  tenantId    String   @id @map("tenant_id") @db.Uuid
+  runMode     String   @default("SEMI") @map("run_mode") @db.VarChar(12)
+  jobHourUtc  Int?     @map("job_hour_utc")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("dunning_tenant_automation")
 }
 
 /// Anmeldekonto pro Mandant; E-Mail nur innerhalb des Mandanten eindeutig (Multi-Tenant-Scope).

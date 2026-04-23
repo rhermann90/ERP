@@ -1,20 +1,23 @@
 # QA Report - Phase 1 Final Gate
 
 ## Scope
+
+**Archiv:** Diese Datei liegt unter `docs/_archiv/historische-phase1-qa-und-kontraktdiff/` (nicht mehr normativer Einstieg).
+
 - Vertrags- und Entscheidungsbasis:
-  - `docs/contracts/module-contracts.json`
-  - `docs/contracts/action-contracts.json`
-  - `docs/contracts/error-codes.json`
-  - `docs/contracts/contract-diff-phase1.md`
-  - `docs/contracts/decision-log-phase1-frontend.md`
-  - `docs/api-contract.yaml`
-  - `docs/decision-table-phase1.md`
+  - `../../contracts/module-contracts.json`
+  - `../../contracts/action-contracts.json`
+  - `../../contracts/error-codes.json`
+  - `./contract-diff-phase1.md`
+  - `../../contracts/decision-log-phase1-frontend.md`
+  - `../../api-contract.yaml`
+  - `./decision-table-phase1.md`
 - Ausfuehrungsbasis:
   - Automatisierte Tests: `npm test` (28/28 gruen)
   - Typpruefung: `npm run typecheck` (gruen)
   - Gezielt ausgefuehrte P0-Endpoint-Probes (Positiv/Negativ)
   - v1.2 SoT-Konsistenzpruefung fuer `OFFER_CREATE_VERSION` je Status
-  - v1.2 **Nachtrag**: `OFFER_CREATE_SUPPLEMENT` in `allowedActions` nach `ANGENOMMEN` + API-Konsistenz (`P0-15`, `P0-16`; siehe `qa-p0-matrix-phase1.md`)
+  - v1.2 **Nachtrag**: `OFFER_CREATE_SUPPLEMENT` in `allowedActions` nach `ANGENOMMEN` + API-Konsistenz (`P0-15`, `P0-16`; siehe `./qa-p0-matrix-phase1.md`)
 
 ## P0 Ausfuehrungsergebnis
 
@@ -39,19 +42,19 @@
 
 ## Frontend-Normalisierung (Pflichtpruefung)
 
-Pruefumfang gemaess `decision-log-phase1-frontend.md`:
+Pruefumfang gemaess `../../contracts/decision-log-phase1-frontend.md`:
 - `correlationId`
 - `retryable`
 - `blocking`
 - Driftfrei zu `error-codes.json`
 
 Ergebnis:
-- Backend liefert das normierte Error-Envelope direkt (`code`, `message`, `correlationId`, `retryable`, `blocking`, optional `details`); siehe `docs/api-contract.yaml` und `error-codes.json` → `backendEnvelope`.
+- Backend liefert das normierte Error-Envelope direkt (`code`, `message`, `correlationId`, `retryable`, `blocking`, optional `details`); siehe `../../api-contract.yaml` und `../../contracts/error-codes.json` → `backendEnvelope`.
 - Frontend: **Passthrough** laut finalem Decision-Log; Fallback nur bei fehlerhaftem Proxy/Body, temporär und dokumentiert.
 - Es gibt **keinen funktionalen Drift** zwischen Backend-Errors und Frontend-Contract fuer P0-Pfade.
 - Regressionslauf bestaetigt stabile Codes/Envelope fuer kritische Pfade (`TENANT_SCOPE_VIOLATION`, `AUTH_ROLE_FORBIDDEN`, `UNAUTHORIZED`, `FOLLOWUP_DOCUMENT_REQUIRED`, `TRACEABILITY_*`, `EXPORT_PREFLIGHT_FAILED`, Nachtrag `AUTH_ROLE_FORBIDDEN` auf `POST /supplements`).
 
-Nacharbeit **QA-P1-001** (Doc consistency review, 2026-04-14): `backendGap` entfernt, Codes/Envelope mit Implementierung abgeglichen; siehe `qa-defects-phase1.md` (resolved).
+Nacharbeit **QA-P1-001** (Doc consistency review, 2026-04-14): `backendGap` entfernt, Codes/Envelope mit Implementierung abgeglichen; siehe `./qa-defects-phase1.md` (resolved).
 
 ## Zusammenfassung
 - P0 Passrate: **100%**

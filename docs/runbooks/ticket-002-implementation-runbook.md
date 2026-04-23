@@ -41,7 +41,7 @@ Wenn eine Bedingung fehlt: **NO_GO**, nur Dokumentations-/Vorbereitungsarbeiten.
 3. Bei `NO_GO`: konkrete Rework-Aufträge mit Blocker-Klassifikation.
 
 ## Artefakte für den Sprint
-- Verbindlich: `ERP Systembeschreibung v1.2.md`
+- Verbindlich: `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`
 - Verbindlich: `docs/tickets/TICKET-002-nachtrag-lifecycle-v12.md`
 - Verbindlich: `docs/adr/0002-nachtrag-lifecycle.md`
 - Verbindlich: `docs/contracts/qa-p0-ticket-002-nachtrag-lifecycle.md`

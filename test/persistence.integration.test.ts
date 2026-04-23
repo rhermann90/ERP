@@ -25,7 +25,7 @@ function adminHeaders(tenantId: string = SEED_IDS.tenantId) {
 }
 
 function roleHeaders(
-  role: "ADMIN" | "GESCHAEFTSFUEHRUNG",
+  role: "ADMIN" | "GESCHAEFTSFUEHRUNG" | "BUCHHALTUNG" | "VIEWER",
   tenantId: string = SEED_IDS.tenantId,
 ) {
   const userId = "77777777-7777-4777-8777-777777777777";
@@ -36,6 +36,15 @@ function roleHeaders(
     exp: Math.floor(Date.now() / 1000) + 600,
   });
   return { authorization: `Bearer ${token}`, "x-tenant-id": tenantId };
+}
+
+function buildNineDunningStages(labelPrefix: string) {
+  return [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => ({
+    stageOrdinal: n,
+    daysAfterDue: 20 + n,
+    feeCents: n === 3 ? 500 : 0,
+    label: `${labelPrefix} ${n}`,
+  }));
 }
 
 const persistenceDbSuite = dbUrl ? describe.sequential : describe.skip;
@@ -53,7 +62,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     });
     const cleanup = new PrismaClient({ datasourceUrl: dbUrl });
     await cleanup.$executeRawUnsafe(
-      `TRUNCATE TABLE payment_intakes, invoices, payment_terms_versions, payment_terms_heads, supplement_versions, supplement_offers, measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, audit_events, offer_versions, offers, password_reset_challenges, users RESTART IDENTITY CASCADE`,
+      `TRUNCATE TABLE dunning_reminder_run_intents, dunning_reminders, dunning_email_sends, dunning_tenant_automation, dunning_tenant_stage_config, dunning_tenant_stage_templates, dunning_tenant_email_footer, payment_intakes, invoices, payment_terms_versions, payment_terms_heads, supplement_versions, supplement_offers, measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, audit_events, offer_versions, offers, password_reset_challenges, users RESTART IDENTITY CASCADE`,
     );
     await cleanup.$disconnect();
 
@@ -374,6 +383,688 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
       },
     });
     expect(res.statusCode).toBe(201);
+  });
+
+  it("POST /invoices/{draftId}/book: Entwurf gebucht, Zeile in Postgres inkl. Rechnungsnummer", async () => {
+    const book = await app.inject({
+      method: "POST",
+      url: `/invoices/${SEED_IDS.draftInvoiceId}/book`,
+      headers: adminHeaders(),
+      payload: { reason: "Persistenztest Buchung Seed-Entwurf" },
+    });
+    expect(book.statusCode).toBe(200);
+    const b = book.json() as {
+      status: string;
+      invoiceNumber: string;
+      issueDate: string;
+      totalGrossCents: number;
+    };
+    expect(b.status).toBe("GEBUCHT_VERSENDET");
+    const row = await prisma.invoice.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.draftInvoiceId } },
+    });
+    expect(row?.status).toBe("GEBUCHT_VERSENDET");
+    expect(row?.invoiceNumber).toBe(b.invoiceNumber);
+    expect(row?.issueDate).toBe(b.issueDate);
+    expect(row?.totalGrossCents).toBe(b.totalGrossCents);
+    expect(row?.skontoBps).toBe(0);
+  });
+
+  it("GET /invoices/{draftId}/payment-intakes: nach POST intake aus Postgres ohne Idempotency-Key im JSON", async () => {
+    const idem = randomUUID();
+    const post = await app.inject({
+      method: "POST",
+      url: "/finance/payments/intake",
+      headers: { ...adminHeaders(), "Idempotency-Key": idem },
+      payload: {
+        invoiceId: SEED_IDS.draftInvoiceId,
+        amountCents: 100,
+        externalReference: "persistence-read-intakes",
+        reason: "Persistenztest Zahlung GET payment-intakes",
+      },
+    });
+    expect(post.statusCode).toBe(201);
+    const list = await app.inject({
+      method: "GET",
+      url: `/invoices/${SEED_IDS.draftInvoiceId}/payment-intakes`,
+      headers: adminHeaders(),
+    });
+    expect(list.statusCode).toBe(200);
+    const body = list.json() as {
+      data: Array<{ paymentIntakeId: string; amountCents: number; externalReference: string; createdAt: string }>;
+    };
+    expect(body.data.length).toBeGreaterThanOrEqual(1);
+    const row = body.data.find((r) => r.externalReference === "persistence-read-intakes");
+    expect(row).toBeDefined();
+    expect(row!.amountCents).toBe(100);
+    expect(row).not.toHaveProperty("idempotencyKey");
+    const dbRows = await prisma.paymentIntake.findMany({
+      where: { tenantId: SEED_IDS.tenantId, invoiceId: SEED_IDS.draftInvoiceId },
+    });
+    expect(dbRows.some((r) => r.externalReference === "persistence-read-intakes")).toBe(true);
+    expect(body.data.length).toBe(dbRows.length);
+  });
+
+  it("GET /invoices/{invoiceId}/dunning-reminders: leere Liste aus Postgres (TRUNCATE enthält dunning_reminders)", async () => {
+    const list = await app.inject({
+      method: "GET",
+      url: `/invoices/${SEED_IDS.invoiceId}/dunning-reminders`,
+      headers: adminHeaders(),
+    });
+    expect(list.statusCode).toBe(200);
+    const body = list.json() as { data: unknown[] };
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data).toEqual([]);
+    const dbCount = await prisma.dunningReminder.count({
+      where: { tenantId: SEED_IDS.tenantId, invoiceId: SEED_IDS.invoiceId },
+    });
+    expect(dbCount).toBe(0);
+    expect(body.data.length).toBe(dbCount);
+  });
+
+  it("GET /finance/dunning-reminder-config: MVP_STATIC nach TRUNCATE (keine Mandanten-Konfig-Zeilen)", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/finance/dunning-reminder-config",
+      headers: adminHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: { configSource: string; stages: { label: string }[] } };
+    expect(body.data.configSource).toBe("MVP_STATIC_DEFAULTS");
+    expect(body.data.stages[0]!.label).toMatch(/MVP-Default/);
+  });
+
+  it("GET /finance/dunning-reminder-templates: MVP_STATIC ohne Mandanten-Vorlagen-Zeilen", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/finance/dunning-reminder-templates",
+      headers: adminHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: { templateSource: string; stages: { stageOrdinal: number }[] } };
+    expect(body.data.templateSource).toBe("MVP_STATIC_DEFAULTS");
+    expect(body.data.stages).toHaveLength(9);
+  });
+
+  it("PUT /finance/dunning-reminder-config: persistiert 9 Stufen, GET liefert TENANT_DATABASE, Audit", async () => {
+    const put = await app.inject({
+      method: "PUT",
+      url: "/finance/dunning-reminder-config",
+      headers: adminHeaders(),
+      payload: {
+        stages: buildNineDunningStages("API-Put-Stufe"),
+        reason: "Persistenztest Mahnstufen-Konfiguration ersetzen",
+      },
+    });
+    expect(put.statusCode).toBe(200);
+    const putBody = put.json() as {
+      data: { configSource: string; stages: { label: string; feeCents: number }[] };
+    };
+    expect(putBody.data.configSource).toBe("TENANT_DATABASE");
+    expect(putBody.data.stages[2]!.label).toBe("API-Put-Stufe 3");
+    expect(putBody.data.stages[2]!.feeCents).toBe(500);
+
+    const get = await app.inject({
+      method: "GET",
+      url: "/finance/dunning-reminder-config",
+      headers: adminHeaders(),
+    });
+    expect(get.statusCode).toBe(200);
+    expect((get.json() as { data: { configSource: string } }).data.configSource).toBe("TENANT_DATABASE");
+
+    const ev = await prisma.auditEvent.findFirst({
+      where: {
+        tenantId: SEED_IDS.tenantId,
+        entityType: "DUNNING_TENANT_STAGE_CONFIG",
+        action: "DUNNING_STAGES_REPLACED",
+      },
+      orderBy: { timestamp: "desc" },
+    });
+    expect(ev).toBeTruthy();
+    expect(ev!.entityId).toBe(SEED_IDS.tenantId);
+
+    const patch = await app.inject({
+      method: "PATCH",
+      url: "/finance/dunning-reminder-config/stages/1",
+      headers: adminHeaders(),
+      payload: { label: "Nach-PATCH-Stufe-1", reason: "Persistenztest PATCH Mahnstufe 1" },
+    });
+    expect(patch.statusCode).toBe(200);
+    const patchBody = patch.json() as { data: { stages: { label: string }[] } };
+    expect(patchBody.data.stages[0]!.label).toBe("Nach-PATCH-Stufe-1");
+
+    const evPatch = await prisma.auditEvent.findFirst({
+      where: { tenantId: SEED_IDS.tenantId, action: "DUNNING_STAGE_PATCHED" },
+      orderBy: { timestamp: "desc" },
+    });
+    expect(evPatch).toBeTruthy();
+
+    await prisma.dunningTenantStageConfig.deleteMany({ where: { tenantId: SEED_IDS.tenantId } });
+  });
+
+  /** Erzwingt fehlgeschlagenen `audit_events`-Insert; Prisma-Transaktion muss Konfig-Schreiben zurückrollen. */
+  const AUDIT_TX_ROLLBACK_CHK = "erp_persist_audit_tx_rollback_chk";
+  const AUDIT_TX_ROLLBACK_REASON = "Persistenztest PUT rollt bei Audit-Fehler zurück";
+
+  it("PUT /finance/dunning-reminder-config: fehlgeschlagener Audit-Insert rollt Stufen-Zeilen zurück", async () => {
+    await prisma.dunningTenantStageConfig.deleteMany({ where: { tenantId: SEED_IDS.tenantId } });
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE audit_events DROP CONSTRAINT IF EXISTS ${AUDIT_TX_ROLLBACK_CHK}`,
+    );
+    try {
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE audit_events ADD CONSTRAINT ${AUDIT_TX_ROLLBACK_CHK} CHECK (false) NOT VALID`,
+      );
+
+      const put = await app.inject({
+        method: "PUT",
+        url: "/finance/dunning-reminder-config",
+        headers: adminHeaders(),
+        payload: {
+          stages: buildNineDunningStages("Audit-Rollback-Stufe"),
+          reason: AUDIT_TX_ROLLBACK_REASON,
+        },
+      });
+      expect(put.statusCode).toBe(500);
+      expect((put.json() as { code: string }).code).toBe("AUDIT_PERSIST_FAILED");
+
+      const stageCount = await prisma.dunningTenantStageConfig.count({
+        where: { tenantId: SEED_IDS.tenantId },
+      });
+      expect(stageCount).toBe(0);
+
+      const auditForThisAttempt = await prisma.auditEvent.findFirst({
+        where: { tenantId: SEED_IDS.tenantId, reason: AUDIT_TX_ROLLBACK_REASON },
+      });
+      expect(auditForThisAttempt).toBeNull();
+    } finally {
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE audit_events DROP CONSTRAINT IF EXISTS ${AUDIT_TX_ROLLBACK_CHK}`,
+      );
+    }
+
+    const putOk = await app.inject({
+      method: "PUT",
+      url: "/finance/dunning-reminder-config",
+      headers: adminHeaders(),
+      payload: {
+        stages: buildNineDunningStages("Nach-Constraint-Drop"),
+        reason: "Persistenztest PUT nach Entfernen der Test-Constraint",
+      },
+    });
+    expect(putOk.statusCode).toBe(200);
+    expect((putOk.json() as { data: { configSource: string } }).data.configSource).toBe("TENANT_DATABASE");
+    await prisma.dunningTenantStageConfig.deleteMany({ where: { tenantId: SEED_IDS.tenantId } });
+  });
+
+  it("PATCH /finance/dunning-reminder-config/stages/2: 404 ohne persistierte Zeile", async () => {
+    await prisma.dunningTenantStageConfig.deleteMany({ where: { tenantId: SEED_IDS.tenantId } });
+    const res = await app.inject({
+      method: "PATCH",
+      url: "/finance/dunning-reminder-config/stages/2",
+      headers: adminHeaders(),
+      payload: { label: "Ohne-Zeile", reason: "Persistenztest PATCH ohne Konfig-Zeile" },
+    });
+    expect(res.statusCode).toBe(404);
+    expect((res.json() as { code: string }).code).toBe("DUNNING_STAGE_CONFIG_ROW_NOT_FOUND");
+  });
+
+  it("DELETE /finance/dunning-reminder-config/stages/1: soft-delete, GET fällt auf MVP zurück", async () => {
+    await app.inject({
+      method: "PUT",
+      url: "/finance/dunning-reminder-config",
+      headers: adminHeaders(),
+      payload: {
+        stages: buildNineDunningStages("Del-Test-Stufe"),
+        reason: "Persistenztest vor DELETE Mahnstufen",
+      },
+    });
+    const del = await app.inject({
+      method: "DELETE",
+      url: "/finance/dunning-reminder-config/stages/1",
+      headers: adminHeaders(),
+      payload: { reason: "Persistenztest Soft-Delete Stufe 1" },
+    });
+    expect(del.statusCode).toBe(200);
+    expect((del.json() as { data: { configSource: string } }).data.configSource).toBe("MVP_STATIC_DEFAULTS");
+
+    const ev = await prisma.auditEvent.findFirst({
+      where: { tenantId: SEED_IDS.tenantId, action: "DUNNING_STAGE_SOFT_DELETED" },
+      orderBy: { timestamp: "desc" },
+    });
+    expect(ev).toBeTruthy();
+
+    const row = await prisma.dunningTenantStageConfig.findUnique({
+      where: {
+        tenantId_stageOrdinal: { tenantId: SEED_IDS.tenantId, stageOrdinal: 1 },
+      },
+    });
+    expect(row?.deletedAt).toBeTruthy();
+
+    await prisma.dunningTenantStageConfig.deleteMany({ where: { tenantId: SEED_IDS.tenantId } });
+  });
+
+  it("PATCH soft-gelöschte Stufe: 404", async () => {
+    await app.inject({
+      method: "PUT",
+      url: "/finance/dunning-reminder-config",
+      headers: adminHeaders(),
+      payload: {
+        stages: buildNineDunningStages("Tomb-PATCH"),
+        reason: "Persistenztest vor Tombstone-PATCH",
+      },
+    });
+    await app.inject({
+      method: "DELETE",
+      url: "/finance/dunning-reminder-config/stages/3",
+      headers: adminHeaders(),
+      payload: { reason: "Persistenztest Stufe 3 soft loeschen fuer PATCH 404" },
+    });
+    const patch = await app.inject({
+      method: "PATCH",
+      url: "/finance/dunning-reminder-config/stages/3",
+      headers: adminHeaders(),
+      payload: { label: "Soll nicht gehen", reason: "Persistenztest PATCH auf Tombstone" },
+    });
+    expect(patch.statusCode).toBe(404);
+    expect((patch.json() as { code: string }).code).toBe("DUNNING_STAGE_CONFIG_ROW_NOT_FOUND");
+    await prisma.dunningTenantStageConfig.deleteMany({ where: { tenantId: SEED_IDS.tenantId } });
+  });
+
+  it("PUT /finance/dunning-reminder-config: VIEWER erhält 403", async () => {
+    const put = await app.inject({
+      method: "PUT",
+      url: "/finance/dunning-reminder-config",
+      headers: roleHeaders("VIEWER"),
+      payload: {
+        stages: buildNineDunningStages("X"),
+        reason: "Persistenztest VIEWER darf nicht schreiben",
+      },
+    });
+    expect(put.statusCode).toBe(403);
+    expect((put.json() as { code: string }).code).toBe("AUTH_ROLE_FORBIDDEN");
+  });
+
+  it("GET /finance/dunning-reminder-config: TENANT_DATABASE bei 9 Postgres-Zeilen", async () => {
+    await prisma.dunningTenantStageConfig.createMany({
+      data: [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => ({
+        tenantId: SEED_IDS.tenantId,
+        stageOrdinal: n,
+        daysAfterDue: 11 * n,
+        feeCents: 0,
+        label: `Persistenz-Stufe ${n}`,
+      })),
+    });
+    const res = await app.inject({
+      method: "GET",
+      url: "/finance/dunning-reminder-config",
+      headers: adminHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      data: { configSource: string; stages: { stageOrdinal: number; label: string; daysAfterDue: number }[] };
+    };
+    expect(body.data.configSource).toBe("TENANT_DATABASE");
+    expect(body.data.stages).toHaveLength(9);
+    expect(body.data.stages[0]!.label).toBe("Persistenz-Stufe 1");
+    expect(body.data.stages[0]!.daysAfterDue).toBe(11);
+    await prisma.dunningTenantStageConfig.deleteMany({ where: { tenantId: SEED_IDS.tenantId } });
+  });
+
+  it("GET /finance/dunning-reminder-templates: TENANT_DATABASE bei 18 Postgres-Zeilen", async () => {
+    const rows: Array<{
+      tenantId: string;
+      stageOrdinal: number;
+      channel: string;
+      templateType: string;
+      body: string;
+    }> = [];
+    for (let n = 1; n <= 9; n += 1) {
+      const templateType = n <= 3 ? "REMINDER" : n <= 6 ? "DEMAND_NOTE" : "DUNNING";
+      for (const channel of ["EMAIL", "PRINT"] as const) {
+        rows.push({
+          tenantId: SEED_IDS.tenantId,
+          stageOrdinal: n,
+          channel,
+          templateType,
+          body: `Persistenz-Vorlage Stufe ${n} ${channel} {{MahngebuehrEUR}}`,
+        });
+      }
+    }
+    await prisma.dunningTenantStageTemplate.createMany({ data: rows });
+    const res = await app.inject({
+      method: "GET",
+      url: "/finance/dunning-reminder-templates",
+      headers: adminHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      data: { templateSource: string; stages: Array<{ stageOrdinal: number; channels: Array<{ channel: string }> }> };
+    };
+    expect(body.data.templateSource).toBe("TENANT_DATABASE");
+    expect(body.data.stages).toHaveLength(9);
+    expect(body.data.stages[0]!.channels).toHaveLength(2);
+    await prisma.dunningTenantStageTemplate.deleteMany({ where: { tenantId: SEED_IDS.tenantId } });
+  });
+
+  it("PATCH /finance/dunning-reminder-templates/.../channels: 400 bei fehlenden Platzhaltern, 200 + Audit bei gueltigem Body", async () => {
+    const rows: Array<{
+      tenantId: string;
+      stageOrdinal: number;
+      channel: string;
+      templateType: string;
+      body: string;
+    }> = [];
+    for (let n = 1; n <= 9; n += 1) {
+      const templateType = n <= 3 ? "REMINDER" : n <= 6 ? "DEMAND_NOTE" : "DUNNING";
+      const bodyBase =
+        templateType === "DUNNING"
+          ? `Stufe ${n} {{MahngebuehrEUR}}`
+          : `Stufe ${n} {{MahngebuehrEUR}} {{SkontoBetragEUR}} {{SkontofristDatum}}`;
+      for (const channel of ["EMAIL", "PRINT"] as const) {
+        rows.push({
+          tenantId: SEED_IDS.tenantId,
+          stageOrdinal: n,
+          channel,
+          templateType,
+          body: `${bodyBase} ${channel}`,
+        });
+      }
+    }
+    await prisma.dunningTenantStageTemplate.createMany({ data: rows });
+
+    const bad = await app.inject({
+      method: "PATCH",
+      url: "/finance/dunning-reminder-templates/stages/1/channels/EMAIL",
+      headers: adminHeaders(),
+      payload: { body: "Ohne Platzhalter", reason: "Persistenztest ungueltige Mahn-Vorlage" },
+    });
+    expect(bad.statusCode).toBe(400);
+    expect((bad.json() as { code: string }).code).toBe("DUNNING_TEMPLATE_PLACEHOLDERS_INVALID");
+
+    const okBody = "Neu {{MahngebuehrEUR}} {{SkontoBetragEUR}} {{SkontofristDatum}} PATCH";
+    const ok = await app.inject({
+      method: "PATCH",
+      url: "/finance/dunning-reminder-templates/stages/1/channels/EMAIL",
+      headers: adminHeaders(),
+      payload: { body: okBody, reason: "Persistenztest PATCH Mahn-Vorlage gueltig" },
+    });
+    expect(ok.statusCode).toBe(200);
+    const updated = await prisma.dunningTenantStageTemplate.findFirst({
+      where: { tenantId: SEED_IDS.tenantId, stageOrdinal: 1, channel: "EMAIL", deletedAt: null },
+    });
+    expect(updated?.body).toBe(okBody);
+
+    const audit = await prisma.auditEvent.findFirst({
+      where: { tenantId: SEED_IDS.tenantId, action: "DUNNING_TEMPLATE_BODY_PATCHED" },
+      orderBy: { timestamp: "desc" },
+    });
+    expect(audit).toBeTruthy();
+
+    await prisma.dunningTenantStageTemplate.deleteMany({ where: { tenantId: SEED_IDS.tenantId } });
+  });
+
+  it("GET|PATCH /finance/dunning-email-footer: NOT_CONFIGURED, dann TENANT_DATABASE + ready + Audit", async () => {
+    const get0 = await app.inject({
+      method: "GET",
+      url: "/finance/dunning-email-footer",
+      headers: adminHeaders(),
+    });
+    expect(get0.statusCode).toBe(200);
+    const b0 = get0.json() as {
+      data: {
+        footerSource: string;
+        readyForEmailFooter: boolean;
+        impressumComplianceTier: string;
+        impressumGaps: string[];
+      };
+    };
+    expect(b0.data.footerSource).toBe("NOT_CONFIGURED");
+    expect(b0.data.readyForEmailFooter).toBe(false);
+    expect(b0.data.impressumComplianceTier).toBe("MINIMAL");
+    expect(b0.data.impressumGaps.length).toBeGreaterThan(0);
+
+    const patch1 = await app.inject({
+      method: "PATCH",
+      url: "/finance/dunning-email-footer",
+      headers: adminHeaders(),
+      payload: {
+        companyLegalName: "Persistenz Demo GmbH",
+        streetLine: "Testweg 2",
+        postalCode: "10115",
+        city: "Berlin",
+        countryCode: "de",
+        publicEmail: "kontakt@example.com",
+        publicPhone: "+49 30 123456",
+        reason: "Persistenztest Footer Stammdaten Teil 1",
+      },
+    });
+    expect(patch1.statusCode).toBe(200);
+    const b1 = patch1.json() as {
+      data: {
+        footerSource: string;
+        readyForEmailFooter: boolean;
+        countryCode: string;
+        impressumComplianceTier: string;
+        impressumGaps: string[];
+      };
+    };
+    expect(b1.data.footerSource).toBe("TENANT_DATABASE");
+    expect(b1.data.countryCode).toBe("DE");
+    expect(b1.data.readyForEmailFooter).toBe(true);
+    expect(b1.data.impressumComplianceTier).toBe("MINIMAL");
+    expect(b1.data.impressumGaps).toEqual(
+      expect.arrayContaining(["LEGAL_REPRESENTATIVE_MISSING", "VAT_ID_MISSING"]),
+    );
+
+    const patch2 = await app.inject({
+      method: "PATCH",
+      url: "/finance/dunning-email-footer",
+      headers: adminHeaders(),
+      payload: {
+        legalRepresentative: "Erika Mustermann (Geschäftsführung)",
+        vatId: "DE123456789",
+        reason: "Persistenztest Footer Impressum Heuristik vervollständigen",
+      },
+    });
+    expect(patch2.statusCode).toBe(200);
+    const b2 = patch2.json() as { data: { impressumComplianceTier: string; impressumGaps: string[] } };
+    expect(b2.data.impressumComplianceTier).toBe("EXTENDED");
+    expect(b2.data.impressumGaps).toEqual([]);
+
+    const audit = await prisma.auditEvent.findFirst({
+      where: { tenantId: SEED_IDS.tenantId, action: "DUNNING_EMAIL_FOOTER_PATCHED" },
+      orderBy: { timestamp: "desc" },
+    });
+    expect(audit).toBeTruthy();
+
+    await prisma.dunningTenantEmailFooter.deleteMany({ where: { tenantId: SEED_IDS.tenantId } });
+  });
+
+  it("POST /invoices/{invoiceId}/dunning-reminders/email-preview + send-email-stub (M4 Slice 4)", async () => {
+    const patchFooter = await app.inject({
+      method: "PATCH",
+      url: "/finance/dunning-email-footer",
+      headers: adminHeaders(),
+      payload: {
+        companyLegalName: "Preview GmbH",
+        streetLine: "Weg 9",
+        postalCode: "10115",
+        city: "Berlin",
+        countryCode: "DE",
+        publicEmail: "kontakt@preview.example",
+        publicPhone: "+49 30 999",
+        legalRepresentative: "Vorstand Vorschau",
+        vatId: "DE123456789",
+        reason: "Persistenztest Footer für E-Mail-Preview",
+      },
+    });
+    expect(patchFooter.statusCode).toBe(200);
+
+    const pv = await app.inject({
+      method: "POST",
+      url: `/invoices/${SEED_IDS.invoiceId}/dunning-reminders/email-preview`,
+      headers: adminHeaders(),
+      payload: { stageOrdinal: 1, reason: "Persistenztest E-Mail-Vorschau Stufe 1" },
+    });
+    expect(pv.statusCode).toBe(200);
+    const pvBody = pv.json() as { data: { readyForEmailFooter: boolean; fullPlainText: string } };
+    expect(pvBody.data.readyForEmailFooter).toBe(true);
+    expect(pvBody.data.fullPlainText).toContain("Preview GmbH");
+
+    const stub = await app.inject({
+      method: "POST",
+      url: `/invoices/${SEED_IDS.invoiceId}/dunning-reminders/send-email-stub`,
+      headers: adminHeaders(),
+      payload: { stageOrdinal: 1, reason: "Persistenztest E-Mail-Versand-Stub" },
+    });
+    expect(stub.statusCode).toBe(200);
+    const stubBody = stub.json() as { data: { outcome: string; auditEventId: string } };
+    expect(stubBody.data.outcome).toBe("NOT_SENT_NO_SMTP");
+
+    const audit = await prisma.auditEvent.findFirst({
+      where: { tenantId: SEED_IDS.tenantId, action: "DUNNING_EMAIL_SEND_STUB" },
+      orderBy: { timestamp: "desc" },
+    });
+    expect(audit).toBeTruthy();
+
+    await prisma.dunningTenantEmailFooter.deleteMany({ where: { tenantId: SEED_IDS.tenantId } });
+  });
+
+  it("POST …/dunning-reminders/send-email returns 503 when SMTP not configured (M4 Slice 5a)", async () => {
+    const patchFooter = await app.inject({
+      method: "PATCH",
+      url: "/finance/dunning-email-footer",
+      headers: adminHeaders(),
+      payload: {
+        companyLegalName: "SMTP Gate GmbH",
+        streetLine: "Weg 11",
+        postalCode: "10115",
+        city: "Berlin",
+        countryCode: "DE",
+        publicEmail: "kontakt@smtp-gate.example",
+        publicPhone: "+49 30 1",
+        legalRepresentative: "GF Test",
+        vatId: "DE123456789",
+        reason: "Persistenztest Footer fuer SMTP-Gate",
+      },
+    });
+    expect(patchFooter.statusCode).toBe(200);
+
+    const idem = randomUUID();
+    const res = await app.inject({
+      method: "POST",
+      url: `/invoices/${SEED_IDS.invoiceId}/dunning-reminders/send-email`,
+      headers: { ...adminHeaders(), "Idempotency-Key": idem },
+      payload: {
+        stageOrdinal: 1,
+        reason: "Persistenztest Mahn-E-Mail ohne SMTP-Transport",
+        toEmail: "kunde@example.com",
+      },
+    });
+    expect(res.statusCode).toBe(503);
+    expect((res.json() as { code: string }).code).toBe("DUNNING_EMAIL_SMTP_NOT_CONFIGURED");
+
+    await prisma.dunningTenantEmailFooter.deleteMany({ where: { tenantId: SEED_IDS.tenantId } });
+  });
+
+  it("POST /invoices/{invoiceId}/dunning-reminders: persistiert und GET listet Zeile", async () => {
+    const post = await app.inject({
+      method: "POST",
+      url: `/invoices/${SEED_IDS.invoiceId}/dunning-reminders`,
+      headers: adminHeaders(),
+      payload: { stageOrdinal: 1, reason: "Persistenztest Mahn-Ereignis anlegen" },
+    });
+    expect(post.statusCode).toBe(201);
+    const created = post.json() as { dunningReminderId: string; stageOrdinal: number; createdAt: string };
+    expect(created.stageOrdinal).toBe(1);
+    expect(created.dunningReminderId).toMatch(/^[0-9a-f-]{36}$/u);
+
+    const list = await app.inject({
+      method: "GET",
+      url: `/invoices/${SEED_IDS.invoiceId}/dunning-reminders`,
+      headers: adminHeaders(),
+    });
+    expect(list.statusCode).toBe(200);
+    const body = list.json() as { data: Array<{ dunningReminderId: string; stageOrdinal: number }> };
+    expect(body.data.some((r) => r.dunningReminderId === created.dunningReminderId)).toBe(true);
+
+    const row = await prisma.dunningReminder.findFirst({
+      where: { tenantId: SEED_IDS.tenantId, id: created.dunningReminderId },
+    });
+    expect(row).toBeTruthy();
+    expect(row!.invoiceId).toBe(SEED_IDS.invoiceId);
+  });
+
+  it("POST /finance/dunning-reminder-run EXECUTE: speichert dunning_reminder_run_intents und Replay (M4 Slice 5b-1)", async () => {
+    const idem = randomUUID();
+    const asOf = "2026-04-28";
+    const payload = {
+      stageOrdinal: 1,
+      asOfDate: asOf,
+      mode: "EXECUTE" as const,
+      reason: "Persistenztest Mahnlauf-EXECUTE Idempotenz",
+      invoiceIds: [SEED_IDS.inconsistentInvoiceId],
+    };
+    const first = await app.inject({
+      method: "POST",
+      url: "/finance/dunning-reminder-run",
+      headers: { ...adminHeaders(), "Idempotency-Key": idem },
+      payload,
+    });
+    expect(first.statusCode).toBe(200);
+    const firstBody = first.json() as { data: { outcome: string; executed: Array<{ invoiceId: string }> } };
+    expect(firstBody.data.outcome).toBe("COMPLETED");
+    expect(firstBody.data.executed).toHaveLength(1);
+    expect(firstBody.data.executed[0].invoiceId).toBe(SEED_IDS.inconsistentInvoiceId);
+
+    const intent = await prisma.dunningReminderRunIntent.findUnique({
+      where: {
+        tenantId_idempotencyKey: { tenantId: SEED_IDS.tenantId, idempotencyKey: idem },
+      },
+    });
+    expect(intent).toBeTruthy();
+    expect(intent!.fingerprint).toMatch(/^[a-f0-9]{64}$/u);
+    expect((JSON.parse(intent!.responseJson) as { data: { outcome: string } }).data.outcome).toBe("COMPLETED");
+
+    const second = await app.inject({
+      method: "POST",
+      url: "/finance/dunning-reminder-run",
+      headers: { ...adminHeaders(), "Idempotency-Key": idem },
+      payload,
+    });
+    expect(second.statusCode).toBe(200);
+    expect((second.json() as { data: { outcome: string } }).data.outcome).toBe("REPLAY");
+
+    const count = await prisma.dunningReminderRunIntent.count({
+      where: { tenantId: SEED_IDS.tenantId, idempotencyKey: idem },
+    });
+    expect(count).toBe(1);
+  });
+
+  it("GET|PATCH /finance/dunning-reminder-automation persists in Postgres", async () => {
+    const get0 = await app.inject({
+      method: "GET",
+      url: "/finance/dunning-reminder-automation",
+      headers: adminHeaders(),
+    });
+    expect(get0.statusCode).toBe(200);
+    expect((get0.json() as { data: { automationSource: string } }).data.automationSource).toBe("NOT_CONFIGURED");
+
+    const patch = await app.inject({
+      method: "PATCH",
+      url: "/finance/dunning-reminder-automation",
+      headers: adminHeaders(),
+      payload: { reason: "Persistenztest Automation SEMI", runMode: "SEMI", jobHourUtc: 6 },
+    });
+    expect(patch.statusCode).toBe(200);
+    const p = patch.json() as { data: { runMode: string; jobHourUtc: number } };
+    expect(p.data.runMode).toBe("SEMI");
+    expect(p.data.jobHourUtc).toBe(6);
+
+    const row = await prisma.dunningTenantAutomation.findUnique({ where: { tenantId: SEED_IDS.tenantId } });
+    expect(row?.runMode).toBe("SEMI");
+    expect(row?.jobHourUtc).toBe(6);
   });
 
   it("Audit: Schreibpfad Postgres + GET liefert nur minimierte Felder", async () => {
@@ -737,6 +1428,154 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
       where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: body.id } },
     });
     expect(svAfter?.status).toBe("IN_FREIGABE");
+  });
+
+  describe("M4 Slice 5a: POST …/dunning-reminders/send-email (mock SMTP)", () => {
+    let appSmtp!: FastifyInstance;
+    const captured: Array<{ to: string; subject: string }> = [];
+
+    beforeAll(async () => {
+      appSmtp = await buildApp({
+        repositoryMode: "postgres",
+        seedDemoData: true,
+        mailTransport: {
+          isConfigured: () => true,
+          send: async (input) => {
+            captured.push({ to: input.to, subject: input.subject });
+            return { messageId: "persistenz-test-smtp-1" };
+          },
+        },
+      });
+      await appSmtp.ready();
+    });
+
+    afterAll(async () => {
+      await appSmtp.close();
+    });
+
+    async function patchFooterReady(): Promise<void> {
+      const patchFooter = await appSmtp.inject({
+        method: "PATCH",
+        url: "/finance/dunning-email-footer",
+        headers: adminHeaders(),
+        payload: {
+          companyLegalName: "Mock SMTP GmbH",
+          streetLine: "Weg 21",
+          postalCode: "10115",
+          city: "Berlin",
+          countryCode: "DE",
+          publicEmail: "kontakt@mock-smtp.example",
+          publicPhone: "+49 30 2",
+          legalRepresentative: "GF Mock",
+          vatId: "DE987654321",
+          reason: "Persistenztest Footer Mock-SMTP Mahn-Mail",
+        },
+      });
+      expect(patchFooter.statusCode).toBe(200);
+    }
+
+    it("200 SENT, audit, DB row, mock transport called once", async () => {
+      captured.length = 0;
+      await patchFooterReady();
+      const idem = randomUUID();
+      const res = await appSmtp.inject({
+        method: "POST",
+        url: `/invoices/${SEED_IDS.invoiceId}/dunning-reminders/send-email`,
+        headers: { ...adminHeaders(), "Idempotency-Key": idem },
+        payload: {
+          stageOrdinal: 1,
+          reason: "Persistenztest Mahn-E-Mail SMTP mock",
+          toEmail: "empfaenger@example.com",
+        },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { data: { outcome: string; smtpMessageId?: string; recipientEmail: string } };
+      expect(body.data.outcome).toBe("SENT");
+      expect(body.data.recipientEmail).toBe("empfaenger@example.com");
+      expect(body.data.smtpMessageId).toBe("persistenz-test-smtp-1");
+      expect(captured.length).toBe(1);
+      expect(captured[0].to).toBe("empfaenger@example.com");
+
+      const audit = await prisma.auditEvent.findFirst({
+        where: { tenantId: SEED_IDS.tenantId, action: "DUNNING_EMAIL_SENT" },
+        orderBy: { timestamp: "desc" },
+      });
+      expect(audit).toBeTruthy();
+
+      const row = await prisma.dunningEmailSend.findFirst({
+        where: { tenantId: SEED_IDS.tenantId, idempotencyKey: idem },
+      });
+      expect(row).toBeTruthy();
+      expect(row!.recipientEmail).toBe("empfaenger@example.com");
+
+      await prisma.dunningEmailSend.deleteMany({ where: { tenantId: SEED_IDS.tenantId, idempotencyKey: idem } });
+      await prisma.dunningTenantEmailFooter.deleteMany({ where: { tenantId: SEED_IDS.tenantId } });
+    });
+
+    it("REPLAY on same Idempotency-Key without second SMTP call", async () => {
+      captured.length = 0;
+      await patchFooterReady();
+      const idem = randomUUID();
+      const headers = { ...adminHeaders(), "Idempotency-Key": idem };
+      const payload = {
+        stageOrdinal: 1,
+        reason: "Persistenztest Mahn-E-Mail Idempotenz A",
+        toEmail: "same@example.com",
+      };
+      const first = await appSmtp.inject({
+        method: "POST",
+        url: `/invoices/${SEED_IDS.invoiceId}/dunning-reminders/send-email`,
+        headers,
+        payload,
+      });
+      expect(first.statusCode).toBe(200);
+      expect(captured.length).toBe(1);
+      const second = await appSmtp.inject({
+        method: "POST",
+        url: `/invoices/${SEED_IDS.invoiceId}/dunning-reminders/send-email`,
+        headers,
+        payload,
+      });
+      expect(second.statusCode).toBe(200);
+      expect((second.json() as { data: { outcome: string } }).data.outcome).toBe("REPLAY");
+      expect(captured.length).toBe(1);
+
+      await prisma.dunningEmailSend.deleteMany({ where: { tenantId: SEED_IDS.tenantId, idempotencyKey: idem } });
+      await prisma.dunningTenantEmailFooter.deleteMany({ where: { tenantId: SEED_IDS.tenantId } });
+    });
+
+    it("400 DUNNING_EMAIL_IDEMPOTENCY_MISMATCH when reusing key with different toEmail", async () => {
+      captured.length = 0;
+      await patchFooterReady();
+      const idem = randomUUID();
+      const headers = { ...adminHeaders(), "Idempotency-Key": idem };
+      const first = await appSmtp.inject({
+        method: "POST",
+        url: `/invoices/${SEED_IDS.invoiceId}/dunning-reminders/send-email`,
+        headers,
+        payload: {
+          stageOrdinal: 1,
+          reason: "Persistenztest Idempotenz mismatch first",
+          toEmail: "a@example.com",
+        },
+      });
+      expect(first.statusCode).toBe(200);
+      const second = await appSmtp.inject({
+        method: "POST",
+        url: `/invoices/${SEED_IDS.invoiceId}/dunning-reminders/send-email`,
+        headers,
+        payload: {
+          stageOrdinal: 1,
+          reason: "Persistenztest Idempotenz mismatch second",
+          toEmail: "b@example.com",
+        },
+      });
+      expect(second.statusCode).toBe(400);
+      expect((second.json() as { code: string }).code).toBe("DUNNING_EMAIL_IDEMPOTENCY_MISMATCH");
+
+      await prisma.dunningEmailSend.deleteMany({ where: { tenantId: SEED_IDS.tenantId, idempotencyKey: idem } });
+      await prisma.dunningTenantEmailFooter.deleteMany({ where: { tenantId: SEED_IDS.tenantId } });
+    });
   });
 
   it("Hydration-Smoke: zweiter Start ohne Seed lädt Nachtrag aus Postgres (GET /supplements/:id)", async () => {

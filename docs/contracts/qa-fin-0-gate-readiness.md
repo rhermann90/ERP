@@ -2,13 +2,17 @@
 
 **Rolle:** QA Engineer (Repository).  
 **Kontext:** FIN-0 = primär Dokumentation/Verträge; Regression = **gesamte** CI / lokaler `npm test` grün. **Merge auf `main`/`master`:** kanonische Evidence = **grüner GitHub Actions-Run** (Job wie [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)); lokaler Erfolg (auch **99/99**, **0 skipped** lokal) **ersetzt** den Remote-Run **nicht**. FIN-2 = später; P0-Matrix nur **Stub** (siehe `qa-fin-2-start-gate-stub-matrix.md`).  
-**MVP-Abnahme später:** `ERP Systembeschreibung v1.3.md` **§15** *Validierung und Quality Gate* — dort u. a. Finanzlogik (Abschnitt 8) konsistent mit Lebenszyklen und Traceability, AuditEvent-Modell, Rollen inkl. Zahlungs-/Mahnaktionen.
+**MVP-Abnahme später:** `docs/ERP-Systembeschreibung.md` **§15** *Validierung und Quality Gate* — dort u. a. Finanzlogik (Abschnitt 8) konsistent mit Lebenszyklen und Traceability, AuditEvent-Modell, Rollen inkl. Zahlungs-/Mahnaktionen.
+
+**Produktiv-Go außerhalb reiner Software-QA:** Für Mandanten-Go unter **UStG / HGB / AO / GoBD / E-Rechnung / DSGVO** die fachliche Checkliste [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) mit **Steuerberatung, Datenschutz und PL** abarbeiten — **ergänzend** zu §5a/CI, **kein** Ersatz für separates Release-GO (siehe [`README.md`](../../README.md)).
+
+**Finanz-PR (Code + Contracts):** technische Abnahme je Merge mit [`review-checklist-finanz-pr.md`](./review-checklist-finanz-pr.md) (SoT, G8-Bündel, §5b bei Misch-PRs, GoBD-Querschnitt-Verweis).
 
 ---
 
 ## 0) Vorbedingung — **PL / System — zuerst**
 
-QA-Arbeit an Merge-Evidence, Gate-Stichproben und Contract-Abgleich setzt den **vom Projektleitung / System** kommunizierten Rahmen voraus. **Verbindlich für diesen Koordinationszyklus** (Stand **2026-04-14**): Sprint-Snapshot [`docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md`](../tickets/PL-SYSTEM-ZUERST-2026-04-14.md) (Volltext **nur** dort — keine Dublette in der Vorlage). **Index + Kopierblock** für Folgezyklen: [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](../tickets/PL-SYSTEM-ZUERST-VORLAGE.md). **Domäne:** [`ERP Systembeschreibung v1.3.md`](../../ERP%20Systembeschreibung%20v1.3.md). **Multi-Agent-Kernregeln:** [`.cursor/rules/erp-multi-agent.mdc`](../../.cursor/rules/erp-multi-agent.mdc). **Lieferkette (Git → PR → §5a → Tracker):** nur im **Team-Clone** mit kanonischem Remote arbeiten; **nächste planbare Arbeit** leitet die Projektleitung aus der **„Rückmeldung an Projektleitung“** des **Code Reviewers** ab (dieselbe Aussage **blocking** wie im GitHub-Review; Format **Rückmeldung an Projektleitung** unten). Liegt der Rahmen nicht ausreichend vor oder widerspricht ein PR dem aktuellen Snapshot, dokumentiert QA die Lücke in der **Rückmeldung an Projektleitung** (Format unten) und trifft **keine** PL-Prozessentscheidungen eigenmächtig (z. B. FIN-2-Spalte **erfüllt**, Audit-**PL-Eintrag**). *(Hinweis: Für die **PL-Arbeitsplanung** ist allein die Code-Review-Rückmeldung maßgeblich; QA nutzt dieses Format bei eigener Eskalation/Merge-Evidence.)*
+QA-Arbeit an Merge-Evidence, Gate-Stichproben und Contract-Abgleich setzt den **vom Projektleitung / System** kommunizierten Rahmen voraus. **Verbindlich für diesen Koordinationszyklus** (Stand **2026-04-14**): Sprint-Snapshot [`docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md`](../tickets/PL-SYSTEM-ZUERST-2026-04-14.md) (Volltext **nur** dort — keine Dublette in der Vorlage). **Index + Kopierblock** für Folgezyklen: [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](../tickets/PL-SYSTEM-ZUERST-VORLAGE.md). **Domäne:** [`docs/ERP-Systembeschreibung.md`](../ERP-Systembeschreibung.md). **Multi-Agent-Kernregeln:** [`.cursor/rules/erp-multi-agent.mdc`](../../.cursor/rules/erp-multi-agent.mdc). **Lieferkette (Git → PR → §5a → Tracker):** nur im **Team-Clone** mit kanonischem Remote arbeiten; **nächste planbare Arbeit** leitet die Projektleitung aus der **„Rückmeldung an Projektleitung“** des **Code Reviewers** ab (dieselbe Aussage **blocking** wie im GitHub-Review; Format **Rückmeldung an Projektleitung** unten). Liegt der Rahmen nicht ausreichend vor oder widerspricht ein PR dem aktuellen Snapshot, dokumentiert QA die Lücke in der **Rückmeldung an Projektleitung** (Format unten) und trifft **keine** PL-Prozessentscheidungen eigenmächtig (z. B. FIN-2-Spalte **erfüllt**, Audit-**PL-Eintrag**). *(Hinweis: Für die **PL-Arbeitsplanung** ist allein die Code-Review-Rückmeldung maßgeblich; QA nutzt dieses Format bei eigener Eskalation/Merge-Evidence.)*
 
 ---
 
@@ -223,7 +227,7 @@ Bitte Fix; danach **dieselbe** QA-Kommentar-Zelle **editieren** auf **§5a** (vo
 
 **Manuelle Stichproben (optional im PR, kein Ersatz für Actions):** z. B. lokal `npm test` / CI-parallele Befehle wie §3; bei Contract-Änderungen G8-Stichprobe OpenAPI ↔ `error-codes.json` ↔ `finance-fin0-openapi-mapping.md`; Web nur wenn der PR `apps/web` berührt. **Lokales Grün ersetzt keinen grünen GitHub-`backend`-Run.**
 
-**MVP später:** `ERP Systembeschreibung v1.3.md` §15.
+**MVP später:** `docs/ERP-Systembeschreibung.md` §15.
 
 **Stub-Matrix FIN-0:** `docs/contracts/qa-fin-0-stub-test-matrix.md` | **FIN-2 P0 (später):** `docs/contracts/qa-fin-2-start-gate-stub-matrix.md`
 ```
