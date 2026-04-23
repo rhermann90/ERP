@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../prisma-client.js";
 import {
   buildMvpStaticDunningReminderConfig,
   type DunningReminderConfigReadData,

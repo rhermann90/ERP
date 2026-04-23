@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../prisma-client.js";
 import type { PrismaTransactionClient } from "./prisma-tx-types.js";
 
 export type DunningTenantAutomationRunMode = "OFF" | "SEMI" | "AUTO";

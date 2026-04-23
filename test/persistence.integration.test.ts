@@ -2,7 +2,7 @@ import { execSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, createPrismaClient } from "../src/prisma-client.js";
 import { buildApp } from "../src/api/app.js";
 import { SEED_IDS } from "../src/composition/seed.js";
 import { createSignedToken } from "../src/auth/token-auth.js";
@@ -13,6 +13,14 @@ if (process.env.GITHUB_ACTIONS === "true" && !dbUrl) {
   throw new Error("PERSISTENCE_DB_TEST_URL must be set in GitHub Actions CI");
 }
 
+
+/** Prisma 5: P2003; Prisma 7 + pg adapter: DriverAdapterError with FK cause. */
+function isForeignKeyViolation(err: unknown): boolean {
+  if (typeof err !== "object" || err === null) return false;
+  if ("code" in err && (err as { code?: string }).code === "P2003") return true;
+  const e = err as { name?: string; cause?: { kind?: string } };
+  return e.name === "DriverAdapterError" && e.cause?.kind === "ForeignKeyConstraintViolation";
+}
 function adminHeaders(tenantId: string = SEED_IDS.tenantId) {
   const userId = "77777777-7777-4777-8777-777777777777";
   const token = createSignedToken({
@@ -60,7 +68,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
       stdio: "inherit",
       env: { ...process.env, DATABASE_URL: dbUrl! },
     });
-    const cleanup = new PrismaClient({ datasourceUrl: dbUrl });
+    const cleanup = createPrismaClient(dbUrl!);
     await cleanup.$executeRawUnsafe(
       `TRUNCATE TABLE dunning_reminder_run_intents, dunning_reminders, dunning_email_sends, dunning_tenant_automation, dunning_tenant_stage_config, dunning_tenant_stage_templates, dunning_tenant_email_footer, payment_intakes, invoices, payment_terms_versions, payment_terms_heads, supplement_versions, supplement_offers, measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, audit_events, offer_versions, offers, password_reset_challenges, users RESTART IDENTITY CASCADE`,
     );
@@ -71,7 +79,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     const ready = await app.inject({ method: "GET", url: "/ready" });
     expect(ready.statusCode).toBe(200);
     expect(ready.json()).toEqual({ status: "ready", checks: { database: "ok" } });
-    prisma = new PrismaClient({ datasourceUrl: dbUrl });
+    prisma = createPrismaClient(dbUrl!);
   });
 
   afterAll(async () => {
@@ -334,7 +342,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
           editingText: "ed",
         },
       }),
-    ).rejects.toMatchObject({ code: "P2003" });
+    ).rejects.toSatisfy(isForeignKeyViolation);
   });
 
   it("rejects cross-tenant supplement_version insert (composite FK zu supplement_offers; Gate G1)", async () => {
@@ -365,7 +373,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
           createdBy: SEED_IDS.seedAdminUserId,
         },
       }),
-    ).rejects.toMatchObject({ code: "P2003" });
+    ).rejects.toSatisfy(isForeignKeyViolation);
     await prisma.supplementOffer.delete({
       where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: soId } },
     });
@@ -1218,7 +1226,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
           },
         });
       }),
-    ).rejects.toMatchObject({ code: "P2003" });
+    ).rejects.toSatisfy(isForeignKeyViolation);
   });
 
   it("rejects offer when current_version_id has no matching offer_version at commit (offers_current_version_fkey)", async () => {
@@ -1240,7 +1248,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
           },
         });
       }),
-    ).rejects.toMatchObject({ code: "P2003" });
+    ).rejects.toSatisfy(isForeignKeyViolation);
   });
 
   it("allows deferred insert: offer row before offer_version when current_version_id matches (same transaction)", async () => {
@@ -1332,7 +1340,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     });
     await prisma.$disconnect();
 
-    const prisma2 = new PrismaClient({ datasourceUrl: dbUrl! });
+    const prisma2 = createPrismaClient(dbUrl!);
     const row = await prisma2.auditEvent.findUnique({ where: { id } });
     expect(row).not.toBeNull();
     expect(row?.action).toBe("PERSISTENCE_QA_PROBE");
@@ -1340,7 +1348,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     await prisma2.auditEvent.delete({ where: { id } });
     await prisma2.$disconnect();
 
-    prisma = new PrismaClient({ datasourceUrl: dbUrl! });
+    prisma = createPrismaClient(dbUrl!);
   });
 
   it("API: Supplement anlegen + Statuswechsel persistieren (supplement_offers / supplement_versions)", async () => {

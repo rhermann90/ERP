@@ -3,12 +3,12 @@
 // ADR-0008: payment_terms_heads / payment_terms_versions (FIN-1)
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 /// Angebots-Aggregat; current_version referenziert offer_versions (tenant-gleich), FK deferrable in SQL-Migration.

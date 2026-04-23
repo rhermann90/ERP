@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../prisma-client.js";
 import { DomainError } from "../errors/domain-error.js";
 import type { UserRole } from "../domain/types.js";
 import { createSignedToken } from "./token-auth.js";

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
-import { Prisma } from "@prisma/client";
-import type { PrismaClient } from "@prisma/client";
+import { Prisma } from "../prisma-client.js";
+import type { PrismaClient } from "../prisma-client.js";
 import type { UserRole } from "../domain/types.js";
 import { DomainError } from "../errors/domain-error.js";
 import type { AuditService } from "./audit-service.js";

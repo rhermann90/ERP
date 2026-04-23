@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../prisma-client.js";
 import type { TenantId, UUID } from "../domain/types.js";
 
 export type DunningReminderRunIntentRow = {

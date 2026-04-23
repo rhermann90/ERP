@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../prisma-client.js";
 import type { DunningEmailSend, TenantId } from "../domain/types.js";
 import type { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 

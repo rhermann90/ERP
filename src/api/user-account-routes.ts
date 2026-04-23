@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../prisma-client.js";
 import { DomainError } from "../errors/domain-error.js";
 import { AuditService } from "../services/audit-service.js";
 import { AuthorizationService } from "../services/authorization-service.js";

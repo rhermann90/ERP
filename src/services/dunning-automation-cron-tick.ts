@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../prisma-client.js";
 import type { DunningReminderCandidatesService } from "./dunning-reminder-candidates-service.js";
 import type { DunningReminderRunService } from "./dunning-reminder-run-service.js";
 

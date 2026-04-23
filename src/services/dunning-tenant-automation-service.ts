@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../prisma-client.js";
 import type { AuditEvent, TenantId, UUID } from "../domain/types.js";
 import type { DunningTenantAutomationRunMode } from "../persistence/dunning-tenant-automation-persistence.js";
 import { DomainError } from "../errors/domain-error.js";

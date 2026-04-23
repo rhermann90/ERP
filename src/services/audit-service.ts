@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "../prisma-client.js";
 import type { PrismaTransactionClient } from "../persistence/prisma-tx-types.js";
 import { AuditEvent, AuditEventView, TenantId } from "../domain/types.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";

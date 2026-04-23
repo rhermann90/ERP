@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../prisma-client.js";
 import type { DunningTemplateChannel, DunningTemplatePersistenceRow, DunningTemplateType } from "../domain/dunning-reminder-template-defaults.js";
 import type { PrismaTransactionClient } from "./prisma-tx-types.js";
 

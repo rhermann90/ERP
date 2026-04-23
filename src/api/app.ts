@@ -44,7 +44,7 @@ import {
   parseCorsOriginsFromEnv,
   registerPwaHttpHooks,
 } from "../http/pwa-http-layer.js";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, createPrismaClient } from "../prisma-client.js";
 import {
   assertDatabaseUrlForPostgresMode,
   resolveRepositoryMode,
@@ -209,7 +209,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
 
   if (repositoryMode === "postgres") {
     assertDatabaseUrlForPostgresMode(repositoryMode);
-    prisma = new PrismaClient();
+    prisma = createPrismaClient(process.env.DATABASE_URL!.trim());
     offerPersistence = new PrismaOfferPersistence(prisma);
     supplementPersistence = new PrismaSupplementPersistence(prisma);
     lvMeasurementPersistence = new PrismaLvMeasurementPersistence(prisma);

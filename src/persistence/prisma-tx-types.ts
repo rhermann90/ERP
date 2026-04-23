@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../prisma-client.js";
 
 /** Client innerhalb von `prisma.$transaction` (interaktiv). */
 export type PrismaTransactionClient = Omit<

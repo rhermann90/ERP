@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../prisma-client.js";
 import type { DunningStageConfigReadRow } from "../domain/dunning-reminder-config-defaults.js";
 import type { PrismaTransactionClient } from "./prisma-tx-types.js";
 
