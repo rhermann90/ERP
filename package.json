@@ -14,7 +14,7 @@
     "build:web": "npm run build -w apps/web",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && npx tsc --noEmit -p apps/web/tsconfig.json",
     "postinstall": "prisma generate",
     "prisma:validate": "node scripts/prisma-env-placeholder.mjs validate",
     "prisma:generate": "prisma generate",
