@@ -61,7 +61,7 @@ export class OfferService {
     this.repos.putOfferVersion(version);
     this.repos.putOffer({ ...offer, currentVersionId: version.id });
     await this.offerPersistence.syncOfferSubgraphFromMemory(this.repos, input.tenantId, offer.id);
-    this.auditService.append({
+    await this.auditService.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "OFFER_VERSION",
@@ -73,6 +73,15 @@ export class OfferService {
       beforeState: { versionNumber: currentVersion.versionNumber },
       afterState: { versionNumber: version.versionNumber },
     });
+    return version;
+  }
+
+  /** Lesepfad für PWA-Shell — gleiche Tenant-Isolation wie Repos. */
+  public getVersionDetail(tenantId: TenantId, offerVersionId: UUID): OfferVersion {
+    const version = this.repos.getOfferVersionByTenant(tenantId, offerVersionId);
+    if (!version) {
+      throw new DomainError("OFFER_VERSION_NOT_FOUND", "Angebotsversion nicht gefunden", 404);
+    }
     return version;
   }
 
@@ -99,7 +108,7 @@ export class OfferService {
     };
     this.repos.putOfferVersion(updated);
     await this.offerPersistence.syncOfferSubgraphFromMemory(this.repos, input.tenantId, version.offerId);
-    this.auditService.append({
+    await this.auditService.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "OFFER_VERSION",

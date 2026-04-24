@@ -38,7 +38,7 @@ const OFFER_STATUS_ACTION_BY_ROLE: Record<UserRole, string[]> = {
     "OFFER_SET_ABGELEHNT",
     "OFFER_CREATE_SUPPLEMENT",
   ],
-  VERTRIEB: [
+  VERTRIEB_BAULEITUNG: [
     "OFFER_SET_IN_FREIGABE",
     "OFFER_SET_VERSENDET",
     "OFFER_SET_ANGENOMMEN",
@@ -61,7 +61,7 @@ const SUPPLEMENT_ACTION_BY_ROLE: Record<UserRole, string[]> = {
     "SUPPLEMENT_APPLY_BILLING_IMPACT",
     "OFFER_CREATE_SUPPLEMENT",
   ],
-  VERTRIEB: [
+  VERTRIEB_BAULEITUNG: [
     "SUPPLEMENT_SET_IN_FREIGABE",
     "SUPPLEMENT_SET_VERSENDET",
     "SUPPLEMENT_SET_BEAUFTRAGT",
@@ -82,7 +82,7 @@ const SUPPLEMENT_ACTION_BY_ROLE: Record<UserRole, string[]> = {
 const EXPORT_ACTIONS_BY_ROLE: Record<UserRole, string[]> = {
   ADMIN: ["EXPORT_INVOICE", "EXPORT_OFFER_VERSION", "EXPORT_SUPPLEMENT_VERSION"],
   BUCHHALTUNG: ["EXPORT_INVOICE"],
-  VERTRIEB: ["EXPORT_OFFER_VERSION", "EXPORT_SUPPLEMENT_VERSION"],
+  VERTRIEB_BAULEITUNG: ["EXPORT_OFFER_VERSION", "EXPORT_SUPPLEMENT_VERSION"],
   GESCHAEFTSFUEHRUNG: ["EXPORT_INVOICE", "EXPORT_OFFER_VERSION", "EXPORT_SUPPLEMENT_VERSION"],
   VIEWER: [],
 };
@@ -97,7 +97,7 @@ const MEASUREMENT_ACTION_BY_ROLE: Record<UserRole, string[]> = {
     "MEASUREMENT_SET_ARCHIVIERT",
     "MEASUREMENT_CREATE_VERSION",
   ],
-  VERTRIEB: [
+  VERTRIEB_BAULEITUNG: [
     "MEASUREMENT_CREATE",
     "MEASUREMENT_UPDATE_POSITIONS",
     "MEASUREMENT_SET_GEPRUEFT",
@@ -119,7 +119,7 @@ const LV_ACTION_BY_ROLE: Record<UserRole, string[]> = {
     "LV_UPDATE_NODE_EDITING_TEXT",
     "LV_UPDATE_POSITION",
   ],
-  VERTRIEB: [
+  VERTRIEB_BAULEITUNG: [
     "LV_CATALOG_CREATE",
     "LV_ADD_STRUCTURE_NODE",
     "LV_ADD_POSITION",
@@ -135,7 +135,7 @@ export class AuthorizationService {
   constructor(private readonly repos: InMemoryRepositories) {}
 
   public assertCanCreateOfferVersion(role: UserRole): void {
-    if (!new Set<UserRole>(["ADMIN", "VERTRIEB"]).has(role)) {
+    if (!new Set<UserRole>(["ADMIN", "VERTRIEB_BAULEITUNG"]).has(role)) {
       throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Angebotsversion", 403);
     }
   }
@@ -151,6 +151,38 @@ export class AuthorizationService {
     const action = `SUPPLEMENT_SET_${nextStatus}`;
     if (!SUPPLEMENT_ACTION_BY_ROLE[role].includes(action)) {
       throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Nachtrags-Statuswechsel", 403);
+    }
+  }
+
+
+  public assertCanManagePaymentTerms(role: UserRole): void {
+    if (!new Set<UserRole>(["ADMIN", "GESCHAEFTSFUEHRUNG", "BUCHHALTUNG"]).has(role)) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Zahlungsbedingungen", 403);
+    }
+  }
+
+  public assertCanReadPaymentTerms(role: UserRole): void {
+    if (!new Set<UserRole>(["ADMIN", "GESCHAEFTSFUEHRUNG", "BUCHHALTUNG", "VERTRIEB_BAULEITUNG", "VIEWER"]).has(role)) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung zum Lesen der Zahlungsbedingungen", 403);
+    }
+  }
+
+  public assertCanCreateInvoiceDraft(role: UserRole): void {
+    if (!new Set<UserRole>(["ADMIN", "GESCHAEFTSFUEHRUNG", "BUCHHALTUNG"]).has(role)) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Rechnungsentwurf", 403);
+    }
+  }
+
+  public assertCanReadInvoice(role: UserRole): void {
+    if (!new Set<UserRole>(["ADMIN", "GESCHAEFTSFUEHRUNG", "BUCHHALTUNG", "VERTRIEB_BAULEITUNG", "VIEWER"]).has(role)) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Rechnung", 403);
+    }
+  }
+
+  /** FIN-3: Zahlungseingang buchen. */
+  public assertCanRecordPaymentIntake(role: UserRole): void {
+    if (!new Set<UserRole>(["ADMIN", "GESCHAEFTSFUEHRUNG", "BUCHHALTUNG"]).has(role)) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Zahlungseingang", 403);
     }
   }
 
@@ -217,6 +249,12 @@ export class AuthorizationService {
       throw new DomainError("MEASUREMENT_NOT_FOUND", "Aktuelle Aufmassversion nicht gefunden", 404);
     }
     assertMeasurementCreateVersionAllowedForStatus(version.status);
+  }
+
+  public assertCanManageTenantUsers(role: UserRole): void {
+    if (role !== "ADMIN") {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Nur Administratoren dürfen Benutzerkonten verwalten.", 403);
+    }
   }
 
   public assertCanCreateLvCatalog(role: UserRole): void {

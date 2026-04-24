@@ -12,8 +12,8 @@ try {
 }
 
 const tenantId = process.argv[2] ?? "11111111-1111-4111-8111-111111111111";
-const roleArg = process.argv[3] ?? "VERTRIEB";
-const role = roleArg as "ADMIN" | "VERTRIEB" | "GESCHAEFTSFUEHRUNG" | "BUCHHALTUNG" | "VIEWER";
+const roleArg = process.argv[3] ?? "VERTRIEB_BAULEITUNG";
+const role = roleArg as "ADMIN" | "VERTRIEB_BAULEITUNG" | "GESCHAEFTSFUEHRUNG" | "BUCHHALTUNG" | "VIEWER";
 
 const token = createSignedToken({
   sub: "77777777-7777-4777-8777-777777777777",

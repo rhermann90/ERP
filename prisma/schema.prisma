@@ -1,5 +1,6 @@
 // ADR-0003/0006: Offer + OfferVersion; ADR Inkrement 2: current_version FK (deferrable), audit_events
 // ADR-0005/0004: LV §9 + Aufmass; offer_versions.lv_version_id -> lv_versions (FIN-2 Gate G5)
+// ADR-0008: payment_terms_heads / payment_terms_versions (FIN-1)
 
 generator client {
   provider = "prisma-client-js"
@@ -20,8 +21,9 @@ model Offer {
   createdAt        DateTime @map("created_at")
   createdBy        String   @map("created_by") @db.Uuid
 
-  versions       OfferVersion[] @relation("OfferVersions")
-  currentVersion OfferVersion   @relation("OfferCurrentVersion", fields: [tenantId, currentVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  versions         OfferVersion[]    @relation("OfferVersions")
+  currentVersion   OfferVersion      @relation("OfferCurrentVersion", fields: [tenantId, currentVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  supplementOffers SupplementOffer[]
 
   @@id([tenantId, id])
   @@map("offers")
@@ -40,9 +42,10 @@ model OfferVersion {
   createdBy     String    @map("created_by") @db.Uuid
   releasedAt    DateTime? @map("released_at")
 
-  offer       Offer     @relation("OfferVersions", fields: [tenantId, offerId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
-  asCurrentOf Offer[]   @relation("OfferCurrentVersion")
-  lvVersion   LvVersion @relation(fields: [tenantId, lvVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  offer                    Offer             @relation("OfferVersions", fields: [tenantId, offerId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  asCurrentOf              Offer[]           @relation("OfferCurrentVersion")
+  lvVersion                LvVersion         @relation(fields: [tenantId, lvVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  supplementOffersAsBase   SupplementOffer[] @relation("SupplementBaseOfferVersion")
 
   @@id([tenantId, id])
   @@unique([tenantId, offerId, versionNumber])
@@ -81,12 +84,50 @@ model LvVersion {
   catalogsCurrentOf LvCatalog[]       @relation("LvCatalogCurrentVersion")
   structureNodes    LvStructureNode[]
   positions         LvPosition[]
-  offerVersions     OfferVersion[]
-  measurements      Measurement[]
+  offerVersions       OfferVersion[]
+  measurements        Measurement[]
+  supplementVersions  SupplementVersion[]
 
   @@id([tenantId, id])
   @@unique([tenantId, lvCatalogId, versionNumber])
   @@map("lv_versions")
+}
+
+model SupplementOffer {
+  tenantId             String   @map("tenant_id") @db.Uuid
+  id                   String   @db.Uuid
+  offerId              String   @map("offer_id") @db.Uuid
+  baseOfferVersionId   String   @map("base_offer_version_id") @db.Uuid
+  createdAt            DateTime @map("created_at")
+  createdBy            String   @map("created_by") @db.Uuid
+
+  offer             Offer            @relation(fields: [tenantId, offerId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  baseOfferVersion  OfferVersion     @relation("SupplementBaseOfferVersion", fields: [tenantId, baseOfferVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  versions          SupplementVersion[]
+
+  @@id([tenantId, id])
+  @@map("supplement_offers")
+}
+
+model SupplementVersion {
+  tenantId            String   @map("tenant_id") @db.Uuid
+  id                  String   @db.Uuid
+  supplementOfferId   String   @map("supplement_offer_id") @db.Uuid
+  versionNumber       Int      @map("version_number")
+  status              String
+  lvVersionId         String   @map("lv_version_id") @db.Uuid
+  systemText          String   @map("system_text")
+  editingText         String   @map("editing_text")
+  createdAt           DateTime @map("created_at")
+  createdBy           String   @map("created_by") @db.Uuid
+
+  supplementOffer SupplementOffer @relation(fields: [tenantId, supplementOfferId], references: [tenantId, id], onUpdate: Restrict, onDelete: Cascade)
+  lvVersion       LvVersion       @relation(fields: [tenantId, lvVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, supplementOfferId, versionNumber])
+  @@index([tenantId, status])
+  @@map("supplement_versions")
 }
 
 model LvStructureNode {
@@ -185,6 +226,116 @@ model MeasurementPosition {
   @@id([tenantId, id])
   @@index([tenantId, measurementVersionId])
   @@map("measurement_positions")
+}
+
+
+/// FIN-1 (8.5): ein Kopf pro Projekt, append-only Versionszeilen.
+model PaymentTermsHead {
+  tenantId    String   @map("tenant_id") @db.Uuid
+  id          String   @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  customerId  String   @map("customer_id") @db.Uuid
+  createdAt   DateTime @map("created_at")
+  createdBy   String   @map("created_by") @db.Uuid
+
+  versions PaymentTermsVersion[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, projectId])
+  @@map("payment_terms_heads")
+}
+
+model PaymentTermsVersion {
+  tenantId      String   @map("tenant_id") @db.Uuid
+  id            String   @db.Uuid
+  headId        String   @map("head_id") @db.Uuid
+  versionNumber Int      @map("version_number")
+  termsLabel    String   @map("terms_label")
+  createdAt     DateTime @map("created_at")
+  createdBy     String   @map("created_by") @db.Uuid
+
+  head PaymentTermsHead @relation(fields: [tenantId, headId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, headId, versionNumber])
+  @@index([tenantId, headId])
+  @@map("payment_terms_versions")
+}
+
+
+/// FIN-2: Rechnung; optionale Referenz auf Zahlungsbedingungs-Version (FIN-1).
+model Invoice {
+  tenantId                String   @map("tenant_id") @db.Uuid
+  id                      String   @db.Uuid
+  projectId               String   @map("project_id") @db.Uuid
+  customerId              String   @map("customer_id") @db.Uuid
+  measurementId           String   @map("measurement_id") @db.Uuid
+  lvId                    String   @map("lv_id") @db.Uuid
+  offerId                 String   @map("offer_id") @db.Uuid
+  offerVersionId          String?  @map("offer_version_id") @db.Uuid
+  status                  String
+  immutableFromStatus     String   @map("immutable_from_status")
+  invoiceNumber           String?  @map("invoice_number")
+  issueDate               String?  @map("issue_date")
+  totalGrossCents         Int?     @map("total_gross_cents")
+  lvNetCents              Int?     @map("lv_net_cents")
+  vatCents                Int?     @map("vat_cents")
+  supplementOfferId       String?  @map("supplement_offer_id") @db.Uuid
+  supplementVersionId     String?  @map("supplement_version_id") @db.Uuid
+  paymentTermsVersionId   String?  @map("payment_terms_version_id") @db.Uuid
+
+  paymentIntakes PaymentIntake[]
+
+  @@id([tenantId, id])
+  @@index([tenantId, projectId])
+  @@map("invoices")
+}
+
+/// FIN-3: Zahlungseingang; Idempotenz (tenant_id, idempotency_key).
+model PaymentIntake {
+  tenantId          String   @map("tenant_id") @db.Uuid
+  id                String   @db.Uuid
+  invoiceId         String   @map("invoice_id") @db.Uuid
+  idempotencyKey    String   @map("idempotency_key") @db.Uuid
+  amountCents       Int      @map("amount_cents")
+  externalReference String   @map("external_reference")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  invoice Invoice @relation(fields: [tenantId, invoiceId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, invoiceId])
+  @@map("payment_intakes")
+}
+
+/// Anmeldekonto pro Mandant; E-Mail nur innerhalb des Mandanten eindeutig (Multi-Tenant-Scope).
+model User {
+  tenantId     String   @map("tenant_id") @db.Uuid
+  id           String   @db.Uuid
+  emailNorm    String   @map("email_norm")
+  passwordHash String   @map("password_hash")
+  role         String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@id([tenantId, id])
+  @@unique([tenantId, emailNorm])
+  @@map("users")
+}
+
+/// Einmal-Link Passwort-Reset (SHA-256-Digest des Klartext-Tokens, kein Klartext in DB).
+model PasswordResetChallenge {
+  id          String    @id @db.Uuid
+  tenantId    String    @map("tenant_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  tokenDigest String    @unique @map("token_digest")
+  expiresAt   DateTime  @map("expires_at")
+  usedAt      DateTime? @map("used_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([tenantId, userId])
+  @@map("password_reset_challenges")
 }
 
 /// Persistente Audit-Zeile; Lesepfad API bleibt DSGVO-minimiert (kein before/after in GET).

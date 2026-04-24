@@ -28,7 +28,7 @@ Details zu Postgres, `DATABASE_URL` und Prisma: [Root-`README.md`](../README.md)
 3. Backend starten (Port **3000**) mit CORS für die PWA-Origin, z. B.  
    `CORS_ORIGINS=http://localhost:5173 npm run dev`  
    (oder alles über Root-`.env`).
-4. Dev-Token (Repo-Root, gleiches Secret wie Backend): `npm run dev:token` — optional `npm run dev:token -- <tenantUuid> <ROLE>` (`ADMIN` \| `VERTRIEB` \| `GESCHAEFTSFUEHRUNG` \| `BUCHHALTUNG` \| `VIEWER`).
+4. Dev-Token (Repo-Root, gleiches Secret wie Backend): `npm run dev:token` — optional `npm run dev:token -- <tenantUuid> <ROLE>` (`ADMIN` \| `VERTRIEB_BAULEITUNG` \| `GESCHAEFTSFUEHRUNG` \| `BUCHHALTUNG` \| `VIEWER`).
 5. **PWA:** Repo-Root `npm run dev:web` oder hier `npm run dev`.
 6. In der UI: Token und **X-Tenant-Id** (muss zum Token passen, sonst `TENANT_SCOPE_VIOLATION`), Session-Modus, „Session anwenden“, „Allowed Actions laden“.
 
@@ -64,21 +64,19 @@ npm run test     # Frontend-Unit-Tests (SoT, Session, Envelope, Text-Rendering)
 
 ## MVP Finanz (v1.3) — Frontend-Stand FIN-0
 
-Gelesen: [`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`](../docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md), [`docs/tickets/FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md).
+Gelesen: [`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`](../docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md), [`docs/tickets/FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md). **Koordination / Gates:** [`docs/contracts/qa-fin-0-gate-readiness.md`](../docs/contracts/qa-fin-0-gate-readiness.md), [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](../docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md).
 
-**PR-Scope-Zeile:** `FIN-0; kein FIN-2.`
+**PR-Scope-Zeile:** `FIN-0 UI/Doku; kein FIN-2.`
 
-### Stand nach Merge PR #1
+**Was diese Runde geändert hat:** **Finanz (Vorbereitung)** ergänzt DOC_LINKS zu MVP-Phasen und PL-Sprint-Snapshot; Überschriftenhierarchie um eine nur für Screenreader sichtbare **h3** vor der Doku-Navigation; weiterhin **keine** Buchungs-/Zahlungs-/Mahn-Oberfläche und **keine** neuen Finanz-POSTs aus der UI. Hash-Route unverändert nur **`#/finanz-vorbereitung`**.
 
-Nach **Squash-Merge von PR #1** auf `main` ist die read-only Seite **Finanz (Vorbereitung)** (`#/finanz-vorbereitung`) mit Doku-Navigation und optionalem `getInvoice`-Lesepfad (`GET /invoices/{id}`) im Team-`main` konsolidiert. **Keine** Buchungs-, Zahlungs- oder Mahn-Oberfläche; Schreibpfade in der Shell weiter nur über `GET …/allowed-actions`. Für Contract-/QA-Transparenz bleiben die **Stub-Testmatrix** [`qa-fin-0-stub-test-matrix.md`](../docs/contracts/qa-fin-0-stub-test-matrix.md) und das **OpenAPI-Mapping** [`finance-fin0-openapi-mapping.md`](../docs/contracts/finance-fin0-openapi-mapping.md) zentrale Referenzen. **FIN-4** / **FIN-6** und Offline **8.14** werden hier weiter **nur dokumentiert**, nicht als Client-Schreiblogik umgesetzt.
+**Ergebnis / UI:** Read-only **„Finanz (Vorbereitung)“** (`#/finanz-vorbereitung`): Kurztext + Links zu ADR 0007, FIN-2-Start-Gate, `finance-fin0-openapi-mapping.md`, Stub-Testmatrix, MVP-Phasendokument, PL-Sprint-Snapshot (über `VITE_REPO_DOCS_BASE` oder lokale Pfade im UI). **Kein** Mahn-, Zahlungs- oder Buchungs-UI; Schreibaktionen weiter ausschließlich nach `GET …/allowed-actions`. **API-Client:** optionaler Lesepfad `getInvoice` → `GET /invoices/{invoiceId}` (OpenAPI-Stub). **API-Client allgemein:** Fehler-Envelope strikt an [`docs/contracts/error-codes.json`](../docs/contracts/error-codes.json) + Decision-Log (`Passthrough`; Fallback `x-request-id` / UUID + Code-Tabelle bei fehlenden Envelope-Feldern).
 
-**Was diese Runde geändert hat:** Auf **main** aufsetzend: README-Abschnitt „Stand nach Merge PR #1“; auf **Finanz (Vorbereitung)** zusätzliche **DOC_LINKS** zu MVP-Phasendokument und PL-Sprint-Snapshot (`PL-SYSTEM-ZUERST-2026-04-14.md`) für Nachvollziehbarkeit nach dem Merge — weiterhin read-only, keine neuen Finanz-POSTs aus der UI.
+### Stand / FIN-0 vs FIN-2
 
-**Ergebnis / UI:** Read-only **„Finanz (Vorbereitung)“** (`#/finanz-vorbereitung`): Kurztext + Links zu ADR 0007, FIN-2-Start-Gate, `finance-fin0-openapi-mapping.md`, Stub-Testmatrix (über `VITE_REPO_DOCS_BASE` oder lokale Pfade im UI). **Kein** Mahn-, Zahlungs- oder Buchungs-UI; Schreibaktionen weiter ausschließlich nach `GET …/allowed-actions`. **API-Client:** optionaler Lesepfad `getInvoice` → `GET /invoices/{invoiceId}` (OpenAPI-Stub). **API-Client allgemein:** Fehler-Envelope strikt an [`docs/contracts/error-codes.json`](../docs/contracts/error-codes.json) + Decision-Log (`Passthrough`; Fallback `x-request-id` / UUID + Code-Tabelle bei fehlenden Envelope-Feldern).
+Nach dem dokumentierten Merge-Kontext auf **`main`** (z. B. geschlossener PR [#1](https://github.com/rhermann90/ERP/pull/1) auf dieses Repo) bleibt die PWA bei **FIN-0**: read-only **Finanz (Vorbereitung)** mit Transparenz-Links — u. a. zur QA-**Stub-Testmatrix** [`qa-fin-0-stub-test-matrix.md`](../docs/contracts/qa-fin-0-stub-test-matrix.md) und zum **OpenAPI-Mapping** [`finance-fin0-openapi-mapping.md`](../docs/contracts/finance-fin0-openapi-mapping.md). **FIN-2** (produktive Rechnung / **8.4**-Motor) startet **erst** nach erfülltem [`FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md) (G1–G10); die UI implementiert **keinen** produktiven Buchungs-, Zahlungs- oder Mahnfluss davor.
 
-### Finanz (FIN-0 vs. spätere Phasen)
-
-FIN-0 in der PWA bedeutet hier **nur** Orientierung an Verträgen und Gates — keine produktive Rechnungsbuchung und kein 8.4-Berechnungsmotor vor Freigabe **G1–G10** in [`FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md). **FIN-4** (Mahnwesen, Spez **8.10**) und **FIN-6** (u. a. Härtung, **8.14**, **12**, **15**) sind spätere Ausbaustufen; bis dahin keine Offline-**Schreib**pfade für Zahlung oder Mahnung in der PWA (vgl. Spez **8.14** und Abschnitt Offline oben — **dokumentiert**, nicht als neue Client-Schreiblogik implementiert). Produktive Finanzvolumina und Audit-relevante Laufzeit bleiben an Backend, PL-Einträge und Gate gebunden.
+**FIN-4** (Mahnwesen, Spez **8.10**) und **FIN-6** (u. a. **8.14**, **12**, **15**) sind spätere Phasen; Offline-**Schreib**pfade für Zahlung oder Mahnung in der PWA bleiben **unverändert ausgeschlossen** (vgl. Spez **8.14** und Abschnitt Offline oben — **nur dokumentiert**, keine neue Client-Schreiblogik). Produktive Finanzvolumina und Audit-Laufzeit folgen Backend, PL-Einträgen und Gate.
 
 **Ticket-Kommentar (Vorlage):** „FIN-0 Frontend: kein Finanz-/Mahn-/Buchungs-UI und kein optionaler Stub ohne PL; `GET …/allowed-actions` bleibt einziger SoT für Schreibaktionen. Envelope-Normalisierung in `api-error.ts` an `error-codes.json` / `decision-log-phase1-frontend.md`; `npm run test -w apps/web` + `npm run build:web` grün.“
 
