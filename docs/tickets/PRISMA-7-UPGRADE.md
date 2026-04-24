@@ -1,5 +1,34 @@
 # PRISMA-7-UPGRADE — geplantes Major-Upgrade (eigenes Inkrement)
 
+## Status Hauptlinie (erledigt, 2026-04-24)
+
+- **Versionen (exakt gepinnt):** `prisma` 7.8.0, `@prisma/client` 7.8.0, `@prisma/adapter-pg` 7.8.0 — siehe [package.json](../../package.json). `npm ls prisma @prisma/client @prisma/adapter-pg` zeigt eine einzige 7.8.0-Zeile ohne Split.
+- **Laufzeit:** [`prisma.config.ts`](../../prisma.config.ts), Generator `prisma-client` + Output `generated/`, [`src/prisma-client.ts`](../../src/prisma-client.ts) mit `PrismaPg`-Adapter (keine direkten Imports aus `@prisma/client` im Anwendungscode).
+- **Validierung:** `npm run prisma:validate`, `npx prisma generate`, `npm run verify:ci` (Audit, Contract-YAML, Typecheck, Web-Build, Vitest inkl. Root) erfolgreich lokal.
+- **Persistenz / Migrate:** `npm run verify:ci:local-db` setzt **laufendes Docker** (Postgres 16 laut `ensure-local-test-db`) voraus; ohne Docker hier nicht ausgeführt — in CI (`backend` mit Postgres-Service) weiterhin Pflicht.
+- **Dependabot:** Gruppen-PR [#21](https://github.com/rhermann90/ERP/pull/21) hob nur `@prisma/client` an und wurde **geschlossen** (Split-Risiko). Künftige Prisma-PRs müssen **CLI + Client + Adapter** gemeinsam anheben.
+
+### Remote-Branches noch mit Prisma 5.22 (Stand Abfrage)
+
+Bei Reaktivierung: `git merge origin/main` (oder Rebase) und Konflikte nach obigem Muster auflösen — nicht blind alte `package.json`-Zeilen behalten.
+
+| Remote-Branch | `@prisma/client` in package.json |
+|---------------|----------------------------------|
+| `origin/feat/fin-0-mapping-idempotency-parity-2026-04-21` | ^5.22.0 |
+| `origin/feat/fin-0-post-pr1-mapping-parity` | ^5.22.0 |
+| `origin/feat/fin-0-runde-2026-04-19-openapi-mapping-parity` | ^5.22.0 |
+| `origin/feat/fin-0-stub-tenant-get-invoice-2026-04-21` | ^5.22.0 |
+| `origin/feat/fin-0-web-finance-vorbereitung` | ^5.22.0 |
+| `origin/feat/fin-0-web-post-merge-doku` | ^5.22.0 |
+| `origin/feat/fin-0-web-ui-doku-2026-04-19` | ^5.22.0 |
+| `origin/feat/finance-ci-gate-verify` | ^5.22.0 |
+| `origin/feat/pr-b-pwa-shell-role-ux` | ^5.22.0 |
+| `origin/feat/wip-recovery-from-stash-2026-04-21` | ^5.22.0 |
+
+`origin/feat/m4-mahnlauf-mandant-automation` und `main` sind auf **7.x** (Hauptlinie).
+
+---
+
 ## Kontext
 
 Dependabot-PRs für nur `@prisma/client` oder nur `prisma` führen zu einem **Versions-Split** und brechen `npm ci` / `postinstall` (`prisma generate`). Abgeschlossenes Beispiel: PR#14 (geschlossen). Künftig gruppiert [`.github/dependabot.yml`](../../.github/dependabot.yml) Prisma-Pakete in einem gemeinsamen PR.
