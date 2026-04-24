@@ -1,6 +1,6 @@
 # QA Matrix — Persistenz-Inkrement 1 (Offer-Vertikalschnitt, ADR-0006)
 
-**Fachliche Referenz:** `ERP Systembeschreibung v1.2.md`, `docs/adr/0003-persistence-spike.md`, `docs/adr/0006-offer-vertical-slice-persistence.md`.
+**Fachliche Referenz:** `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`, `docs/adr/0003-persistence-spike.md`, `docs/adr/0006-offer-vertical-slice-persistence.md`.
 
 **Scope:** Reproduzierbare Migrationen, tenant-sichere DB-Constraints im migrierten Schnitt, Fail-closed Start ohne `DATABASE_URL` in produktionsnahen Modi, Regression der bestehenden API-Tests (In-Memory bleibt Default in `NODE_ENV=test`).
 

@@ -1,7 +1,7 @@
-# Entwicklungsphasen MVP — Abgleich mit ERP Systembeschreibung v1.3
+# Entwicklungsphasen MVP — Abgleich mit kanonischer Systembeschreibung (MVP-Finanz)
 
-**Stand der Bewertung:** 2026-04-14  
-**Verbindliche Domänenquelle:** `ERP Systembeschreibung v1.3.md` (vgl. `.cursor/rules/erp-multi-agent.mdc`)  
+**Stand der Bewertung:** 2026-04-14 (Kurz-Iststand Tabelle: ergänzt 2026-04-23 — wie 2026-04-22, zuzüglich FIN-4 Konfig **PATCH/DELETE**, Soft-Delete, **Audit+Konfig in einer DB-Transaktion**; M4 **Vorlagen-Read** `GET /finance/dunning-reminder-templates`)  
+**Verbindliche Domänenquelle:** `docs/ERP-Systembeschreibung.md` (vgl. `.cursor/rules/erp-multi-agent.mdc`)  
 **Kanonisches FIN-2-Start-Gate:** [`docs/tickets/FIN-2-START-GATE.md`](./tickets/FIN-2-START-GATE.md) — **binäre** Kriterien **G1–G10** vor Beginn der FIN-2-Implementierung.  
 **Ziel dieses Dokuments:** Phasen und **Meilensteine** für die **technische Umsetzung** des Finanz-Submodells und angrenzender MVP-Pflichten aus **Abschnitt 8** sowie **§12/§15**; es ersetzt **nicht** die bestehende **Phase-2-Planung (v1.2)** zu LV/Aufmass — beide Stränge müssen **konvergieren**, sobald Rechnungsbeträge aus **LV/Aufmass** gespeist werden.
 
@@ -11,9 +11,9 @@
 
 | Bereich | Stand (hochlevel) |
 |--------|-------------------|
-| **Persistenz** | Postgres + Prisma für **Offer** / **OfferVersion** und **AuditEvent** (ADR-0006); übrige Aggregate weiterhin überwiegend **In-Memory** im Prozess (README). |
-| **Kerndomäne (Code)** | Angebot, Nachtrag/Supplement, LV-/Aufmass-/Export-/Traceability-Services in `src/`; Export-Preflight u. a. für Rechnung; **kein** vollständiges Finanz-Submodell §8 als persistiertes Modell. |
-| **PWA** | `apps/web`: Shell, `allowedActions`-gekoppelte Schreibpfade, Tenant-Session; **kein** Mahn- oder Zahlungs-UI-Slice produktiv. |
+| **Persistenz** | Postgres + Prisma u. a. für **Offer** / **OfferVersion**, **AuditEvent** (ADR-0006), **invoices**, **payment_intakes**, **dunning_reminders**, **dunning_tenant_stage_config**, **dunning_tenant_stage_templates** (M4 Read-Slice), **payment_terms_heads** / **payment_terms_versions** (FIN-2/FIN-3/FIN-4/FIN-1); Arbeits-Cache weiterhin **In-Memory** im Prozess mit Write-Through (README). |
+| **Kerndomäne (Code)** | Angebot, Nachtrag/Supplement, LV-/Aufmass-/Export-/Traceability-Services; **Rechnung** (Entwurf, Buchung, SoT **BOOK_INVOICE**) und **Zahlungseingang** (Intake, Idempotenz, Status TEILBEZAHLT/BEZAHLT); **8.4:** Schritt 1 + USt/Brutto (7–8) produktiv; **B2-1a:** optionaler Skonto-Anteil (`skontoBps`) auf Netto nach Schritt 1; Schritte 3–6 weiterhin Identität in `netCentsAfterStep84_6Mvp` (ADR-0007) — **kein** vollständiger 8.4(2–6)-Motor, 8.8–8.9-Zuordnung; **FIN-4:** Mahn-Ereignisse + **GET|PUT|PATCH|DELETE** Mandanten-Stufen-Konfig (`/finance/dunning-reminder-config`, ADR-0009 Slices 3–8) + **M4** Vorlagen/Footer/E-Mail + **Mahnlauf** `GET` Kandidaten / `POST` `DRY_RUN`/`EXECUTE` (ADR-0010 **5b-0/5b-1**) + Mandanten-Modus **`GET|PATCH /finance/dunning-reminder-automation`** + optionaler **Cron** `POST /internal/cron/dunning-automation` bei gesetztem Geheimnis (**5b-2**, kein Batch-E-Mail). |
+| **PWA** | `apps/web`: Shell, `allowedActions`-gekoppelte Schreibpfade (inkl. Buchung **BOOK_INVOICE**), Tenant-Session; Finanz-Vorbereitung mit Zahlungseingang (FIN-3), Mahn-Ereignis (FIN-4), Konfig/Vorlagen/Footer-JSON, **Mandanten-Automation** und **Mahnlauf-Batch** (Vorschau/Ausführung mit Idempotency-Key); optional **Schreib-UI** Mahnstufen (PUT/PATCH/DELETE). |
 | **Spezifikation** | Finanz-Submodell **§8** inkl. Mahnwesen **8.10**, EUR/Steuer **8.16**, Quality Gate **15** in v1.3 ausdifferenziert; **Revision** siehe Fußzeile v1.3-Dokument. |
 
 **Konsequenz:** Das MVP nach v1.3 braucht eine **eigene Phasenfolge** unterhalb von „Phase 2 (v1.2)“, mit klaren **Schnittstellen** zur LV-/Aufmass-Kette (Traceability **8.1** / **5.5**).
@@ -115,6 +115,8 @@
 
 **Spez:** **8.10** (inkl. Vorlagen-Typen, Pflichtplatzhalter `{{MahngebuehrEUR}}`, Skonto auf Erinnerung/Avis, normierte Skonto-Auflösung, **Standard-Tagesfristen** und **Mahngebühren** editierbar, **E-Mail-Systemfooter**, Massenversand-**Vorschau**, Audit).
 
+**Slice 1–2 (2026-04-22):** Tabelle **`dunning_reminders`**, Lesepfad **`GET /invoices/{invoiceId}/dunning-reminders`**, Schreibpfad **`POST /invoices/{invoiceId}/dunning-reminders`** mit SoT **`RECORD_DUNNING_REMINDER`**, Hydrate in In-Memory-Cache, PWA — **`docs/adr/0009-fin4-mahnwesen-slice.md`**. **Slice 3 (2026-04-22):** **`GET /finance/dunning-reminder-config`** — MVP-Default-Stufenmetadaten (statisch, kein DB-Konfigurationsschreibpfad). Dient als Persistenz-Anker und API-Kontrakt; **M4**-Lieferobjekte (Vorlagen, Footer, E-Mail) — **`docs/adr/0010-fin4-m4-dunning-email-and-templates.md`** — und Meilenstein unten bleiben das vollständige Zielbild (Konfiguration, Vorlagen, E-Mail, **kein** Mix mit 8.4-/Status-Inkrementen derselben Welle).
+
 **Lieferobjekte**
 
 - Mandantenkonfiguration Mahnstufen inkl. **genau einem** Vorlagen-Typ pro Stufe; Produkt-Defaults, mandanteneditierbar, **12** auditierbar.  
@@ -184,6 +186,12 @@
 
 ---
 
-**Nächster Schritt:** Kick-off **FIN-0** (ADR-Entwurf + Schnittstelle Rechnung ↔ bestehende Traceability), Pflege **`docs/tickets/FIN-2-START-GATE.md`** (G1–G10), Eintrag der Phasen in euer Ticket-System (Labels `FIN-0` … `FIN-6`).
+## Operativer Arbeitsplan (Schritt-für-Schritt)
+
+Für die **sequenzielle** Bearbeitung inklusive QA- und Review-Blöcke je Arbeitspaket: [`docs/PHASENARBEITSPLAN-MVP-V1.3-FINANZ.md`](./PHASENARBEITSPLAN-MVP-V1.3-FINANZ.md). Das Dokument **ergänzt** diese Phasenbeschreibung; Zielbild und Meilensteine **M0–M6** bleiben hier maßgeblich.
+
+**Nächster Schritt (technisch):** Umsetzung und Priorisierung **Finanz Welle 3** — siehe [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) (Pfad A **B2-1a** gewählt, Pfad C zurückgestellt, M4 nur planen). Vorherige Welle: [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE2.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE2.md). Gate-Stand: [`docs/tickets/FIN-2-START-GATE.md`](./tickets/FIN-2-START-GATE.md). PR-Review: [`docs/contracts/review-checklist-finanz-pr.md`](./contracts/review-checklist-finanz-pr.md). Audit-/GoBD-Abstimmung: [`docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md).
+
+**Nächster Schritt (fachlich vor Mandanten-Go):** Checkliste [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) mit StB/DSB/PL — **zusätzlich** zu Software- und CI-Abnahme (siehe [`README.md`](../README.md)).
 
 **Koordination / Gates:** [`docs/contracts/qa-fin-0-gate-readiness.md`](./contracts/qa-fin-0-gate-readiness.md) (Merge-Evidence §5a/§5b, **Rückmeldung an Projektleitung**), [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](./tickets/PL-SYSTEM-ZUERST-VORLAGE.md), [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](./tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md); **Rückmeldung für die nächste Arbeitsplanung** verbindlich nur vom **Code Reviewer** (wortgleiches **blocking** wie im GitHub-Review). Team-Clone mit kanonischem Remote `rhermann90/ERP`; Multi-Agent-Regeln [`.cursor/rules/erp-multi-agent.mdc`](../.cursor/rules/erp-multi-agent.mdc).

@@ -4,7 +4,7 @@
 
 ## Kontext
 
-`ERP Systembeschreibung v1.2.md` §5.4 definiert Aufmass:  
+`docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md` §5.4 definiert Aufmass:  
 `Entwurf -> Geprueft -> Freigegeben -> Abgerechnet -> Archiviert` mit der Regel: **nach Freigabe nur Korrektur über neue Aufmassversion**.  
 §2/§7 verlangen nachvollziehbare Ketten bis Rechnung/LV/Projekt/Kunde.
 

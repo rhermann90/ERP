@@ -1,10 +1,12 @@
 # Delta Backend Spec v1.2
 
+**Archiv:** Diese Datei liegt unter `docs/_archiv/historische-phase1-qa-und-kontraktdiff/` (historischer v1.2-Abgleich). Für die aktuelle Systembeschreibung siehe [`docs/ERP-Systembeschreibung.md`](../../ERP-Systembeschreibung.md).
+
 ## Zweck
-1:1-Sync zwischen Backend-SoT (Implementierung + `docs/api-contract.yaml`) und Contract-Artefakten:
-- `docs/contracts/action-contracts.json`
-- `docs/contracts/error-codes.json`
-- `docs/contracts/module-contracts.json`
+1:1-Sync zwischen Backend-SoT (Implementierung + `../../api-contract.yaml`) und Contract-Artefakten:
+- `../../contracts/action-contracts.json`
+- `../../contracts/error-codes.json`
+- `../../contracts/module-contracts.json`
 
 ## Änderungen (Inc1 Sync)
 
@@ -30,7 +32,7 @@
     `OFFER_CREATE_SUPPLEMENT` / `POST /offers/{offerId}/supplements`.
 
 5. **OpenAPI-Textabgleich**
-- `docs/api-contract.yaml` Beschreibungen konkretisiert:
+- `../../api-contract.yaml` Beschreibungen konkretisiert:
   - `/offers/status` nennt jetzt inkl. `ANGENOMMEN|ABGELEHNT`.
   - `/supplements/status` nennt vollständige Nachtrags-Transitions.
 
@@ -44,7 +46,7 @@
 - **`exportPreflightDetailTokens`** in `error-codes.json`: u. a. `LV_VERSION_MISSING` unter Parent `EXPORT_PREFLIGHT_FAILED` (kein eigener top-level `code`).
 - **PATCH strict (Zod):** **umgesetzt** — `PATCH /lv/nodes/.../editing-text` und `PATCH /lv/positions/...`: unbekannte Body-Keys → `VALIDATION_FAILED` /400; `systemText` im Body weiterhin → `LV_SYSTEM_TEXT_IMMUTABLE` /409 (`assertSystemTextNotInUpdatePayload` vor `parse`; ADR-0005 D7).
 
-# Delta: Backend / Tests / Contracts vs. `ERP Systembeschreibung v1.2.md`
+# Delta: Backend / Tests / Contracts vs. `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`
 
 Stand: 2026-04-14 (aktualisiert nach Phase-2-Increment-2 LV §9). Ziel: fachliche und technische Lücken nach Fortschreibung der Systembeschreibung schließen.
 
@@ -55,7 +57,7 @@ Stand: 2026-04-14 (aktualisiert nach Phase-2-Increment-2 LV §9). Ziel: fachlich
 | `OfferService.createVersion` + `offer-create-version-policy.ts` | Zentrale Policy: `ENTWURF`–`VERSENDET` ja, ab `ANGENOMMEN` `FOLLOWUP_DOCUMENT_REQUIRED` | — **behoben** |
 | `AuthorizationService.allowedOfferActionsByStatus` vs. `createVersion` | Gleiche Policy + Rollenfilter; kein Drift mehr | — **behoben** |
 | `POST /offers/version` | Ruft `assertOfferCreateVersionForOffer` (identische Regel wie allowed-actions) | — **behoben** |
-| `docs/contracts/action-contracts.json` (`OFFER_CREATE_VERSION`) | `allowedFromStatus` aligned; `NEW_VERSION_REQUIRED` entfernt | — **behoben** |
+| `../../contracts/action-contracts.json` (`OFFER_CREATE_VERSION`) | `allowedFromStatus` aligned; `NEW_VERSION_REQUIRED` entfernt | — **behoben** |
 | `module-contracts.json` (Offer) | `immutableLegalAreas` v1.2 präzisiert | — **behoben** |
 | Nachtragsdomäne (Entität, API, Traceability) | Minimal-API `POST /offers/{offerId}/supplements` implementiert (Basisversion muss `ANGENOMMEN`) | — **teilweise behoben** |
 | Tests | v1.2-Benennung; Negativ `ANGENOMMEN` + `POST /offers/version`; SoT IN_FREIGABE | — **behoben** |
@@ -95,7 +97,7 @@ Stand: 2026-04-14 (aktualisiert nach Phase-2-Increment-2 LV §9). Ziel: fachlich
 
 - **v1.2 §9**: Bereich→Titel→Untertitel→Position; Systemtext vs. Bearbeitungstext; keine §10-Mietlogik in Inc2.
 - **Code**: `lv-service.ts`, Policies `lv-version-lifecycle-policy.ts`, `lv-create-version-policy.ts`, `lv-text-structure-policy.ts`, Routen `/lv/*`, `LvReferenceValidator` in Angebot/Nachtrag/Messung, Traceability prüft `LvVersion` zu `invoice.lvId`.
-- **ADR**: `docs/adr/0005-lv-hierarchy-phase2-inc2.md`.
+- **ADR**: `../../adr/0005-lv-hierarchy-phase2-inc2.md`.
 - **Contracts**: `action-contracts.json` / `module-contracts.json` / `error-codes.json` auf **1.4.0** (Inc2 LV-Aktionen, `LV_*`-Codes, SoT-`entityType`-Erweiterung); OpenAPI-Query `entityType` bei `GET /documents/{id}/allowed-actions` ≡ `AllowedActionsResponse.entityType`.
 - **Tests**: `Phase 2 Inc2 — LV §9` in `test/app.test.ts` (inkl. `LV_SYSTEM_TEXT_IMMUTABLE` bei `systemText` in PATCH-Body).
 

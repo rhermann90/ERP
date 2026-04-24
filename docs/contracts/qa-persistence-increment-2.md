@@ -1,6 +1,6 @@
 # QA Matrix — Persistenz-Inkrement 2 (CI-Postgres, `current_version_id`, Audit-DB)
 
-**Fachliche Referenz:** `ERP Systembeschreibung v1.2.md`, `docs/adr/0006-offer-vertical-slice-persistence.md`, Migration `prisma/migrations/20260215120000_deferrable_offer_fks_and_audit_events/migration.sql`.
+**Fachliche Referenz:** `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`, `docs/adr/0006-offer-vertical-slice-persistence.md`, Migration `prisma/migrations/20260215120000_deferrable_offer_fks_and_audit_events/migration.sql`.
 
 **Suite:** `test/persistence.integration.test.ts` — `describe`-Name exakt: **`Persistence Inkrement 2 (Postgres; in CI ohne SKIP)`** (`describe.sequential` bei gesetztem `PERSISTENCE_DB_TEST_URL`, sonst `describe.skip`).
 
