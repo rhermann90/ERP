@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
-  title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-1/2 Finance + FIN-3 Stub)
-  version: 1.7.0-password-reset
+  title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-1/2/3/4 Finance)
+  version: 1.23.0-fin4-m4-dunning-tenant-automation
   description: |
     **PWA / Browser-Anbindung**
     - **CORS**: Umgebungsvariable `CORS_ORIGINS` — kommagetrennte, exakte Origins (z. B. `https://app.example.com,http://localhost:5173`). Leer oder unset: keine `Access-Control-*`-Header (gleiche Origin oder Server-zu-Server).
@@ -20,8 +20,14 @@ tags:
       Mandanten-isolierte Benutzerverwaltung (Tabelle `users`). Schreibzugriff nur mit Rolle **ADMIN**; ohne Postgres antwortet die API mit `503` / `USER_MANAGEMENT_REQUIRES_DB`.
   - name: Finance (FIN-0)
     description: |
-      Verbleibende Contract-Stubs (v. a. **Zahlungseingang**). FIN-1/FIN-2 sind unter eigenen Tags dokumentiert.
-      Mapping und Fehlercodes: `docs/contracts/finance-fin0-openapi-mapping.md`.
+      Historisch: Contract-Stubs / Mapping-Dokument (`finance-fin0-openapi-mapping.md`). Produktiver Zahlungseingang: **Finance (FIN-3)**.
+  - name: Finance (FIN-3)
+    description: |
+      Zahlungseingang (Spez 8.7): `POST /finance/payments/intake` mit Idempotenz `(tenant_id, idempotency_key)`, Persistenz und Rechnungsstatus **TEILBEZAHLT** / **BEZAHLT** (ADR-0007).
+      Mapping: `docs/contracts/finance-fin0-openapi-mapping.md`.
+  - name: Finance (FIN-4)
+    description: |
+      Mahnwesen (Spez 8.10): **Kern** — `GET|PUT /finance/dunning-reminder-config` und `PATCH|DELETE …/stages/{stageOrdinal}` (Lesen: MVP **oder** 9 **aktive** DB-Stufen; Schreiben: Postgres, Rollen wie Zahlungseingang); `GET /invoices/{invoiceId}/dunning-reminders` (Liste); `POST` Mahn-Ereignis; Tabellen `dunning_reminders`, `dunning_tenant_stage_config` — `docs/adr/0009-fin4-mahnwesen-slice.md`. **M4** — `GET /finance/dunning-reminder-templates` (Slice 1: MVP **oder** 18 aktive DB-Zeilen 9×2 Kanäle); **`PATCH …/templates/stages/{stageOrdinal}/channels/{channel}`** (Slice 2: `body` mit Pflichtplatzhaltern §8.10, Audit in DB-Tx); **`GET|PATCH /finance/dunning-email-footer`** (Slice 3: Impressum-Stammdaten); **`POST …/dunning-reminders/email-preview`** und **`POST …/send-email-stub`** (Slice 4: Plain-Text-Vorschau; Versand nur Audit, kein SMTP); **`POST …/dunning-reminders/send-email`** (Slice 5a: SMTP, Idempotenz); **`GET /finance/dunning-reminder-candidates`** (Slice **5b-0**: Lesepfad Mahnlauf-Kandidaten, keine Mutation); **`POST /finance/dunning-reminder-run`** (Slice **5b-1**: Mahnlauf `DRY_RUN`/`EXECUTE`, Idempotenz `dunning_reminder_run_intents`); **`GET|PATCH /finance/dunning-reminder-automation`** (Mandanten-Modus OFF/SEMI/AUTO, optional `job_hour_utc`); Tabellen `dunning_tenant_stage_templates`, `dunning_tenant_email_footer`, `dunning_email_sends`, `dunning_tenant_automation` — `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`. SoT **`RECORD_DUNNING_REMINDER`** in `allowed-actions` für gebuchte/teilbezahlte Rechnung.
   - name: Finance (FIN-1)
     description: |
       Zahlungsbedingungen (Spez 8.5): Konditionskopf pro Projekt, append-only Versionen — `docs/adr/0008-payment-terms-fin1.md`.
@@ -51,9 +57,9 @@ components:
         type: string
         format: uuid
       description: |
-        Pflicht für Zahlungseingang (8.7) sobald Endpunkt produktiv; technische Eindeutigkeit `(tenant_id, idempotency_key)` gemäß ADR-0007.
-        FIN-0 dokumentiert nur den Contract — kein produktiver Buchungsweg.
-        FIN-0-Backend: Header wird **case-insensitive** gelesen (HTTP-Üblichkeit); Wert muss **UUID** sein, sonst `400` / `VALIDATION_FAILED`.
+        Pflicht für `POST /finance/payments/intake` (8.7), `POST /invoices/{invoiceId}/dunning-reminders/send-email` (M4 Slice 5a) und `POST /finance/dunning-reminder-run` mit `mode: EXECUTE` (M4 Slice 5b-1);
+        technische Eindeutigkeit je Endpunkt (Zahlungseingang: `payment_intakes`; Mahn-E-Mail: `dunning_email_sends`; Mahnlauf: `dunning_reminder_run_intents`) gemäß ADR-0007 bzw. ADR-0010.
+        Header wird **case-insensitive** gelesen; Wert muss **UUID** sein, sonst `400` / `VALIDATION_FAILED`.
   schemas:
     AllowedActionsResponse:
       type: object
@@ -76,7 +82,7 @@ components:
             entityType=MEASUREMENT_VERSION: Aktionen gemäß §5.4 v1.2 (z. B. MEASUREMENT_CREATE_VERSION nur nach FREIGEGEBEN/ABGERECHNET;
             historische Versionen: leere allowedActions).
             entityType=LV_VERSION|LV_STRUCTURE_NODE|LV_POSITION: gemäß §9 v1.2 und ADR-0005 (Text/Struktur nur ENTWURF aktuelle Version).
-            entityType=INVOICE: kanonische Export-Aktion **EXPORT_INVOICE** (Format `XRECHNUNG` nur im Body von POST /exports); kein separates actionId-Suffix pro Format.
+            entityType=INVOICE: **BOOK_INVOICE** (ENTWURF, Rollen ADMIN|GESCHAEFTSFUEHRUNG|BUCHHALTUNG) → POST /invoices/{id}/book; kanonische Export-Aktion **EXPORT_INVOICE** (Format `XRECHNUNG` nur im Body von POST /exports); **RECORD_PAYMENT_INTAKE** nur GEBUCHT_VERSENDET|TEILBEZAHLT; **RECORD_DUNNING_REMINDER** dieselben Status/Rollen → POST /invoices/{id}/dunning-reminders; kein separates actionId-Suffix pro Exportformat.
     MeasurementPosition:
       type: object
       required: [lvPositionId, quantity, unit]
@@ -324,6 +330,7 @@ components:
         FIN-2 — Rechnung als Entwurf (**8.2**). `lvVersionId` verbindliche Bezugsgröße für **8.4 Schritt 1** (FIN-2-Start-Gate **G5**).
         `invoiceCurrencyCode` explizit required; v1.3 buchführungsrelevant nur **EUR** — **ohne** OpenAPI-Default.
         Optional `paymentTermsVersionId` muss zum Projekt des Angebots passen (FIN-1).
+        Optional `skontoBps` (0–10_000): **8.4(2)** Skonto aliquot auf LV-Netto nach Schritt 1 (B2-1a); USt/Brutto auf reduziertes Netto.
       required: [lvVersionId, offerVersionId, invoiceCurrencyCode, reason]
       properties:
         lvVersionId:
@@ -339,16 +346,64 @@ components:
           type: string
           format: uuid
           description: Optional; wenn gesetzt, muss die Version zum Projekt der Angebotsversion gehören.
+        skontoBps:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          description: Skonto in Basispunkten; 0 = kein Abzug. 10000 würde das gesamte Netto tilgen und wird serverseitig abgelehnt, wenn kein positives Netto übrig bleibt.
         reason:
           type: string
           minLength: 5
     CreateInvoiceDraftResponse:
       type: object
-      required: [invoiceId]
+      required: [invoiceId, lvNetCents, vatRateBps, vatCents, totalGrossCents, skontoBps]
       properties:
         invoiceId:
           type: string
           format: uuid
+        lvNetCents:
+          type: integer
+        vatRateBps:
+          type: integer
+        vatCents:
+          type: integer
+        totalGrossCents:
+          type: integer
+        skontoBps:
+          type: integer
+          minimum: 0
+          maximum: 10000
+    BookInvoiceRequest:
+      type: object
+      description: |
+        FIN-2 — Rechnung aus **ENTWURF** buchen (**8.2** / gebucht unveränderlich ab `GEBUCHT_VERSENDET`).
+        `issueDate` optional; Standard ist UTC-Datum `yyyy-mm-dd` am Buchungstag.
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 5
+        issueDate:
+          type: string
+          format: date
+          description: ISO-Datum Buchungs-/Ausstellungsdatum; wenn fehlt, setzt der Server UTC heute.
+    BookInvoiceResponse:
+      type: object
+      required: [invoiceId, status, invoiceNumber, issueDate, totalGrossCents]
+      properties:
+        invoiceId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [GEBUCHT_VERSENDET]
+        invoiceNumber:
+          type: string
+        issueDate:
+          type: string
+          format: date
+        totalGrossCents:
+          type: integer
     InvoiceGetResponse:
       type: object
       required:
@@ -394,12 +449,27 @@ components:
           format: date
         totalGrossCents:
           type: integer
+        lvNetCents:
+          type: integer
+          description: Netto nach 8.4 bis Schritt 6 (inkl. B2-1a-Skonto auf Schritt-1-Netto).
+        vatCents:
+          type: integer
+        vatRateBps:
+          type: integer
+          description: Regel-USt-Satz in Basispunkten (MVP 19 % = 1900).
+        totalPaidCents:
+          type: integer
         paymentTermsVersionId:
           type: string
           format: uuid
+        skontoBps:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          description: Persistierter Skonto-Anteil aus Entwurfserzeugung (B2-1a).
     PaymentIntakeRequest:
       type: object
-      description: Platzhalter FIN-3 / Anbindung **8.7** — Zahlungseingang (ohne produktive Buchung in FIN-0).
+      description: Zahlungseingang **8.7** — nur bei gebuchter/versendeter oder teilbezahlter Rechnung mit 8.4-Beträgen.
       required: [invoiceId, amountCents, externalReference, reason]
       properties:
         invoiceId:
@@ -407,15 +477,708 @@ components:
           format: uuid
         amountCents:
           type: integer
-          description: Geldbetrag in Cent; Rundungslogik **8.12** ausschließlich serverseitig nach ADR-0007 (nicht im FIN-0-Backend implementiert).
+          description: Geldbetrag in Cent; Summe der Zahlungen je Rechnung darf `totalGrossCents` nicht übersteigen; Rundungslogik **8.12** serverseitig nach ADR-0007.
           minimum: 1
         externalReference:
           type: string
           maxLength: 200
-          description: Externer Bank-/PSP-Referenztext (DSGVO-minimierte Speicherung später im Implementierungs-PR).
+          description: Externer Bank-/PSP-Referenztext (persistiert mit `payment_intakes`).
         reason:
           type: string
           minLength: 5
+    PaymentIntakeResponse:
+      type: object
+      description: Erfolgskörper ohne internes `replay`-Flag; HTTP **201** bei neuer Zahlung, **200** bei idempotentem Replay (gleicher Key und gleicher fachlicher Inhalt).
+      required:
+        [paymentIntakeId, invoiceId, amountCents, totalPaidCentsAfter, invoiceOpenCentsAfter, invoiceStatus]
+      properties:
+        paymentIntakeId:
+          type: string
+          format: uuid
+        invoiceId:
+          type: string
+          format: uuid
+        amountCents:
+          type: integer
+        totalPaidCentsAfter:
+          type: integer
+          description: Summe aller Zahlungseingänge für die Rechnung nach dieser Operation.
+        invoiceOpenCentsAfter:
+          type: integer
+          minimum: 0
+          description: Differenz Brutto minus Summe Zahlungen (nicht negativ).
+        invoiceStatus:
+          type: string
+          enum: [GEBUCHT_VERSENDET, TEILBEZAHLT, BEZAHLT]
+    PaymentIntakeReadRow:
+      type: object
+      description: |
+        DSGVO-minimierter Lesepfad je Zahlungseingang — **ohne** technischen `Idempotency-Key` (nur serverintern / Retry).
+      required: [paymentIntakeId, amountCents, externalReference, createdAt]
+      properties:
+        paymentIntakeId:
+          type: string
+          format: uuid
+        amountCents:
+          type: integer
+        externalReference:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    PaymentIntakeListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentIntakeReadRow'
+    DunningReminderReadRow:
+      type: object
+      required: [dunningReminderId, stageOrdinal, createdAt]
+      properties:
+        dunningReminderId:
+          type: string
+          format: uuid
+        stageOrdinal:
+          type: integer
+        note:
+          type: string
+          maxLength: 500
+        createdAt:
+          type: string
+          format: date-time
+    DunningReminderListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/DunningReminderReadRow'
+    CreateDunningReminderRequest:
+      type: object
+      required: [stageOrdinal, reason]
+      properties:
+        stageOrdinal:
+          type: integer
+          minimum: 1
+          maximum: 9
+          description: Mahnstufe / Ordinal (MVP ohne Konfigurationstabelle).
+        note:
+          type: string
+          maxLength: 500
+        reason:
+          type: string
+          minLength: 5
+          description: Grund für Audit (SoT-Schreibpfad).
+    CreateDunningReminderResponse:
+      type: object
+      required: [dunningReminderId, stageOrdinal, createdAt]
+      properties:
+        dunningReminderId:
+          type: string
+          format: uuid
+        stageOrdinal:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    DunningReminderEmailPreviewRequest:
+      type: object
+      required: [stageOrdinal, reason]
+      properties:
+        stageOrdinal:
+          type: integer
+          minimum: 1
+          maximum: 9
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 500
+    DunningReminderEmailPreviewData:
+      type: object
+      required:
+        - stageOrdinal
+        - templateBodyRaw
+        - templateBodyWithPlaceholders
+        - footerPlainText
+        - fullPlainText
+        - readyForEmailFooter
+        - missingMandatoryFields
+        - impressumComplianceTier
+        - impressumGaps
+        - warnings
+      properties:
+        stageOrdinal:
+          type: integer
+        templateBodyRaw:
+          type: string
+        templateBodyWithPlaceholders:
+          type: string
+        footerPlainText:
+          type: string
+        fullPlainText:
+          type: string
+        readyForEmailFooter:
+          type: boolean
+        missingMandatoryFields:
+          type: array
+          items:
+            type: string
+        impressumComplianceTier:
+          type: string
+          enum: [MINIMAL, EXTENDED]
+        impressumGaps:
+          type: array
+          items:
+            type: string
+        warnings:
+          type: array
+          items:
+            type: string
+    DunningReminderEmailPreviewResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/DunningReminderEmailPreviewData'
+    DunningReminderEmailSendStubData:
+      type: object
+      required: [outcome, stageOrdinal, auditEventId, message]
+      properties:
+        outcome:
+          type: string
+          enum: [NOT_SENT_NO_SMTP]
+        stageOrdinal:
+          type: integer
+        auditEventId:
+          type: string
+          format: uuid
+        message:
+          type: string
+    DunningReminderEmailSendStubResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/DunningReminderEmailSendStubData'
+    DunningReminderEmailSendRequest:
+      type: object
+      required: [stageOrdinal, reason, toEmail]
+      properties:
+        stageOrdinal:
+          type: integer
+          minimum: 1
+          maximum: 9
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 500
+        toEmail:
+          type: string
+          format: email
+          maxLength: 320
+    DunningReminderEmailSendData:
+      type: object
+      required: [outcome, stageOrdinal, auditEventId, recipientEmail, message]
+      properties:
+        outcome:
+          type: string
+          enum: [SENT, REPLAY]
+        stageOrdinal:
+          type: integer
+        auditEventId:
+          type: string
+          format: uuid
+        smtpMessageId:
+          type: string
+          description: Optional; fehlt bei REPLAY wenn historisch nicht gespeichert.
+        recipientEmail:
+          type: string
+          format: email
+        message:
+          type: string
+    DunningReminderEmailSendResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/DunningReminderEmailSendData'
+    DunningStageConfigReadRow:
+      type: object
+      required: [stageOrdinal, daysAfterDue, feeCents, label]
+      description: Mahnstufe (MVP-Default oder aus `dunning_tenant_stage_config`).
+      properties:
+        stageOrdinal:
+          type: integer
+          minimum: 1
+          maximum: 9
+        daysAfterDue:
+          type: integer
+          minimum: 0
+          description: Tage nach Fälligkeit bis zur nächsten Eskalation (MVP-Illustration).
+        feeCents:
+          type: integer
+          minimum: 0
+        label:
+          type: string
+    DunningReminderConfigReadData:
+      type: object
+      required: [configSource, tenantId, stages]
+      properties:
+        configSource:
+          type: string
+          enum: [MVP_STATIC_DEFAULTS, TENANT_DATABASE]
+          description: |
+            `TENANT_DATABASE` nur wenn für den Mandanten **9** Zeilen mit Ordinal **1–9** existieren; sonst `MVP_STATIC_DEFAULTS`.
+        tenantId:
+          type: string
+          format: uuid
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/DunningStageConfigReadRow'
+    DunningReminderConfigReadResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/DunningReminderConfigReadData'
+
+    DunningTemplateChannelRow:
+      type: object
+      required: [channel, templateType, body]
+      description: Mahn-Vorlage je Kanal (E-Mail oder Druck/PDF); §8.10 Platzhalter im Freitext (Slice 1 ohne serverseitige Validierung).
+      properties:
+        channel:
+          type: string
+          enum: [EMAIL, PRINT]
+        templateType:
+          type: string
+          enum: [REMINDER, DEMAND_NOTE, DUNNING]
+          description: Zahlungserinnerung / Zahlungsavis / Mahnung — genau ein Typ pro Stufe (MVP-Zuordnung).
+        body:
+          type: string
+    DunningStageTemplatesReadRow:
+      type: object
+      required: [stageOrdinal, channels]
+      properties:
+        stageOrdinal:
+          type: integer
+          minimum: 1
+          maximum: 9
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/DunningTemplateChannelRow'
+    DunningReminderTemplatesReadData:
+      type: object
+      required: [templateSource, tenantId, stages]
+      properties:
+        templateSource:
+          type: string
+          enum: [MVP_STATIC_DEFAULTS, TENANT_DATABASE]
+          description: |
+            `TENANT_DATABASE` nur wenn **18** aktive Zeilen (Ordinal 1–9 × Kanal EMAIL und PRINT, `deleted_at IS NULL`); sonst MVP-Defaults.
+        tenantId:
+          type: string
+          format: uuid
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/DunningStageTemplatesReadRow'
+    DunningReminderTemplatesReadResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/DunningReminderTemplatesReadData'
+    DunningReminderCandidateRow:
+      type: object
+      required: [invoiceId, dueDate, openAmountCents]
+      properties:
+        invoiceId:
+          type: string
+          format: uuid
+        dueDate:
+          type: string
+          format: date
+          description: |
+            MVP 5b-0: Fälligkeitsanker entspricht `issueDate` (Rechnungsdatum), bis ein separates `dueDate` im Modell existiert (ADR-0010).
+        openAmountCents:
+          type: integer
+          minimum: 1
+        lastDunningStageOrdinal:
+          type: integer
+          minimum: 1
+          maximum: 9
+          description: Höchste bisher protokollierte Mahnstufe; fehlt, wenn noch kein Mahn-Ereignis.
+    DunningReminderCandidatesReadData:
+      type: object
+      required: [configSource, asOfDate, stageOrdinal, daysAfterDueForStage, candidates]
+      properties:
+        configSource:
+          type: string
+          enum: [MVP_STATIC_DEFAULTS, TENANT_DATABASE]
+        asOfDate:
+          type: string
+          format: date
+        stageOrdinal:
+          type: integer
+          minimum: 1
+          maximum: 9
+        daysAfterDueForStage:
+          type: integer
+          minimum: 0
+          maximum: 3650
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/DunningReminderCandidateRow'
+    DunningReminderCandidatesReadResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/DunningReminderCandidatesReadData'
+    DunningReminderRunRequest:
+      type: object
+      required: [stageOrdinal, reason, mode]
+      properties:
+        stageOrdinal:
+          type: integer
+          minimum: 1
+          maximum: 9
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 500
+        mode:
+          type: string
+          enum: [DRY_RUN, EXECUTE]
+        asOfDate:
+          type: string
+          format: date
+          description: ISO `yyyy-mm-dd` (wie Kandidaten-Lesepfad); ohne Angabe nutzt der Server heute UTC.
+        invoiceIds:
+          type: array
+          maxItems: 500
+          items:
+            type: string
+            format: uuid
+          description: Optional; Teilmenge der Kandidaten. Fehlt oder leer → alle Kandidaten der Stufe.
+        note:
+          type: string
+          maxLength: 500
+          description: Optional; wird an `POST …/dunning-reminders` pro Rechnung durchgereicht.
+    DunningReminderRunPlannedRow:
+      type: object
+      required: [invoiceId, dueDate, openAmountCents, wouldRecordStageOrdinal]
+      properties:
+        invoiceId:
+          type: string
+          format: uuid
+        dueDate:
+          type: string
+          format: date
+        openAmountCents:
+          type: integer
+          minimum: 1
+        wouldRecordStageOrdinal:
+          type: integer
+          minimum: 1
+          maximum: 9
+    DunningReminderRunExecutedRow:
+      type: object
+      required: [invoiceId, dunningReminderId, createdAt, stageOrdinal]
+      properties:
+        invoiceId:
+          type: string
+          format: uuid
+        dunningReminderId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        stageOrdinal:
+          type: integer
+          minimum: 1
+          maximum: 9
+    DunningReminderRunResponseData:
+      type: object
+      required: [mode, stageOrdinal, asOfDate, configSource]
+      properties:
+        mode:
+          type: string
+          enum: [DRY_RUN, EXECUTE]
+        outcome:
+          type: string
+          enum: [PREVIEW, COMPLETED, REPLAY]
+        stageOrdinal:
+          type: integer
+          minimum: 1
+          maximum: 9
+        asOfDate:
+          type: string
+          format: date
+        configSource:
+          type: string
+          enum: [MVP_STATIC_DEFAULTS, TENANT_DATABASE]
+        planned:
+          type: array
+          items:
+            $ref: '#/components/schemas/DunningReminderRunPlannedRow'
+        executed:
+          type: array
+          items:
+            $ref: '#/components/schemas/DunningReminderRunExecutedRow'
+    DunningReminderRunResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/DunningReminderRunResponseData'
+    PutDunningReminderConfigRequest:
+      type: object
+      required: [stages, reason]
+      properties:
+        stages:
+          type: array
+          minItems: 9
+          maxItems: 9
+          items:
+            $ref: '#/components/schemas/DunningStageConfigReadRow'
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 500
+    PatchDunningReminderStageRequest:
+      type: object
+      required: [reason]
+      properties:
+        daysAfterDue:
+          type: integer
+          minimum: 0
+          maximum: 3650
+        feeCents:
+          type: integer
+          minimum: 0
+        label:
+          type: string
+          minLength: 1
+          maxLength: 200
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 500
+      description: Mindestens eines von daysAfterDue, feeCents, label zusätzlich zu reason.
+    DeleteDunningReminderStageRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 500
+    PatchDunningReminderTemplateBodyRequest:
+      type: object
+      required: [body, reason]
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 50000
+          description: Vorlagentext inkl. §8.10-Pflichtplatzhalter (serverseitig geprüft).
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 500
+    DunningEmailFooterReadData:
+      type: object
+      required:
+        - footerSource
+        - tenantId
+        - companyLegalName
+        - streetLine
+        - postalCode
+        - city
+        - countryCode
+        - publicEmail
+        - publicPhone
+        - legalRepresentative
+        - registerCourt
+        - registerNumber
+        - vatId
+        - signatureLine
+        - readyForEmailFooter
+        - missingMandatoryFields
+        - impressumComplianceTier
+        - impressumGaps
+      properties:
+        footerSource:
+          type: string
+          enum: [NOT_CONFIGURED, TENANT_DATABASE]
+        tenantId:
+          type: string
+          format: uuid
+        companyLegalName:
+          type: string
+          maxLength: 300
+        streetLine:
+          type: string
+          maxLength: 300
+        postalCode:
+          type: string
+          maxLength: 20
+        city:
+          type: string
+          maxLength: 120
+        countryCode:
+          type: string
+          minLength: 2
+          maxLength: 2
+        publicEmail:
+          type: string
+          maxLength: 320
+        publicPhone:
+          type: string
+          maxLength: 80
+        legalRepresentative:
+          type: string
+          maxLength: 300
+        registerCourt:
+          type: string
+          maxLength: 200
+        registerNumber:
+          type: string
+          maxLength: 120
+        vatId:
+          type: string
+          maxLength: 32
+        signatureLine:
+          type: string
+          maxLength: 200
+        readyForEmailFooter:
+          type: boolean
+        missingMandatoryFields:
+          type: array
+          items:
+            type: string
+        impressumComplianceTier:
+          type: string
+          enum: [MINIMAL, EXTENDED]
+          description: >
+            Heuristisches Signal zu erweiterter Befüllung (Vertretung, Register-Paar, DE-USt-Id);
+            EXTENDED nur wenn readyForEmailFooter und keine Gap-Codes. Kein Ersatz für rechtsform-spezifische Pflichtprüfung.
+        impressumGaps:
+          type: array
+          items:
+            type: string
+            enum:
+              - REGISTER_PAIR_INCOMPLETE
+              - LEGAL_REPRESENTATIVE_MISSING
+              - VAT_ID_MISSING
+              - VAT_ID_FORMAT_INVALID
+          description: >
+            Stabile Hinweis-Codes (keine Lokalisierung). REGISTER_PAIR_INCOMPLETE wenn nur Gericht oder nur Nummer gesetzt;
+            DE-Mandanten USt-Id grob DE+9 Ziffern.
+    DunningTenantAutomationReadData:
+      type: object
+      required: [automationSource, tenantId, runMode, jobHourUtc]
+      properties:
+        automationSource:
+          type: string
+          enum: [NOT_CONFIGURED, TENANT_DATABASE]
+        tenantId:
+          type: string
+          format: uuid
+        runMode:
+          type: string
+          enum: [OFF, SEMI, AUTO]
+          description: Ohne gespeicherte Zeile liefert GET effektiv SEMI (Quelle NOT_CONFIGURED).
+        jobHourUtc:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 23
+          description: Optional; nur für AUTO-Cron (UTC-Stunde); null = bei jedem Cron-Lauf.
+    DunningTenantAutomationReadResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/DunningTenantAutomationReadData'
+    PatchDunningTenantAutomationRequest:
+      type: object
+      required: [reason, runMode]
+      properties:
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 500
+        runMode:
+          type: string
+          enum: [OFF, SEMI, AUTO]
+        jobHourUtc:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 23
+    DunningEmailFooterReadResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/DunningEmailFooterReadData'
+    PatchDunningEmailFooterRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 500
+        companyLegalName:
+          type: string
+          maxLength: 300
+        streetLine:
+          type: string
+          maxLength: 300
+        postalCode:
+          type: string
+          maxLength: 20
+        city:
+          type: string
+          maxLength: 120
+        countryCode:
+          type: string
+          minLength: 2
+          maxLength: 2
+        publicEmail:
+          type: string
+          maxLength: 320
+        publicPhone:
+          type: string
+          maxLength: 80
+        legalRepresentative:
+          type: string
+          maxLength: 300
+        registerCourt:
+          type: string
+          maxLength: 200
+        registerNumber:
+          type: string
+          maxLength: 120
+        vatId:
+          type: string
+          maxLength: 32
+        signatureLine:
+          type: string
+          maxLength: 200
+      description: Mindestens ein Stammdaten-Feld neben reason (M4 Slice 3; ADR `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`).
     Error:
       type: object
       required: [code, message, correlationId, retryable, blocking]
@@ -1455,6 +2218,486 @@ paths:
           description: FORBIDDEN_AUDIT_READ
         '401':
           description: Authentifizierung fehlgeschlagen
+  /finance/dunning-reminder-config/stages/{stageOrdinal}:
+    patch:
+      tags: [Finance (FIN-4)]
+      operationId: finDunningReminderStagePatch
+      summary: Einzelne Mahnstufe patchen (Postgres)
+      description: |
+        Teilupdate `daysAfterDue` / `feeCents` / `label` für Ordinal 1–9. Ohne persistierte Zeile: `404` / `DUNNING_STAGE_CONFIG_ROW_NOT_FOUND`.
+        Rollen wie `PUT`. Audit `DUNNING_STAGE_PATCHED`. In-Memory: `503` / `DUNNING_STAGE_CONFIG_NOT_PERSISTABLE`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: stageOrdinal
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 9
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchDunningReminderStageRequest'
+      responses:
+        '200':
+          description: Aktuelles Read-Model (nach Patch; ggf. MVP wenn weniger als 9 aktive Zeilen)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningReminderConfigReadResponse'
+        '400':
+          description: VALIDATION_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+        '404':
+          description: DUNNING_STAGE_CONFIG_ROW_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: DUNNING_STAGE_CONFIG_NOT_PERSISTABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags: [Finance (FIN-4)]
+      operationId: finDunningReminderStageDelete
+      summary: Mahnstufe soft-löschen (Postgres)
+      description: |
+        Setzt `deleted_at`. Weniger als 9 aktive Stufen → `GET` MVP-Fallback. `PUT` entfernt alle Zeilen inkl. Tombstones und legt 9 neue an.
+        Audit `DUNNING_STAGE_SOFT_DELETED`. Bereits soft-gelöscht oder fehlend: `404` / `DUNNING_STAGE_CONFIG_ROW_NOT_FOUND`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: stageOrdinal
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 9
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteDunningReminderStageRequest'
+      responses:
+        '200':
+          description: Aktuelles Read-Model nach Soft-Delete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningReminderConfigReadResponse'
+        '400':
+          description: VALIDATION_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+        '404':
+          description: DUNNING_STAGE_CONFIG_ROW_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: DUNNING_STAGE_CONFIG_NOT_PERSISTABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /finance/dunning-reminder-config:
+    get:
+      tags: [Finance (FIN-4)]
+      operationId: finDunningReminderConfigGet
+      summary: Mahnstufen-Konfiguration lesen (DB oder MVP-Fallback)
+      description: |
+        **Slice 3–4:** Wenn `dunning_tenant_stage_config` für den Mandanten **9 aktive** Stufen (1–9, `deleted_at IS NULL`) enthält → `configSource: TENANT_DATABASE`. Sonst → statische MVP-Defaults (`MVP_STATIC_DEFAULTS`). In-Memory-Modus immer MVP.
+        Gleiche Leserolle wie `GET /invoices/{invoiceId}` (`assertCanReadInvoice`). Schreiben: `PUT`, `PATCH`/`DELETE` je Stufe — siehe `docs/adr/0009-fin4-mahnwesen-slice.md`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      responses:
+        '200':
+          description: Konfigurations-Read-Model (MVP oder Mandanten-DB)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningReminderConfigReadResponse'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+    put:
+      tags: [Finance (FIN-4)]
+      operationId: finDunningReminderConfigPut
+      summary: Mahnstufen-Konfiguration ersetzen (9 Stufen, Postgres)
+      description: |
+        **Slice 5:** Volle Ersetzung der neun Mandanten-Stufen (Ordinal **1–9** je einmal). Rollen **ADMIN**, **GESCHAEFTSFUEHRUNG**, **BUCHHALTUNG** (wie Zahlungseingang). Audit `DUNNING_TENANT_STAGE_CONFIG` / `DUNNING_STAGES_REPLACED`.
+        Ohne Postgres-Persistenz (In-Memory-Modus): `503` / `DUNNING_STAGE_CONFIG_NOT_PERSISTABLE`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutDunningReminderConfigRequest'
+      responses:
+        '200':
+          description: Gespeichertes Read-Model (`TENANT_DATABASE`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningReminderConfigReadResponse'
+        '400':
+          description: VALIDATION_FAILED (z. B. fehlende Ordinal oder falsche Anzahl)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+        '503':
+          description: DUNNING_STAGE_CONFIG_NOT_PERSISTABLE (kein DB-Schreibmodus)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /finance/dunning-reminder-templates:
+    get:
+      tags: [Finance (FIN-4)]
+      operationId: finDunningReminderTemplatesGet
+      summary: Mahn-Vorlagen lesen (M4 Slice 1, MVP oder Mandanten-DB)
+      description: |
+        **M4 Slice 1:** Wenn `dunning_tenant_stage_templates` für den Mandanten **18** aktive Zeilen (Ordinal **1–9** × Kanal **EMAIL** und **PRINT**, `deleted_at IS NULL`) enthält → `templateSource: TENANT_DATABASE`. Sonst → MVP-Default-Texte (`MVP_STATIC_DEFAULTS`). In-Memory-Modus immer MVP.
+        Gleiche Leserolle wie `GET /invoices/{invoiceId}` (`assertCanReadInvoice`). Kein Versand, kein Rendering.
+        ADR: `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      responses:
+        '200':
+          description: Vorlagen-Read-Model (MVP oder Mandanten-DB)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningReminderTemplatesReadResponse'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+  /finance/dunning-reminder-automation:
+    get:
+      tags: [Finance (FIN-4)]
+      operationId: finDunningReminderAutomationGet
+      summary: Mandanten-Modus Mahnlauf lesen (OFF/SEMI/AUTO)
+      description: |
+        Lesemodell inkl. `automationSource` NOT_CONFIGURED | TENANT_DATABASE. Ohne DB-Zeile effektiv **SEMI** (teil-automatisierte UI möglich; kein Cron).
+        Rolle wie Mahn-Konfig-Lesepfad (`assertCanReadInvoice`).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      responses:
+        '200':
+          description: Automation-Read-Model
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningTenantAutomationReadResponse'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+    patch:
+      tags: [Finance (FIN-4)]
+      operationId: finDunningReminderAutomationPatch
+      summary: Mandanten-Modus Mahnlauf speichern
+      description: |
+        Schreiben nur mit Postgres (`503` / `DUNNING_AUTOMATION_NOT_PERSISTABLE` im In-Memory-Modus).
+        Rolle wie Stufen-Konfig-PATCH (`assertCanManageDunningTenantStageConfig`). Audit `DUNNING_TENANT_AUTOMATION_PATCHED`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchDunningTenantAutomationRequest'
+      responses:
+        '200':
+          description: Aktualisiertes Read-Model
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningTenantAutomationReadResponse'
+        '400':
+          description: VALIDATION_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+        '503':
+          description: DUNNING_AUTOMATION_NOT_PERSISTABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /finance/dunning-reminder-candidates:
+    get:
+      tags: [Finance (FIN-4)]
+      operationId: finDunningReminderCandidatesGet
+      summary: Mahnlauf-Kandidaten lesen (M4 Slice 5b-0)
+      description: |
+        **M4 Slice 5b-0:** Ermittelt Rechnungen, die für **eine** gewählte Mahnstufe (`stageOrdinal`) zum Referenzdatum `asOfDate` (Default heute UTC, `yyyy-mm-dd`) fällig sind — **ohne** Mutation und **ohne** E-Mail.
+        Eligibility und Fälligkeitsanker (`dueDate` im Payload = `issueDate` im MVP) siehe ADR-0010 Abschnitt Slice 5b.
+        Gleiche Leserolle wie Vorlagen (`assertCanReadInvoice`).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: query
+          name: stageOrdinal
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 9
+        - in: query
+          name: asOfDate
+          required: false
+          schema:
+            type: string
+            format: date
+            description: ISO `yyyy-mm-dd` (UTC-Kalendertag); ohne Parameter = heute UTC.
+      responses:
+        '200':
+          description: Kandidatenliste und Kontext (Konfig-Quelle, Frist-Metadaten der Stufe)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningReminderCandidatesReadResponse'
+        '400':
+          description: VALIDATION_FAILED | DUNNING_RUN_STAGE_INVALID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+        '409':
+          description: DUNNING_RUN_CONFIG_INCOMPLETE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /finance/dunning-reminder-run:
+    post:
+      tags: [Finance (FIN-4)]
+      operationId: finDunningReminderRunPost
+      summary: Mahnlauf (Vorschau oder Batch, M4 Slice 5b-1)
+      description: |
+        **M4 Slice 5b-1:** `DRY_RUN` — gleiche Eligibility wie `GET /finance/dunning-reminder-candidates`, Antwort mit `planned` (keine Mutation, Leserolle).
+        `EXECUTE` — protokolliert Mahn-Ereignisse wie `POST /invoices/{invoiceId}/dunning-reminders` für jede Zielrechnung; Header **`Idempotency-Key`** (UUID) **Pflicht**; Canonical-Fingerprint aus `stageOrdinal`, `asOfDate`, optional sortierte `invoiceIds` (sonst alle Kandidaten).
+        Wiederholung mit gleichem Key und gleichem Fingerprint → **200** mit `outcome: REPLAY` und gespeichertem Ergebnis; anderer Fingerprint bei gleichem Key → **400** `DUNNING_RUN_IDEMPOTENCY_MISMATCH`.
+        Persistenz der Absicht: Postgres `dunning_reminder_run_intents`; In-Memory-Modus prozesslokal.
+        ADR: `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: |
+            Bei JSON-Feld **mode** = **EXECUTE** ist der Header **Pflicht** (UUID, case-insensitive); bei **DRY_RUN** optional bzw. ignoriert.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DunningReminderRunRequest'
+      responses:
+        '200':
+          description: Vorschau, erfolgreicher Lauf oder Idempotenz-Replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningReminderRunResponse'
+        '400':
+          description: VALIDATION_FAILED | DUNNING_RUN_STAGE_INVALID | DUNNING_RUN_INVOICES_INVALID | DUNNING_RUN_IDEMPOTENCY_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+        '409':
+          description: DUNNING_RUN_CONFIG_INCOMPLETE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /finance/dunning-reminder-templates/stages/{stageOrdinal}/channels/{channel}:
+    patch:
+      tags: [Finance (FIN-4)]
+      operationId: finDunningReminderTemplateChannelPatch
+      summary: Mahn-Vorlagentext patchen (M4 Slice 2, Pflichtplatzhalter)
+      description: |
+        **M4 Slice 2:** `body` muss §8.10-Pflichtplatzhalter enthalten (serverseitig). `templateType` wird aus der Stufe wie MVP abgeleitet (REMINDER 1–3, DEMAND_NOTE 4–6, DUNNING 7–9). Schreiben nur Postgres; Audit `DUNNING_TEMPLATE_BODY_PATCHED` in derselben DB-Transaktion.
+        Rolle wie Mahnstufen-Konfiguration (`assertCanManageDunningTenantStageConfig`).
+        ADR: `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: stageOrdinal
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 9
+        - in: path
+          name: channel
+          required: true
+          schema:
+            type: string
+            enum: [EMAIL, PRINT]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchDunningReminderTemplateBodyRequest'
+      responses:
+        '200':
+          description: Aktualisiertes Vorlagen-Read-Model
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningReminderTemplatesReadResponse'
+        '400':
+          description: DUNNING_TEMPLATE_PLACEHOLDERS_INVALID | VALIDATION_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+        '503':
+          description: DUNNING_TEMPLATE_NOT_PERSISTABLE (kein DB-Schreibmodus)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /finance/dunning-email-footer:
+    get:
+      tags: [Finance (FIN-4)]
+      operationId: finDunningEmailFooterGet
+      summary: Mahn-E-Mail Impressum/Footer-Stammdaten lesen (M4 Slice 3)
+      description: |
+        Strukturierte Stammdaten für den späteren System-Footer (§8.10). Ohne DB-Zeile → `footerSource: NOT_CONFIGURED`.
+        `readyForEmailFooter` signalisiert Vollständigkeit der Pflichtfelder (Versand bleibt separates Inkrement).
+        ADR: `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      responses:
+        '200':
+          description: Footer-Read-Modell
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningEmailFooterReadResponse'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+    patch:
+      tags: [Finance (FIN-4)]
+      operationId: finDunningEmailFooterPatch
+      summary: Mahn-E-Mail Footer-Stammdaten patchen (M4 Slice 3)
+      description: |
+        Teilupdate + Audit `DUNNING_EMAIL_FOOTER_PATCHED` in DB-Transaktion. Rolle wie Mahnstufen-Konfiguration.
+        ADR: `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchDunningEmailFooterRequest'
+      responses:
+        '200':
+          description: Aktualisiertes Footer-Read-Modell
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningEmailFooterReadResponse'
+        '400':
+          description: DUNNING_EMAIL_FOOTER_VALIDATION | VALIDATION_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+        '503':
+          description: DUNNING_EMAIL_FOOTER_NOT_PERSISTABLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /finance/payment-terms:
     get:
       tags: [Finance (FIN-1)]
@@ -1608,13 +2851,316 @@ paths:
           description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
         '401':
           description: UNAUTHORIZED
+  /invoices/{invoiceId}/payment-intakes:
+    get:
+      tags: [Finance (FIN-3)]
+      operationId: finInvoicePaymentIntakesList
+      summary: Zahlungseingänge zur Rechnung lesen (8.7 Lesepfad)
+      description: |
+        Gleiche Leserolle wie `GET /invoices/{invoiceId}` (`assertCanReadInvoice`). Leere Liste, wenn noch keine Zahlungen gebucht wurden.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: invoiceId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Liste der Zahlungseingänge (chronologisch aufsteigend)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntakeListResponse'
+        '404':
+          description: DOCUMENT_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+  /invoices/{invoiceId}/dunning-reminders:
+    get:
+      tags: [Finance (FIN-4)]
+      operationId: finInvoiceDunningRemindersList
+      summary: Mahn-Ereignisse zur Rechnung lesen (8.10 Lesepfad, Stub)
+      description: |
+        Gleiche Leserolle wie `GET /invoices/{invoiceId}`. **Stub:** liefert chronologisch sortierte Liste aus `dunning_reminders` (bislang typischerweise leer).
+        MVP-Default-Stufen (ohne Rechnungs-ID): `GET /finance/dunning-reminder-config`. Konfiguration und automatische Mahnläufe: `docs/adr/0009-fin4-mahnwesen-slice.md`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: invoiceId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Liste der protokollierten Mahn-Ereignisse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningReminderListResponse'
+        '404':
+          description: DOCUMENT_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+    post:
+      tags: [Finance (FIN-4)]
+      operationId: finInvoiceDunningReminderCreate
+      summary: Mahn-Ereignis protokollieren (Slice 2, kein Versand)
+      description: |
+        **SoT:** Aktion **RECORD_DUNNING_REMINDER** in `GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE` für Status **GEBUCHT_VERSENDET** oder **TEILBEZAHLT** und Rollen wie Zahlungseingang.
+        Kein automatischer Mahnlauf / Massenversand auf diesem Endpunkt. **Kern (Mahn-Ereignis):** `docs/adr/0009-fin4-mahnwesen-slice.md`. **E-Mail/Vorlagen (M4):** `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: invoiceId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDunningReminderRequest'
+      responses:
+        '201':
+          description: Erstelltes Mahn-Ereignis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateDunningReminderResponse'
+        '400':
+          description: VALIDATION_FAILED | DUNNING_INVOICE_NOT_ELIGIBLE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: DOCUMENT_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+  /invoices/{invoiceId}/dunning-reminders/email-preview:
+    post:
+      tags: [Finance (FIN-4)]
+      operationId: finInvoiceDunningReminderEmailPreview
+      summary: Mahn-E-Mail Plain-Text-Vorschau (M4 Slice 4, kein Versand)
+      description: |
+        Baut **EMAIL**-Vorlage der Stufe + System-Footer (Plain-Text). Platzhalter Mahngebühr aus Mahnstufen-`feeCents`; Skonto/Frist provisorisch.
+        Leserolle wie `GET /invoices/{invoiceId}`. Kein SMTP.
+        ADR: `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: invoiceId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DunningReminderEmailPreviewRequest'
+      responses:
+        '200':
+          description: Vorschau-Text
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningReminderEmailPreviewResponse'
+        '400':
+          description: VALIDATION_FAILED | DUNNING_EMAIL_STAGE_INVALID
+        '404':
+          description: DOCUMENT_NOT_FOUND | DUNNING_EMAIL_TEMPLATE_NOT_FOUND | DUNNING_EMAIL_STAGE_CONFIG_NOT_FOUND
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+  /invoices/{invoiceId}/dunning-reminders/send-email-stub:
+    post:
+      tags: [Finance (FIN-4)]
+      operationId: finInvoiceDunningReminderSendEmailStub
+      summary: Mahn-E-Mail Versand-Stub ohne SMTP (M4 Slice 4)
+      description: |
+        Prüft `readyForEmailFooter`; schreibt Audit `DUNNING_EMAIL_SEND_STUB`. **Kein** SMTP-Versand.
+        Schreibrolle wie `POST /invoices/{invoiceId}/dunning-reminders` (`RECORD_DUNNING_REMINDER`).
+        ADR: `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: invoiceId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DunningReminderEmailPreviewRequest'
+      responses:
+        '200':
+          description: Stub-Antwort inkl. auditEventId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningReminderEmailSendStubResponse'
+        '400':
+          description: VALIDATION_FAILED | DUNNING_EMAIL_FOOTER_NOT_READY | DUNNING_EMAIL_STAGE_INVALID
+        '404':
+          description: DOCUMENT_NOT_FOUND | DUNNING_EMAIL_TEMPLATE_NOT_FOUND | DUNNING_EMAIL_STAGE_CONFIG_NOT_FOUND
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+  /invoices/{invoiceId}/dunning-reminders/send-email:
+    post:
+      tags: [Finance (FIN-4)]
+      operationId: finInvoiceDunningReminderSendEmail
+      summary: Mahn-E-Mail per SMTP versenden (M4 Slice 5a)
+      description: |
+        Plain-Text wie `email-preview`; prüft `readyForEmailFooter`. **SMTP** über `ERP_SMTP_*` (siehe Betriebsdoku).
+        **Idempotenz:** Header `Idempotency-Key` (UUID); gleicher Key + gleiche fachliche Parameter → `outcome: REPLAY` ohne zweiten Versand.
+        Schreibrolle wie `POST …/dunning-reminders` / Stub (`RECORD_DUNNING_REMINDER`).
+        Der Endpunkt `send-email-stub` (Slice 4) bleibt für Demos ohne SMTP parallel.
+        ADR: `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - in: path
+          name: invoiceId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DunningReminderEmailSendRequest'
+      responses:
+        '200':
+          description: Versand erfolgreich oder Idempotenz-Replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningReminderEmailSendResponse'
+        '400':
+          description: VALIDATION_FAILED | DUNNING_EMAIL_FOOTER_NOT_READY | DUNNING_EMAIL_STAGE_INVALID | DUNNING_EMAIL_IDEMPOTENCY_MISMATCH
+        '404':
+          description: DOCUMENT_NOT_FOUND | DUNNING_EMAIL_TEMPLATE_NOT_FOUND | DUNNING_EMAIL_STAGE_CONFIG_NOT_FOUND
+        '502':
+          description: DUNNING_EMAIL_SMTP_ERROR
+        '503':
+          description: DUNNING_EMAIL_SMTP_NOT_CONFIGURED
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+  /invoices/{invoiceId}/book:
+    post:
+      tags: [Finance (FIN-2)]
+      operationId: finInvoiceBook
+      summary: Rechnung buchen (ENTWURF → GEBUCHT_VERSENDET)
+      description: |
+        Verbindliche Rechnungsnummer je Mandant; Traceability fail-closed. Kein erneutes Buchen bei anderem Status (**409** `INVOICE_NOT_BOOKABLE`).
+        Doppelte Nummer unter Last (**409** `INVOICE_NUMBER_CONFLICT`). Entwurf ohne Beträge (**422** `INVOICE_DRAFT_INCOMPLETE`).
+        **SoT (Shell):** Aktion **BOOK_INVOICE** in `GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE` für Status **ENTWURF** und Rollen ADMIN, GESCHAEFTSFUEHRUNG, BUCHHALTUNG — siehe `docs/contracts/action-contracts.json`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: invoiceId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookInvoiceRequest'
+      responses:
+        '200':
+          description: Gebuchte Rechnung
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookInvoiceResponse'
+        '400':
+          description: VALIDATION_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: DOCUMENT_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: INVOICE_NOT_BOOKABLE | INVOICE_NUMBER_CONFLICT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: TRACEABILITY_* | INVOICE_DRAFT_INCOMPLETE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
   /finance/payments/intake:
     post:
-      tags: [Finance (FIN-0)]
+      tags: [Finance (FIN-3)]
       operationId: finPaymentIntakeCreate
-      summary: Zahlungseingang (8.7) — Contract-Stub inkl. Idempotency-Key
+      summary: Zahlungseingang (8.7) inkl. Idempotency-Key
       description: |
-        FIN-3-Vorbereitung: Idempotenz-Hook gemäß ADR-0007. **FIN-2 Implementation out of scope** für Buchungslogik bis Gate geschlossen.
+        Persistierter Zahlungseingang: Idempotenz `(tenant_id, idempotency_key)`; bei gleichem Key und gleichem `invoiceId`/`amountCents` liefert die API **200** mit identischem Erfolgskörper (Replay).
+        Rechnung muss **GEBUCHT_VERSENDET** oder **TEILBEZAHLT** sein und 8.4-Beträge (`totalGrossCents` u. a.) tragen; sonst Domain-Fehlercodes siehe **400**-Antworten.
       security:
         - bearerToken: []
       parameters:
@@ -1628,15 +3174,30 @@ paths:
               $ref: '#/components/schemas/PaymentIntakeRequest'
       responses:
         '201':
-          description: Noch nicht implementiert — reserviert für Zahlungsnachweis nach Gate.
-        '422':
-          description: TRACEABILITY_LINK_MISSING | EXPORT_PREFLIGHT_FAILED
+          description: Neuer Zahlungseingang gespeichert; Rechnungsstatus ggf. auf TEILBEZAHLT oder BEZAHLT.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntakeResponse'
+        '200':
+          description: Idempotenter Replay — gleicher `Idempotency-Key` und gleicher fachlicher Inhalt wie die erste erfolgreiche Antwort.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntakeResponse'
+        '404':
+          description: DOCUMENT_NOT_FOUND — Rechnung unbekannt oder nicht im Mandanten.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '400':
-          description: VALIDATION_FAILED
+          description: |
+            VALIDATION_FAILED (Zod) |
+            PAYMENT_INTAKE_IDEMPOTENCY_MISMATCH |
+            PAYMENT_INVOICE_NOT_PAYABLE |
+            PAYMENT_INVOICE_AMOUNT_MISSING |
+            PAYMENT_EXCEEDS_OPEN_AMOUNT
           content:
             application/json:
               schema:

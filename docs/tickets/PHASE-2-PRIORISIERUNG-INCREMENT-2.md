@@ -9,7 +9,7 @@
 
 ### Verbindlicher Umfang (v1.2)
 
-Aus `ERP Systembeschreibung v1.2.md` **§9 LV- und Textlogik**:
+Aus `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md` **§9 LV- und Textlogik**:
 
 - Hierarchie: `Bereich -> Titel -> Untertitel -> Position`
 - Pro **LV-Position**: hierarchische Ordnungszahl, Menge, Einheit, Preis, Typ (Normal, Alternativ, Eventual), optional Stammpositionsreferenz

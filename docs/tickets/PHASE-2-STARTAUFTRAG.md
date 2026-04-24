@@ -1,7 +1,7 @@
 # Phase 2 — Startauftrag (Geschäftslogik & API-Ausbau)
 
 **Status:** Freigegeben nach Final Closure TICKET-002 Iteration 1 (2026-04-14).  
-**Verbindliche Domänenquelle:** `ERP Systembeschreibung v1.2.md`
+**Verbindliche Domänenquelle:** `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`
 
 ## Phase-Ziel
 

@@ -1,17 +1,36 @@
 {
-  "contractVersion": "1.7.0-audit-fail-hard",
+  "contractVersion": "1.22.0-fin4-m4-slice5b-1-run",
   "phase": "phase-2-inc2-lv+fin0-contract",
   "qaClosure": {
     "defectId": "QA-P1-001",
     "status": "closed",
     "closedOn": "2026-04-14",
-    "reference": "docs/contracts/qa-defects-phase1.md (Doc consistency review); workspace documentation sync — no PR number"
+    "reference": "docs/_archiv/historische-phase1-qa-und-kontraktdiff/qa-defects-phase1.md (Doc consistency review, archiviert 2026-04-22); workspace documentation sync — no PR number"
   },
   "backendEnvelope": {
     "source": "src/api/app.ts handleError",
-    "httpStatusesUsed": [400, 401, 403, 404, 409, 422, 429, 500, 503],
-    "required": ["code", "message", "correlationId", "retryable", "blocking"],
-    "optional": ["details"],
+    "httpStatusesUsed": [
+      400,
+      401,
+      403,
+      404,
+      409,
+      422,
+      429,
+      500,
+      502,
+      503
+    ],
+    "required": [
+      "code",
+      "message",
+      "correlationId",
+      "retryable",
+      "blocking"
+    ],
+    "optional": [
+      "details"
+    ],
     "retryableDerivation": "DomainError: retryable=true only for codes in { AUTH_SESSION_EXPIRED, AUTH_RATE_LIMITED, VALIDATION_FAILED, EXPORT_CHANNEL_UNAVAILABLE }; all other DomainError codes => retryable=false. Non-DomainError catch-all => code VALIDATION_FAILED, http400, retryable=true, blocking=false.",
     "blockingDerivation": "blocking = !retryable for DomainError; non-DomainError VALIDATION_FAILED => blocking=false.",
     "correlationIdDerivation": "UUID generated per error response in handleError (not from request header in phase 1)."
@@ -21,16 +40,32 @@
     "AUTH_RATE_LIMITED",
     "AUTH_ROLE_FORBIDDEN",
     "DOCUMENT_NOT_FOUND",
-    "MEASUREMENT_NEW_VERSION_FORBIDDEN",
-    "MEASUREMENT_NOT_FOUND",
-    "MEASUREMENT_POSITION_EDIT_FORBIDDEN",
-    "MEASUREMENT_POSITIONS_REQUIRED",
-    "MEASUREMENT_STATUS_TRANSITION_FORBIDDEN",
-    "MEASUREMENT_VERSION_NOT_CURRENT",
+    "DUNNING_EMAIL_FOOTER_NOT_PERSISTABLE",
+    "DUNNING_AUTOMATION_NOT_PERSISTABLE",
+    "DUNNING_EMAIL_FOOTER_NOT_READY",
+    "DUNNING_EMAIL_FOOTER_VALIDATION",
+    "DUNNING_EMAIL_STAGE_CONFIG_NOT_FOUND",
+    "DUNNING_EMAIL_STAGE_INVALID",
+    "DUNNING_EMAIL_TEMPLATE_NOT_FOUND",
+    "DUNNING_EMAIL_IDEMPOTENCY_MISMATCH",
+    "DUNNING_EMAIL_SMTP_ERROR",
+    "DUNNING_EMAIL_SMTP_NOT_CONFIGURED",
+    "DUNNING_INVOICE_NOT_ELIGIBLE",
+    "DUNNING_RUN_CONFIG_INCOMPLETE",
+    "DUNNING_RUN_IDEMPOTENCY_MISMATCH",
+    "DUNNING_RUN_INVOICES_INVALID",
+    "DUNNING_RUN_STAGE_INVALID",
+    "DUNNING_STAGE_CONFIG_NOT_PERSISTABLE",
+    "DUNNING_STAGE_CONFIG_ROW_NOT_FOUND",
+    "DUNNING_TEMPLATE_NOT_PERSISTABLE",
+    "DUNNING_TEMPLATE_PLACEHOLDERS_INVALID",
     "EXPORT_ENTITY_NOT_FOUND",
     "EXPORT_PREFLIGHT_FAILED",
     "FOLLOWUP_DOCUMENT_REQUIRED",
     "FORBIDDEN_AUDIT_READ",
+    "INVOICE_DRAFT_INCOMPLETE",
+    "INVOICE_NOT_BOOKABLE",
+    "INVOICE_NUMBER_CONFLICT",
     "LV_CATALOG_NOT_FOUND",
     "LV_COPY_FAILED",
     "LV_HIERARCHY_INVALID",
@@ -43,15 +78,25 @@
     "LV_SYSTEM_TEXT_IMMUTABLE",
     "LV_VERSION_NOT_CURRENT",
     "LV_VERSION_NOT_FOUND",
+    "MEASUREMENT_NEW_VERSION_FORBIDDEN",
+    "MEASUREMENT_NOT_FOUND",
+    "MEASUREMENT_POSITIONS_REQUIRED",
+    "MEASUREMENT_POSITION_EDIT_FORBIDDEN",
+    "MEASUREMENT_STATUS_TRANSITION_FORBIDDEN",
+    "MEASUREMENT_VERSION_NOT_CURRENT",
     "OFFER_NOT_FOUND",
     "OFFER_VERSION_NOT_FOUND",
     "PASSWORD_RESET_INVALID",
     "PASSWORD_RESET_MAIL_NOT_CONFIGURED",
-    "SUPPLEMENT_BILLING_EFFECT_FORBIDDEN",
+    "PAYMENT_EXCEEDS_OPEN_AMOUNT",
+    "PAYMENT_INTAKE_IDEMPOTENCY_MISMATCH",
+    "PAYMENT_INVOICE_AMOUNT_MISSING",
+    "PAYMENT_INVOICE_NOT_PAYABLE",
+    "STATUS_TRANSITION_FORBIDDEN",
     "SUPPLEMENT_BASE_NOT_ACCEPTED",
+    "SUPPLEMENT_BILLING_EFFECT_FORBIDDEN",
     "SUPPLEMENT_NOT_FOUND",
     "SUPPLEMENT_STATUS_TRANSITION_FORBIDDEN",
-    "STATUS_TRANSITION_FORBIDDEN",
     "TENANT_SCOPE_VIOLATION",
     "TRACEABILITY_FIELD_MISMATCH",
     "TRACEABILITY_LINK_MISSING",
@@ -79,8 +124,16 @@
     }
   ],
   "frontendNormalizedEnvelope": {
-    "required": ["code", "message", "correlationId", "retryable", "blocking"],
-    "optional": ["details"],
+    "required": [
+      "code",
+      "message",
+      "correlationId",
+      "retryable",
+      "blocking"
+    ],
+    "optional": [
+      "details"
+    ],
     "normalizationRules": {
       "default": "passthrough: use JSON body fields from backend as-is",
       "fallbackTemporary": "only if response body lacks correlationId/retryable/blocking (non-compliant client or legacy proxy): derive correlationId from response.headers['x-request-id'] or generate client UUID; set retryable/blocking from this document's per-code table — mark technical debt, remove when backend guarantee is universal"
@@ -281,6 +334,156 @@
       ]
     },
     {
+      "classId": "payment_intake",
+      "codes": [
+        {
+          "code": "PAYMENT_EXCEEDS_OPEN_AMOUNT",
+          "httpStatus": 400,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Zahlungsbetrag über offenen Rechnungsbetrag; Betrag anpassen."
+        },
+        {
+          "code": "PAYMENT_INTAKE_IDEMPOTENCY_MISMATCH",
+          "httpStatus": 400,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Idempotency-Key bereits mit anderem Beleg verwendet; neuen Key vergeben."
+        },
+        {
+          "code": "PAYMENT_INVOICE_AMOUNT_MISSING",
+          "httpStatus": 400,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Rechnung ohne 8.4-Bruttobetrag; Buchung/Neuberechnung prüfen."
+        },
+        {
+          "code": "PAYMENT_INVOICE_NOT_PAYABLE",
+          "httpStatus": 400,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Rechnung in diesem Status nicht zahlbar (nur gebucht/versendet oder teilbezahlt)."
+        }
+      ]
+    },
+    {
+      "classId": "dunning_reminder",
+      "codes": [
+        {
+          "code": "DUNNING_INVOICE_NOT_ELIGIBLE",
+          "httpStatus": 400,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Mahn-Ereignis nur bei gebuchter oder teilbezahlter Rechnung; Status prüfen."
+        },
+        {
+          "code": "DUNNING_RUN_STAGE_INVALID",
+          "httpStatus": 400,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Mahnlauf: stageOrdinal fehlt oder liegt ausserhalb 1–9 / keine Stufenmetadaten."
+        },
+        {
+          "code": "DUNNING_RUN_CONFIG_INCOMPLETE",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Mahnlauf: Stufenkonfiguration unvollständig (9 Stufen erwartet); Konfiguration prüfen."
+        },
+        {
+          "code": "DUNNING_RUN_IDEMPOTENCY_MISMATCH",
+          "httpStatus": 400,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Mahnlauf: Idempotency-Key bereits mit anderen Parametern verwendet; neuen Key vergeben."
+        },
+        {
+          "code": "DUNNING_RUN_INVOICES_INVALID",
+          "httpStatus": 400,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Mahnlauf: invoiceIds enthalten keine gültigen Kandidaten für Stufe und Datum."
+        },
+        {
+          "code": "DUNNING_EMAIL_FOOTER_NOT_READY",
+          "httpStatus": 400,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "E-Mail-Versand (Stub oder SMTP): technische Footer-Mindestfelder fehlen; Stammdaten unter /finance/dunning-email-footer vervollständigen."
+        },
+        {
+          "code": "DUNNING_EMAIL_IDEMPOTENCY_MISMATCH",
+          "httpStatus": 400,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Idempotency-Key bereits mit anderem Beleg/Stufe/Empfänger verwendet; neuen Key vergeben."
+        },
+        {
+          "code": "DUNNING_EMAIL_SMTP_NOT_CONFIGURED",
+          "httpStatus": 503,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "SMTP nicht konfiguriert (ERP_SMTP_HOST / Transport); Betrieb prüfen."
+        },
+        {
+          "code": "DUNNING_EMAIL_SMTP_ERROR",
+          "httpStatus": 502,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "SMTP-Versand fehlgeschlagen; Relay/Zugangsdaten prüfen."
+        },
+        {
+          "code": "DUNNING_EMAIL_STAGE_INVALID",
+          "httpStatus": 400,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Mahn-Stufe muss eine ganze Zahl 1–9 sein."
+        },
+        {
+          "code": "DUNNING_EMAIL_TEMPLATE_NOT_FOUND",
+          "httpStatus": 404,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Keine E-Mail-Vorlage für diese Stufe; Vorlagen-Konfiguration prüfen."
+        },
+        {
+          "code": "DUNNING_EMAIL_STAGE_CONFIG_NOT_FOUND",
+          "httpStatus": 404,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Keine Mahnstufen-Konfiguration für diese Stufe; Konfiguration laden oder Stufe prüfen."
+        },
+        {
+          "code": "DUNNING_STAGE_CONFIG_NOT_PERSISTABLE",
+          "httpStatus": 503,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Mahnstufen nur mit Datenbank-Backend speicherbar; In-Memory/Demo-Modus wechseln oder Admin informieren."
+        },
+        {
+          "code": "DUNNING_STAGE_CONFIG_ROW_NOT_FOUND",
+          "httpStatus": 404,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Keine persistierte Stufe fuer diesen Mandanten; zuerst PUT (9 Stufen) oder falsches Ordinal."
+        },
+        {
+          "code": "DUNNING_TEMPLATE_NOT_PERSISTABLE",
+          "httpStatus": 503,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Mahn-Vorlagen nur mit Datenbank-Backend speicherbar; In-Memory/Demo-Modus wechseln oder Admin informieren."
+        },
+        {
+          "code": "DUNNING_TEMPLATE_PLACEHOLDERS_INVALID",
+          "httpStatus": 400,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Vorlagentext muss §8.10-Pflichtplatzhalter enthalten (siehe Fehlerdetails)."
+        }
+      ]
+    },
+    {
       "classId": "export_traceability",
       "codes": [
         {
@@ -459,7 +662,17 @@
     "measurement: MEASUREMENT_NOT_FOUND|MEASUREMENT_STATUS_TRANSITION_FORBIDDEN|MEASUREMENT_POSITION_EDIT_FORBIDDEN|MEASUREMENT_NEW_VERSION_FORBIDDEN|MEASUREMENT_VERSION_NOT_CURRENT|MEASUREMENT_POSITIONS_REQUIRED",
     "lv: LV_CATALOG_NOT_FOUND|LV_VERSION_NOT_FOUND|LV_VERSION_NOT_CURRENT|LV_NODE_NOT_FOUND|LV_POSITION_NOT_FOUND|LV_HIERARCHY_INVALID|LV_POSITION_VERSION_MISMATCH|LV_STRUCTURE_LOCKED|LV_SYSTEM_TEXT_IMMUTABLE|LV_STATUS_TRANSITION_FORBIDDEN|LV_NEW_VERSION_FORBIDDEN|LV_COPY_FAILED",
     "lv-references: LV_VERSION_NOT_FOUND|LV_POSITION_NOT_FOUND|LV_POSITION_VERSION_MISMATCH",
-    "finance-fin0-stub: TRACEABILITY_LINK_MISSING|EXPORT_PREFLIGHT_FAILED|DOCUMENT_NOT_FOUND|VALIDATION_FAILED — siehe docs/contracts/finance-fin0-openapi-mapping.md (keine neuen Codes in FIN-0)",
+    "finance-fin0-stub: TRACEABILITY_LINK_MISSING|EXPORT_PREFLIGHT_FAILED|DOCUMENT_NOT_FOUND|VALIDATION_FAILED — siehe docs/contracts/finance-fin0-openapi-mapping.md",
+    "payment-intake: PAYMENT_EXCEEDS_OPEN_AMOUNT|PAYMENT_INTAKE_IDEMPOTENCY_MISMATCH|PAYMENT_INVOICE_AMOUNT_MISSING|PAYMENT_INVOICE_NOT_PAYABLE|DOCUMENT_NOT_FOUND|VALIDATION_FAILED",
+    "payment-intake-read: DOCUMENT_NOT_FOUND|AUTH_ROLE_FORBIDDEN|UNAUTHORIZED",
+    "dunning-reminder-write: DUNNING_INVOICE_NOT_ELIGIBLE|DOCUMENT_NOT_FOUND|AUTH_ROLE_FORBIDDEN|UNAUTHORIZED|VALIDATION_FAILED|DUNNING_EMAIL_FOOTER_NOT_READY|AUDIT_PERSIST_FAILED",
+    "dunning-email-preview-read: DOCUMENT_NOT_FOUND|DUNNING_EMAIL_TEMPLATE_NOT_FOUND|DUNNING_EMAIL_STAGE_CONFIG_NOT_FOUND|DUNNING_EMAIL_STAGE_INVALID|AUTH_ROLE_FORBIDDEN|UNAUTHORIZED|VALIDATION_FAILED",
+    "dunning-email-send-smtp: DOCUMENT_NOT_FOUND|DUNNING_EMAIL_TEMPLATE_NOT_FOUND|DUNNING_EMAIL_STAGE_CONFIG_NOT_FOUND|DUNNING_EMAIL_STAGE_INVALID|DUNNING_EMAIL_FOOTER_NOT_READY|DUNNING_EMAIL_IDEMPOTENCY_MISMATCH|DUNNING_EMAIL_SMTP_NOT_CONFIGURED|DUNNING_EMAIL_SMTP_ERROR|AUTH_ROLE_FORBIDDEN|UNAUTHORIZED|VALIDATION_FAILED",
+    "dunning-reminder-candidates-read: DUNNING_RUN_STAGE_INVALID|DUNNING_RUN_CONFIG_INCOMPLETE|AUTH_ROLE_FORBIDDEN|UNAUTHORIZED|VALIDATION_FAILED|TENANT_SCOPE_VIOLATION",
+    "dunning-reminder-run: DUNNING_RUN_STAGE_INVALID|DUNNING_RUN_CONFIG_INCOMPLETE|DUNNING_RUN_INVOICES_INVALID|DUNNING_RUN_IDEMPOTENCY_MISMATCH|DUNNING_INVOICE_NOT_ELIGIBLE|AUTH_ROLE_FORBIDDEN|UNAUTHORIZED|VALIDATION_FAILED|TENANT_SCOPE_VIOLATION|AUDIT_PERSIST_FAILED",
+    "dunning-reminder-automation: AUTH_ROLE_FORBIDDEN|UNAUTHORIZED|VALIDATION_FAILED|TENANT_SCOPE_VIOLATION|DUNNING_AUTOMATION_NOT_PERSISTABLE|AUDIT_PERSIST_FAILED",
+    "dunning-reminder-config-write: DUNNING_STAGE_CONFIG_NOT_PERSISTABLE|DUNNING_STAGE_CONFIG_ROW_NOT_FOUND|AUTH_ROLE_FORBIDDEN|UNAUTHORIZED|VALIDATION_FAILED|TENANT_SCOPE_VIOLATION|DUNNING_TEMPLATE_NOT_PERSISTABLE|DUNNING_TEMPLATE_PLACEHOLDERS_INVALID",
+    "invoice-book: INVOICE_NOT_BOOKABLE|INVOICE_NUMBER_CONFLICT|INVOICE_DRAFT_INCOMPLETE|TRACEABILITY_LINK_MISSING|TRACEABILITY_FIELD_MISMATCH|DOCUMENT_NOT_FOUND",
     "user_account: USER_NOT_FOUND|USER_EMAIL_CONFLICT|USER_LAST_ADMIN_FORBIDDEN|USER_SELF_DEACTIVATION_FORBIDDEN|USER_MANAGEMENT_REQUIRES_DB|PASSWORD_RESET_INVALID|PASSWORD_RESET_MAIL_NOT_CONFIGURED"
   ]
 }

@@ -1,25 +1,21 @@
 # PRISMA-7-UPGRADE — geplantes Major-Upgrade (eigenes Inkrement)
 
-## Status (Single Source of Truth)
+## Status Hauptlinie (erledigt, 2026-04-24)
 
-| Feld | Stand (lokal geprüft 2026-04-23) |
-| --- | --- |
-| **Phase** | `GEPLANT` — `main` ist noch **nicht** auf Prisma 7 umgestellt. |
-| **Produktionslinie `origin/main`** | `prisma` / `@prisma/client` **^5.22.0**; [`prisma/schema.prisma`](../../prisma/schema.prisma): `generator` = `prisma-client-js`, `datasource` mit `url = env("DATABASE_URL")`; **kein** `prisma.config.ts` im Root. |
-| **Referenz-Implementierung Prisma 7** | Branch `origin/feat/m4-mahnlauf-mandant-automation`: `prisma` / `@prisma/client` **7.8.0** (gepinnt), Root-Datei `prisma.config.ts`, Generator `prisma-client` mit `output = "../generated/prisma"`. Dient als **technische Vorlage**, bis ein PR nach `main` die Checkliste unten erfüllt. |
-| **Automatische Stack-Prüfung** | `npm run check:prisma-stack` (Root) — gleiche Major für CLI + Client; Konvention 5.x vs 7.x. |
+- **Versionen (exakt gepinnt):** `prisma` 7.8.0, `@prisma/client` 7.8.0, `@prisma/adapter-pg` 7.8.0 — siehe [package.json](../../package.json). `npm ls prisma @prisma/client @prisma/adapter-pg` zeigt eine einzige 7.8.0-Zeile ohne Split.
+- **Laufzeit:** [`prisma.config.ts`](../../prisma.config.ts), Generator `prisma-client` + Output `generated/`, [`src/prisma-client.ts`](../../src/prisma-client.ts) mit `PrismaPg`-Adapter (keine direkten Imports aus `@prisma/client` im Anwendungscode).
+- **Validierung:** `npm run prisma:validate`, `npx prisma generate`, `npm run verify:ci` (Audit, Contract-YAML, Typecheck, Web-Build, Vitest inkl. Root) erfolgreich lokal.
+- **Persistenz / Migrate:** `npm run verify:ci:local-db` setzt **laufendes Docker** (Postgres 16 laut `ensure-local-test-db`) voraus; ohne Docker hier nicht ausgeführt — in CI (`backend` mit Postgres-Service) weiterhin Pflicht.
+- **Dependabot:** Gruppen-PR [#21](https://github.com/rhermann90/ERP/pull/21) hob nur `@prisma/client` an und wurde **geschlossen** (Split-Risiko). Künftige Prisma-PRs müssen **CLI + Client + Adapter** gemeinsam anheben.
+- **Transitive CLI-Deps:** Pakete wie `@hono/node-server` (Kette `prisma` → `@prisma/dev`) sind nur Dev-/CLI-Tooling, tauchen aber in **Dependency Review** auf. Bis Prisma ein Release mit angehobener Abhängigkeit liefert, können sie per Root-[`overrides`](../../package.json) in `package.json` auf eine gepatchte Version gezogen werden (z. B. [GHSA-92pp-h63x-v22m](https://github.com/advisories/GHSA-92pp-h63x-v22m) — Floor ≥ 1.19.13); `npm audit fix --force` vermeiden, wenn es einen ungewollten Prisma-Major nahelegt.
 
-**Hinweis Git:** Auf Feature-Branches können Merge-Commits Betreffzeilen wie „Prisma 7.x Hauptlinie“ tragen, **ohne** dass `main` bereits Prisma 7 nutzt — immer `package.json` auf dem **Ziel-Branch** und dieses Ticket prüfen.
+### Hinweis nach Merge mehrerer PRs (2026-04-24)
 
-### Remote-Branch-Inventar (Stichprobe, nicht abschließend)
+- **`origin/main`:** Prisma **7.8.0** (gepinnt), `prisma.config.ts`, `npm run check:prisma-stack`, CI-Job `e2e-smoke` setzt `DATABASE_URL` für `prisma generate` im Postinstall.
+- **Feature-Branches:** nach `git fetch` / `git merge origin/main` jeweils `package.json`, Lockfile und dieses Ticket prüfen — nicht blind alte `^5.22.0`-Zeilen aus Konflikten übernehmen.
 
-| Branch | Prisma (`package.json`) | Bemerkung |
-| --- | --- | --- |
-| `origin/main` | ^5.22.0 | Produktionslinie |
-| `origin/feat/m4-mahnlauf-mandant-automation` | 7.8.0 (gepinnt) | Referenz für 7.x-Layout (`prisma.config.ts`, `generated/prisma`) |
-| `origin/feat/wip-recovery-from-stash-2026-04-21` | 7.8.0 (gepinnt) | Abweichend von `main`; vor Arbeit Branch explizit wählen |
+---
 
-Aktualisieren: `git fetch origin` und `git show origin/<branch>:package.json | grep prisma`.
 
 ## Kontext
 

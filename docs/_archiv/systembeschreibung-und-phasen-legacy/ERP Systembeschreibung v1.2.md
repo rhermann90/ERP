@@ -1,6 +1,6 @@
 # ERP Systembeschreibung v1.2
 
-**Hinweis:** Fachlich verbindliche Weiterentwicklung ab **v1.3** siehe `ERP Systembeschreibung v1.3.md` (Finanz-Submodell integriert). Dieses Dokument bleibt als Referenz fuer den Stand bis v1.2.
+**Hinweis:** Fachlich verbindliche Weiterentwicklung ab **v1.3** siehe `docs/ERP-Systembeschreibung.md` (Finanz-Submodell integriert). Dieses Dokument bleibt als Referenz fuer den Stand bis v1.2.
 
 Dieses Dokument ist die fachlich verbindliche Version 1.2 des Domänenmodells fuer ein modulares, mandantenfaehiges ERP-System fuer Geruestbauunternehmen.
 
