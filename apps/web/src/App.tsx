@@ -102,6 +102,8 @@ export default function App() {
     positionKind: "NORMAL",
     nodeEditingText: "Geänderter Bearbeitungstext",
     positionPatchJson: "",
+    dunningStageOrdinal: "1",
+    dunningNote: "",
   });
 
   const client = useMemo(
@@ -277,8 +279,9 @@ export default function App() {
         mctx,
       );
       setModalAction(null);
-      setBanner({ kind: "ok", text: JSON.stringify(result, null, 2) });
+      // Nach Statuswechsel (z. B. BOOK_INVOICE) zuerst allowedActions neu laden — fetchAllowedFor setzt zunächst banner=null; Erfolgsmeldung danach.
       await fetchAllowed();
+      setBanner({ kind: "ok", text: JSON.stringify(result, null, 2) });
     } catch (e) {
       if (e instanceof ApiError) {
         setBanner({
@@ -333,6 +336,24 @@ export default function App() {
           <code>XRECHNUNG</code> (Contract/Backend).
         </p>,
       );
+    }
+    if (a === "BOOK_INVOICE") {
+      rows.push(
+        <p key="book-invoice-hint" className="hint" style={{ margin: "0 0 0.5rem" }}>
+          Rechnung buchen: <code>POST /invoices/:invoiceId/book</code> — optional <code>issueDate</code> (ISO{" "}
+          <code>yyyy-mm-dd</code>).
+        </p>,
+      );
+      add("issueDate", "issueDate (optional, yyyy-mm-dd)");
+    }
+    if (a === "RECORD_DUNNING_REMINDER") {
+      rows.push(
+        <p key="dunning-hint" className="hint" style={{ margin: "0 0 0.5rem" }}>
+          Mahn-Ereignis: <code>POST /invoices/:invoiceId/dunning-reminders</code> — nur gebuchte/teilbezahlte Rechnung (SoT).
+        </p>,
+      );
+      add("dunningStageOrdinal", "Mahn-Stufe (1–9)");
+      add("dunningNote", "Notiz (optional)", "max. 500 Zeichen", "textarea");
     }
     if (a === "OFFER_CREATE_VERSION" || a === "OFFER_CREATE_SUPPLEMENT") {
       add("offerId", "offerId", "Pfad /offers/{offerId}/…");

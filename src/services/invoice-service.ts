@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   computeGrossFromLvNetEurMvp,
   GERMAN_VAT_STANDARD_BPS,
+  netCentsAfterStep84_6Mvp,
   sumLvNetCentsStep84_1,
 } from "../domain/invoice-calculation.js";
 import type { Invoice, TenantId, UUID } from "../domain/types.js";
@@ -9,6 +10,16 @@ import { DomainError } from "../errors/domain-error.js";
 import type { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import type { InvoicePersistencePort } from "../persistence/invoice-persistence.js";
 import { AuditService } from "./audit-service.js";
+import type { TraceabilityService } from "./traceability-service.js";
+
+function isPrismaUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code: string }).code === "P2002"
+  );
+}
 
 export type CreateInvoiceDraftInput = {
   tenantId: TenantId;
@@ -17,7 +28,34 @@ export type CreateInvoiceDraftInput = {
   offerVersionId: UUID;
   invoiceCurrencyCode: "EUR";
   paymentTermsVersionId?: UUID;
+  /** 8.4(2) B2-1a: Skonto in Basispunkten; fehlend = 0. */
+  skontoBps?: number;
   reason: string;
+};
+
+export type BookInvoiceInput = {
+  tenantId: TenantId;
+  actorUserId: UUID;
+  invoiceId: UUID;
+  reason: string;
+  /** ISO `yyyy-mm-dd` (UTC); default: heutiges UTC-Datum. */
+  issueDate?: string;
+};
+
+/** Lesepfad FIN-3: Zahlungseingänge je Rechnung (ohne Idempotency-Key im API-Body). */
+export type PaymentIntakeReadRow = {
+  paymentIntakeId: UUID;
+  amountCents: number;
+  externalReference: string;
+  createdAt: string;
+};
+
+/** Lesepfad FIN-4 (Stub): Mahn-Ereignisse je Rechnung. */
+export type DunningReminderReadRow = {
+  dunningReminderId: UUID;
+  stageOrdinal: number;
+  note?: string;
+  createdAt: string;
 };
 
 export class InvoiceService {
@@ -25,6 +63,7 @@ export class InvoiceService {
     private readonly repos: InMemoryRepositories,
     private readonly audit: AuditService,
     private readonly persistence: InvoicePersistencePort,
+    private readonly traceability: TraceabilityService,
   ) {}
 
   public async createDraft(input: CreateInvoiceDraftInput): Promise<{
@@ -33,6 +72,7 @@ export class InvoiceService {
     vatRateBps: number;
     vatCents: number;
     totalGrossCents: number;
+    skontoBps: number;
   }> {
     if (input.invoiceCurrencyCode !== "EUR") {
       throw new DomainError("VALIDATION_FAILED", "Nur EUR laut Spez", 400);
@@ -84,7 +124,9 @@ export class InvoiceService {
     }
 
     const lvPositions = this.repos.listLvPositionsForVersion(input.tenantId, input.lvVersionId);
-    const lvNetCents = sumLvNetCentsStep84_1(lvPositions);
+    const lvNetAfterStep1 = sumLvNetCentsStep84_1(lvPositions);
+    const skontoBps = input.skontoBps ?? 0;
+    const lvNetCents = netCentsAfterStep84_6Mvp(lvNetAfterStep1, { skontoBps });
     if (lvNetCents <= 0) {
       throw new DomainError(
         "VALIDATION_FAILED",
@@ -110,6 +152,7 @@ export class InvoiceService {
       vatCents,
       totalGrossCents,
       paymentTermsVersionId: input.paymentTermsVersionId,
+      skontoBps,
     };
     this.repos.invoices.set(id, invoice);
     this.repos.traceabilityLinks.set(id, {
@@ -140,10 +183,121 @@ export class InvoiceService {
         lvNetCents,
         vatCents,
         totalGrossCents,
+        skontoBps,
       },
     });
 
-    return { invoiceId: id, lvNetCents, vatRateBps, vatCents, totalGrossCents };
+    return { invoiceId: id, lvNetCents, vatRateBps, vatCents, totalGrossCents, skontoBps };
+  }
+
+  /**
+   * ENTWURF → GEBUCHT_VERSENDET (FIN-2 MVP): verbindliche Rechnungsnummer je Mandant, Traceability fail-closed.
+   * Zwischenstatus GEPRUEFT/FREIGEGEBEN kann später ergänzt werden (siehe Authorization allowedActions).
+   */
+  public async bookInvoice(input: BookInvoiceInput): Promise<{
+    invoiceId: UUID;
+    status: Invoice["status"];
+    invoiceNumber: string;
+    issueDate: string;
+    totalGrossCents: number;
+  }> {
+    const inv = this.repos.getInvoiceByTenant(input.tenantId, input.invoiceId);
+    if (!inv) {
+      throw new DomainError("DOCUMENT_NOT_FOUND", "Rechnung nicht gefunden", 404);
+    }
+    if (inv.status !== "ENTWURF") {
+      throw new DomainError(
+        "INVOICE_NOT_BOOKABLE",
+        "Rechnung ist nicht im Status ENTWURF",
+        409,
+      );
+    }
+    if (inv.lvNetCents == null || inv.vatCents == null || inv.totalGrossCents == null) {
+      throw new DomainError(
+        "INVOICE_DRAFT_INCOMPLETE",
+        "Rechnungsentwurf ohne Betraege — Entwurf neu erzeugen",
+        422,
+      );
+    }
+
+    this.traceability.assertInvoiceTraceability(input.tenantId, input.invoiceId);
+
+    const issueDate = input.issueDate ?? new Date().toISOString().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/u.test(issueDate)) {
+      throw new DomainError("VALIDATION_FAILED", "issueDate muss ISO yyyy-mm-dd sein", 400);
+    }
+
+    const invoiceNumber = this.allocateNextInvoiceNumber(input.tenantId);
+    const previous: Invoice = { ...inv };
+
+    const updated: Invoice = {
+      ...inv,
+      status: "GEBUCHT_VERSENDET",
+      invoiceNumber,
+      issueDate,
+    };
+    this.repos.invoices.set(inv.id, updated);
+
+    try {
+      await this.persistence.syncInvoiceFromMemory(this.repos, input.tenantId, inv.id);
+    } catch (err) {
+      this.repos.invoices.set(inv.id, previous);
+      if (isPrismaUniqueViolation(err)) {
+        throw new DomainError(
+          "INVOICE_NUMBER_CONFLICT",
+          "Rechnungsnummer vergeben — bitte erneut buchen",
+          409,
+        );
+      }
+      throw err;
+    }
+
+    await this.audit.append({
+      id: randomUUID(),
+      tenantId: input.tenantId,
+      entityType: "INVOICE",
+      entityId: inv.id,
+      action: "STATUS_CHANGED",
+      timestamp: new Date(),
+      actorUserId: input.actorUserId,
+      reason: input.reason,
+      beforeState: {
+        status: previous.status,
+        lvNetCents: previous.lvNetCents,
+        vatCents: previous.vatCents,
+        totalGrossCents: previous.totalGrossCents,
+      },
+      afterState: {
+        status: updated.status,
+        invoiceNumber: updated.invoiceNumber,
+        issueDate: updated.issueDate,
+        lvNetCents: updated.lvNetCents,
+        vatCents: updated.vatCents,
+        totalGrossCents: updated.totalGrossCents,
+      },
+    });
+
+    return {
+      invoiceId: inv.id,
+      status: updated.status,
+      invoiceNumber,
+      issueDate,
+      totalGrossCents: inv.totalGrossCents,
+    };
+  }
+
+  /** Mandantenbezogen fortlaufend `RE-{UTC-Jahr}-{0001}` — Kollisionen durch DB-Unique + Retry abgefangen. */
+  private allocateNextInvoiceNumber(tenantId: TenantId): string {
+    const year = new Date().getUTCFullYear();
+    const prefix = `RE-${year}-`;
+    let maxSeq = 0;
+    for (const row of this.repos.invoices.values()) {
+      if (row.tenantId !== tenantId || !row.invoiceNumber?.startsWith(prefix)) continue;
+      const rest = row.invoiceNumber.slice(prefix.length);
+      const n = parseInt(rest, 10);
+      if (!Number.isNaN(n)) maxSeq = Math.max(maxSeq, n);
+    }
+    return `${prefix}${String(maxSeq + 1).padStart(4, "0")}`;
   }
 
   public getInvoice(tenantId: TenantId, invoiceId: UUID): {
@@ -163,6 +317,7 @@ export class InvoiceService {
     totalGrossCents?: number;
     totalPaidCents?: number;
     paymentTermsVersionId?: UUID;
+    skontoBps: number;
   } {
     const inv = this.repos.getInvoiceByTenant(tenantId, invoiceId);
     if (!inv) {
@@ -187,6 +342,41 @@ export class InvoiceService {
       totalGrossCents: inv.totalGrossCents,
       totalPaidCents: paidList.length > 0 ? totalPaidCents : undefined,
       paymentTermsVersionId: inv.paymentTermsVersionId,
+      skontoBps: inv.skontoBps ?? 0,
     };
+  }
+
+  /** Mandanten-isoliert; Rechnung muss existieren. Sortierung nach `createdAt` aufsteigend. */
+  public listPaymentIntakesForInvoiceRead(tenantId: TenantId, invoiceId: UUID): PaymentIntakeReadRow[] {
+    const inv = this.repos.getInvoiceByTenant(tenantId, invoiceId);
+    if (!inv) {
+      throw new DomainError("DOCUMENT_NOT_FOUND", "Rechnung nicht gefunden", 404);
+    }
+    const rows = this.repos.listPaymentIntakesForInvoice(tenantId, invoiceId);
+    return rows
+      .map((p) => ({
+        paymentIntakeId: p.id,
+        amountCents: p.amountCents,
+        externalReference: p.externalReference,
+        createdAt: p.createdAt.toISOString(),
+      }))
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  /** FIN-4 Stub: gleiche Leserolle wie Rechnung; sortiert nach `createdAt`. */
+  public listDunningRemindersForInvoiceRead(tenantId: TenantId, invoiceId: UUID): DunningReminderReadRow[] {
+    const inv = this.repos.getInvoiceByTenant(tenantId, invoiceId);
+    if (!inv) {
+      throw new DomainError("DOCUMENT_NOT_FOUND", "Rechnung nicht gefunden", 404);
+    }
+    const rows = this.repos.listDunningRemindersForInvoice(tenantId, invoiceId);
+    return rows
+      .map((r) => ({
+        dunningReminderId: r.id,
+        stageOrdinal: r.stageOrdinal,
+        note: r.note,
+        createdAt: r.createdAt.toISOString(),
+      }))
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 }

@@ -456,6 +456,11 @@
         <div>
           <h1 class="shell-title" id="t2">Rechnung RE-1042</h1>
           <p class="shell-sub">Beträge und Zwischensummen ausschließlich als Serverwerte (keine Neuberechnung im Client).</p>
+          <p class="shell-sub" style="margin-top: 0.5rem; font-size: 0.82rem; color: var(--text-secondary)">
+            <strong>Repo-Shell (2026):</strong> Buchung läuft nur über SoT-Aktion <code>BOOK_INVOICE</code> → <code>POST /invoices/:id/book</code>; nach Erfolg lädt die PWA
+            <code>allowedActions</code> neu. Mahn-Vorbereitung (FIN-4): Default-Stufen <code>GET /finance/dunning-reminder-config</code> (MVP Read-Stub); Lesepfad <code>GET /invoices/:id/dunning-reminders</code>; gebuchte/teilbezahlte Rechnung zusätzlich
+            <code>POST /invoices/:id/dunning-reminders</code> (Mahn-Ereignis protokollieren, SoT <code>RECORD_DUNNING_REMINDER</code>) — kein E-Mail-/Massenversand im MVP.
+          </p>
         </div>
       </header>
       <p class="breadcrumb"><a href="#screen-1">← Zurück zu Projekt</a></p>

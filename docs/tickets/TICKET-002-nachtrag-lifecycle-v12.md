@@ -125,7 +125,7 @@ Nachtrag technisch und fachlich von „nur ENTWURF-Anlage“ auf **vollständige
 - **`entityType`** für Nachtragsdokumente explizit (z. B. `SUPPLEMENT_OFFER` oder `SUPPLEMENT_VERSION`) in `GET /documents/{id}/allowed-actions`, sobald Entitäten existieren; Minimal-API bleibt unverändert bis Migration der Routen im ADR beschrieben ist.
 
 **Hauptangebot Angenommen / Abgelehnt (Rollen):**  
-- **ADMIN**, **VERTRIEB**, **GESCHAEFTSFUEHRUNG** dürfen aus `VERSENDET` **ANGENOMMEN** bzw. **ABGELEHNT** setzen (bereits in `AuthorizationService` umgesetzt; fachlich bestätigt).
+- **ADMIN**, **VERTRIEB_BAULEITUNG**, **GESCHAEFTSFUEHRUNG** dürfen aus `VERSENDET` **ANGENOMMEN** bzw. **ABGELEHNT** setzen (bereits in `AuthorizationService` umgesetzt; fachlich bestätigt).
 
 ## Verweise
 - `ERP Systembeschreibung v1.2.md` (§5.3, §7)

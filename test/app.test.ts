@@ -410,6 +410,8 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     });
     expect(sot.statusCode).toBe(200);
     expect(sot.json().allowedActions).toContain("EXPORT_INVOICE");
+    expect(sot.json().allowedActions).toContain("RECORD_PAYMENT_INTAKE");
+    expect(sot.json().allowedActions).toContain("RECORD_DUNNING_REMINDER");
     expect(sot.json().allowedActions).not.toContain("EXPORT_INVOICE_XRECHNUNG");
     const exp = await app.inject({
       method: "POST",
@@ -420,6 +422,34 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     expect(exp.statusCode).toBe(201);
   });
 
+  it("INVOICE allowed-actions: ENTWURF enthält BOOK_INVOICE (ADMIN), kein RECORD_PAYMENT_INTAKE", async () => {
+    const sot = await app.inject({
+      method: "GET",
+      url: `/documents/${SEED_IDS.draftInvoiceId}/allowed-actions?entityType=INVOICE`,
+      headers: buildHeaders("ADMIN"),
+    });
+    expect(sot.statusCode).toBe(200);
+    expect(sot.json().allowedActions).toContain("BOOK_INVOICE");
+    expect(sot.json().allowedActions).not.toContain("RECORD_PAYMENT_INTAKE");
+  });
+
+  it("INVOICE allowed-actions: ENTWURF enthält BOOK_INVOICE für BUCHHALTUNG, nicht für VIEWER", async () => {
+    const buch = await app.inject({
+      method: "GET",
+      url: `/documents/${SEED_IDS.draftInvoiceId}/allowed-actions?entityType=INVOICE`,
+      headers: buildHeaders("BUCHHALTUNG"),
+    });
+    expect(buch.statusCode).toBe(200);
+    expect(buch.json().allowedActions).toContain("BOOK_INVOICE");
+    const viewer = await app.inject({
+      method: "GET",
+      url: `/documents/${SEED_IDS.draftInvoiceId}/allowed-actions?entityType=INVOICE`,
+      headers: buildHeaders("VIEWER"),
+    });
+    expect(viewer.statusCode).toBe(200);
+    expect(viewer.json().allowedActions).not.toContain("BOOK_INVOICE");
+  });
+
   it("P0 invoice export ohne SoT-Aktion: VIEWER erhält kein EXPORT_INVOICE; POST /exports 403", async () => {
     const sot = await app.inject({
       method: "GET",
@@ -428,6 +458,8 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     });
     expect(sot.statusCode).toBe(200);
     expect(sot.json().allowedActions).not.toContain("EXPORT_INVOICE");
+    expect(sot.json().allowedActions).not.toContain("RECORD_PAYMENT_INTAKE");
+    expect(sot.json().allowedActions).not.toContain("RECORD_DUNNING_REMINDER");
     const exp = await app.inject({
       method: "POST",
       url: "/exports",

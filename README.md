@@ -24,6 +24,7 @@ Dieser Stand ist als Integrations-/Abnahmebasis gedacht (API + Contracts + PWA-S
 - `AUTH_TOKEN_SECRET` (Pflicht außerhalb `NODE_ENV=test`): Signier-Secret für Bearer-Tokens, in Produktion mindestens 32 Zeichen.
 - `ERP_ALLOW_INSECURE_DEV_AUTH=1` (nur non-prod): aktiviert einen unsicheren Demo-Fallback für lokale Demos; niemals in Produktion.
 - `CORS_ORIGINS` (optional): kommagetrennte, exakte Browser-Origins, z. B. `http://localhost:5173`.
+- `ERP_ENABLE_HSTS=1` (optional): setzt `Strict-Transport-Security` auf API-Antworten — **nur** sinnvoll hinter HTTPS-Terminierung (sonst Browser-Warnungen).
 - **`DATABASE_URL`**: Postgres-Connection-String. **Pflicht**, wenn `NODE_ENV=production` oder `ERP_DEPLOYMENT=integration` (Fail-closed beim Start). In Development: wenn gesetzt und nicht `ERP_REPOSITORY=memory`, werden **LV + Aufmass + Offer/OfferVersion** (ADR-0006) und **Nachtrag (`supplement_offers` / `supplement_versions`, ADR-0002 D5)** nach Postgres geschrieben; Rechnung, Traceability-Links u. a. siehe Teilpersistenz unten.
 - **`ERP_REPOSITORY=memory`**: erzwingt In-Memory-Modus (z. B. Tests, `buildApp({ repositoryMode: "memory" })`).
 - **`ERP_DEPLOYMENT=integration`**: behandelt wie produktionsnah bzgl. DB-Pflicht (ohne `NODE_ENV=production` zu setzen).
@@ -41,17 +42,19 @@ Siehe Vorlage: [`.env.example`](./.env.example)
 
 ## CI / Persistenz-Tests
 
-- GitHub Actions: [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) startet **Postgres**, setzt **`PERSISTENCE_DB_TEST_URL`** (und `DATABASE_URL`), führt **`prisma migrate deploy`** aus und **`npm test`** — Persistenz-Suites laufen **ohne SKIP**.
+- GitHub Actions: [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) startet **Postgres**, setzt **`PERSISTENCE_DB_TEST_URL`** (und `DATABASE_URL`), führt **`prisma migrate deploy`** aus und **`npm test`** — Persistenz-Suites laufen **ohne SKIP**. **Kein zweiter CI-Job nötig:** derselbe Job **`backend`** ist die kanonische Merge-Evidence; `npm run verify:ci:local-db` ist das **lokale Äquivalent** (siehe Runbook).
+- **Lokale CI-Parität:** `npm run verify:ci:local-db` (Compose-Postgres auf Host-Port **15432**, siehe [`docs/runbook/ci-and-persistence-tests.md`](./docs/runbook/ci-and-persistence-tests.md)).
 - Lokal und Troubleshooting: [`docs/runbook/ci-and-persistence-tests.md`](./docs/runbook/ci-and-persistence-tests.md)
 
-**Repository-Prozess (Merge):** PR-Vorlage [`.github/pull_request_template.md`](./.github/pull_request_template.md); Merge-Evidence und QA-Pflicht **§5a** in [`docs/contracts/qa-fin-0-gate-readiness.md`](./docs/contracts/qa-fin-0-gate-readiness.md). Branch-Schutz (Pflicht-Statuscheck **`backend`**): [`docs/runbooks/github-branch-protection-backend.md`](./docs/runbooks/github-branch-protection-backend.md).
+**Repository-Prozess (Merge):** PR-Vorlage [`.github/pull_request_template.md`](./.github/pull_request_template.md); Merge-Evidence und QA-Pflicht **§5a** in [`docs/contracts/qa-fin-0-gate-readiness.md`](./docs/contracts/qa-fin-0-gate-readiness.md). Branch-Schutz (Pflicht-Statuscheck **`backend`**): [`docs/runbooks/github-branch-protection-backend.md`](./docs/runbooks/github-branch-protection-backend.md). **Aktueller Entwicklungsplan (nächste Schritte):** [`docs/plans/nächste-schritte.md`](./docs/plans/nächste-schritte.md).
 
-**Hinweis Health:** Es gibt `GET /health` (Liveness). Ein separates **Ready**-Endpoint (z. B. DB erreichbar) ist Sache des Backends; die PWA verwendet `VITE_API_BASE_URL` nur als API-Origin — bis ein Ready-Pfad dokumentiert ist, sind Start-/Verbindungsprobleme normale HTTP-/Netzwerkfehler.
+**Health / Readiness:** `GET /health` = Liveness (Prozess lebt). `GET /ready` = Readiness: im **Postgres-Modus** einmal `SELECT 1` über Prisma (**503**, wenn die DB nicht erreichbar); im **Memory-Modus** **200** mit `checks.database: not_configured`. Die PWA nutzt weiterhin `VITE_API_BASE_URL` als Origin — Orchestrierung kann `/ready` für Traffic schalten, sobald die Umgebung Postgres nutzt.
 
 ## API / Contracts
 
 - OpenAPI: [`docs/api-contract.yaml`](./docs/api-contract.yaml)
 - Contracts: [`docs/contracts/`](./docs/contracts/)
+- PWA / v1.3-Rollen → API-Rolle (Mapping-Tabelle): [`docs/contracts/ui-role-mapping-v1-3.md`](./docs/contracts/ui-role-mapping-v1-3.md)
 - Passwort-Login / Multi-User (Mandant): [`docs/authentication-login.md`](./docs/authentication-login.md)
 - Domäne (MVP): [`docs/ERP-Systembeschreibung.md`](./docs/ERP-Systembeschreibung.md)
 - Entwicklungsphasen MVP (Finanz v1.3): [`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`](./docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md)

@@ -8,7 +8,7 @@
 
 ## Aktueller Stand
 - `POST /offers/{offerId}/supplements` vorhanden.
-- Fachliche Gates: Tenant-Scoping, Rollenprüfung (`ADMIN|VERTRIEB|GESCHAEFTSFUEHRUNG`), Basis-Angebotsversion muss `ANGENOMMEN` sein.
+- Fachliche Gates: Tenant-Scoping, Rollenprüfung (`ADMIN|VERTRIEB_BAULEITUNG|GESCHAEFTSFUEHRUNG`), Basis-Angebotsversion muss `ANGENOMMEN` sein.
 - Ergebnis: `SupplementVersion` in `ENTWURF`, Referenz auf `baseOfferVersionId`, AuditEvent `VERSION_CREATED` mit `entityType=SUPPLEMENT_VERSION`.
 
 ## Akzeptanzkriterien (Status)

@@ -1,6 +1,8 @@
 import {
   AuditEvent,
   ExportRun,
+  DunningReminder,
+  DunningEmailSend,
   Invoice,
   PaymentIntake,
   PaymentTermsHead,
@@ -42,6 +44,10 @@ export class InMemoryRepositories {
   public paymentIntakes = new Map<UUID, PaymentIntake>();
   /** Schlüssel `${tenantId}:${idempotencyKey}` → paymentIntake.id */
   public paymentIntakeByIdempotencyKey = new Map<string, UUID>();
+  public dunningReminders = new Map<UUID, DunningReminder>();
+  public dunningEmailSends = new Map<UUID, DunningEmailSend>();
+  /** `${tenantId}:${idempotencyKey}` → dunningEmailSend.id */
+  public dunningEmailSendByIdempotencyKey = new Map<string, UUID>();
 
   public getOfferByTenant(tenantId: TenantId, offerId: UUID): Offer | undefined {
     const offer = this.offers.get(offerId);
@@ -84,6 +90,10 @@ export class InMemoryRepositories {
     return invoice;
   }
 
+  public listInvoicesForTenant(tenantId: TenantId): Invoice[] {
+    return [...this.invoices.values()].filter((inv) => inv.tenantId === tenantId);
+  }
+
   public getPaymentIntakeByIdempotency(tenantId: TenantId, idempotencyKey: UUID): PaymentIntake | undefined {
     const id = this.paymentIntakeByIdempotencyKey.get(`${tenantId}:${idempotencyKey}`);
     if (!id) return undefined;
@@ -99,6 +109,43 @@ export class InMemoryRepositories {
   public putPaymentIntake(row: PaymentIntake): void {
     this.paymentIntakes.set(row.id, row);
     this.paymentIntakeByIdempotencyKey.set(`${row.tenantId}:${row.idempotencyKey}`, row.id);
+  }
+
+  /** Rollback bei fehlgeschlagener DB-Persistenz (FIN-3). */
+  public removePaymentIntake(row: PaymentIntake): void {
+    this.paymentIntakes.delete(row.id);
+    this.paymentIntakeByIdempotencyKey.delete(`${row.tenantId}:${row.idempotencyKey}`);
+  }
+
+  public listDunningRemindersForInvoice(tenantId: TenantId, invoiceId: UUID): DunningReminder[] {
+    return [...this.dunningReminders.values()].filter((r) => r.tenantId === tenantId && r.invoiceId === invoiceId);
+  }
+
+  public putDunningReminder(row: DunningReminder): void {
+    this.dunningReminders.set(row.id, row);
+  }
+
+  /** Rollback bei fehlgeschlagener DB-Persistenz (FIN-4 Schreibpfad). */
+  public removeDunningReminder(row: DunningReminder): void {
+    this.dunningReminders.delete(row.id);
+  }
+
+  public getDunningEmailSendByIdempotency(tenantId: TenantId, idempotencyKey: UUID): DunningEmailSend | undefined {
+    const id = this.dunningEmailSendByIdempotencyKey.get(`${tenantId}:${idempotencyKey}`);
+    if (!id) return undefined;
+    const row = this.dunningEmailSends.get(id);
+    if (!row || row.tenantId !== tenantId) return undefined;
+    return row;
+  }
+
+  public putDunningEmailSend(row: DunningEmailSend): void {
+    this.dunningEmailSends.set(row.id, row);
+    this.dunningEmailSendByIdempotencyKey.set(`${row.tenantId}:${row.idempotencyKey}`, row.id);
+  }
+
+  public removeDunningEmailSend(row: DunningEmailSend): void {
+    this.dunningEmailSends.delete(row.id);
+    this.dunningEmailSendByIdempotencyKey.delete(`${row.tenantId}:${row.idempotencyKey}`);
   }
 
   public getSupplementOfferByTenant(tenantId: TenantId, supplementOfferId: UUID): SupplementOffer | undefined {

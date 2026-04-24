@@ -6,6 +6,7 @@
     "apiContract": "docs/api-contract.yaml",
     "serviceEndpoints": [
       "GET /health",
+      "GET /ready",
       "POST /offers/version",
       "POST /offers/status",
       "POST /supplements/status",
@@ -23,12 +24,13 @@
       "POST /lv/versions/{lvVersionId}/positions",
       "PATCH /lv/positions/{positionId}",
       "POST /exports",
+      "POST /finance/payments/intake",
       "GET /audit-events",
       "GET /documents/{id}/allowed-actions?entityType=OFFER_VERSION|SUPPLEMENT_VERSION|MEASUREMENT_VERSION|LV_VERSION|LV_STRUCTURE_NODE|LV_POSITION|INVOICE"
     ]
   },
   "notes": [
-    "PWA: CORS-Allowlist via Backend-Env `CORS_ORIGINS` (exakte Origins); Security-Header und `/health` siehe `docs/api-contract.yaml` info.description.",
+    "PWA: CORS-Allowlist via Backend-Env `CORS_ORIGINS` (exakte Origins); Security-Header, `/health` und `/ready` siehe `docs/api-contract.yaml` info.description. Fachrollen v1.3 → API-Rolle: `docs/contracts/ui-role-mapping-v1-3.md`.",
     "UI executes critical actions only when action is returned by backend allowedActions.",
     "UI does not derive status transitions locally.",
     "Contracts are restricted to backend-implemented entities in phase 1.",
@@ -40,7 +42,7 @@
       "SUPER_ADMIN": "ADMIN",
       "ACCOUNTING": "BUCHHALTUNG",
       "MANAGEMENT": "GESCHAEFTSFUEHRUNG",
-      "SALES": "VERTRIEB",
+      "SALES": "VERTRIEB_BAULEITUNG",
       "READ_ONLY": "VIEWER"
     }
   },

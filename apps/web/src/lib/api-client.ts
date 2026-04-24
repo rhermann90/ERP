@@ -131,6 +131,8 @@ export type InvoiceOverview = {
   totalGrossCents?: number;
   totalPaidCents?: number;
   paymentTermsVersionId?: string;
+  /** 8.4(2) B2-1a: Skonto in Basispunkten (Server liefert 0 wenn nicht am Entwurf gesetzt). */
+  skontoBps: number;
 };
 
 export type CreateInvoiceDraftResponse = {
@@ -139,6 +141,7 @@ export type CreateInvoiceDraftResponse = {
   vatRateBps: number;
   vatCents: number;
   totalGrossCents: number;
+  skontoBps: number;
 };
 
 /** Antwort `POST /finance/payments/intake` (FIN-3). */
@@ -150,6 +153,141 @@ export type PaymentIntakeRecordResponse = {
   totalPaidCentsAfter: number;
   invoiceOpenCentsAfter: number;
   invoiceStatus: string;
+};
+
+/** Zeile `GET /invoices/:invoiceId/payment-intakes` (ohne Idempotency-Key). */
+export type PaymentIntakeReadRow = {
+  paymentIntakeId: string;
+  amountCents: number;
+  externalReference: string;
+  createdAt: string;
+};
+
+/** Zeile `GET /invoices/:invoiceId/dunning-reminders` (FIN-4 Stub). */
+export type DunningReminderReadRow = {
+  dunningReminderId: string;
+  stageOrdinal: number;
+  note?: string;
+  createdAt: string;
+};
+
+/** Antwort `POST /invoices/:invoiceId/dunning-reminders` (FIN-4 Schreibpfad). */
+export type CreateDunningReminderResponse = {
+  dunningReminderId: string;
+  stageOrdinal: number;
+  createdAt: string;
+};
+
+/** Zeile in `GET /finance/dunning-reminder-config` (FIN-4 Slice 3, MVP-Defaults). */
+export type DunningStageConfigReadRow = {
+  stageOrdinal: number;
+  daysAfterDue: number;
+  feeCents: number;
+  label: string;
+};
+
+/** Antwort `GET /finance/dunning-reminder-config` (MVP-Fallback oder Mandanten-DB). */
+export type DunningReminderConfigReadResponse = {
+  data: {
+    configSource: "MVP_STATIC_DEFAULTS" | "TENANT_DATABASE";
+    tenantId: string;
+    stages: DunningStageConfigReadRow[];
+  };
+};
+
+/** Kanal-Zeile in `GET /finance/dunning-reminder-templates` (M4 Slice 1). */
+export type DunningTemplateChannelRow = {
+  channel: "EMAIL" | "PRINT";
+  templateType: "REMINDER" | "DEMAND_NOTE" | "DUNNING";
+  body: string;
+};
+
+export type DunningStageTemplatesReadRow = {
+  stageOrdinal: number;
+  channels: DunningTemplateChannelRow[];
+};
+
+/** Antwort `GET /finance/dunning-reminder-templates` (MVP oder Mandanten-DB). */
+export type DunningReminderTemplatesReadResponse = {
+  data: {
+    templateSource: "MVP_STATIC_DEFAULTS" | "TENANT_DATABASE";
+    tenantId: string;
+    stages: DunningStageTemplatesReadRow[];
+  };
+};
+
+/** Antwort `POST …/dunning-reminders/email-preview` (M4 Slice 4). */
+export type DunningReminderEmailPreviewResponse = {
+  data: {
+    stageOrdinal: number;
+    templateBodyRaw: string;
+    templateBodyWithPlaceholders: string;
+    footerPlainText: string;
+    fullPlainText: string;
+    readyForEmailFooter: boolean;
+    missingMandatoryFields: string[];
+    impressumComplianceTier: string;
+    impressumGaps: string[];
+    warnings: string[];
+  };
+};
+
+/** Antwort `POST …/dunning-reminders/send-email-stub` (M4 Slice 4, kein SMTP). */
+export type DunningReminderEmailSendStubResponse = {
+  data: {
+    outcome: "NOT_SENT_NO_SMTP";
+    stageOrdinal: number;
+    auditEventId: string;
+    message: string;
+  };
+};
+
+/** Antwort `POST …/dunning-reminders/send-email` (M4 Slice 5a, SMTP + Idempotency-Key). */
+export type DunningReminderEmailSendResponse = {
+  data: {
+    outcome: "SENT" | "REPLAY";
+    stageOrdinal: number;
+    auditEventId: string;
+    smtpMessageId?: string;
+    recipientEmail: string;
+    message: string;
+  };
+};
+
+/** Antwort `GET|PATCH /finance/dunning-email-footer` (M4 Slice 3). */
+/** `GET|PATCH /finance/dunning-reminder-automation` */
+export type DunningTenantAutomationReadResponse = {
+  data: {
+    automationSource: "NOT_CONFIGURED" | "TENANT_DATABASE";
+    tenantId: string;
+    runMode: "OFF" | "SEMI" | "AUTO";
+    jobHourUtc: number | null;
+  };
+};
+
+export type DunningEmailFooterReadResponse = {
+  data: {
+    footerSource: "NOT_CONFIGURED" | "TENANT_DATABASE";
+    tenantId: string;
+    companyLegalName: string;
+    streetLine: string;
+    postalCode: string;
+    city: string;
+    countryCode: string;
+    publicEmail: string;
+    publicPhone: string;
+    legalRepresentative: string;
+    registerCourt: string;
+    registerNumber: string;
+    vatId: string;
+    signatureLine: string;
+    readyForEmailFooter: boolean;
+    missingMandatoryFields: string[];
+    /** Heuristik — nicht gleichbedeutend mit rechtlicher Vollständigkeit des Impressums. */
+    impressumComplianceTier: "MINIMAL" | "EXTENDED";
+    /** Stabile Codes, z. B. REGISTER_PAIR_INCOMPLETE; siehe API-Beschreibung. */
+    impressumGaps: string[];
+  };
 };
 
 /** DSGVO-minimierte Zeile aus `GET /audit-events`. */
@@ -182,13 +320,75 @@ export type ApiClient = {
     offerVersionId: string;
     invoiceCurrencyCode: "EUR";
     paymentTermsVersionId?: string;
+    skontoBps?: number;
     reason: string;
   }): Promise<CreateInvoiceDraftResponse>;
   getInvoice(invoiceId: string): Promise<InvoiceOverview>;
+  listInvoicePaymentIntakes(invoiceId: string): Promise<{ data: PaymentIntakeReadRow[] }>;
+  listInvoiceDunningReminders(invoiceId: string): Promise<{ data: DunningReminderReadRow[] }>;
+  getDunningReminderConfig(): Promise<DunningReminderConfigReadResponse>;
+  getDunningReminderTemplates(): Promise<DunningReminderTemplatesReadResponse>;
+  getDunningEmailFooter(): Promise<DunningEmailFooterReadResponse>;
+  patchDunningEmailFooter(body: Record<string, unknown> & { reason: string }): Promise<DunningEmailFooterReadResponse>;
+  patchDunningReminderTemplateBody(
+    stageOrdinal: number,
+    channel: "EMAIL" | "PRINT",
+    body: { body: string; reason: string },
+  ): Promise<DunningReminderTemplatesReadResponse>;
+  replaceDunningReminderConfig(body: {
+    stages: DunningStageConfigReadRow[];
+    reason: string;
+  }): Promise<DunningReminderConfigReadResponse>;
+  patchDunningReminderStage(
+    stageOrdinal: number,
+    body: { daysAfterDue?: number; feeCents?: number; label?: string; reason: string },
+  ): Promise<DunningReminderConfigReadResponse>;
+  deleteDunningReminderStage(stageOrdinal: number, body: { reason: string }): Promise<DunningReminderConfigReadResponse>;
   recordPaymentIntake(
     body: { invoiceId: string; amountCents: number; externalReference: string; reason: string },
     idempotencyKey: string,
   ): Promise<PaymentIntakeRecordResponse>;
+  createInvoiceDunningReminder(
+    invoiceId: string,
+    body: { stageOrdinal: number; note?: string; reason: string },
+  ): Promise<CreateDunningReminderResponse>;
+  previewDunningReminderEmail(
+    invoiceId: string,
+    body: { stageOrdinal: number; reason: string },
+  ): Promise<DunningReminderEmailPreviewResponse>;
+  sendDunningReminderEmailStub(
+    invoiceId: string,
+    body: { stageOrdinal: number; reason: string },
+  ): Promise<DunningReminderEmailSendStubResponse>;
+  sendDunningReminderEmail(
+    invoiceId: string,
+    idempotencyKey: string,
+    body: { stageOrdinal: number; reason: string; toEmail: string },
+  ): Promise<DunningReminderEmailSendResponse>;
+  getDunningReminderAutomation(): Promise<DunningTenantAutomationReadResponse>;
+  patchDunningReminderAutomation(body: {
+    reason: string;
+    runMode: "OFF" | "SEMI" | "AUTO";
+    jobHourUtc?: number | null;
+  }): Promise<DunningTenantAutomationReadResponse>;
+  getDunningReminderCandidates(params: { stageOrdinal: number; asOfDate?: string }): Promise<unknown>;
+  postDunningReminderRunDryRun(body: {
+    stageOrdinal: number;
+    reason: string;
+    asOfDate?: string;
+    invoiceIds?: string[];
+    note?: string;
+  }): Promise<unknown>;
+  postDunningReminderRunExecute(
+    body: {
+      stageOrdinal: number;
+      reason: string;
+      asOfDate?: string;
+      invoiceIds?: string[];
+      note?: string;
+    },
+    idempotencyKey: string,
+  ): Promise<unknown>;
   getAuditEvents(page?: number, pageSize?: number): Promise<AuditEventsListResponse>;
 };
 
@@ -198,6 +398,12 @@ export function createApiClient(options: {
   getTenantId: () => string | undefined;
 }): ApiClient {
   const root = options.baseUrl.replace(/\/$/, "");
+
+  function assertUuidKey(key: string, label: string): void {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(key)) {
+      throw new Error(`${label} muss UUID sein (OpenAPI / Backend).`);
+    }
+  }
 
   async function requestJson<T>(method: string, path: string, body?: unknown): Promise<T> {
     const token = options.getToken();
@@ -260,6 +466,159 @@ export function createApiClient(options: {
     getInvoice(invoiceId) {
       return requestJson<InvoiceOverview>("GET", `/invoices/${encodeURIComponent(invoiceId)}`);
     },
+    listInvoicePaymentIntakes(invoiceId) {
+      return requestJson<{ data: PaymentIntakeReadRow[] }>(
+        "GET",
+        `/invoices/${encodeURIComponent(invoiceId)}/payment-intakes`,
+      );
+    },
+    listInvoiceDunningReminders(invoiceId) {
+      return requestJson<{ data: DunningReminderReadRow[] }>(
+        "GET",
+        `/invoices/${encodeURIComponent(invoiceId)}/dunning-reminders`,
+      );
+    },
+    getDunningReminderConfig() {
+      return requestJson<DunningReminderConfigReadResponse>("GET", "/finance/dunning-reminder-config");
+    },
+    getDunningReminderTemplates() {
+      return requestJson<DunningReminderTemplatesReadResponse>("GET", "/finance/dunning-reminder-templates");
+    },
+    getDunningEmailFooter() {
+      return requestJson<DunningEmailFooterReadResponse>("GET", "/finance/dunning-email-footer");
+    },
+    patchDunningEmailFooter(body) {
+      return requestJson<DunningEmailFooterReadResponse>("PATCH", "/finance/dunning-email-footer", body);
+    },
+    patchDunningReminderTemplateBody(stageOrdinal, channel, body) {
+      return requestJson<DunningReminderTemplatesReadResponse>(
+        "PATCH",
+        `/finance/dunning-reminder-templates/stages/${encodeURIComponent(String(stageOrdinal))}/channels/${encodeURIComponent(channel)}`,
+        body,
+      );
+    },
+    replaceDunningReminderConfig(body) {
+      return requestJson<DunningReminderConfigReadResponse>("PUT", "/finance/dunning-reminder-config", body);
+    },
+    patchDunningReminderStage(stageOrdinal, body) {
+      return requestJson<DunningReminderConfigReadResponse>(
+        "PATCH",
+        `/finance/dunning-reminder-config/stages/${encodeURIComponent(String(stageOrdinal))}`,
+        body,
+      );
+    },
+    deleteDunningReminderStage(stageOrdinal, body) {
+      return requestJson<DunningReminderConfigReadResponse>(
+        "DELETE",
+        `/finance/dunning-reminder-config/stages/${encodeURIComponent(String(stageOrdinal))}`,
+        body,
+      );
+    },
+    createInvoiceDunningReminder(invoiceId, body) {
+      return requestJson<CreateDunningReminderResponse>(
+        "POST",
+        `/invoices/${encodeURIComponent(invoiceId)}/dunning-reminders`,
+        body,
+      );
+    },
+    previewDunningReminderEmail(invoiceId, body) {
+      return requestJson<DunningReminderEmailPreviewResponse>(
+        "POST",
+        `/invoices/${encodeURIComponent(invoiceId)}/dunning-reminders/email-preview`,
+        body,
+      );
+    },
+    sendDunningReminderEmailStub(invoiceId, body) {
+      return requestJson<DunningReminderEmailSendStubResponse>(
+        "POST",
+        `/invoices/${encodeURIComponent(invoiceId)}/dunning-reminders/send-email-stub`,
+        body,
+      );
+    },
+    getDunningReminderAutomation() {
+      return requestJson<DunningTenantAutomationReadResponse>("GET", "/finance/dunning-reminder-automation");
+    },
+    patchDunningReminderAutomation(body) {
+      return requestJson<DunningTenantAutomationReadResponse>("PATCH", "/finance/dunning-reminder-automation", body);
+    },
+    getDunningReminderCandidates(params) {
+      const q = new URLSearchParams();
+      q.set("stageOrdinal", String(params.stageOrdinal));
+      if (params.asOfDate?.trim()) {
+        q.set("asOfDate", params.asOfDate.trim());
+      }
+      return requestJson<unknown>("GET", `/finance/dunning-reminder-candidates?${q}`);
+    },
+    postDunningReminderRunDryRun(body) {
+      return requestJson<unknown>("POST", "/finance/dunning-reminder-run", { ...body, mode: "DRY_RUN" });
+    },
+    async postDunningReminderRunExecute(body, idempotencyKey) {
+      const token = options.getToken();
+      const tenant = options.getTenantId();
+      if (!token?.trim() || !tenant?.trim()) {
+        throw new Error("Sitzung unvollständig: Bearer-Token und X-Tenant-Id erforderlich.");
+      }
+      const key = idempotencyKey.trim();
+      assertUuidKey(key, "Idempotency-Key");
+      const res = await fetch(`${root}/finance/dunning-reminder-run`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token.trim()}`,
+          "X-Tenant-Id": tenant.trim(),
+          "Content-Type": "application/json",
+          "Idempotency-Key": key,
+        },
+        body: JSON.stringify({ ...body, mode: "EXECUTE" }),
+      });
+      const text = await res.text();
+      let parsed: unknown;
+      try {
+        parsed = text ? JSON.parse(text) : undefined;
+      } catch {
+        parsed = undefined;
+      }
+      if (!res.ok) {
+        throw new ApiError(res.status, parsed ?? text, {
+          requestIdFromHeader: correlationFromResponse(res),
+        });
+      }
+      return parsed;
+    },
+    async sendDunningReminderEmail(invoiceId, idempotencyKey, body) {
+      const token = options.getToken();
+      const tenant = options.getTenantId();
+      if (!token?.trim() || !tenant?.trim()) {
+        throw new Error("Sitzung unvollständig: Bearer-Token und X-Tenant-Id erforderlich.");
+      }
+      const key = idempotencyKey.trim();
+      assertUuidKey(key, "Idempotency-Key");
+      const res = await fetch(
+        `${root}/invoices/${encodeURIComponent(invoiceId)}/dunning-reminders/send-email`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token.trim()}`,
+            "X-Tenant-Id": tenant.trim(),
+            "Content-Type": "application/json",
+            "Idempotency-Key": key,
+          },
+          body: JSON.stringify(body),
+        },
+      );
+      const text = await res.text();
+      let parsed: unknown;
+      try {
+        parsed = text ? JSON.parse(text) : undefined;
+      } catch {
+        parsed = undefined;
+      }
+      if (!res.ok) {
+        throw new ApiError(res.status, parsed ?? text, {
+          requestIdFromHeader: correlationFromResponse(res),
+        });
+      }
+      return parsed as DunningReminderEmailSendResponse;
+    },
     async recordPaymentIntake(body, idempotencyKey) {
       const token = options.getToken();
       const tenant = options.getTenantId();
@@ -267,9 +626,7 @@ export function createApiClient(options: {
         throw new Error("Sitzung unvollständig: Bearer-Token und X-Tenant-Id erforderlich.");
       }
       const key = idempotencyKey.trim();
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(key)) {
-        throw new Error("Idempotency-Key muss UUID sein (OpenAPI / Backend).");
-      }
+      assertUuidKey(key, "Idempotency-Key");
       const res = await fetch(`${root}/finance/payments/intake`, {
         method: "POST",
         headers: {

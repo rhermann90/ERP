@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ThemePreferenceControl } from "./ThemePreferenceControl.js";
 
 type Props = {
   children: ReactNode;
@@ -16,11 +17,14 @@ export function AppShell({ children, offlineNote }: Props) {
             <code>GET /documents/:id/allowed-actions</code>.
           </p>
         </div>
-        {offlineNote ? (
-          <p className="shell-sub" style={{ textAlign: "right", maxWidth: "14rem" }}>
-            {offlineNote}
-          </p>
-        ) : null}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.65rem" }}>
+          <ThemePreferenceControl />
+          {offlineNote ? (
+            <p className="shell-sub" style={{ textAlign: "right", maxWidth: "14rem", margin: 0 }}>
+              {offlineNote}
+            </p>
+          ) : null}
+        </div>
       </header>
       {children}
     </div>

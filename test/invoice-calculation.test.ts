@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   computeGrossFromLvNetEurMvp,
+  netCentsAfterStep84_6Mvp,
+  skontoNetReductionCents84_2,
   sumLvNetCentsStep84_1,
 } from "../src/domain/invoice-calculation.js";
 import type { LvPosition } from "../src/domain/types.js";
@@ -42,5 +44,19 @@ describe("invoice-calculation 8.4", () => {
     const r = computeGrossFromLvNetEurMvp(125000);
     expect(r.vatCents).toBe(23750);
     expect(r.totalGrossCents).toBe(148750);
+  });
+
+  it("netCentsAfterStep84_6Mvp lässt Netto nach Schritt 1 unverändert (B2-0: Schritte 2–6 noch kein Produktcode)", () => {
+    expect(netCentsAfterStep84_6Mvp(125000)).toBe(125000);
+    const chained = computeGrossFromLvNetEurMvp(netCentsAfterStep84_6Mvp(125000));
+    expect(chained.totalGrossCents).toBe(148750);
+  });
+
+  it("B2-1a: Skonto 200 Bps (2 %) auf 125000 Cent Netto nach Schritt 1", () => {
+    expect(skontoNetReductionCents84_2(125000, 200)).toBe(2500);
+    expect(netCentsAfterStep84_6Mvp(125000, { skontoBps: 200 })).toBe(122500);
+    const gross = computeGrossFromLvNetEurMvp(netCentsAfterStep84_6Mvp(125000, { skontoBps: 200 }));
+    expect(gross.vatCents).toBe(23275);
+    expect(gross.totalGrossCents).toBe(145775);
   });
 });

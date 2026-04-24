@@ -38,3 +38,6 @@ generated/
 # Playwright
 playwright-report/
 test-results/
+
+# Prisma 7 generated client (prisma-client generator)
+generated/

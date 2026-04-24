@@ -34,7 +34,7 @@
 | P0-12 | SoT/API Konsistenz bei `ANGENOMMEN` | PASS | `allowedActions` enthaelt **kein** `OFFER_CREATE_VERSION`, `POST /offers/version` liefert `409 FOLLOWUP_DOCUMENT_REQUIRED` |
 | P0-13 | SoT/API Konsistenz bei `ABGELEHNT` | PASS | wie P0-12 |
 | P0-14 | SoT/API Konsistenz bei `ARCHIVIERT` | PASS | wie P0-12 (Lifecycle: `ENTWURF` -> `ARCHIVIERT` mit `GESCHAEFTSFUEHRUNG`) |
-| P0-15 | Nachtrag SoT + API (ADMIN/VERTRIEB/GF) | PASS | `OFFER_CREATE_SUPPLEMENT` in `allowedActions`; je Rolle `POST /offers/.../supplements` -> `201` |
+| P0-15 | Nachtrag SoT + API (ADMIN/VERTRIEB_BAULEITUNG/GF) | PASS | `OFFER_CREATE_SUPPLEMENT` in `allowedActions`; je Rolle `POST /offers/.../supplements` -> `201` |
 | P0-16 | Nachtrag ohne Berechtigung (VIEWER/BUCHHALTUNG) | PASS | kein `OFFER_CREATE_SUPPLEMENT` in SoT; `POST` -> `403 AUTH_ROLE_FORBIDDEN` inkl. Envelope |
 
 ## Frontend-Normalisierung (Pflichtpruefung)

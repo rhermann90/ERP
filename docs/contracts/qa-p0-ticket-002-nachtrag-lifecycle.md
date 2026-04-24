@@ -33,7 +33,7 @@ await app.inject({
 ### P0-N-02 ENTWURF -> IN_FREIGABE (curl)
 ```bash
 curl -s -X POST http://localhost:3000/supplements/status \
-  -H "authorization: Bearer <token_VERTRIEB>" -H "x-tenant-id: <tenant>" -H "content-type: application/json" \
+  -H "authorization: Bearer <token_VERTRIEB_BAULEITUNG>" -H "x-tenant-id: <tenant>" -H "content-type: application/json" \
   -d '{"supplementVersionId":"<id>","nextStatus":"IN_FREIGABE","reason":"Freigabe starten"}'
 ```
 
@@ -50,7 +50,7 @@ await app.inject({
 ### P0-N-04 FREIGEGEBEN -> VERSENDET (curl)
 ```bash
 curl -s -X POST http://localhost:3000/supplements/status \
-  -H "authorization: Bearer <token_VERTRIEB>" -H "x-tenant-id: <tenant>" -H "content-type: application/json" \
+  -H "authorization: Bearer <token_VERTRIEB_BAULEITUNG>" -H "x-tenant-id: <tenant>" -H "content-type: application/json" \
   -d '{"supplementVersionId":"<id>","nextStatus":"VERSENDET","reason":"Nachtrag versendet"}'
 ```
 
@@ -89,7 +89,7 @@ curl -s -X POST http://localhost:3000/supplements/<supplementId>/billing-impact 
 const blocked = await app.inject({
   method: "POST",
   url: `/offers/${offerId}/supplements`,
-  headers: buildHeaders("VERTRIEB"),
+  headers: buildHeaders("VERTRIEB_BAULEITUNG"),
   payload: { baseOfferVersionId: nonAcceptedBaseId, lvVersionId: newLvId, editingText: "x", reason: "x1234" },
 });
 expect(blocked.statusCode).toBe(409);
@@ -109,7 +109,7 @@ curl -s -X POST http://localhost:3000/exports \
 const allowed = await app.inject({
   method: "GET",
   url: `/documents/${supplementId}/allowed-actions?entityType=SUPPLEMENT_VERSION`,
-  headers: buildHeaders("VERTRIEB"),
+  headers: buildHeaders("VERTRIEB_BAULEITUNG"),
 });
 expect(allowed.statusCode).toBe(200);
 // UI darf nur Actions aus allowed.json().allowedActions ausfuehren.

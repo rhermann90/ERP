@@ -223,6 +223,8 @@ export interface Invoice {
   supplementVersionId?: UUID;
   /** FIN-1: gebundene Konditionsversion fuer neue Rechnungen. */
   paymentTermsVersionId?: UUID;
+  /** 8.4(2) B2-1a: Skonto in Basispunkten (0–10_000), auf LV-Netto nach Schritt 1; Default 0. */
+  skontoBps?: number;
 }
 
 /** FIN-3: gebuchter Zahlungseingang (Idempotenz über tenant + idempotency_key). */
@@ -233,6 +235,29 @@ export interface PaymentIntake {
   idempotencyKey: UUID;
   amountCents: number;
   externalReference: string;
+  createdAt: Date;
+}
+
+/** FIN-4 Mahnwesen: protokolliertes Mahn-Ereignis je Rechnung (Konfiguration siehe ADR-0009). */
+export interface DunningReminder {
+  id: UUID;
+  tenantId: TenantId;
+  invoiceId: UUID;
+  stageOrdinal: number;
+  note?: string;
+  createdAt: Date;
+}
+
+/** FIN-4 M4 Slice 5a: Idempotenz-Speicher fuer versendete Mahn-E-Mails. */
+export interface DunningEmailSend {
+  id: UUID;
+  tenantId: TenantId;
+  invoiceId: UUID;
+  idempotencyKey: UUID;
+  stageOrdinal: number;
+  recipientEmail: string;
+  auditEventId: UUID;
+  smtpMessageId?: string;
   createdAt: Date;
 }
 
@@ -249,6 +274,7 @@ export interface AuditEvent {
     | "EXPORT_RUN"
     | "INVOICE"
     | "PAYMENT_TERMS_VERSION"
+    | "DUNNING_TENANT_STAGE_CONFIG"
     | "USER";
   entityId: UUID;
   action:
@@ -262,7 +288,15 @@ export interface AuditEvent {
     | "EXPORT_FAILED"
     | "EXPORT_SUCCEEDED"
     | "USER_CREATED"
-    | "USER_UPDATED";
+    | "USER_UPDATED"
+    | "DUNNING_STAGES_REPLACED"
+    | "DUNNING_STAGE_PATCHED"
+    | "DUNNING_STAGE_SOFT_DELETED"
+    | "DUNNING_TEMPLATE_BODY_PATCHED"
+    | "DUNNING_EMAIL_FOOTER_PATCHED"
+    | "DUNNING_EMAIL_SEND_STUB"
+    | "DUNNING_EMAIL_SENT"
+    | "DUNNING_TENANT_AUTOMATION_PATCHED";
   timestamp: Date;
   actorUserId: UserId;
   reason?: string;
