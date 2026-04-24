@@ -24,6 +24,20 @@ function adminHeaders(tenantId: string = SEED_IDS.tenantId) {
   return { authorization: `Bearer ${token}`, "x-tenant-id": tenantId };
 }
 
+function roleHeaders(
+  role: "ADMIN" | "GESCHAEFTSFUEHRUNG",
+  tenantId: string = SEED_IDS.tenantId,
+) {
+  const userId = "77777777-7777-4777-8777-777777777777";
+  const token = createSignedToken({
+    sub: userId,
+    tenantId,
+    role,
+    exp: Math.floor(Date.now() / 1000) + 600,
+  });
+  return { authorization: `Bearer ${token}`, "x-tenant-id": tenantId };
+}
+
 const persistenceDbSuite = dbUrl ? describe.sequential : describe.skip;
 
 persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => {
@@ -39,12 +53,15 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     });
     const cleanup = new PrismaClient({ datasourceUrl: dbUrl });
     await cleanup.$executeRawUnsafe(
-      `TRUNCATE TABLE measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, audit_events, offer_versions, offers, password_reset_challenges, users RESTART IDENTITY CASCADE`,
+      `TRUNCATE TABLE payment_intakes, invoices, payment_terms_versions, payment_terms_heads, supplement_versions, supplement_offers, measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, audit_events, offer_versions, offers, password_reset_challenges, users RESTART IDENTITY CASCADE`,
     );
     await cleanup.$disconnect();
 
     app = await buildApp({ repositoryMode: "postgres", seedDemoData: true });
     await app.ready();
+    const ready = await app.inject({ method: "GET", url: "/ready" });
+    expect(ready.statusCode).toBe(200);
+    expect(ready.json()).toEqual({ status: "ready", checks: { database: "ok" } });
     prisma = new PrismaClient({ datasourceUrl: dbUrl });
   });
 
@@ -211,7 +228,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
       payload: {
         email,
         password: "initial-pass-12",
-        role: "VERTRIEB",
+        role: "VERTRIEB_BAULEITUNG",
         reason: "Integrationstest Passwort-Reset",
       },
     });
@@ -311,6 +328,40 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     ).rejects.toMatchObject({ code: "P2003" });
   });
 
+  it("rejects cross-tenant supplement_version insert (composite FK zu supplement_offers; Gate G1)", async () => {
+    const foreignTenant = randomUUID();
+    const soId = randomUUID();
+    await prisma.supplementOffer.create({
+      data: {
+        tenantId: SEED_IDS.tenantId,
+        id: soId,
+        offerId: SEED_IDS.offerId,
+        baseOfferVersionId: SEED_IDS.offerVersionId,
+        createdAt: new Date(),
+        createdBy: SEED_IDS.seedAdminUserId,
+      },
+    });
+    await expect(
+      prisma.supplementVersion.create({
+        data: {
+          tenantId: foreignTenant,
+          id: randomUUID(),
+          supplementOfferId: soId,
+          versionNumber: 1,
+          status: "ENTWURF",
+          lvVersionId: SEED_IDS.lvVersionId,
+          systemText: "s",
+          editingText: "e",
+          createdAt: new Date(),
+          createdBy: SEED_IDS.seedAdminUserId,
+        },
+      }),
+    ).rejects.toMatchObject({ code: "P2003" });
+    await prisma.supplementOffer.delete({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: soId } },
+    });
+  });
+
   it("Traceability: Rechnungs-Export nach Postgres-Seed fail-closed grün (Gate G3)", async () => {
     const res = await app.inject({
       method: "POST",
@@ -383,12 +434,13 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     }
   });
 
-  it("applies migrations including LV, Aufmass, audit_events and referential offer_versions.lv_version_id", async () => {
+  it("applies migrations including LV, Aufmass, audit_events, Supplement-Tabellen und offer_versions.lv_version_id", async () => {
     const rows = await prisma.$queryRaw<{ tablename: string }[]>`
       SELECT tablename FROM pg_tables
       WHERE schemaname = 'public' AND tablename IN (
         'audit_events','lv_catalogs','lv_positions','lv_structure_nodes','lv_versions',
-        'measurement_positions','measurement_versions','measurements','offers','offer_versions')
+        'measurement_positions','measurement_versions','measurements','offers','offer_versions',
+        'supplement_offers','supplement_versions')
       ORDER BY tablename`;
     expect(rows.map((r) => r.tablename)).toEqual([
       "audit_events",
@@ -401,6 +453,8 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
       "measurements",
       "offer_versions",
       "offers",
+      "supplement_offers",
+      "supplement_versions",
     ]);
     const cons = await prisma.$queryRaw<{ conname: string }[]>`
       SELECT conname FROM pg_constraint
@@ -596,5 +650,129 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     await prisma2.$disconnect();
 
     prisma = new PrismaClient({ datasourceUrl: dbUrl! });
+  });
+
+  it("API: Supplement anlegen + Statuswechsel persistieren (supplement_offers / supplement_versions)", async () => {
+    const ladder = [
+      { next: "IN_FREIGABE" as const, useGf: false as const },
+      { next: "FREIGEGEBEN" as const, useGf: false as const },
+      { next: "VERSENDET" as const, useGf: false as const },
+      { next: "ANGENOMMEN" as const, useGf: true as const },
+    ];
+
+    for (const { next, useGf } of ladder) {
+      const ovRow = await prisma.offerVersion.findUnique({
+        where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.offerVersionId } },
+      });
+      expect(ovRow).not.toBeNull();
+      if (ovRow!.status === "ANGENOMMEN") break;
+      if (ovRow!.status === next) continue;
+
+      const headers = useGf ? roleHeaders("GESCHAEFTSFUEHRUNG") : adminHeaders();
+      const r = await app.inject({
+        method: "POST",
+        url: "/offers/status",
+        headers,
+        payload: {
+          offerVersionId: SEED_IDS.offerVersionId,
+          nextStatus: next,
+          reason: "Persistenz-Supplement-API bis ANGENOMMEN",
+        },
+      });
+      expect(r.statusCode).toBe(200);
+    }
+
+    const create = await app.inject({
+      method: "POST",
+      url: `/offers/${SEED_IDS.offerId}/supplements`,
+      headers: roleHeaders("GESCHAEFTSFUEHRUNG"),
+      payload: {
+        baseOfferVersionId: SEED_IDS.offerVersionId,
+        lvVersionId: SEED_IDS.lvVersionId,
+        editingText: "Persistenz-Integration Nachtrag API",
+        reason: "API integration test supplement Postgres",
+      },
+    });
+    expect(create.statusCode).toBe(201);
+    const body = create.json() as {
+      id: string;
+      supplementOfferId: string;
+      tenantId: string;
+      status: string;
+      lvVersionId: string;
+      editingText: string;
+    };
+    expect(body.status).toBe("ENTWURF");
+
+    const soRow = await prisma.supplementOffer.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: body.supplementOfferId } },
+    });
+    expect(soRow).not.toBeNull();
+    expect(soRow!.offerId).toBe(SEED_IDS.offerId);
+    expect(soRow!.baseOfferVersionId).toBe(SEED_IDS.offerVersionId);
+
+    const svRow = await prisma.supplementVersion.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: body.id } },
+      include: { supplementOffer: true, lvVersion: true },
+    });
+    expect(svRow).not.toBeNull();
+    expect(svRow!.supplementOfferId).toBe(body.supplementOfferId);
+    expect(svRow!.lvVersionId).toBe(SEED_IDS.lvVersionId);
+    expect(svRow!.lvVersion?.id).toBe(SEED_IDS.lvVersionId);
+    expect(svRow!.editingText).toBe("Persistenz-Integration Nachtrag API");
+
+    const trans = await app.inject({
+      method: "POST",
+      url: "/supplements/status",
+      headers: adminHeaders(),
+      payload: {
+        supplementVersionId: body.id,
+        nextStatus: "IN_FREIGABE",
+        reason: "Persistenz-API Nachtrag Statuswechsel",
+      },
+    });
+    expect(trans.statusCode).toBe(200);
+
+    const svAfter = await prisma.supplementVersion.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: body.id } },
+    });
+    expect(svAfter?.status).toBe("IN_FREIGABE");
+  });
+
+  it("Hydration-Smoke: zweiter Start ohne Seed lädt Nachtrag aus Postgres (GET /supplements/:id)", async () => {
+    const probe = await prisma.supplementVersion.findFirst({
+      where: {
+        tenantId: SEED_IDS.tenantId,
+        editingText: "Persistenz-Integration Nachtrag API",
+      },
+    });
+    expect(probe).not.toBeNull();
+
+    await app.close();
+    process.env.DATABASE_URL = dbUrl!;
+    app = await buildApp({ repositoryMode: "postgres", seedDemoData: false });
+    await app.ready();
+    const ready2 = await app.inject({ method: "GET", url: "/ready" });
+    expect(ready2.statusCode).toBe(200);
+    expect(ready2.json()).toEqual({ status: "ready", checks: { database: "ok" } });
+
+    const res = await app.inject({
+      method: "GET",
+      url: `/supplements/${probe!.id}`,
+      headers: adminHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    const json = res.json() as {
+      id: string;
+      status: string;
+      supplementOfferId: string;
+      baseOfferVersionId: string;
+      tenantId: string;
+    };
+    expect(json.id).toBe(probe!.id);
+    expect(json.status).toBe("IN_FREIGABE");
+    expect(json.supplementOfferId).toBe(probe!.supplementOfferId);
+    expect(json.baseOfferVersionId).toBe(SEED_IDS.offerVersionId);
+    expect(json.tenantId).toBe(SEED_IDS.tenantId);
   });
 });

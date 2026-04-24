@@ -35,52 +35,65 @@ export type RegisterPasswordResetRoutesOptions = {
   audit: AuditService;
 };
 
+const resetRouteRateLimit = {
+  max: MAX_ATTEMPTS,
+  timeWindow: WINDOW_MS,
+};
+
 /**
  * Öffentliche Passwort-Reset-Endpunkte (ohne Bearer).
  */
 export function registerPasswordResetRoutes(app: FastifyInstance, opts: RegisterPasswordResetRoutesOptions): void {
   const { getPrisma, audit } = opts;
 
-  app.post("/auth/request-password-reset", async (request, reply) => {
-    try {
-      assertResetRateLimit(request.ip || "unknown");
-      const body = requestPasswordResetSchema.parse(request.body);
-      const prisma = getPrisma();
-      if (!prisma) {
-        throw new DomainError(
-          "USER_MANAGEMENT_REQUIRES_DB",
-          "Passwort-Zurücksetzen ist nur mit Postgres verfügbar.",
-          503,
-        );
+  app.post(
+    "/auth/request-password-reset",
+    { config: { rateLimit: resetRouteRateLimit } },
+    async (request, reply) => {
+      try {
+        assertResetRateLimit(request.ip || "unknown");
+        const body = requestPasswordResetSchema.parse(request.body);
+        const prisma = getPrisma();
+        if (!prisma) {
+          throw new DomainError(
+            "USER_MANAGEMENT_REQUIRES_DB",
+            "Passwort-Zurücksetzen ist nur mit Postgres verfügbar.",
+            503,
+          );
+        }
+        const service = new PasswordResetService(prisma, audit);
+        await service.requestReset(body.tenantId, body.email);
+        return reply.status(200).send({
+          ok: true as const,
+          message: "Wenn zu dieser E-Mail ein Konto existiert, wurde ein Link gesendet.",
+        });
+      } catch (error) {
+        return handleHttpError(error, request, reply);
       }
-      const service = new PasswordResetService(prisma, audit);
-      await service.requestReset(body.tenantId, body.email);
-      return reply.status(200).send({
-        ok: true as const,
-        message: "Wenn zu dieser E-Mail ein Konto existiert, wurde ein Link gesendet.",
-      });
-    } catch (error) {
-      return handleHttpError(error, request, reply);
-    }
-  });
+    },
+  );
 
-  app.post("/auth/confirm-password-reset", async (request, reply) => {
-    try {
-      assertResetRateLimit(request.ip || "unknown");
-      const body = confirmPasswordResetSchema.parse(request.body);
-      const prisma = getPrisma();
-      if (!prisma) {
-        throw new DomainError(
-          "USER_MANAGEMENT_REQUIRES_DB",
-          "Passwort-Zurücksetzen ist nur mit Postgres verfügbar.",
-          503,
-        );
+  app.post(
+    "/auth/confirm-password-reset",
+    { config: { rateLimit: resetRouteRateLimit } },
+    async (request, reply) => {
+      try {
+        assertResetRateLimit(request.ip || "unknown");
+        const body = confirmPasswordResetSchema.parse(request.body);
+        const prisma = getPrisma();
+        if (!prisma) {
+          throw new DomainError(
+            "USER_MANAGEMENT_REQUIRES_DB",
+            "Passwort-Zurücksetzen ist nur mit Postgres verfügbar.",
+            503,
+          );
+        }
+        const service = new PasswordResetService(prisma, audit);
+        await service.confirmReset(body.token, body.password);
+        return reply.status(200).send({ ok: true as const });
+      } catch (error) {
+        return handleHttpError(error, request, reply);
       }
-      const service = new PasswordResetService(prisma, audit);
-      await service.confirmReset(body.token, body.password);
-      return reply.status(200).send({ ok: true as const });
-    } catch (error) {
-      return handleHttpError(error, request, reply);
-    }
-  });
+    },
+  );
 }

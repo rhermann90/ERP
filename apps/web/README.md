@@ -28,7 +28,7 @@ Details zu Postgres, `DATABASE_URL` und Prisma: [Root-`README.md`](../README.md)
 3. Backend starten (Port **3000**) mit CORS für die PWA-Origin, z. B.  
    `CORS_ORIGINS=http://localhost:5173 npm run dev`  
    (oder alles über Root-`.env`).
-4. Dev-Token (Repo-Root, gleiches Secret wie Backend): `npm run dev:token` — optional `npm run dev:token -- <tenantUuid> <ROLE>` (`ADMIN` \| `VERTRIEB` \| `GESCHAEFTSFUEHRUNG` \| `BUCHHALTUNG` \| `VIEWER`).
+4. Dev-Token (Repo-Root, gleiches Secret wie Backend): `npm run dev:token` — optional `npm run dev:token -- <tenantUuid> <ROLE>` (`ADMIN` \| `VERTRIEB_BAULEITUNG` \| `GESCHAEFTSFUEHRUNG` \| `BUCHHALTUNG` \| `VIEWER`).
 5. **PWA:** Repo-Root `npm run dev:web` oder hier `npm run dev`.
 6. In der UI: Token und **X-Tenant-Id** (muss zum Token passen, sonst `TENANT_SCOPE_VIOLATION`), Session-Modus, „Session anwenden“, „Allowed Actions laden“.
 

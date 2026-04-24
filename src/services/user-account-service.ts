@@ -8,13 +8,14 @@ import type { AuditService } from "./audit-service.js";
 
 const BCRYPT_COST = 12;
 
-const ROLE_SET = new Set<UserRole>(["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG", "VERTRIEB", "VIEWER"]);
+const ROLE_SET = new Set<UserRole>(["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG", "VERTRIEB_BAULEITUNG", "VIEWER"]);
 
 function assertRole(value: string): UserRole {
-  if (!ROLE_SET.has(value as UserRole)) {
+  const normalized = value === "VERTRIEB" ? "VERTRIEB_BAULEITUNG" : value;
+  if (!ROLE_SET.has(normalized as UserRole)) {
     throw new DomainError("VALIDATION_FAILED", `Ungültige Rolle: ${value}`, 400);
   }
-  return value as UserRole;
+  return normalized as UserRole;
 }
 
 export type TenantUserListItem = {
@@ -83,7 +84,7 @@ export class UserAccountService {
       }
       throw e;
     }
-    this.audit.append({
+    await this.audit.append({
       id: randomUUID(),
       tenantId,
       entityType: "USER",
@@ -181,7 +182,7 @@ export class UserAccountService {
       select: { id: true, emailNorm: true, role: true, active: true, createdAt: true },
     });
 
-    this.audit.append({
+    await this.audit.append({
       id: randomUUID(),
       tenantId,
       entityType: "USER",

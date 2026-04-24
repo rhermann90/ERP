@@ -35,6 +35,29 @@ export const createSupplementSchema = z.object({
   reason: z.string().min(5),
 });
 
+
+export const createPaymentTermsVersionSchema = z.object({
+  projectId: z.string().uuid(),
+  customerId: z.string().uuid(),
+  termsLabel: z.string().max(200),
+  reason: z.string().min(5),
+});
+
+
+
+export const paymentTermsListQuerySchema = z.object({
+  projectId: z.string().uuid(),
+});
+
+export const createInvoiceDraftSchema = z.object({
+  lvVersionId: z.string().uuid(),
+  offerVersionId: z.string().uuid(),
+  invoiceCurrencyCode: z.enum(["EUR"]),
+  /** Optional: gebundene Zahlungsbedingungs-Version (FIN-1), gleiches Projekt wie Angebot. */
+  paymentTermsVersionId: z.string().uuid().optional(),
+  reason: z.string().min(5),
+});
+
 export const transitionSupplementStatusSchema = z.object({
   supplementVersionId: z.string().uuid(),
   nextStatus: z.enum(["ENTWURF", "IN_FREIGABE", "FREIGEGEBEN", "VERSENDET", "BEAUFTRAGT", "ABGELEHNT", "ARCHIVIERT"]),
@@ -188,7 +211,7 @@ export const loginRequestSchema = z.object({
   password: z.string().min(1).max(2000),
 });
 
-const userRoleEnum = z.enum(["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG", "VERTRIEB", "VIEWER"]);
+const userRoleEnum = z.enum(["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG", "VERTRIEB_BAULEITUNG", "VIEWER"]);
 
 export const createTenantUserSchema = z.object({
   email: authEmailInputSchema,
