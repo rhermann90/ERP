@@ -34,7 +34,8 @@ Siehe Vorlage: [`.env.example`](./.env.example)
 2. Schema anwenden: `npx prisma migrate deploy` (Deploy) oder lokal `npm run prisma:migrate` (`prisma migrate dev`).
 3. **Kein** `db push` als verbindlicher Merge-Pfad — versionierte Migrationen unter `prisma/migrations/`.
 4. Validierung ohne echte DB: `npm run prisma:validate`
-5. Details: [`docs/adr/0006-offer-vertical-slice-persistence.md`](./docs/adr/0006-offer-vertical-slice-persistence.md)
+5. **ORM-Version:** Die tatsächliche Prisma-Major-Version steht in [`package.json`](./package.json) (`prisma` / `@prisma/client`). Geplantes Upgrade auf 7.x: [`docs/tickets/PRISMA-7-UPGRADE.md`](./docs/tickets/PRISMA-7-UPGRADE.md); Konsistenz-Check: `npm run check:prisma-stack`.
+6. Details: [`docs/adr/0006-offer-vertical-slice-persistence.md`](./docs/adr/0006-offer-vertical-slice-persistence.md)
 
 ## CI / Persistenz-Tests
 
