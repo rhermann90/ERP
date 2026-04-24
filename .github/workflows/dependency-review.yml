@@ -15,3 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: actions/dependency-review-action@v4
+        with:
+          # Default is `low` — blocks PRs on moderate/low GHSAs that `npm audit --audit-level=high` ignores.
+          fail-on-severity: high
+          # Default 3 flags many transitive npm deps (pg stack, lockfile helpers) in the 2.x range.
+          warn-on-openssf-scorecard-level: 1
