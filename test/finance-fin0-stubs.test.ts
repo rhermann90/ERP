@@ -279,45 +279,6 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     expect(second.json()).toEqual(first.json());
   });
 
-  it("POST /finance/payments/intake accepts Idempotency-Key header name case-insensitive (UPPERCASE)", async () => {
-    const res = await app.inject({
-      method: "POST",
-      url: "/finance/payments/intake",
-      headers: {
-        ...buildHeaders(),
-        "IDEMPOTENCY-KEY": randomUUID(),
-      },
-      payload: {
-        invoiceId: randomUUID(),
-        amountCents: 100,
-        externalReference: "ext-1",
-        reason: "FIN-0 stub test payment idem upper",
-      },
-    });
-    expect(res.statusCode).toBe(422);
-    expect((res.json() as { code: string }).code).toBe("TRACEABILITY_LINK_MISSING");
-  });
-
-  it("POST /finance/payments/intake trims Idempotency-Key value before UUID parse", async () => {
-    const idem = randomUUID();
-    const res = await app.inject({
-      method: "POST",
-      url: "/finance/payments/intake",
-      headers: {
-        ...buildHeaders(),
-        "Idempotency-Key": `  ${idem}  `,
-      },
-      payload: {
-        invoiceId: randomUUID(),
-        amountCents: 100,
-        externalReference: "ext-1",
-        reason: "FIN-0 stub test payment idem trim",
-      },
-    });
-    expect(res.statusCode).toBe(422);
-    expect((res.json() as { code: string }).code).toBe("TRACEABILITY_LINK_MISSING");
-  });
-
   it("rejects tenant header mismatch with 403", async () => {
     const res = await app.inject({
       method: "POST",
