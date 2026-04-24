@@ -1,8 +1,8 @@
-# Entwicklungsphasen MVP — Abgleich mit ERP Systembeschreibung v1.3
+# Entwicklungsphasen MVP — Abgleich mit kanonischer Systembeschreibung (MVP-Finanz)
 
 **Stand der Bewertung:** 2026-04-14  
-**Verbindliche Domänenquelle:** `ERP Systembeschreibung v1.3.md` (vgl. `.cursor/rules/erp-multi-agent.mdc`)  
-**Kanonisches FIN-2-Start-Gate:** [`docs/tickets/FIN-2-START-GATE.md`](./tickets/FIN-2-START-GATE.md) — **binäre** Kriterien **G1–G10** vor Beginn der FIN-2-Implementierung.  
+**Verbindliche Domänenquelle:** `docs/ERP-Systembeschreibung.md` (vgl. `.cursor/rules/erp-multi-agent.mdc`)  
+**Kanonisches FIN-2-Start-Gate:** [`docs/tickets/FIN-2-START-GATE.md`](../../tickets/FIN-2-START-GATE.md) — **binäre** Kriterien **G1–G10** vor Beginn der FIN-2-Implementierung.  
 **Ziel dieses Dokuments:** Phasen und **Meilensteine** für die **technische Umsetzung** des Finanz-Submodells und angrenzender MVP-Pflichten aus **Abschnitt 8** sowie **§12/§15**; es ersetzt **nicht** die bestehende **Phase-2-Planung (v1.2)** zu LV/Aufmass — beide Stränge müssen **konvergieren**, sobald Rechnungsbeträge aus **LV/Aufmass** gespeist werden.
 
 ---

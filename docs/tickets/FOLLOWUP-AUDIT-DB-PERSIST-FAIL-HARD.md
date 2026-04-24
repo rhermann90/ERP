@@ -86,3 +86,9 @@
 
 - **Bis** PL-Eintrag vollständig (kein `—` in den **vier** Inhaltszellen): **Warten auf PL** — **nur** Doku-PRs ohne Audit-Laufzeitänderung; **keine** Tabellen-Inhaltszellen durch Entwicklung füllen.
 - **Nach** vollständigem PL-Eintrag: **genau ein** fokussierter Audit-**Implementierungs-PR** (Zeile 1 = **Option A–D** + **SLA-Referenz**, Tests/CI wie oben) mit Nachweis **grüner Persistenz-CI** (`PERSISTENCE_DB_TEST_URL` laut Runbook).
+
+---
+
+## Querschnitt Finanz Welle 3 (PL-Termin)
+
+Für die laufende **Finanz-Welle-3**-Planung ([`NEXT-INCREMENT-FINANCE-WAVE3.md`](./NEXT-INCREMENT-FINANCE-WAVE3.md)) soll die **Projektleitung** einen kurzen **Abstimmungstermin** setzen: Review dieses Tickets im Kontext **GoBD / Nachweisbarkeit** vs. aktuellem **fail-hard**-Stand (`AuditService.append`), ob weitere Transaktions-/Outbox-Schritte vor Mandanten-Go nötig sind, und ob **Option B** für alle neuen Finanz-Schreibpfade (z. B. Mahn-Ereignis, Skonto-Entwurf) ausreichend dokumentiert abgenommen ist.

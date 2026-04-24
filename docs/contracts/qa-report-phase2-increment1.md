@@ -1,7 +1,7 @@
 # QA Report - Phase 2 Increment 1 (Aufmass)
 
 ## Scope
-- Verbindliche Basis: `ERP Systembeschreibung v1.2.md` (insb. §5.4, §2 Traceability, Mandantentrennung, Audit-Pflicht)
+- Verbindliche Basis: `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md` (insb. §5.4, §2 Traceability, Mandantentrennung, Audit-Pflicht)
 - Contract/API-Basis:
   - `docs/contracts/action-contracts.json` (phase-2-inc1-measurement)
   - `docs/contracts/error-codes.json`

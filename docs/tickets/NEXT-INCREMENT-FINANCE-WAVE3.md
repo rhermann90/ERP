@@ -25,12 +25,12 @@ Ohne abweichende PL-Entscheidung gilt **Option A** als Default für die nächste
 
 ### PL-Gate — M4 Slice 5b (Orchestrierung)
 
-**Stand 2026-04-24:** Tabelle **PL-Gate** im Ticket [`M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md`](./M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md) ist mit MVP-Entscheiden befüllt; [ADR 0010 — Abschnitt Slice 5b](../adr/0010-fin4-m4-dunning-email-and-templates.md): **5b-0** (Lesepfad) und **5b-1** (`POST /finance/dunning-reminder-run`, Idempotenz `dunning_reminder_run_intents`) **Accepted** / umgesetzt. **Nächster technischer Schritt:** **5b-2** (z. B. asynchroner Job statt nur synchronem POST) oder **PWA** nur nach explizitem PL/UI — API-first bis dahin. **Kein** Parallelstart zu Option **B** (8.4(2–6)) oder **C** (Zwischenstatus) in derselben Lieferung ohne explizites PL.
+**Stand 2026-04-24:** Tabelle **PL-Gate** im Ticket [`M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md`](./M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md) ist mit MVP-Entscheiden befüllt; [ADR 0010 — Abschnitt Slice 5b](../adr/0010-fin4-m4-dunning-email-and-templates.md): **5b-0**, **5b-1** und optionaler **5b-2**-Cron (`POST /internal/cron/dunning-automation` mit Geheimnis) sowie **`GET|PATCH /finance/dunning-reminder-automation`** sind umgesetzt; PWA Finanz-Vorbereitung enthält **Batch-Vorschau/Ausführung** und **Automation-PATCH**. **Nächster Schritt:** PL/UI feinschneiden (z. B. dedizierte „Grundeinstellungen“-Route), **AUTO**+E-Mail-Kette nur nach PL; **Kein** Parallelstart zu Option **B** (8.4(2–6)) oder **C** (Zwischenstatus) ohne explizites PL.
 
 ## Non-Goals (diese Welle)
 
 - Vollständiger **8.4(2–6)**-Motor (weitere Nachlassarten, Einbehalt, konfigurierbare Regelketten).
-- **FIN-4 Richtung M4** (Konfiguration Mahnstufen, Vorlagen, E-Mail, Massenversand) — siehe Abschnitt **M4** unten; **nicht** mit B2-1a oder Pfad C in einem Strang verheiraten.
+- **FIN-4 Richtung M4** — Kern-Konfig, Vorlagen, E-Mail, Mahnlauf **5b** und Mandanten-Automation sind umgesetzt; verbleibendes **Massen-E-Mail** / UX-Umzug nur nach PL; **nicht** mit B2-1a oder Pfad C in einem Strang verheiraten.
 - Änderung der **Audit-fail-hard**-Semantik ohne PL-Eintrag zu [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md).
 - PWA: kein Pflicht-UI für `skontoBps` in dieser Welle (API-first; optional später).
 

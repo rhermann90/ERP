@@ -12,6 +12,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
 import { SEED_IDS } from "../src/composition/seed.js";
+import { createPrismaClient } from "../src/prisma-client.js";
 
 const BCRYPT_COST = 12;
 
@@ -55,8 +56,7 @@ if (!process.env.DATABASE_URL?.trim()) {
   process.exit(1);
 }
 
-const { PrismaClient } = await import("@prisma/client");
-const prisma = new PrismaClient();
+const prisma = createPrismaClient(process.env.DATABASE_URL.trim());
 
 try {
   const passwordHash = bcrypt.hashSync(passwordPlain, BCRYPT_COST);
