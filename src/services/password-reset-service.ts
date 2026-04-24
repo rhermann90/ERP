@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../prisma-client.js";
 import { DomainError } from "../errors/domain-error.js";
 import { sendSmtpMail, isPublicAppBaseUrlConfigured, isSmtpConfigured } from "../mail/smtp-send.js";
 import type { AuditService } from "./audit-service.js";

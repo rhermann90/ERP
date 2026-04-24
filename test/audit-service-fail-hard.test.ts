@@ -32,6 +32,34 @@ describe("AuditService fail-hard (Postgres)", () => {
     expect(repos.auditEvents.some((e) => e.id === event.id)).toBe(false);
   });
 
+  it("appendAuditEventTx throws DomainError AUDIT_PERSIST_FAILED when tx create fails", async () => {
+    const repos = new InMemoryRepositories();
+    const audit = new AuditService(repos, null);
+    const tx = {
+      auditEvent: {
+        create: async () => {
+          throw new Error("simulated tx failure");
+        },
+      },
+    };
+    const event = {
+      id: randomUUID(),
+      tenantId: "11111111-1111-4111-8111-111111111111",
+      entityType: "DUNNING_TENANT_STAGE_CONFIG" as const,
+      entityId: "22222222-2222-4222-8222-222222222222",
+      action: "DUNNING_STAGES_REPLACED" as const,
+      timestamp: new Date(),
+      actorUserId: randomUUID(),
+      reason: "unit tx fail",
+    };
+
+    await expect(audit.appendAuditEventTx(tx as never, event)).rejects.toMatchObject({
+      code: "AUDIT_PERSIST_FAILED",
+      statusCode: 500,
+    });
+    expect(repos.auditEvents.some((e) => e.id === event.id)).toBe(false);
+  });
+
   it("appends to memory only when prisma is null", async () => {
     const repos = new InMemoryRepositories();
     const audit = new AuditService(repos, null);

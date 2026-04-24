@@ -55,8 +55,165 @@ export const createInvoiceDraftSchema = z.object({
   invoiceCurrencyCode: z.enum(["EUR"]),
   /** Optional: gebundene Zahlungsbedingungs-Version (FIN-1), gleiches Projekt wie Angebot. */
   paymentTermsVersionId: z.string().uuid().optional(),
+  /** 8.4(2) B2-1a: Skonto in Basispunkten (0 = kein Abzug). */
+  skontoBps: z.number().int().min(0).max(10_000).optional(),
   reason: z.string().min(5),
 });
+
+export const bookInvoiceSchema = z.object({
+  reason: z.string().min(5),
+  issueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).optional(),
+});
+
+/** FIN-4: manuelles Mahn-Ereignis protokollieren (kein E-Mail-/Lauf). */
+export const createDunningReminderSchema = z.object({
+  stageOrdinal: z.number().int().min(1).max(9),
+  note: z.string().max(500).optional(),
+  reason: z.string().min(5),
+});
+
+/** M4 Slice 4: E-Mail-Vorschau / Versand-Stub je Rechnung. */
+export const dunningReminderEmailPreviewSchema = z
+  .object({
+    stageOrdinal: z.number().int().min(1).max(9),
+    reason: z.string().min(5).max(500),
+  })
+  .strict();
+
+/** M4 Slice 5a: echter E-Mail-Versand; Empfaenger explizit (kein Kundenstamm mit E-Mail in diesem MVP). */
+export const dunningReminderEmailSendSchema = z
+  .object({
+    stageOrdinal: z.number().int().min(1).max(9),
+    reason: z.string().min(5).max(500),
+    toEmail: z.string().email().max(320),
+  })
+  .strict();
+
+const dunningStageConfigWriteRowSchema = z.object({
+  stageOrdinal: z.number().int().min(1).max(9),
+  daysAfterDue: z.number().int().min(0).max(3650),
+  feeCents: z.number().int().min(0).max(100_000_000),
+  label: z.string().min(1).max(200),
+});
+
+/** FIN-4: volle Ersetzung der 9 Mahnstufen (Ordinal 1–9 je einmal). */
+export const putDunningReminderConfigSchema = z
+  .object({
+    stages: z.array(dunningStageConfigWriteRowSchema).length(9),
+    reason: z.string().min(5).max(500),
+  })
+  .strict()
+  .superRefine((val, ctx) => {
+    const ord = val.stages.map((s) => s.stageOrdinal);
+    const set = new Set(ord);
+    if (set.size !== 9) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["stages"],
+        message: "stageOrdinal muss 1 bis 9 je einmal vorkommen",
+      });
+      return;
+    }
+    for (let n = 1; n <= 9; n += 1) {
+      if (!set.has(n)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["stages"],
+          message: `stageOrdinal ${n} fehlt`,
+        });
+        return;
+      }
+    }
+  });
+
+/** FIN-4: einzelne Mahnstufe patchen (mindestens ein Feld außer reason). */
+export const patchDunningReminderStageSchema = z
+  .object({
+    daysAfterDue: z.number().int().min(0).max(3650).optional(),
+    feeCents: z.number().int().min(0).max(100_000_000).optional(),
+    label: z.string().min(1).max(200).optional(),
+    reason: z.string().min(5).max(500),
+  })
+  .strict()
+  .superRefine((val, ctx) => {
+    if (val.daysAfterDue === undefined && val.feeCents === undefined && val.label === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Mindestens eines von daysAfterDue, feeCents, label erforderlich",
+      });
+    }
+  });
+
+export const deleteDunningReminderStageSchema = z.object({
+  reason: z.string().min(5).max(500),
+});
+
+/** M4 Slice 5b-0: Mahnlauf-Kandidaten (Lesepfad). */
+export const dunningReminderCandidatesQuerySchema = z
+  .object({
+    stageOrdinal: z.coerce.number().int().min(1).max(9),
+    asOfDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  })
+  .strict();
+
+/** M4 Slice 5b-1: Mahnlauf (Vorschau oder protokollierter Batch) — siehe ADR-0010. */
+export const dunningReminderRunBodySchema = z
+  .object({
+    stageOrdinal: z.number().int().min(1).max(9),
+    reason: z.string().min(5).max(500),
+    mode: z.enum(["DRY_RUN", "EXECUTE"]),
+    asOfDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    invoiceIds: z.array(z.string().uuid()).max(500).optional(),
+    note: z.string().max(500).optional(),
+  })
+  .strict();
+
+/** Mandanten-Modus Mahnlauf (OFF | SEMI | AUTO); optional Cron-Stunde UTC 0–23. */
+export const patchDunningTenantAutomationSchema = z
+  .object({
+    reason: z.string().min(5).max(500),
+    runMode: z.enum(["OFF", "SEMI", "AUTO"]),
+    jobHourUtc: z.number().int().min(0).max(23).nullable().optional(),
+  })
+  .strict();
+
+/** M4 Slice 2: Vorlagentext einer Stufe/Kanal patchen (Pflichtplatzhalter serverseitig). */
+export const patchDunningReminderTemplateBodySchema = z
+  .object({
+    body: z.string().min(1).max(50_000),
+    reason: z.string().min(5).max(500),
+  })
+  .strict();
+
+const optionalFooterString = (max: number) => z.string().max(max).optional();
+
+export const patchDunningEmailFooterSchema = z
+  .object({
+    reason: z.string().min(5).max(500),
+    companyLegalName: optionalFooterString(300),
+    streetLine: optionalFooterString(300),
+    postalCode: optionalFooterString(20),
+    city: optionalFooterString(120),
+    countryCode: z.string().length(2).regex(/^[A-Za-z]{2}$/).optional(),
+    publicEmail: optionalFooterString(320),
+    publicPhone: optionalFooterString(80),
+    legalRepresentative: optionalFooterString(300),
+    registerCourt: optionalFooterString(200),
+    registerNumber: optionalFooterString(120),
+    vatId: optionalFooterString(32),
+    signatureLine: optionalFooterString(200),
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    const keys = Object.keys(data).filter((k) => k !== "reason");
+    if (!keys.some((k) => data[k as keyof typeof data] !== undefined)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [],
+        message: "PATCH: mindestens ein Stammdaten-Feld neben reason erforderlich",
+      });
+    }
+  });
 
 export const transitionSupplementStatusSchema = z.object({
   supplementVersionId: z.string().uuid(),

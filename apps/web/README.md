@@ -2,6 +2,10 @@
 
 Vite + React + TypeScript + `vite-plugin-pwa`. Die UI koppelt Schreibaktionen ausschließlich an `GET /documents/:id/allowed-actions?entityType=…` (Backend-SoT). Fehler-Envelope: **Passthrough** bei konformem Body; sonst Fallback (`x-request-id` / Client-UUID, Code-Tabelle) gemäß [`docs/contracts/error-codes.json`](../docs/contracts/error-codes.json) und [`docs/contracts/decision-log-phase1-frontend.md`](../docs/contracts/decision-log-phase1-frontend.md) (`src/lib/api-error.ts`).
 
+## Darstellung (Hell / Dunkel / System)
+
+In der Shell: **Darstellung** → System (Standard), Hell oder Dunkel. Gespeichert unter `localStorage`-Key **`erp-theme`** (nur Theme, **kein** Bearer-Token). Technik, Tokens und PWA-Hinweise: [`docs/web-theming.md`](../docs/web-theming.md).
+
 ## Umgebung
 
 | Variable | Bedeutung |
@@ -36,6 +40,14 @@ Details zu Postgres, `DATABASE_URL` und Prisma: [Root-`README.md`](../README.md)
 
 **Rechnungsexport (SoT):** Kanonische `actionId` ist **`EXPORT_INVOICE`** (`EXPORT_INVOICE_XRECHNUNG` nicht verwenden); `POST /exports` nutzt für Rechnungen fest **`format: XRECHNUNG`** — siehe `docs/contracts/action-contracts.json`.
 
+**Rechnung buchen FIN-2 (SoT):** In der **Haupt-Shell** (`#/`) nur, wenn **`BOOK_INVOICE`** in `GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE` steht (Status **ENTWURF**, Rollen ADMIN / GESCHAEFTSFUEHRUNG / BUCHHALTUNG); Ausführung über `executeActionWithSotGuard` → `POST /invoices/{invoiceId}/book` mit **`reason`** (mind. 5 Zeichen), optional **`issueDate`** (`yyyy-mm-dd`). Siehe `docs/contracts/action-contracts.json`.
+
+**Zahlungseingang FIN-3 (SoT):** In **Finanz (Vorbereitung)** nur, wenn **`RECORD_PAYMENT_INTAKE`** in den geladenen `allowedActions` steht (nach „GET Rechnung“); Aufruf `POST /finance/payments/intake` mit Header **`Idempotency-Key`** (UUID).
+
+**Zahlungseingänge lesen:** `GET /invoices/{invoiceId}/payment-intakes` — gleiche Leserolle wie Rechnung; Antwortliste **ohne** Idempotency-Key (wird mit „GET Rechnung“ in der Finanz-Vorbereitung mitgeladen).
+
+**Mahn-Ereignisse lesen (FIN-4):** `GET /invoices/{invoiceId}/dunning-reminders` — gleiche Leserolle; typischerweise leere Liste, bis Mahnläufe persistiert werden. ADR **Kern:** `docs/adr/0009-fin4-mahnwesen-slice.md`; **M4** (Vorlagen, Footer, E-Mail): `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`.
+
 Seed-IDs für Schnelltests siehe `src/composition/seed.ts` im Backend (`offerVersionId`, `lvVersionId`, `measurementVersionId`, …).
 
 ## Build / Preview
@@ -62,23 +74,17 @@ npm run test     # Frontend-Unit-Tests (SoT, Session, Envelope, Text-Rendering)
 - **§8.14 (v1.3) / Roadmap:** Für **FIN-4** (Mahnwesen, §8.10) und **FIN-6** (Härtung u.a. §8.14, §12, §15) bleibt vorgesehen: **keine** Offline-**Schreib**pfade für **Zahlung** oder **Mahnung** in der PWA — weiterhin nur serverseitige Buchungslogik nach Backend-GO und Contracts.
 - **Kein Produktionsanspruch ohne Release-GO:** Vollständige Betriebs- und Persistenzreife (inkl. Audit-DB, GoBD) ist nicht durch diese Shell allein abgedeckt — siehe Root-README, ADRs und Tickets.
 
-## MVP Finanz (v1.3) — Frontend-Stand FIN-0
+## MVP Finanz (v1.3) — Frontend-Stand (Ist)
 
 Gelesen: [`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`](../docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md), [`docs/tickets/FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md). **Koordination / Gates:** [`docs/contracts/qa-fin-0-gate-readiness.md`](../docs/contracts/qa-fin-0-gate-readiness.md), [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](../docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md).
 
-**PR-Scope-Zeile:** `FIN-0 UI/Doku; kein FIN-2.`
+**Haupt-Shell (`#/`):** Dokument-ID + `entityType`, dann **„Allowed Actions laden“**. Schreibaktionen nur, wenn die gewählte `actionId` in der zuletzt geladenen Liste steht — Ausführung über **`executeActionWithSotGuard`** (u. a. **BOOK_INVOICE** → Buchung, **EXPORT_INVOICE**, Angebots-/Aufmass-/LV-Aktionen). Keine parallele „versteckte“ Buchung ohne SoT.
 
-**Was diese Runde geändert hat:** **Finanz (Vorbereitung)** ergänzt DOC_LINKS zu MVP-Phasen und PL-Sprint-Snapshot; Überschriftenhierarchie um eine nur für Screenreader sichtbare **h3** vor der Doku-Navigation; weiterhin **keine** Buchungs-/Zahlungs-/Mahn-Oberfläche und **keine** neuen Finanz-POSTs aus der UI. Hash-Route unverändert nur **`#/finanz-vorbereitung`**.
+**Finanz (Vorbereitung) (`#/finanz-vorbereitung`):** Transparenz-Links (ADR 0007, 0008, **0009**, FIN-2-Gate, OpenAPI-Mapping, Stub-Testmatrix, MVP-Phasen, PL-Snapshot). **Lesend:** Zahlungsbedingungen je Projekt, Rechnungsentwurf, `GET` Rechnung inkl. **Zahlungseingänge** und **Mahn-Ereignisse** (FIN-4 Stub-Liste). **Schreibend:** Zahlungseingang nur mit SoT **`RECORD_PAYMENT_INTAKE`** + `Idempotency-Key`. **API-Client / Fehler:** Envelope wie oben (`api-error.ts`, `error-codes.json`, Decision-Log). **UI (Ist):** Kurze Feature-Matrix, nummerierte Schritte mit SoT-abhängigen Button-Zuständen, Skonto (`skontoBps`) im Entwurf und in der Rechnungsübersicht, Roh-JSON unter einklappbaren Details, Zahlung/Mahnung in eigenen Panels mit lokaler Fehlerzeile.
 
-**Ergebnis / UI:** Read-only **„Finanz (Vorbereitung)“** (`#/finanz-vorbereitung`): Kurztext + Links zu ADR 0007, FIN-2-Start-Gate, `finance-fin0-openapi-mapping.md`, Stub-Testmatrix, MVP-Phasendokument, PL-Sprint-Snapshot (über `VITE_REPO_DOCS_BASE` oder lokale Pfade im UI). **Kein** Mahn-, Zahlungs- oder Buchungs-UI; Schreibaktionen weiter ausschließlich nach `GET …/allowed-actions`. **API-Client:** optionaler Lesepfad `getInvoice` → `GET /invoices/{invoiceId}` (OpenAPI-Stub). **API-Client allgemein:** Fehler-Envelope strikt an [`docs/contracts/error-codes.json`](../docs/contracts/error-codes.json) + Decision-Log (`Passthrough`; Fallback `x-request-id` / UUID + Code-Tabelle bei fehlenden Envelope-Feldern).
+**Abgrenzung:** Demo- und Integrations-Slices — **kein** Produktions-Go ohne separates Release, Compliance-Checkliste und erfüllte Gates ([`FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md), [`compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md)). Vollständiger **8.4(2–6)**-Motor, Mahnläufe/E-Mail (**FIN-4** M4) und **FIN-6** folgen der Phasendokumentation. Offline-**Schreib**pfade für Zahlung/Mahnung: weiterhin ausgeschlossen (Abschnitt **Offline / PWA**).
 
-### Stand / FIN-0 vs FIN-2
-
-Nach dem dokumentierten Merge-Kontext auf **`main`** (z. B. geschlossener PR [#1](https://github.com/rhermann90/ERP/pull/1) auf dieses Repo) bleibt die PWA bei **FIN-0**: read-only **Finanz (Vorbereitung)** mit Transparenz-Links — u. a. zur QA-**Stub-Testmatrix** [`qa-fin-0-stub-test-matrix.md`](../docs/contracts/qa-fin-0-stub-test-matrix.md) und zum **OpenAPI-Mapping** [`finance-fin0-openapi-mapping.md`](../docs/contracts/finance-fin0-openapi-mapping.md). **FIN-2** (produktive Rechnung / **8.4**-Motor) startet **erst** nach erfülltem [`FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md) (G1–G10); die UI implementiert **keinen** produktiven Buchungs-, Zahlungs- oder Mahnfluss davor.
-
-**FIN-4** (Mahnwesen, Spez **8.10**) und **FIN-6** (u. a. **8.14**, **12**, **15**) sind spätere Phasen; Offline-**Schreib**pfade für Zahlung oder Mahnung in der PWA bleiben **unverändert ausgeschlossen** (vgl. Spez **8.14** und Abschnitt Offline oben — **nur dokumentiert**, keine neue Client-Schreiblogik). Produktive Finanzvolumina und Audit-Laufzeit folgen Backend, PL-Einträgen und Gate.
-
-**Ticket-Kommentar (Vorlage):** „FIN-0 Frontend: kein Finanz-/Mahn-/Buchungs-UI und kein optionaler Stub ohne PL; `GET …/allowed-actions` bleibt einziger SoT für Schreibaktionen. Envelope-Normalisierung in `api-error.ts` an `error-codes.json` / `decision-log-phase1-frontend.md`; `npm run test -w apps/web` + `npm run build:web` grün.“
+**Ticket-Kommentar (Vorlage):** „Frontend apps/web: Schreibpfade nur mit Backend-SoT (`GET …/allowed-actions` bzw. explizite SoT-Prüfung in Finanz-Vorbereitung); keine zusätzliche Domänenlogik im Client. Bei neuen Backend-Codes: `error-codes.json` ↔ `api-error.ts` synchron halten. `npm run test -w apps/web` + `npm run build:web` grün.“
 
 **Ticket an Backend — reproduzierbarer FIN-/Export-Fehler für erste Stichprobe (Vorlage):** „Bitte für **Dev/Staging** einen **reproduzierbaren** FIN- oder Export-Fehler bereitstellen: HTTP-Methode + Pfad, Umgebung/Branch, kurze Schritte (Request nur mit **Platzhaltern** — keine echten Tokens, Secrets, PII). Erwartung: Response-Body mit Envelope-Feldern `code`, `message`, `correlationId`, `retryable`, `blocking`, optional `details`; optional Header `x-request-id`. Frontend hängt danach **eine** anonymisierte Stichprobe gemäß Block ‚Stichprobe — Vorlage‘ an PR/Ticket (keine erfundenen Bodies).“
 
@@ -93,12 +99,12 @@ FIN-/Export-Fehler — Stichprobe (1×)
 - Body (Passthrough): code=<…>, message=<kurz>, correlationId=<gesetzt|fehlt>, retryable=<bool|fehlt>, blocking=<bool|fehlt>, details=<ja|nein>
 - Response-Header: x-request-id=<gesetzt|fehlt> (nur relevant, wenn correlationId im Body fehlt)
 - Erwartung Frontend: Passthrough bei konformem Body; sonst Fallback gem. error-codes.json / api-error.ts
-- allowedActions: unverändert SoT für Schreibaktionen; keine zusätzliche Buchungs-/Mahn-UI in diesem Schritt
+- allowedActions: unverändert SoT für Schreibaktionen in der Shell; Finanz-Route nur nach Freigabe erweitern
 ```
 
 **Neue `domainErrorCodes`:** Zuerst [`docs/contracts/error-codes.json`](../docs/contracts/error-codes.json) im Repo ergänzen (`classes` inkl. `retryable`/`blocking`/`httpStatus` wie Backend). `src/lib/api-error.ts` liest die Tabelle aus dieser Datei — **keine Drift** zwischen Contract und Fallback. Nur wenn Backend einen Code laut `backendEnvelope.retryableDerivation` o. Ä. ausweist, der **noch nicht** in `classes` steht: vorübergehend `buildCodeTable()` in `api-error.ts` ergänzen **und** Ticket an PL/Backend für vollständige Eintragung in `error-codes.json`. Unbekannte Codes ohne Tabellenzeile: weiterhin konservatives Fallback (`retryable: false`, `blocking: true`, außer bekannte Spezialfälle).
 
-**Ticket-Kommentar „kein weiterer UI-Change“ (Vorlage):** „Frontend apps/web: kein zusätzlicher Finanz-/Mahn-/Buchungs-UI und kein Stub ohne PL; Schreibpfade unverändert nur über `GET …/allowed-actions`. Envelope-Logik unverändert; bei neuen Backend-Codes siehe Sync `error-codes.json` ↔ `api-error.ts`. `npm run test -w apps/web` + `npm run build:web` grün. Erste FIN-/Export-Stichprobe: **ausstehend** bis Backend reproduzierbaren Fehler-JSON liefert (siehe Vorlage ‚Ticket an Backend‘).“
+**Ticket-Kommentar „kein weiterer UI-Change“ (Vorlage):** „Frontend apps/web: kein UI-Change ohne PL/Contract-Abgleich; neue Schreibflächen nur mit SoT. Shell: `allowedActions` + Guard; Finanz-Route: nur dokumentierte FIN-Slices. Envelope-Logik unverändert; bei neuen Backend-Codes siehe Sync `error-codes.json` ↔ `api-error.ts`. `npm run test -w apps/web` + `npm run build:web` grün. FIN-/Export-Stichprobe: **ausstehend** bis Backend reproduzierbaren Fehler-JSON liefert (siehe Vorlage ‚Ticket an Backend‘).“
 
 **Vor jedem Push/PR:** `npm run test -w apps/web && npm run build:web`
 

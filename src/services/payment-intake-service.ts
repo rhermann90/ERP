@@ -6,6 +6,15 @@ import type { InvoicePersistencePort } from "../persistence/invoice-persistence.
 import type { PaymentIntakePersistencePort } from "../persistence/payment-intake-persistence.js";
 import { AuditService } from "./audit-service.js";
 
+function isPrismaUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code: string }).code === "P2002"
+  );
+}
+
 export type RecordPaymentIntakeInput = {
   tenantId: TenantId;
   actorUserId: UUID;
@@ -41,7 +50,7 @@ export class PaymentIntakeService {
     if (existing) {
       if (existing.invoiceId !== input.invoiceId || existing.amountCents !== input.amountCents) {
         throw new DomainError(
-          "VALIDATION_FAILED",
+          "PAYMENT_INTAKE_IDEMPOTENCY_MISMATCH",
           "Idempotency-Key bereits verwendet (abweichender Beleg)",
           400,
         );
@@ -55,14 +64,14 @@ export class PaymentIntakeService {
     }
     if (!PAYABLE.has(inv.status)) {
       throw new DomainError(
-        "VALIDATION_FAILED",
+        "PAYMENT_INVOICE_NOT_PAYABLE",
         "Rechnung in diesem Status nicht zahlbar (nur gebucht/versendet oder teilbezahlt)",
         400,
       );
     }
     if (inv.totalGrossCents == null || inv.lvNetCents == null || inv.vatCents == null) {
       throw new DomainError(
-        "VALIDATION_FAILED",
+        "PAYMENT_INVOICE_AMOUNT_MISSING",
         "Rechnung ohne berechneten Bruttobetrag (8.4) — Zahlung nicht moeglich",
         400,
       );
@@ -72,7 +81,7 @@ export class PaymentIntakeService {
       .reduce((s, p) => s + p.amountCents, 0);
     if (priorPaid + input.amountCents > inv.totalGrossCents) {
       throw new DomainError(
-        "VALIDATION_FAILED",
+        "PAYMENT_EXCEEDS_OPEN_AMOUNT",
         "Zahlungsbetrag uebersteigt offenen Rechnungsbetrag",
         400,
       );
@@ -88,6 +97,7 @@ export class PaymentIntakeService {
       externalReference: input.externalReference,
       createdAt: new Date(),
     };
+    const previousInvoiceStatus = inv.status;
     this.repos.putPaymentIntake(row);
 
     const newPaid = priorPaid + input.amountCents;
@@ -101,8 +111,27 @@ export class PaymentIntakeService {
     inv.status = nextStatus;
     this.repos.invoices.set(inv.id, inv);
 
-    await this.paymentIntakePersistence.persistIntake(row);
-    await this.invoicePersistence.syncInvoiceFromMemory(this.repos, input.tenantId, inv.id);
+    try {
+      await this.paymentIntakePersistence.persistIntake(row);
+      await this.invoicePersistence.syncInvoiceFromMemory(this.repos, input.tenantId, inv.id);
+    } catch (err) {
+      this.repos.removePaymentIntake(row);
+      inv.status = previousInvoiceStatus;
+      this.repos.invoices.set(inv.id, inv);
+      if (isPrismaUniqueViolation(err)) {
+        await this.paymentIntakePersistence.hydrateIntoMemory(this.repos);
+        await this.invoicePersistence.hydrateInvoicesIntoMemory(this.repos);
+        const winner = this.repos.getPaymentIntakeByIdempotency(input.tenantId, input.idempotencyKey);
+        if (
+          winner &&
+          winner.invoiceId === input.invoiceId &&
+          winner.amountCents === input.amountCents
+        ) {
+          return this.buildResult(winner, true);
+        }
+      }
+      throw err;
+    }
 
     await this.audit.append({
       id: randomUUID(),
@@ -113,6 +142,10 @@ export class PaymentIntakeService {
       timestamp: new Date(),
       actorUserId: input.actorUserId,
       reason: input.reason,
+      beforeState: {
+        invoiceStatus: previousInvoiceStatus,
+        totalPaidCentsBefore: priorPaid,
+      },
       afterState: {
         paymentIntakeId: id,
         amountCents: input.amountCents,

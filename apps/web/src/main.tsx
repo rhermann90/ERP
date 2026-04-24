@@ -1,8 +1,16 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
-import App from "./App.js";
 import "./index.css";
+import {
+  applyThemePreference,
+  getStoredThemePreference,
+  installThemeColorMediaListener,
+} from "./lib/theme.js";
+import App from "./App.js";
+
+applyThemePreference(getStoredThemePreference());
+installThemeColorMediaListener();
 
 registerSW({
   immediate: true,

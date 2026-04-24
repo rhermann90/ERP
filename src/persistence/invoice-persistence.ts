@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../prisma-client.js";
 import type { Invoice, TenantId, UUID } from "../domain/types.js";
 import type { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 
@@ -33,6 +33,7 @@ function toDomainInvoice(row: {
   supplementOfferId: string | null;
   supplementVersionId: string | null;
   paymentTermsVersionId: string | null;
+  skontoBps: number;
 }): Invoice {
   return {
     tenantId: row.tenantId,
@@ -53,6 +54,7 @@ function toDomainInvoice(row: {
     supplementOfferId: row.supplementOfferId ?? undefined,
     supplementVersionId: row.supplementVersionId ?? undefined,
     paymentTermsVersionId: row.paymentTermsVersionId ?? undefined,
+    skontoBps: row.skontoBps,
   };
 }
 
@@ -102,6 +104,7 @@ export class PrismaInvoicePersistence implements InvoicePersistencePort {
         supplementOfferId: inv.supplementOfferId ?? null,
         supplementVersionId: inv.supplementVersionId ?? null,
         paymentTermsVersionId: inv.paymentTermsVersionId ?? null,
+        skontoBps: inv.skontoBps ?? 0,
       },
       update: {
         projectId: inv.projectId,
@@ -120,6 +123,7 @@ export class PrismaInvoicePersistence implements InvoicePersistencePort {
         supplementOfferId: inv.supplementOfferId ?? null,
         supplementVersionId: inv.supplementVersionId ?? null,
         paymentTermsVersionId: inv.paymentTermsVersionId ?? null,
+        skontoBps: inv.skontoBps ?? 0,
       },
     });
   }

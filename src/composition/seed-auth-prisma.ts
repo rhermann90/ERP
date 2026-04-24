@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../prisma-client.js";
 import { SEED_IDS } from "./seed.js";
 
 const BCRYPT_COST = 12;

@@ -165,6 +165,7 @@ export function seedDemoData(repos: InMemoryRepositories): void {
     lvNetCents: 125000,
     vatCents: 23750,
     totalGrossCents: 148750,
+    skontoBps: 0,
   };
   const draftInvoice: Invoice = {
     id: SEED_IDS.draftInvoiceId,
@@ -177,6 +178,10 @@ export function seedDemoData(repos: InMemoryRepositories): void {
     offerVersionId: SEED_IDS.offerVersionId,
     status: "ENTWURF",
     immutableFromStatus: "GEBUCHT_VERSENDET",
+    lvNetCents: 5000,
+    vatCents: 950,
+    totalGrossCents: 5950,
+    skontoBps: 0,
   };
   const inconsistentInvoice: Invoice = {
     id: SEED_IDS.inconsistentInvoiceId,
@@ -194,6 +199,7 @@ export function seedDemoData(repos: InMemoryRepositories): void {
     lvNetCents: 10000,
     vatCents: 1900,
     totalGrossCents: 31000,
+    skontoBps: 0,
   };
 
   repos.putOffer(offer);

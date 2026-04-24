@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "../prisma-client.js";
 import type { Offer, OfferStatus, OfferVersion, TenantId, UUID } from "../domain/types.js";
 import type { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 
