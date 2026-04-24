@@ -1,17 +1,24 @@
-# FOLLOWUP — Audit DB-Dual-Write: Fehler nur `.catch` / keine Propagation
+# FOLLOWUP — Audit DB-Dual-Write: Fail-hard (Option B)
 
-**Status:** offen (Review-Hinweis; **vor Produktionslast** schließen oder bewusst dokumentiert akzeptieren mit PL).  
+**Status:** Option **B** umgesetzt (2026-04-19). Historischer Ist-Zustand (Memory-first + `.catch`) unten dokumentiert; aktuelles Verhalten siehe Abschnitt **„Aktueller Stand“**.  
 **Bezug:** [`FOLLOWUP-AUDIT-PERSISTENCE.md`](./FOLLOWUP-AUDIT-PERSISTENCE.md) (Dual-Write umgesetzt), Implementierung `src/services/audit-service.ts`.
 
-## Ist-Zustand (Repo)
+## Aktueller Stand (Repo, ab 2026-04)
+
+- `AuditService.append` ist **async**; bei `repositoryMode=postgres` wird **`audit_events.create` zuerst** ausgeführt, danach die Zeile in `repos.auditEvents`.
+- DB-Fehler → **`DomainError` `AUDIT_PERSIST_FAILED` (HTTP 500)**; In-Memory enthält **keine** Audit-Zeile bei fehlgeschlagenem Insert.
+- Persistenz-relevante Services rufen **`await audit.append`**; wo möglich erfolgt **Persistenz-Sync vor Audit**, damit bei Audit-Fehler die fachliche Abbildung in Postgres bereits geschrieben ist (Domäne kann dennoch teilweise nur im Arbeitsspeicher sein — bekanntes Option-B-Trade-off).
+- Tests: `test/audit-service-fail-hard.test.ts`.
+
+## Historischer Ist-Zustand (vor Option B)
 
 `AuditService.append`:
 
-1. schreibt **immer** zuerst in `repos.auditEvents` (In-Memory);
-2. bei `repositoryMode=postgres` hängt einen asynchronen DB-`create` an **`persistChain`**;
+1. schrieb **immer** zuerst in `repos.auditEvents` (In-Memory);
+2. bei `repositoryMode=postgres` hing ein asynchroner DB-`create` an **`persistChain`**;
 3. bei DB-Fehler: **nur** `console.error` in `.catch` — **kein** `throw`, **kein** Rollback der bereits durchgeführten Domänenmutation.
 
-`listByTenant` wartet auf `persistChain`, sodass Lesen nach kurzer Zeit oft mit DB konsistent erscheint; **unmittelbar** nach einer Mutation kann `GET /audit-events` jedoch noch **ohne** die zuletzt angehängte Zeile antworten, und bei dauerhaftem DB-Fehler bleibt die **Diskrepanz** Memory vs. DB bestehen.
+`listByTenant` wartete auf `persistChain`; bei dauerhaftem DB-Fehler blieb die **Diskrepanz** Memory vs. DB bestehen.
 
 ## Risiko
 
@@ -44,10 +51,10 @@
 
 | Feld | Inhalt (**nur PL**; Zelle bleibt `—` bis zur echten Entscheidung) |
 | --- | --- |
-| **Datum / Referenz** | — |
-| **SLA-Datum / Milestone** | — |
-| **Gewählte Option** | — |
-| **SLA (Kurzfassung)** | — |
+| **Datum / Referenz** | 2026-04-19 — Nutzerauftrag „Audit fail-hard“ / PL-Freigabe im Chat |
+| **SLA-Datum / Milestone** | Review bei nächstem Produktions-Go; Option A (Transaktion mit Domäne) offen |
+| **Gewählte Option** | **B** (fail-hard, kein stilles Weiterarbeiten bei Audit-Insert-Fehler) |
+| **SLA (Kurzfassung)** | HTTP 500 `AUDIT_PERSIST_FAILED`; Monitoring/Runbook bei wiederkehrenden 5xx; keine 2xx bei bekanntem Audit-DB-Fehlerpfad. |
 
 **Was PL in die Zellen schreibt (Orientierung, kein Ersatz für ausgefüllte Tabelle):**
 

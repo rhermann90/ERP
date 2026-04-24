@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useState, type ReactElement } from "re
 import { AppShell } from "./components/AppShell.js";
 import { DocumentTextPanels } from "./components/DocumentTextPanels.js";
 import { FinancePreparation } from "./components/FinancePreparation.js";
+import { LoginPage } from "./components/LoginPage.js";
+import { PasswordResetPage } from "./components/PasswordResetPage.js";
+import { RoleQuickNav } from "./components/RoleQuickNav.js";
+import { DEMO_SEED_IDS as SEED } from "./lib/demo-seed-ids.js";
 import { FINANCE_PREP_HASH, useHashRoute } from "./lib/hash-route.js";
 import {
   CANONICAL_EXPORT_INVOICE_ACTION_ID,
@@ -10,8 +14,10 @@ import {
   type EntityType,
   executeActionWithSotGuard,
 } from "./lib/action-executor.js";
+import type { QuickPreset } from "./lib/role-quick-actions.js";
+import { decodeTokenPayload, roleForQuickNav } from "./lib/token-payload.js";
 import { ApiError } from "./lib/api-error.js";
-import { createApiClient } from "./lib/api-client.js";
+import { createApiClient, resolveApiBaseUrl } from "./lib/api-client.js";
 import {
   clearDocumentScopedKeys,
   clearPersistedSession,
@@ -20,30 +26,6 @@ import {
   storageKeyForTenant,
   type SessionStorageMode,
 } from "./lib/tenant-session.js";
-
-const SEED = {
-  tenantId: "11111111-1111-4111-8111-111111111111",
-  offerId: "22222222-2222-4222-8222-222222222222",
-  offerVersionId: "33333333-3333-4333-8333-333333333333",
-  lvVersionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001",
-  measurementVersionId: "cccccccc-cccc-4ccc-8ccc-cccccccc0001",
-  invoiceId: "44444444-4444-4444-8444-444444444444",
-  lvCatalogId: "fafa0000-0000-4000-8000-000000000001",
-} as const;
-
-function decodeTokenTenantId(token: string): string | null {
-  const parts = token.trim().split(".");
-  if (parts.length !== 3 || parts[0] !== "v1") return null;
-  try {
-    let b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const pad = b64.length % 4;
-    if (pad) b64 += "=".repeat(4 - pad);
-    const json = JSON.parse(atob(b64)) as { tenantId?: string };
-    return typeof json.tenantId === "string" ? json.tenantId : null;
-  } catch {
-    return null;
-  }
-}
 
 function loadDocPrefs(tenantId: string): { documentId: string; entityType: EntityType } {
   if (!tenantId) return { documentId: SEED.offerVersionId, entityType: "OFFER_VERSION" };
@@ -64,7 +46,11 @@ function saveDocPrefs(tenantId: string, documentId: string, entityType: EntityTy
 }
 
 export default function App() {
-  const defaultApi = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
+  const viteDefaultTenant =
+    typeof import.meta.env.VITE_DEFAULT_TENANT_ID === "string" && import.meta.env.VITE_DEFAULT_TENANT_ID.trim()
+      ? (import.meta.env.VITE_DEFAULT_TENANT_ID as string).trim()
+      : undefined;
+  const defaultApi = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL as string | undefined);
   const [apiBase, setApiBase] = useState(defaultApi);
   const persisted = loadPersistedSession();
   const [token, setToken] = useState(persisted.token);
@@ -88,6 +74,7 @@ export default function App() {
     version: { status?: string; systemText?: string; editingText?: string };
   } | null>(null);
   const [supplementDetail, setSupplementDetail] = useState<unknown>(null);
+  const [offerVersionDetail, setOfferVersionDetail] = useState<unknown>(null);
 
   const [modalAction, setModalAction] = useState<string | null>(null);
   const [form, setForm] = useState<ActionFormFields>({
@@ -120,18 +107,22 @@ export default function App() {
   const client = useMemo(
     () =>
       createApiClient({
-        baseUrl: apiBase,
+        baseUrl: resolveApiBaseUrl(apiBase),
         getToken: () => token,
         getTenantId: () => tenantId,
       }),
     [apiBase, token, tenantId],
   );
 
-  const tokenTenant = token ? decodeTokenTenantId(token) : null;
+  const tokenTenant = token ? decodeTokenPayload(token).tenantId : null;
+  const tokenRole = token ? decodeTokenPayload(token).role : null;
+  const quickNavRole = roleForQuickNav(tokenRole);
   const tenantMismatch = tokenTenant && tenantId && tokenTenant !== tenantId;
 
   const hashPath = useHashRoute();
   const showFinancePrep = hashPath === "/finanz-vorbereitung";
+  const showLogin = hashPath === "/login";
+  const showPasswordReset = hashPath === "/password-reset";
 
   useEffect(() => {
     if (tenantId !== prevTenant) {
@@ -144,6 +135,7 @@ export default function App() {
       setAllowedMeta(null);
       setMeasurementDetail(null);
       setSupplementDetail(null);
+      setOfferVersionDetail(null);
       setBanner(null);
       const p = loadDocPrefs(tenantId);
       setDocumentId(p.documentId);
@@ -166,28 +158,47 @@ export default function App() {
     });
   };
 
-  const fetchAllowed = async () => {
-    setBusy(true);
-    setBanner(null);
-    try {
-      const res = await client.getAllowedActions(documentId.trim(), entityType);
-      setAllowedActions(res.allowedActions);
-      setAllowedMeta({ documentId: res.documentId, entityType: res.entityType });
-    } catch (e) {
-      setAllowedActions(null);
-      setAllowedMeta(null);
-      if (e instanceof ApiError) {
-        setBanner({
-          kind: "error",
-          text: e.envelope.message,
-          code: e.envelope.code,
-          correlationId: e.envelope.correlationId,
-        });
-      } else setBanner({ kind: "error", text: e instanceof Error ? e.message : String(e) });
-    } finally {
-      setBusy(false);
-    }
-  };
+  const fetchAllowedFor = useCallback(
+    async (docId: string, ent: EntityType) => {
+      setBusy(true);
+      setBanner(null);
+      try {
+        const res = await client.getAllowedActions(docId.trim(), ent);
+        setDocumentId(docId.trim());
+        setEntityType(ent);
+        setAllowedActions(res.allowedActions);
+        setAllowedMeta({ documentId: res.documentId, entityType: res.entityType });
+      } catch (e) {
+        setAllowedActions(null);
+        setAllowedMeta(null);
+        if (e instanceof ApiError) {
+          setBanner({
+            kind: "error",
+            text: e.envelope.message,
+            code: e.envelope.code,
+            correlationId: e.envelope.correlationId,
+          });
+        } else setBanner({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+      } finally {
+        setBusy(false);
+      }
+    },
+    [client],
+  );
+
+  const fetchAllowed = useCallback(() => fetchAllowedFor(documentId.trim(), entityType), [documentId, entityType, fetchAllowedFor]);
+
+  const runQuickPreset = useCallback(
+    async (p: QuickPreset) => {
+      if (p.kind === "finance") {
+        window.location.hash = FINANCE_PREP_HASH;
+        return;
+      }
+      window.location.hash = "#/";
+      await fetchAllowedFor(p.documentId, p.entityType);
+    },
+    [fetchAllowedFor],
+  );
 
   const fetchDetail = async () => {
     setBusy(true);
@@ -201,17 +212,30 @@ export default function App() {
         setMeasurementDetail({ measurementId: raw.measurementId, version: raw.version });
         setForm((f) => ({ ...f, measurementId: raw.measurementId }));
         setSupplementDetail(null);
+        setOfferVersionDetail(null);
       } else if (entityType === "SUPPLEMENT_VERSION") {
         const raw = await client.getSupplementVersion(documentId.trim());
         setSupplementDetail(raw);
         setMeasurementDetail(null);
+        setOfferVersionDetail(null);
         setForm((f) => ({
           ...f,
           offerId: SEED.offerId,
         }));
+      } else if (entityType === "OFFER_VERSION") {
+        const raw = await client.getOfferVersion(documentId.trim());
+        setOfferVersionDetail(raw);
+        setMeasurementDetail(null);
+        setSupplementDetail(null);
+        setForm((f) => ({
+          ...f,
+          offerId: (raw as { offerId: string }).offerId,
+          lvVersionId: (raw as { lvVersionId: string }).lvVersionId,
+        }));
       } else {
         setMeasurementDetail(null);
         setSupplementDetail(null);
+        setOfferVersionDetail(null);
         setBanner({
           kind: "ok",
           text: "Für diesen entityType liefert das Backend kein GET-Detail mit Textfeldern; Kontext (offerId, lvVersionId) manuell setzen.",
@@ -376,7 +400,19 @@ export default function App() {
         <a href="#/">Shell / Dokument</a>
         {" · "}
         <a href={FINANCE_PREP_HASH}>Finanz (Vorbereitung)</a>
+        {" · "}
+        <a href="#/login">Anmeldung</a>
+        {" · "}
+        <a href="#/password-reset">Passwort vergessen</a>
       </nav>
+      {!showFinancePrep && !showLogin && !showPasswordReset ? (
+        <RoleQuickNav
+          effectiveRole={quickNavRole}
+          hasSession={Boolean(token?.trim())}
+          busy={busy}
+          onSelect={runQuickPreset}
+        />
+      ) : null}
       {banner?.kind === "error" ? (
         <div className="error-banner" role="alert">
           <strong>{banner.code ? `${banner.code}: ` : ""}</strong>
@@ -403,10 +439,30 @@ export default function App() {
       ) : null}
 
       {showFinancePrep ? (
-        <FinancePreparation />
+        <FinancePreparation api={client} />
       ) : null}
 
-      {!showFinancePrep ? (
+      {showLogin ? (
+        <LoginPage
+          apiBase={apiBase}
+          defaultTenantId={viteDefaultTenant}
+          onSuccess={(r) => {
+            setToken(r.accessToken);
+            setTenantId(r.tenantId);
+            setSessionMode("session");
+            persistSession(r.accessToken, r.tenantId, "session");
+            setBanner({ kind: "ok", text: `Angemeldet — Rolle ${r.role}. Token in sessionStorage (Tab).` });
+            window.location.hash = "#/";
+          }}
+          onNavigateHome={() => {
+            window.location.hash = "#/";
+          }}
+        />
+      ) : null}
+
+      {showPasswordReset ? <PasswordResetPage apiBase={apiBase} defaultTenantId={viteDefaultTenant} /> : null}
+
+      {!showFinancePrep && !showLogin && !showPasswordReset ? (
         <>
       <section className="panel">
         <h2>Sitzung &amp; API</h2>
@@ -531,6 +587,27 @@ export default function App() {
           <pre className="system-block" style={{ margin: 0 }}>
             {JSON.stringify(supplementDetail, null, 2)}
           </pre>
+        </section>
+      ) : null}
+
+      {offerVersionDetail ? (
+        <section className="panel">
+          <h2>Angebotsversion (GET-Detail)</h2>
+          <p style={{ fontSize: "0.85rem", marginTop: 0 }}>
+            Status: <code>{(offerVersionDetail as { status: string }).status}</code> · offerId:{" "}
+            <code>{(offerVersionDetail as { offerId: string }).offerId}</code> · lvVersionId:{" "}
+            <code>{(offerVersionDetail as { lvVersionId: string }).lvVersionId}</code>
+          </p>
+          <div className="field-grid two">
+            <div className="system-block" data-testid="offer-version-system-text">
+              <div className="label">Systemtext</div>
+              {(offerVersionDetail as { systemText: string }).systemText}
+            </div>
+            <div className="editing-block" data-testid="offer-version-editing-text">
+              <div className="label">Bearbeitungstext</div>
+              {(offerVersionDetail as { editingText: string }).editingText}
+            </div>
+          </div>
         </section>
       ) : null}
 

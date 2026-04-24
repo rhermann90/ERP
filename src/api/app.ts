@@ -1,4 +1,6 @@
+import { randomUUID } from "node:crypto";
 import Fastify, { FastifyInstance } from "fastify";
+import rateLimit from "@fastify/rate-limit";
 import { assertSystemTextNotInUpdatePayload } from "../domain/lv-text-structure-policy.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import { AuditService } from "../services/audit-service.js";
@@ -9,6 +11,8 @@ import { LvService } from "../services/lv-service.js";
 import { MeasurementService } from "../services/measurement-service.js";
 import { OfferService } from "../services/offer-service.js";
 import { SupplementService } from "../services/supplement-service.js";
+import { PaymentTermsService } from "../services/payment-terms-service.js";
+import { InvoiceService } from "../services/invoice-service.js";
 import { TraceabilityService } from "../services/traceability-service.js";
 import {
   addLvPositionSchema,
@@ -33,6 +37,7 @@ import {
   updateMeasurementPositionsSchema,
 } from "../validation/schemas.js";
 import { seedDemoData } from "../composition/seed.js";
+import { seedAuthUsers } from "../composition/seed-auth-prisma.js";
 import {
   buildFastifyLoggerOptions,
   normalizeCorsOrigins,
@@ -47,11 +52,37 @@ import {
 } from "../config/repository-mode.js";
 import { noopOfferPersistence, PrismaOfferPersistence, type OfferPersistencePort } from "../persistence/offer-persistence.js";
 import {
+  noopSupplementPersistence,
+  PrismaSupplementPersistence,
+  type SupplementPersistencePort,
+} from "../persistence/supplement-persistence.js";
+import {
+  noopPaymentTermsPersistence,
+  PrismaPaymentTermsPersistence,
+  type PaymentTermsPersistencePort,
+} from "../persistence/payment-terms-persistence.js";
+import {
+  noopInvoicePersistence,
+  PrismaInvoicePersistence,
+  type InvoicePersistencePort,
+} from "../persistence/invoice-persistence.js";
+import {
   noopLvMeasurementPersistence,
   PrismaLvMeasurementPersistence,
   type LvMeasurementPersistencePort,
 } from "../persistence/lv-measurement-persistence.js";
-import { registerFinanceFin0Stubs } from "./finance-fin0-stubs.js";
+import {
+  noopPaymentIntakePersistence,
+  PrismaPaymentIntakePersistence,
+  type PaymentIntakePersistencePort,
+} from "../persistence/payment-intake-persistence.js";
+import { PaymentIntakeService } from "../services/payment-intake-service.js";
+import { registerPaymentIntakeRoutes } from "./finance-payment-intake-routes.js";
+import { registerPaymentTermsRoutes } from "./finance-payment-terms-routes.js";
+import { registerInvoiceFinanceRoutes } from "./finance-invoice-routes.js";
+import { registerAuthLoginRoutes } from "./auth-login-routes.js";
+import { registerPasswordResetRoutes } from "./password-reset-routes.js";
+import { registerUserAccountRoutes } from "./user-account-routes.js";
 import { handleHttpError, parseAuthContext } from "./http-response.js";
 
 export type BuildAppOptions = {
@@ -60,6 +91,11 @@ export type BuildAppOptions = {
   corsOrigins?: string[];
   /** Explizit In-Memory erzwingen (Vitest, lokale Demos ohne DB). */
   repositoryMode?: RepositoryMode;
+  /** Optionales Test-/Runtime-Override fuer das globale HTTP-Rate-Limit. */
+  rateLimit?: {
+    max?: number;
+    timeWindow?: number | string;
+  };
 };
 
 export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstance> {
@@ -67,38 +103,87 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     process.env.NODE_ENV === "test" || process.env.LOG_DISABLE === "1"
       ? false
       : buildFastifyLoggerOptions();
-  const app = Fastify({ logger });
+  const app = Fastify({
+    logger,
+    routerOptions: { ignoreTrailingSlash: true },
+    /** Eine ID pro Request — Fehler-Body und Header `x-correlation-id` (Hook in `pwa-http-layer`). */
+    genReqId: (req) => {
+      const raw = req.headers["x-request-id"];
+      if (typeof raw === "string") {
+        const id = raw.trim().slice(0, 256);
+        if (/^[a-zA-Z0-9_.-]{8,256}$/.test(id)) return id;
+      }
+      return randomUUID();
+    },
+  });
   const corsList = options?.corsOrigins ?? parseCorsOriginsFromEnv();
   registerPwaHttpHooks(app, normalizeCorsOrigins(corsList));
-
-  app.get("/health", async (_request, reply) => {
-    return reply.status(200).send({ status: "ok" as const });
+  // HTTP-Rate-Limiting: `@fastify/rate-limit` mit `global: true` — jede registrierte Route erhaelt
+  // ein Limit (Plugin-Hook `onRoute`), sofern nicht explizit `config: { rateLimit: false }` gesetzt
+  // (z. B. `/health` fuer Probes). Zusaetzlich setzen wir auf besonders missbrauchsgefaehrdeten
+  // Routen (Login, Reset, Benutzerverwaltung) engere `config.rateLimit`-Werte (Defense in Depth).
+  //
+  // Code scanning: Die Regel `js/missing-rate-limiting` erkennt dieses globale Fastify-Muster nicht
+  // zuverlaessig; die Repo-Konfiguration liegt unter `.github/codeql/codeql-config.yml` (in GitHub
+  // unter Code scanning als Custom configuration file verknuepfen, wenn Default setup genutzt wird).
+  await app.register(rateLimit, {
+    global: true,
+    max: options?.rateLimit?.max ?? 100,
+    timeWindow: options?.rateLimit?.timeWindow ?? "1 minute",
   });
+
+  app.get(
+    "/health",
+    {
+      config: {
+        rateLimit: false,
+      },
+    },
+    async (_request, reply) => {
+      return reply.status(200).send({ status: "ok" as const });
+    },
+  );
 
   const repos = new InMemoryRepositories();
   const repositoryMode = resolveRepositoryMode({ repositoryMode: options?.repositoryMode });
   let prisma: PrismaClient | null = null;
   let offerPersistence: OfferPersistencePort = noopOfferPersistence;
+  let supplementPersistence: SupplementPersistencePort = noopSupplementPersistence;
   let lvMeasurementPersistence: LvMeasurementPersistencePort = noopLvMeasurementPersistence;
+  let paymentTermsPersistence: PaymentTermsPersistencePort = noopPaymentTermsPersistence;
+  let invoicePersistence: InvoicePersistencePort = noopInvoicePersistence;
+  let paymentIntakePersistence: PaymentIntakePersistencePort = noopPaymentIntakePersistence;
 
   if (repositoryMode === "postgres") {
     assertDatabaseUrlForPostgresMode(repositoryMode);
     prisma = new PrismaClient();
     offerPersistence = new PrismaOfferPersistence(prisma);
+    supplementPersistence = new PrismaSupplementPersistence(prisma);
     lvMeasurementPersistence = new PrismaLvMeasurementPersistence(prisma);
+    paymentTermsPersistence = new PrismaPaymentTermsPersistence(prisma);
+    invoicePersistence = new PrismaInvoicePersistence(prisma);
+    paymentIntakePersistence = new PrismaPaymentIntakePersistence(prisma);
     if (options?.seedDemoData ?? true) {
       seedDemoData(repos);
       await lvMeasurementPersistence.syncAllFromMemory(repos);
       await offerPersistence.syncAllOffersFromMemory(repos);
+      await supplementPersistence.syncAllSupplementsFromMemory(repos);
+      await paymentTermsPersistence.syncAllPaymentTermsFromMemory(repos);
+      await invoicePersistence.syncAllInvoicesFromMemory(repos);
+      await paymentIntakePersistence.hydrateIntoMemory(repos);
     } else {
       await lvMeasurementPersistence.hydrateIntoMemory(repos);
       await offerPersistence.hydrateOffersIntoMemory(repos);
+      await supplementPersistence.hydrateSupplementsIntoMemory(repos);
+      await paymentTermsPersistence.hydratePaymentTermsIntoMemory(repos);
+      await invoicePersistence.hydrateInvoicesIntoMemory(repos);
+      await paymentIntakePersistence.hydrateIntoMemory(repos);
     }
     app.addHook("onClose", async () => {
       await prisma?.$disconnect();
     });
     app.log.info(
-      "Persistenz: Postgres LV+Aufmass (ADR-0004/0005) + Offer+OfferVersion (ADR-0006); übrige Entitäten weiter In-Memory.",
+      "Persistenz: Postgres LV+Aufmass (ADR-0004/0005) + Offer+OfferVersion (ADR-0006) + Supplement (ADR-0002 D5) + Zahlungsbedingungen (FIN-1) + Rechnungen (FIN-2) + Zahlungseingang (FIN-3); übrige Entitäten weiter In-Memory.",
     );
   } else {
     if (options?.seedDemoData ?? true) {
@@ -111,15 +196,47 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     }
   }
 
+  app.get("/ready", async (_request, reply) => {
+    if (repositoryMode !== "postgres" || !prisma) {
+      return reply.status(200).send({
+        status: "ready" as const,
+        checks: { database: "not_configured" as const },
+      });
+    }
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return reply.status(200).send({
+        status: "ready" as const,
+        checks: { database: "ok" as const },
+      });
+    } catch {
+      return reply.status(503).send({
+        status: "not_ready" as const,
+        checks: { database: "error" as const },
+      });
+    }
+  });
+
+  if (prisma && (options?.seedDemoData ?? true)) {
+    await seedAuthUsers(prisma);
+  }
+
+  registerAuthLoginRoutes(app, () => prisma);
+
   const audit = new AuditService(repos, prisma);
   const lvRef = new LvReferenceValidator(repos);
   const offerService = new OfferService(repos, audit, lvRef, offerPersistence);
-  const supplementService = new SupplementService(repos, audit, lvRef);
+  const supplementService = new SupplementService(repos, audit, lvRef, supplementPersistence);
+  const paymentTermsService = new PaymentTermsService(repos, audit, paymentTermsPersistence);
+  const invoiceService = new InvoiceService(repos, audit, invoicePersistence);
+  const paymentIntakeService = new PaymentIntakeService(repos, audit, invoicePersistence, paymentIntakePersistence);
   const measurementService = new MeasurementService(repos, audit, lvRef, lvMeasurementPersistence);
   const lvService = new LvService(repos, audit, lvMeasurementPersistence);
   const exportService = new ExportService(repos, audit);
   const traceabilityService = new TraceabilityService(repos);
   const authorizationService = new AuthorizationService(repos);
+
+  registerPasswordResetRoutes(app, { getPrisma: () => prisma, audit });
 
   app.post("/lv/catalogs", async (request, reply) => {
     try {
@@ -133,7 +250,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -151,7 +268,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -170,7 +287,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -193,7 +310,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -213,7 +330,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -231,7 +348,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -255,7 +372,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -271,7 +388,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -287,7 +404,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -304,7 +421,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -323,7 +440,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send({ positions: result });
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -334,7 +451,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       const result = measurementService.getVersionDetail(auth.tenantId, params.measurementVersionId);
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -350,7 +467,18 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.get("/offer-versions/:offerVersionId", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      const params = request.params as { offerVersionId: string };
+      const result = offerService.getVersionDetail(auth.tenantId, params.offerVersionId);
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -360,7 +488,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       authorizationService.assertCanCreateSupplement(auth.role);
       const params = request.params as { offerId: string };
       const body = createSupplementSchema.parse(request.body);
-      const result = supplementService.createFromAcceptedOffer({
+      const result = await supplementService.createFromAcceptedOffer({
         tenantId: auth.tenantId,
         offerId: params.offerId,
         actorUserId: auth.userId,
@@ -368,7 +496,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(201).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -377,14 +505,14 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       const auth = parseAuthContext(request.headers);
       const body = transitionSupplementStatusSchema.parse(request.body);
       authorizationService.assertCanTransitionSupplementStatus(auth.role, body.nextStatus);
-      const result = supplementService.transitionStatus({
+      const result = await supplementService.transitionStatus({
         tenantId: auth.tenantId,
         actorUserId: auth.userId,
         ...body,
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -394,7 +522,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       authorizationService.assertCanApplySupplementBillingImpact(auth.role);
       const params = request.params as { supplementVersionId: string };
       const body = applySupplementBillingImpactSchema.parse(request.body);
-      const result = supplementService.applyBillingImpact({
+      const result = await supplementService.applyBillingImpact({
         tenantId: auth.tenantId,
         supplementVersionId: params.supplementVersionId,
         invoiceId: body.invoiceId,
@@ -403,7 +531,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -414,7 +542,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       const result = supplementService.getById(auth.tenantId, params.supplementVersionId);
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -430,7 +558,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -442,14 +570,14 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       if (body.entityType === "INVOICE") {
         traceabilityService.assertInvoiceTraceability(auth.tenantId, body.entityId);
       }
-      const run = exportService.prepareExport({
+      const run = await exportService.prepareExport({
         tenantId: auth.tenantId,
         actorUserId: auth.userId,
         ...body,
       });
       return reply.status(201).send(run);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -465,7 +593,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       });
       return reply.status(200).send(result);
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
@@ -481,11 +609,30 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
         allowedActions,
       });
     } catch (error) {
-      return handleHttpError(error, reply);
+      return handleHttpError(error, request, reply);
     }
   });
 
-  registerFinanceFin0Stubs(app);
+  registerUserAccountRoutes(app, {
+    getPrisma: () => prisma,
+    audit,
+    authorizationService,
+  });
+
+  registerPaymentTermsRoutes(app, {
+    authorizationService,
+    paymentTermsService,
+  });
+
+  registerInvoiceFinanceRoutes(app, {
+    authorizationService,
+    invoiceService,
+  });
+
+  registerPaymentIntakeRoutes(app, {
+    authorizationService,
+    paymentIntakeService,
+  });
 
   return app;
 }

@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "dev": "tsx src/index.ts",
+    "dev:all": "concurrently -k -n api,web -c cyan,magenta \"npm run dev\" \"npm run dev:web\"",
     "dev:token": "tsx scripts/print-dev-token.ts",
     "dev:web": "npm run dev -w apps/web",
     "build:web": "npm run build -w apps/web",
@@ -17,22 +18,44 @@
     "postinstall": "prisma generate",
     "prisma:validate": "node scripts/prisma-env-placeholder.mjs validate",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
+    "verify:ci": "npm run audit:prod && npm audit --audit-level=high && npm run prisma:validate && npm run validate:api-contract-yaml && npm run typecheck && npm run build:web && npm run test -w apps/web && npm test",
+    "verify:ci:with-migrate": "npx prisma migrate deploy && npm run verify:ci",
+    "docker:db-up": "docker compose up -d",
+    "ensure:local-test-db": "node scripts/ensure-local-postgres-test-db.mjs",
+    "verify:ci:local-db": "npm run ensure:local-test-db && sh -c 'export DATABASE_URL=${DATABASE_URL:-postgresql://erp:erp@127.0.0.1:5432/erp_test} PERSISTENCE_DB_TEST_URL=${PERSISTENCE_DB_TEST_URL:-postgresql://erp:erp@127.0.0.1:5432/erp_test} && npm run verify:ci:with-migrate'",
+    "validate:api-contract-yaml": "node scripts/validate-api-contract-yaml.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
+  },
+  "overrides": {
+    "@rollup/plugin-terser@0.4.4": {
+      "serialize-javascript": "7.0.5"
+    }
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@fastify/rate-limit": "^10.3.0",
     "@prisma/client": "^5.22.0",
+    "bcryptjs": "^3.0.3",
     "fastify": "^5.8.5",
+    "nodemailer": "^8.0.5",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/bcryptjs": "^3.0.0",
     "@types/node": "^25.6.0",
+    "@types/nodemailer": "^6.4.17",
+    "concurrently": "^9.1.2",
     "prisma": "^5.22.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.4",
+    "yaml": "^2.8.3"
   }
 }
