@@ -25,6 +25,15 @@ const noopApi = {
     offerId: "",
     status: "ENTWURF",
   }),
+  recordPaymentIntake: async () => ({
+    paymentIntakeId: "00000000-0000-4000-8000-000000000099",
+    invoiceId: "",
+    amountCents: 1,
+    totalPaidCentsAfter: 0,
+    invoiceOpenCentsAfter: 0,
+    invoiceStatus: "GEBUCHT_VERSENDET",
+  }),
+  getAuditEvents: async () => ({ data: [], page: 1, pageSize: 15, total: 0 }),
 } as unknown as ApiClient;
 
 describe("FinancePreparation", () => {
@@ -38,6 +47,10 @@ describe("FinancePreparation", () => {
     expect(screen.getByText(/docs\/contracts\/qa-fin-0-stub-test-matrix\.md/)).not.toBeNull();
     expect(screen.getByText(/docs\/ENTWICKLUNGSPHASEN-MVP-V1\.3\.md/)).not.toBeNull();
     expect(screen.getByText(/docs\/tickets\/PL-SYSTEM-ZUERST-2026-04-14\.md/)).not.toBeNull();
+    expect(screen.getByText(/docs\/contracts\/ui-role-mapping-v1-3\.md/)).not.toBeNull();
     expect(screen.getByRole("heading", { name: /Rechnung lesen \(GET\)/i })).not.toBeNull();
+    expect(screen.getByRole("heading", { name: /Zahlungseingang \(FIN-3\)/i })).not.toBeNull();
+    expect(screen.getByRole("heading", { name: /Nachvollziehbarkeit — Audit/i })).not.toBeNull();
+    expect(screen.getByRole("heading", { name: /SoT — erlaubte Aktionen/i })).not.toBeNull();
   });
 });

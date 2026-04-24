@@ -59,6 +59,9 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
 
     app = await buildApp({ repositoryMode: "postgres", seedDemoData: true });
     await app.ready();
+    const ready = await app.inject({ method: "GET", url: "/ready" });
+    expect(ready.statusCode).toBe(200);
+    expect(ready.json()).toEqual({ status: "ready", checks: { database: "ok" } });
     prisma = new PrismaClient({ datasourceUrl: dbUrl });
   });
 
@@ -225,7 +228,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
       payload: {
         email,
         password: "initial-pass-12",
-        role: "VERTRIEB",
+        role: "VERTRIEB_BAULEITUNG",
         reason: "Integrationstest Passwort-Reset",
       },
     });
@@ -749,6 +752,9 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     process.env.DATABASE_URL = dbUrl!;
     app = await buildApp({ repositoryMode: "postgres", seedDemoData: false });
     await app.ready();
+    const ready2 = await app.inject({ method: "GET", url: "/ready" });
+    expect(ready2.statusCode).toBe(200);
+    expect(ready2.json()).toEqual({ status: "ready", checks: { database: "ok" } });
 
     const res = await app.inject({
       method: "GET",

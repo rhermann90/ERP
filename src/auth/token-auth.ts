@@ -80,6 +80,17 @@ export function createSignedToken(payload: TokenPayload): string {
   return `v1.${payloadBase64Url}.${signatureBase64Url}`;
 }
 
+const USER_ROLE_VALUES = new Set<string>(["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG", "VERTRIEB_BAULEITUNG", "VIEWER"]);
+
+/** Alte Tokens: Claim `VERTRIEB` wird wie `VERTRIEB_BAULEITUNG` behandelt (Anzeige „Vertrieb / Bauleitung“). */
+function normalizeRoleClaim(raw: string): UserRole {
+  const v = raw === "VERTRIEB" ? "VERTRIEB_BAULEITUNG" : raw;
+  if (!USER_ROLE_VALUES.has(v)) {
+    throw new DomainError("UNAUTHORIZED", "Token-Rolle ungültig", 401);
+  }
+  return v as UserRole;
+}
+
 export function verifyBearerToken(authorizationHeader: string): AuthContext {
   const [scheme, token] = authorizationHeader.split(" ");
   if (scheme !== "Bearer" || !token) {
@@ -97,17 +108,18 @@ export function verifyBearerToken(authorizationHeader: string): AuthContext {
   if (!timingSafeEqual(expectedSignature, receivedSignature)) {
     throw new DomainError("UNAUTHORIZED", "Token-Signatur ungültig", 401);
   }
-  let payload: TokenPayload;
+  let payload: { sub?: string; tenantId?: string; role?: string; exp?: number };
   try {
-    payload = JSON.parse(Buffer.from(payloadBase64Url, "base64url").toString("utf8")) as TokenPayload;
+    payload = JSON.parse(Buffer.from(payloadBase64Url, "base64url").toString("utf8")) as typeof payload;
   } catch {
     throw new DomainError("UNAUTHORIZED", "Token-Payload ungültig", 401);
   }
-  if (!payload.sub || !payload.tenantId || !payload.role || !payload.exp) {
+  if (!payload.sub || !payload.tenantId || typeof payload.role !== "string" || !payload.exp) {
     throw new DomainError("UNAUTHORIZED", "Token-Claims unvollständig", 401);
   }
   if (payload.exp <= Math.floor(Date.now() / 1000)) {
     throw new DomainError("UNAUTHORIZED", "Token abgelaufen", 401);
   }
-  return { userId: payload.sub, tenantId: payload.tenantId, role: payload.role };
+  const role = normalizeRoleClaim(payload.role);
+  return { userId: payload.sub, tenantId: payload.tenantId, role };
 }

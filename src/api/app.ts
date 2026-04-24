@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import Fastify, { FastifyInstance } from "fastify";
+import rateLimit from "@fastify/rate-limit";
 import { assertSystemTextNotInUpdatePayload } from "../domain/lv-text-structure-policy.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import { AuditService } from "../services/audit-service.js";
@@ -90,6 +91,11 @@ export type BuildAppOptions = {
   corsOrigins?: string[];
   /** Explizit In-Memory erzwingen (Vitest, lokale Demos ohne DB). */
   repositoryMode?: RepositoryMode;
+  /** Optionales Test-/Runtime-Override fuer das globale HTTP-Rate-Limit. */
+  rateLimit?: {
+    max?: number;
+    timeWindow?: number | string;
+  };
 };
 
 export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstance> {
@@ -112,10 +118,31 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   });
   const corsList = options?.corsOrigins ?? parseCorsOriginsFromEnv();
   registerPwaHttpHooks(app, normalizeCorsOrigins(corsList));
-
-  app.get("/health", async (_request, reply) => {
-    return reply.status(200).send({ status: "ok" as const });
+  // HTTP-Rate-Limiting: `@fastify/rate-limit` mit `global: true` — jede registrierte Route erhaelt
+  // ein Limit (Plugin-Hook `onRoute`), sofern nicht explizit `config: { rateLimit: false }` gesetzt
+  // (z. B. `/health` fuer Probes). Zusaetzlich setzen wir auf besonders missbrauchsgefaehrdeten
+  // Routen (Login, Reset, Benutzerverwaltung) engere `config.rateLimit`-Werte (Defense in Depth).
+  //
+  // Code scanning: Die Regel `js/missing-rate-limiting` erkennt dieses globale Fastify-Muster nicht
+  // zuverlaessig; die Repo-Konfiguration liegt unter `.github/codeql/codeql-config.yml` (in GitHub
+  // unter Code scanning als Custom configuration file verknuepfen, wenn Default setup genutzt wird).
+  await app.register(rateLimit, {
+    global: true,
+    max: options?.rateLimit?.max ?? 100,
+    timeWindow: options?.rateLimit?.timeWindow ?? "1 minute",
   });
+
+  app.get(
+    "/health",
+    {
+      config: {
+        rateLimit: false,
+      },
+    },
+    async (_request, reply) => {
+      return reply.status(200).send({ status: "ok" as const });
+    },
+  );
 
   const repos = new InMemoryRepositories();
   const repositoryMode = resolveRepositoryMode({ repositoryMode: options?.repositoryMode });
@@ -168,6 +195,27 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       );
     }
   }
+
+  app.get("/ready", async (_request, reply) => {
+    if (repositoryMode !== "postgres" || !prisma) {
+      return reply.status(200).send({
+        status: "ready" as const,
+        checks: { database: "not_configured" as const },
+      });
+    }
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return reply.status(200).send({
+        status: "ready" as const,
+        checks: { database: "ok" as const },
+      });
+    } catch {
+      return reply.status(503).send({
+        status: "not_ready" as const,
+        checks: { database: "error" as const },
+      });
+    }
+  });
 
   if (prisma && (options?.seedDemoData ?? true)) {
     await seedAuthUsers(prisma);
@@ -418,6 +466,17 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
         ...body,
       });
       return reply.status(201).send(result);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.get("/offer-versions/:offerVersionId", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      const params = request.params as { offerVersionId: string };
+      const result = offerService.getVersionDetail(auth.tenantId, params.offerVersionId);
+      return reply.status(200).send(result);
     } catch (error) {
       return handleHttpError(error, request, reply);
     }

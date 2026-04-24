@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ERP · UI-Workflow-Vorschau (Mockups)</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f5f7;
+        --surface: #ffffff;
+        --text: #1d1d1f;
+        --text-secondary: #6e6e73;
+        --border: rgba(0, 0, 0, 0.08);
+        --accent: #0071e3;
+        --danger: #d70015;
+        --success: #248a3d;
+        --radius: 12px;
+        --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100%;
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.45;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .jump-nav {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: rgba(245, 245, 247, 0.92);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border);
+        padding: 0.65rem 1rem;
+      }
+
+      .jump-nav-inner {
+        max-width: 1080px;
+        margin: 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 1rem;
+        font-size: 0.8rem;
+      }
+
+      .jump-nav strong {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .jump-nav a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .jump-nav a:hover {
+        text-decoration: underline;
+      }
+
+      .jump-nav .note {
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+      }
+
+      .app-shell {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 1.25rem 1.25rem 2.5rem;
+      }
+
+      .shell-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+      }
+
+      .shell-title {
+        font-size: 1.35rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin: 0 0 0.25rem;
+      }
+
+      .shell-sub {
+        margin: 0;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        max-width: 38rem;
+      }
+
+      .mock-screen {
+        scroll-margin-top: 3.5rem;
+        margin-bottom: 2.5rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px dashed var(--border);
+      }
+
+      .mock-screen:last-of-type {
+        border-bottom: none;
+      }
+
+      .mock-label {
+        display: inline-block;
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-secondary);
+        margin-bottom: 0.75rem;
+      }
+
+      .breadcrumb {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin: 0 0 1rem;
+      }
+
+      .breadcrumb a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem 1.1rem;
+      }
+
+      .panel h2 {
+        margin: 0 0 0.65rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-secondary);
+      }
+
+      .panel p {
+        margin: 0.35rem 0 0;
+        font-size: 0.875rem;
+      }
+
+      .panel .meta {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+      }
+
+      .section-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin: 1.25rem 0 0.5rem;
+      }
+
+      .section-head h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+
+      .hint {
+        font-size: 0.72rem;
+        color: var(--text-secondary);
+        max-width: 28rem;
+        text-align: right;
+      }
+
+      .data-table-wrap {
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
+
+      table.data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8125rem;
+      }
+
+      .data-table th,
+      .data-table td {
+        padding: 0.55rem 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .data-table th {
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        background: rgba(0, 0, 0, 0.02);
+      }
+
+      .data-table tr:last-child td {
+        border-bottom: none;
+      }
+
+      .data-table .num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .data-table .muted {
+        color: var(--text-secondary);
+      }
+
+      .totals-block {
+        margin-top: 1rem;
+        padding: 0.85rem 1rem;
+        background: rgba(0, 0, 0, 0.035);
+        border-radius: 8px;
+        font-size: 0.875rem;
+      }
+
+      .totals-block .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.2rem 0;
+      }
+
+      .totals-block .row strong {
+        font-variant-numeric: tabular-nums;
+      }
+
+      .actions-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1.25rem;
+      }
+
+      .btn {
+        border: none;
+        border-radius: 999px;
+        padding: 0.45rem 0.95rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        background: var(--accent);
+        color: #fff;
+        cursor: default;
+      }
+
+      .btn.secondary {
+        background: rgba(0, 0, 0, 0.06);
+        color: var(--text);
+      }
+
+      .btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .field-grid {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      }
+
+      label.field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+      }
+
+      input[type="text"],
+      input[type="date"],
+      select,
+      textarea {
+        padding: 0.5rem 0.65rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: #fafafa;
+        font: inherit;
+        color: inherit;
+      }
+
+      textarea {
+        min-height: 3.5rem;
+        resize: vertical;
+      }
+
+      .error-banner {
+        background: rgba(215, 0, 21, 0.08);
+        border: 1px solid rgba(215, 0, 21, 0.25);
+        color: #5c0009;
+        border-radius: var(--radius);
+        padding: 0.85rem 1rem;
+        font-size: 0.85rem;
+      }
+
+      .error-banner code {
+        font-size: 0.78rem;
+        word-break: break-all;
+      }
+
+      .success-banner {
+        background: rgba(52, 199, 89, 0.12);
+        border: 1px solid rgba(52, 199, 89, 0.35);
+        border-radius: var(--radius);
+        padding: 0.85rem 1rem;
+        font-size: 0.875rem;
+      }
+
+      .success-banner strong {
+        color: var(--success);
+      }
+
+      .user-pill {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        text-align: right;
+      }
+
+      .user-pill span {
+        color: var(--text);
+        font-weight: 500;
+      }
+
+      footer.doc-foot {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 1.25rem 2rem;
+        font-size: 0.72rem;
+        color: var(--text-secondary);
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="jump-nav" aria-label="Mockup-Sprungnavigation">
+      <div class="jump-nav-inner">
+        <strong>Vorschau</strong>
+        <a href="#screen-1">1 Projekthub</a>
+        <a href="#screen-2">2 Rechnung</a>
+        <a href="#screen-3">3 Zahlungseingang</a>
+        <a href="#screen-4a">4a Erfolg</a>
+        <a href="#screen-4b">4b Fehler</a>
+        <span class="note">Statisches Layout · keine API</span>
+      </div>
+    </nav>
+
+    <!-- Screen 1 -->
+    <section id="screen-1" class="app-shell mock-screen" aria-labelledby="t1">
+      <span class="mock-label">Mockup 1 · Projekthub</span>
+      <header class="shell-header">
+        <div>
+          <h1 class="shell-title" id="t1">ERP · Web</h1>
+          <p class="shell-sub">
+            Oberfläche an Backend-<code>allowedActions</code> gekoppelt. Schreibaktionen nur nach Freigabe durch den Server.
+          </p>
+        </div>
+        <div class="user-pill">
+          <span>Maria K.</span><br />
+          Abmelden
+        </div>
+      </header>
+      <p class="shell-sub" style="margin-bottom: 1rem">Mandant: <strong>Musterbau GmbH</strong></p>
+
+      <p class="breadcrumb"><a href="#">Projekte</a> › Neubau Hafenstraße 12</p>
+
+      <div class="grid-2">
+        <div class="panel">
+          <h2>Projekt</h2>
+          <p><strong>Neubau Hafenstraße 12</strong></p>
+          <p class="meta">Kunde: Nordwerk AG · PRJ-2026-0142</p>
+          <p class="meta">Status: Ausführung</p>
+        </div>
+        <div class="panel">
+          <h2>Nächste Schritte</h2>
+          <p>1 Rechnung offen (4.320,00 EUR)</p>
+          <p class="meta">Zahlungseingang ohne Zuordnung: 0</p>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <h3>Rechnungen</h3>
+        <span class="hint">Schaltfläche nur aktiv, wenn <code>allowedActions</code> die Aktion enthält.</span>
+      </div>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nr.</th>
+              <th>Datum</th>
+              <th>Fälligkeit</th>
+              <th class="num">Brutto</th>
+              <th class="num">Offen</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><a href="#screen-2">RE-1042</a></td>
+              <td>18.04.2026</td>
+              <td>02.05.2026</td>
+              <td class="num">4.320,00 EUR</td>
+              <td class="num">4.320,00 EUR</td>
+              <td>Gebucht</td>
+            </tr>
+            <tr>
+              <td>RE-1038</td>
+              <td>02.04.2026</td>
+              <td class="muted">(bezahlt)</td>
+              <td class="num">1.200,00 EUR</td>
+              <td class="num">0,00 EUR</td>
+              <td>Bezahlt</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="actions-row">
+        <button type="button" class="btn" disabled title="Erfordert passende Backend-Freigabe">+ Ausgang erstellen</button>
+      </div>
+    </section>
+
+    <!-- Screen 2 -->
+    <section id="screen-2" class="app-shell mock-screen" aria-labelledby="t2">
+      <span class="mock-label">Mockup 2 · Rechnungsdetail</span>
+      <header class="shell-header">
+        <div>
+          <h1 class="shell-title" id="t2">Rechnung RE-1042</h1>
+          <p class="shell-sub">Beträge und Zwischensummen ausschließlich als Serverwerte (keine Neuberechnung im Client).</p>
+        </div>
+      </header>
+      <p class="breadcrumb"><a href="#screen-1">← Zurück zu Projekt</a></p>
+
+      <div class="grid-2">
+        <div class="panel">
+          <h2>Kopf (Server)</h2>
+          <p class="meta">Leistungsdatum 15.04.2026</p>
+          <p class="meta">Zahlungsziel: 14 Tage netto</p>
+          <p class="meta">Verwendungszweck: RE-1042 Nordwerk …</p>
+        </div>
+        <div class="panel">
+          <h2>Kennzahlen (API)</h2>
+          <div class="totals-block" style="margin-top: 0">
+            <div class="row"><span>Netto</span><strong>3.630,25 EUR</strong></div>
+            <div class="row"><span>USt 19 %</span><strong>689,75 EUR</strong></div>
+            <div class="row"><span>Brutto</span><strong>4.320,00 EUR</strong></div>
+            <div class="row"><span>Bereits gezahlt</span><strong>0,00 EUR</strong></div>
+            <div class="row"><span>Offen</span><strong>4.320,00 EUR</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <h3>Positionen</h3>
+      </div>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Pos.</th>
+              <th>Bezeichnung</th>
+              <th class="num">Menge</th>
+              <th class="num">EP netto</th>
+              <th class="num">Netto</th>
+              <th class="num">USt</th>
+              <th class="num">Brutto</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>10</td>
+              <td>Estrich Wohnen OG</td>
+              <td class="num">84 m²</td>
+              <td class="num">32,50 EUR</td>
+              <td class="num">2.730,00 EUR</td>
+              <td class="num">518,70 EUR</td>
+              <td class="num">3.248,70 EUR</td>
+            </tr>
+            <tr>
+              <td>20</td>
+              <td>Sockelleisten</td>
+              <td class="num">1 Stk.</td>
+              <td class="num">900,25 EUR</td>
+              <td class="num">900,25 EUR</td>
+              <td class="num">171,05 EUR</td>
+              <td class="num">1.071,30 EUR</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section-head" style="margin-top: 1rem">
+        <h3 style="font-size: 0.95rem">Zwischensummen (1:1 Serverlogik)</h3>
+      </div>
+      <div class="totals-block">
+        <div class="row"><span>Summe Positionen netto</span><strong>3.630,25 EUR</strong></div>
+        <div class="row"><span>USt-Aufschlüsselung</span><strong>689,75 EUR</strong></div>
+        <div class="row"><span>Endbetrag brutto</span><strong>4.320,00 EUR</strong></div>
+      </div>
+
+      <div class="actions-row">
+        <button type="button" class="btn secondary">Vorschau PDF / XRechnung</button>
+        <button type="button" class="btn" disabled title="Nur mit Backend-Freigabe">Mahnung vorbereiten</button>
+      </div>
+    </section>
+
+    <!-- Screen 3 -->
+    <section id="screen-3" class="app-shell mock-screen" aria-labelledby="t3">
+      <span class="mock-label">Mockup 3 · Zahlungseingang</span>
+      <header class="shell-header">
+        <div>
+          <h1 class="shell-title" id="t3">Zahlungseingang zuordnen</h1>
+          <p class="shell-sub">RE-1042 · Buchung und Salden ausschließlich nach Serverantwort.</p>
+        </div>
+      </header>
+      <p class="breadcrumb"><a href="#screen-2">← Zurück zur Rechnung</a></p>
+
+      <div class="panel">
+        <h2>Erfassung</h2>
+        <div class="field-grid">
+          <label class="field">
+            Betrag (EUR)
+            <input type="text" value="4320,00" readonly />
+          </label>
+          <label class="field">
+            Buchungsdatum
+            <input type="date" value="2026-04-20" readonly />
+          </label>
+          <label class="field" style="grid-column: 1 / -1">
+            Externe Referenz
+            <input type="text" value="Überweisung Nordwerk AG / 2026-04-19" readonly />
+          </label>
+          <label class="field" style="grid-column: 1 / -1">
+            Optional: Bank-Text (gekürzt in Listen, voll in Detail)
+            <textarea readonly>SEPA Überweisung … RE-1042 …</textarea>
+          </label>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top: 1rem">
+        <h2>Vorschau Zuordnung</h2>
+        <p class="meta">Nach Speichern bestätigt der Server den Endzustand.</p>
+        <div class="totals-block" style="margin-top: 0.75rem">
+          <div class="row"><span>Rechnung RE-1042 · offen vorher</span><strong>4.320,00 EUR</strong></div>
+          <div class="row"><span>Offen nachher (wenn Server bestätigt)</span><strong>0,00 EUR</strong></div>
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button type="button" class="btn secondary">Abbrechen</button>
+        <button type="button" class="btn">Zuordnung prüfen und speichern</button>
+      </div>
+    </section>
+
+    <!-- Screen 4a -->
+    <section id="screen-4a" class="app-shell mock-screen" aria-labelledby="t4a">
+      <span class="mock-label">Mockup 4a · Erfolg</span>
+      <header class="shell-header">
+        <div>
+          <h1 class="shell-title" id="t4a">Ergebnis</h1>
+          <p class="shell-sub">Bestätigung mit nachvollziehbarer Referenz für Support und Audit.</p>
+        </div>
+      </header>
+
+      <div class="success-banner" role="status">
+        <strong>Zahlungseingang erfasst</strong>
+        <p style="margin: 0.5rem 0 0">
+          Referenz <strong>INT-2026-004821</strong> · Rechnung RE-1042 ausgeglichen.
+        </p>
+        <p style="margin: 0.5rem 0 0; font-size: 0.8rem; color: var(--text-secondary)">
+          Vorgang-ID: <code style="color: var(--text)">9f3c2b1a-6c0e-4a1f-9b2d-1e8f4c7a0000</code>
+        </p>
+      </div>
+
+      <div class="actions-row">
+        <button type="button" class="btn secondary">Zurück zur Rechnung</button>
+        <button type="button" class="btn secondary">Audit-Ereignisse anzeigen</button>
+      </div>
+    </section>
+
+    <!-- Screen 4b -->
+    <section id="screen-4b" class="app-shell mock-screen" aria-labelledby="t4b">
+      <span class="mock-label">Mockup 4b · Fehler</span>
+      <header class="shell-header">
+        <div>
+          <h1 class="shell-title" id="t4b">Ergebnis</h1>
+          <p class="shell-sub">Nutzerverständliche Meldung plus technischer Code und Vorgang-ID.</p>
+        </div>
+      </header>
+
+      <div class="error-banner" role="alert">
+        <strong>Aktion nicht möglich</strong>
+        <p style="margin: 0.45rem 0">Der Betrag passt nicht zur offenen Forderung. Bitte Betrag prüfen.</p>
+        <p style="margin: 0"><small>Code:</small> <code>PAYMENT_INTAKE_AMOUNT_MISMATCH</code></p>
+        <p style="margin: 0.5rem 0 0">
+          <small>Vorgang-ID:</small> <code>7d91e4c0-2b11-4c8a-9f01-3a6d5e110000</code>
+        </p>
+      </div>
+
+      <div class="actions-row">
+        <button type="button" class="btn">Eingabe anpassen</button>
+      </div>
+    </section>
+
+    <footer class="doc-foot">
+      Datei: <code>apps/web/public/ui-workflow-mockups.html</code> · Im Dev-Server unter
+      <code>/ui-workflow-mockups.html</code> · Nur Designvorschau, keine Backend-Anbindung.
+    </footer>
+  </body>
+</html>

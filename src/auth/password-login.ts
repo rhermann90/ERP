@@ -11,7 +11,7 @@ const TOKEN_TTL_SECONDS = 12 * 60 * 60;
 /** bcrypt-Vergleichspfad auch ohne Treffer in der DB (Timing). */
 const BCRYPT_TIMING_DUMMY = "$2a$12$zwXbNa9BhzOcCB5Ff3uvzeN0e5Q3XRyODJBz48ij3QvPWCtl5iWv.";
 
-const ROLE_SET = new Set<UserRole>(["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG", "VERTRIEB", "VIEWER"]);
+const ROLE_SET = new Set<UserRole>(["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG", "VERTRIEB_BAULEITUNG", "VIEWER"]);
 
 let cachedPasswordHash: string | null = null;
 
@@ -27,8 +27,13 @@ function ensurePasswordHash(plain: string): string {
   return cachedPasswordHash;
 }
 
-function isRole(value: string): value is UserRole {
-  return ROLE_SET.has(value as UserRole);
+function loginDbRoleAllowed(raw: string): boolean {
+  const normalized = raw === "VERTRIEB" ? "VERTRIEB_BAULEITUNG" : raw;
+  return ROLE_SET.has(normalized as UserRole);
+}
+
+function toUserRoleFromDb(raw: string): UserRole {
+  return (raw === "VERTRIEB" ? "VERTRIEB_BAULEITUNG" : raw) as UserRole;
 }
 
 export type PasswordLoginResult = {
@@ -51,15 +56,16 @@ async function loginViaDatabase(
   const row = user?.active ? user : null;
   const hash = row ? row.passwordHash : BCRYPT_TIMING_DUMMY;
   const passwordMatches = bcrypt.compareSync(password, hash);
-  if (!row || !passwordMatches || !isRole(row.role)) {
+  if (!row || !passwordMatches || !loginDbRoleAllowed(row.role)) {
     return null;
   }
+  const role = toUserRoleFromDb(row.role);
   const now = Math.floor(Date.now() / 1000);
   const exp = now + TOKEN_TTL_SECONDS;
   const token = createSignedToken({
     sub: row.id,
     tenantId: row.tenantId,
-    role: row.role,
+    role,
     exp,
   });
   return {
@@ -67,7 +73,7 @@ async function loginViaDatabase(
     expiresIn: exp - now,
     tenantId: row.tenantId,
     userId: row.id,
-    role: row.role,
+    role,
   };
 }
 
