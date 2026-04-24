@@ -1,5 +1,26 @@
 # PRISMA-7-UPGRADE — geplantes Major-Upgrade (eigenes Inkrement)
 
+## Status (Single Source of Truth)
+
+| Feld | Stand (lokal geprüft 2026-04-23) |
+| --- | --- |
+| **Phase** | `GEPLANT` — `main` ist noch **nicht** auf Prisma 7 umgestellt. |
+| **Produktionslinie `origin/main`** | `prisma` / `@prisma/client` **^5.22.0**; [`prisma/schema.prisma`](../../prisma/schema.prisma): `generator` = `prisma-client-js`, `datasource` mit `url = env("DATABASE_URL")`; **kein** `prisma.config.ts` im Root. |
+| **Referenz-Implementierung Prisma 7** | Branch `origin/feat/m4-mahnlauf-mandant-automation`: `prisma` / `@prisma/client` **7.8.0** (gepinnt), Root-Datei `prisma.config.ts`, Generator `prisma-client` mit `output = "../generated/prisma"`. Dient als **technische Vorlage**, bis ein PR nach `main` die Checkliste unten erfüllt. |
+| **Automatische Stack-Prüfung** | `npm run check:prisma-stack` (Root) — gleiche Major für CLI + Client; Konvention 5.x vs 7.x. |
+
+**Hinweis Git:** Auf Feature-Branches können Merge-Commits Betreffzeilen wie „Prisma 7.x Hauptlinie“ tragen, **ohne** dass `main` bereits Prisma 7 nutzt — immer `package.json` auf dem **Ziel-Branch** und dieses Ticket prüfen.
+
+### Remote-Branch-Inventar (Stichprobe, nicht abschließend)
+
+| Branch | Prisma (`package.json`) | Bemerkung |
+| --- | --- | --- |
+| `origin/main` | ^5.22.0 | Produktionslinie |
+| `origin/feat/m4-mahnlauf-mandant-automation` | 7.8.0 (gepinnt) | Referenz für 7.x-Layout (`prisma.config.ts`, `generated/prisma`) |
+| `origin/feat/wip-recovery-from-stash-2026-04-21` | 7.8.0 (gepinnt) | Abweichend von `main`; vor Arbeit Branch explizit wählen |
+
+Aktualisieren: `git fetch origin` und `git show origin/<branch>:package.json | grep prisma`.
+
 ## Kontext
 
 Dependabot-PRs für nur `@prisma/client` oder nur `prisma` führen zu einem **Versions-Split** und brechen `npm ci` / `postinstall` (`prisma generate`). Abgeschlossenes Beispiel: PR#14 (geschlossen). Künftig gruppiert [`.github/dependabot.yml`](../../.github/dependabot.yml) Prisma-Pakete in einem gemeinsamen PR.
@@ -28,5 +49,6 @@ Dieses Ticket beschreibt die **bewusste** Migration auf Prisma 7.x — nicht mer
 ## Definition of Done
 
 - Kein halbes Upgrade: alle direkten und relevanten transitive `@prisma/*`-Versionen im Lockfile passen zur gewählten 7.x.
+- `npm run check:prisma-stack` grün (Major-Gleichheit + Konvention 5.x vs 7.x).
 - `npm ci` inkl. `postinstall` / `prisma generate` erfolgreich.
 - Alle obigen Tests und CI-Schritte grün.

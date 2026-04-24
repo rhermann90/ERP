@@ -35,7 +35,7 @@ Traceability-Prüfungen für Rechnungsentwurf: `src/services/invoice-service.ts`
 ## Idempotency-Key (8.7)
 
 - OpenAPI dokumentiert Header `Idempotency-Key` für Zahlungseingang; technische Eindeutigkeit `(tenant_id, idempotency_key)` in einem späteren FIN-3-Implementierungs-PR.
-- **Stub `POST /finance/payments/intake`:** Header wird **case-insensitive** gelesen; Wert muss **UUID** sein — sonst `400` / `VALIDATION_FAILED` (Zod), konsistent zu `docs/api-contract.yaml` (`components.parameters.IdempotencyKey`).
+- **`POST /finance/payments/intake`:** Header wird **case-insensitive** gelesen; Wert muss **UUID** sein — sonst `400` / `VALIDATION_FAILED` (Zod), konsistent zu `docs/api-contract.yaml` (`components.parameters.IdempotencyKey`; `responses` für denselben Pfad).
 
 ## Referenz
 
