@@ -1,0 +1,32 @@
+## Änderung (kurz)
+
+<!-- Was wurde geändert und warum? -->
+
+**Branch-Schutz (Repo-Admin):** Pflicht-Statuscheck **`backend`** — [`docs/runbooks/github-branch-protection-backend.md`](../docs/runbooks/github-branch-protection-backend.md).
+
+### Schnell-Check (kleine PRs: Refactor, Typos, keine Finanz-/Contract-Änderung)
+
+- [ ] `npm run verify:ci` lokal grün **oder** bewusst auf Remote-CI vertraut
+- [ ] Keine Secrets / keine echten Kundendaten in Diff oder Fixtures
+- [ ] Bei Touch von `src/` + Mandanten/Finanz: mindestens bestehende Tests für den Pfad mitbedacht
+
+**Finanz, Zahlungsfluss, Rechnung, OpenAPI, `error-codes.json`, `prisma/migrations`:** unten **Merge-Evidence §5a** vollständig; bei Unsicherheit PL/Review einbeziehen.
+
+---
+
+## Merge-Evidence (vor Merge auf `main` / `master`)
+
+Siehe [`docs/contracts/qa-fin-0-gate-readiness.md`](docs/contracts/qa-fin-0-gate-readiness.md) — **§5a** (grün) bzw. **§5b** (blockiert).
+
+- [ ] **Grüner GitHub Actions-Run** zum PR-Head: Workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml), Job **`backend`** — Run-URL + SHA + eine Zeile **Team-Regel Evidence-SHA** im PR-Kommentar (Vorlage §5a-pre in der QA-Datei).
+- [ ] Kein versteckter Scope: bei **reiner Doku** keine gemischten Änderungen an `src/` / `prisma/` / produktiven Routen ohne separates Gate (vgl. QA §3b).
+
+**Minimal-Ablauf §5a (vor Merge):** GitHub → Actions → grünen `backend`-Run zum PR-Head öffnen → Run-URL und Commit-SHA aus der UI kopieren → PR-Kommentar mit **Vorlage §5a-pre** in der QA-Datei posten (inkl. **Team-Regel Evidence-SHA**; Standardzeile dort unter „PL-Bestätigung“). Ohne diesen Block keine Merge-Empfehlung aus QA-Sicht.
+
+## Lokale Vorprüfung (optional, ersetzt nicht den Remote-Run)
+
+```bash
+npm run verify:ci
+```
+
+Mit Datenbank (Migration deploy wie CI): `DATABASE_URL=…` setzen, dann `npm run verify:ci:with-migrate`. Vollständige Persistenz-Suite wie in CI: zusätzlich `PERSISTENCE_DB_TEST_URL` (gleiche URL wie `DATABASE_URL` möglich).

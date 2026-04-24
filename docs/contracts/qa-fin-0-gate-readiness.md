@@ -85,8 +85,8 @@ Siehe: [`qa-fin-2-start-gate-stub-matrix.md`](./qa-fin-2-start-gate-stub-matrix.
 
 | Befehl | Ergebnis | Datum |
 | --- | --- | --- |
-| `npm test` (ohne `PERSISTENCE_DB_TEST_URL`) | **87** bestanden, **12** übersprungen (**99** Vitest-Tests gesamt); Skips = gesamte Datei `test/persistence.integration.test.ts` | 2026-04-17 |
-| CI-Kette lokal (Postgres 16, `DATABASE_URL` + `PERSISTENCE_DB_TEST_URL` wie Workflow) | `npx prisma migrate deploy` → `npm run prisma:validate` → `npm run typecheck` → `npm test`: **99/99**, **0 skipped**, **7/7** Test-Dateien | 2026-04-17 |
+| `npm test` (ohne `PERSISTENCE_DB_TEST_URL`) | **108** bestanden, **17** übersprungen (**125** Vitest-Tests gesamt); Skips = gesamte Datei `test/persistence.integration.test.ts` | 2026-04-19 |
+| CI-Kette lokal (Postgres 16, `DATABASE_URL` + `PERSISTENCE_DB_TEST_URL` wie Workflow) | `npx prisma migrate deploy` → `npm run prisma:validate` → `npm run typecheck` → `npm test`: alle Tests **ohne SKIP**, Persistenz-Suite aktiv | 2026-04-19 |
 
 **CI-Zielzustand (kanonisch):** [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) — in **GitHub Actions** (`npm ci`, `npx prisma migrate deploy`, `npm run prisma:validate`, `npm run typecheck`, `npm test` mit Postgres + `PERSISTENCE_DB_TEST_URL` → **99/99**, **0 skipped**). *Bei abweichender Testanzahl im Branch den **grünen** `backend`-Run in GitHub als Maßstab verwenden und diese Tabelle nachziehen.*
 

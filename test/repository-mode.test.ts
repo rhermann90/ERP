@@ -24,6 +24,22 @@ describe("repository-mode (ADR-0003 / Agent-1 fail-closed DB policy)", () => {
     expect(resolveRepositoryMode()).toBe("postgres");
   });
 
+  it("resolveRepositoryMode: DATABASE_URL wins over ERP_REPOSITORY=memory (dev .env footgun)", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("ERP_DEPLOYMENT", "");
+    vi.stubEnv("ERP_REPOSITORY", "memory");
+    vi.stubEnv("DATABASE_URL", "postgresql://erp:erp@localhost:5432/erp?schema=public");
+    expect(resolveRepositoryMode()).toBe("postgres");
+  });
+
+  it("resolveRepositoryMode: ERP_REPOSITORY=memory without DATABASE_URL stays memory", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("ERP_DEPLOYMENT", "");
+    vi.stubEnv("ERP_REPOSITORY", "memory");
+    vi.stubEnv("DATABASE_URL", "");
+    expect(resolveRepositoryMode()).toBe("memory");
+  });
+
   it("assertFailClosedProductionDatabase exits 1 when production without DATABASE_URL", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("DATABASE_URL", "");

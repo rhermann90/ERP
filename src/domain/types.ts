@@ -1,7 +1,7 @@
 export type UUID = string;
 export type TenantId = string;
 export type UserId = string;
-export type UserRole = "ADMIN" | "BUCHHALTUNG" | "GESCHAEFTSFUEHRUNG" | "VERTRIEB" | "VIEWER";
+export type UserRole = "ADMIN" | "BUCHHALTUNG" | "GESCHAEFTSFUEHRUNG" | "VERTRIEB_BAULEITUNG" | "VIEWER";
 
 export type OfferStatus =
   | "ENTWURF"
@@ -54,6 +54,26 @@ export interface SupplementVersion {
   lvVersionId: UUID;
   systemText: string;
   editingText: string;
+  createdAt: Date;
+  createdBy: UserId;
+}
+
+/** FIN-1 (8.5): ein Kopf pro Projekt, append-only Versionszeilen. */
+export interface PaymentTermsHead {
+  id: UUID;
+  tenantId: TenantId;
+  projectId: UUID;
+  customerId: UUID;
+  createdAt: Date;
+  createdBy: UserId;
+}
+
+export interface PaymentTermsVersion {
+  id: UUID;
+  tenantId: TenantId;
+  headId: UUID;
+  versionNumber: number;
+  termsLabel: string;
   createdAt: Date;
   createdBy: UserId;
 }
@@ -188,13 +208,32 @@ export interface Invoice {
   measurementId: UUID;
   lvId: UUID;
   offerId: UUID;
+  /** Snapshot der Angebotsversion bei Entwurf (FIN-2). */
+  offerVersionId?: UUID;
   status: InvoiceStatus;
   immutableFromStatus: "GEBUCHT_VERSENDET";
   invoiceNumber?: string;
   issueDate?: string;
+  /** 8.4(1) LV-Nettosumme (Cent), bei Entwurf mit Kalkulation gesetzt. */
+  lvNetCents?: number;
+  /** 8.4(7) USt-Anteil (Cent). */
+  vatCents?: number;
   totalGrossCents?: number;
   supplementOfferId?: UUID;
   supplementVersionId?: UUID;
+  /** FIN-1: gebundene Konditionsversion fuer neue Rechnungen. */
+  paymentTermsVersionId?: UUID;
+}
+
+/** FIN-3: gebuchter Zahlungseingang (Idempotenz über tenant + idempotency_key). */
+export interface PaymentIntake {
+  id: UUID;
+  tenantId: TenantId;
+  invoiceId: UUID;
+  idempotencyKey: UUID;
+  amountCents: number;
+  externalReference: string;
+  createdAt: Date;
 }
 
 export interface AuditEvent {
@@ -208,7 +247,9 @@ export interface AuditEvent {
     | "LV_STRUCTURE_NODE"
     | "LV_POSITION"
     | "EXPORT_RUN"
-    | "INVOICE";
+    | "INVOICE"
+    | "PAYMENT_TERMS_VERSION"
+    | "USER";
   entityId: UUID;
   action:
     | "STATUS_CHANGED"
@@ -219,7 +260,9 @@ export interface AuditEvent {
     | "LV_POSITION_CREATED"
     | "EXPORT_STARTED"
     | "EXPORT_FAILED"
-    | "EXPORT_SUCCEEDED";
+    | "EXPORT_SUCCEEDED"
+    | "USER_CREATED"
+    | "USER_UPDATED";
   timestamp: Date;
   actorUserId: UserId;
   reason?: string;

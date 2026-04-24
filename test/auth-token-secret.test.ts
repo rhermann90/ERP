@@ -3,6 +3,7 @@ import {
   assertAuthTokenSecretConfiguredAtStartup,
   createSignedToken,
   getAuthTokenSecret,
+  verifyBearerToken,
 } from "../src/auth/token-auth.js";
 
 describe("AUTH_TOKEN_SECRET bootstrap (SEC-01 / PWA-SEC-P0-001)", () => {
@@ -23,6 +24,21 @@ describe("AUTH_TOKEN_SECRET bootstrap (SEC-01 / PWA-SEC-P0-001)", () => {
       exp: Math.floor(Date.now() / 1000) + 600,
     });
     expect(token.startsWith("v1.")).toBe(true);
+  });
+
+  it("akzeptiert Legacy-Claim VERTRIEB und liefert VERTRIEB_BAULEITUNG", () => {
+    vi.stubEnv("NODE_ENV", "test");
+    vi.stubEnv("AUTH_TOKEN_SECRET", "");
+    const exp = Math.floor(Date.now() / 1000) + 600;
+    const token = createSignedToken({
+      sub: "77777777-7777-4777-8777-777777777777",
+      tenantId: "11111111-1111-4111-8111-111111111111",
+      // @ts-expect-error — absichtlich Legacy-String im signierten Payload
+      role: "VERTRIEB",
+      exp,
+    });
+    const auth = verifyBearerToken(`Bearer ${token}`);
+    expect(auth.role).toBe("VERTRIEB_BAULEITUNG");
   });
 
   it("refuses non-test runtime without secret and without insecure opt-in", () => {

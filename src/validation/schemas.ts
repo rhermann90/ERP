@@ -1,5 +1,21 @@
 import { z } from "zod";
 
+/**
+ * Eingabe-E-Mail für Auth/Benutzer, normalisiert zu Lowercase.
+ * Zod `.email()` lehnt `name@localhost` ab (Domain ohne Punkt); Seeds nutzen `admin@localhost`.
+ */
+export const authEmailInputSchema = z
+  .string()
+  .trim()
+  .transform((s) => s.toLowerCase())
+  .pipe(
+    z.string().superRefine((val, ctx) => {
+      if (z.string().email().safeParse(val).success) return;
+      if (/^[^\s@]{1,64}@localhost$/u.test(val)) return;
+      ctx.addIssue({ code: "custom", message: "Invalid email address" });
+    }),
+  );
+
 export const authHeaderSchema = z.object({
   authorization: z.string().min(10),
   "x-tenant-id": z.string().uuid().optional(),
@@ -16,6 +32,29 @@ export const createSupplementSchema = z.object({
   baseOfferVersionId: z.string().uuid(),
   lvVersionId: z.string().uuid(),
   editingText: z.string().min(1),
+  reason: z.string().min(5),
+});
+
+
+export const createPaymentTermsVersionSchema = z.object({
+  projectId: z.string().uuid(),
+  customerId: z.string().uuid(),
+  termsLabel: z.string().max(200),
+  reason: z.string().min(5),
+});
+
+
+
+export const paymentTermsListQuerySchema = z.object({
+  projectId: z.string().uuid(),
+});
+
+export const createInvoiceDraftSchema = z.object({
+  lvVersionId: z.string().uuid(),
+  offerVersionId: z.string().uuid(),
+  invoiceCurrencyCode: z.enum(["EUR"]),
+  /** Optional: gebundene Zahlungsbedingungs-Version (FIN-1), gleiches Projekt wie Angebot. */
+  paymentTermsVersionId: z.string().uuid().optional(),
   reason: z.string().min(5),
 });
 
@@ -165,3 +204,48 @@ export const patchLvPositionSchema = z
       ctx.addIssue({ code: "custom", message: "Mindestens ein zu aenderndes Feld erforderlich" });
     }
   });
+
+export const loginRequestSchema = z.object({
+  tenantId: z.string().uuid(),
+  email: authEmailInputSchema,
+  password: z.string().min(1).max(2000),
+});
+
+const userRoleEnum = z.enum(["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG", "VERTRIEB_BAULEITUNG", "VIEWER"]);
+
+export const createTenantUserSchema = z.object({
+  email: authEmailInputSchema,
+  password: z.string().min(12).max(2000),
+  role: userRoleEnum,
+  reason: z.string().min(5),
+});
+
+export const patchTenantUserSchema = z
+  .object({
+    role: userRoleEnum.optional(),
+    active: z.boolean().optional(),
+    password: z.string().min(12).max(2000).optional(),
+    email: authEmailInputSchema.optional(),
+    reason: z.string().min(5),
+  })
+  .strict()
+  .superRefine((val, ctx) => {
+    if (
+      val.role === undefined &&
+      val.active === undefined &&
+      val.password === undefined &&
+      val.email === undefined
+    ) {
+      ctx.addIssue({ code: "custom", message: "Mindestens eines von role, active, password, email erforderlich" });
+    }
+  });
+
+export const requestPasswordResetSchema = z.object({
+  tenantId: z.string().uuid(),
+  email: authEmailInputSchema,
+});
+
+export const confirmPasswordResetSchema = z.object({
+  token: z.string().min(20).max(500),
+  password: z.string().min(12).max(2000),
+});
