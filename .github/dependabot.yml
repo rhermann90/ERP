@@ -18,6 +18,10 @@ updates:
         exclude-patterns:
           - "prisma"
           - "@prisma/*"
+          # Vite-Ökosystem: nicht im wöchentlichen Sammel-PR (Peers plugin-react / vite-plugin-pwa)
+          - "vite"
+          - "@vitejs/plugin-react"
+          - "vite-plugin-pwa"
 
   - package-ecosystem: github-actions
     directory: "/"
