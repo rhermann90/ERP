@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import { ZodError } from "zod";
 import { verifyBearerToken, type AuthContext } from "../auth/token-auth.js";
 import { DomainError } from "../errors/domain-error.js";
@@ -13,14 +13,15 @@ export function parseAuthContext(rawHeaders: unknown): AuthContext {
   return auth;
 }
 
-type ErrorReply = { status: (code: number) => { send: (body: unknown) => unknown } };
-
-export function handleHttpError(error: unknown, reply: ErrorReply) {
-  const correlationId = randomUUID();
+export function handleHttpError(error: unknown, request: FastifyRequest, reply: FastifyReply) {
+  const correlationId = request.id;
   if (error instanceof DomainError) {
-    const isRetryable = new Set(["AUTH_SESSION_EXPIRED", "VALIDATION_FAILED", "EXPORT_CHANNEL_UNAVAILABLE"]).has(
-      error.code,
-    );
+    const isRetryable = new Set([
+      "AUTH_SESSION_EXPIRED",
+      "AUTH_RATE_LIMITED",
+      "VALIDATION_FAILED",
+      "EXPORT_CHANNEL_UNAVAILABLE",
+    ]).has(error.code);
     return reply
       .status(error.statusCode)
       .send({

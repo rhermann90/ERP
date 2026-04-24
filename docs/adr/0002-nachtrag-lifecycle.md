@@ -28,10 +28,12 @@ Nach TICKET-001 existiert nur eine **Minimal-API** (Anlage einer Nachtragsversio
 ### D5 — Persistenz
 - Umstellung von In-Memory auf **Prisma/Postgres** mit mandantenharten Constraints und Migrations nur additiv; siehe TICKET-002 „Migration-Perspektive“.
 
+**Umsetzung (Stand 2026-04):** Tabellen `supplement_offers` und `supplement_versions` (Composite-PKs, FKs zu `offers`, `offer_versions`, `lv_versions`), Migration `prisma/migrations/20260419120000_supplement_offers_versions/`, Write-Through und Hydration über `src/persistence/supplement-persistence.ts`, Einbindung in `buildApp` bei `repositoryMode=postgres`. Integrationstests inkl. API-Write-Through, Tenant-Negativfall und Hydration-Smoke (`test/persistence.integration.test.ts`). **`applyBillingImpact`** sowie Rechnungs- und Traceability-Aggregate bleiben bis FIN-2 außerhalb dieser Prisma-Tabellen (siehe `README.md`, Teilpersistenz).
+
 ## Konsequenzen
 - Höhere Komplexität in `AuthorizationService`, Contracts und Tests.
 - Klare Trennung: **Minimal-API (TICKET-001)** bleibt kompatibel oder wird in den vollen Lebenszyklus migriert (Breaking-Change nur mit Gate).
 
 ## Offene Punkte (nach Iteration 1)
 - Iteration 1b: Nachtrags-Positions-/LV-Struktur vertiefen.
-- Iteration 2: Persistenzmigration Prisma/Postgres mit Constraints produktivisieren.
+- ~~Iteration 2: Persistenzmigration Prisma/Postgres~~ — **erledigt** für `SupplementOffer` / `SupplementVersion` (siehe D5); Rechnung/Traceability weiter FIN-2-gated.

@@ -15,7 +15,7 @@ export function normalizeCorsOrigins(origins: string[]): Set<string> {
 }
 
 const CORS_METHODS = "GET,HEAD,POST,PATCH,OPTIONS";
-const CORS_HEADERS = "Authorization, Content-Type, X-Tenant-Id, X-Request-Id";
+const CORS_HEADERS = "Authorization, Content-Type, X-Tenant-Id, X-Request-Id, X-Correlation-Id";
 
 function setCorsHeaders(reply: { header: (k: string, v: string) => void }, origin: string): void {
   reply.header("Access-Control-Allow-Origin", origin);
@@ -27,6 +27,11 @@ function setSecurityHeaders(reply: { header: (k: string, v: string) => void }): 
   reply.header("X-Frame-Options", "DENY");
   reply.header("Referrer-Policy", "strict-origin-when-cross-origin");
   reply.header("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  /** Reine JSON-API: kein Laden fremder Ressourcen; PWA bleibt eigene Origin. */
+  reply.header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
+  if (process.env.ERP_ENABLE_HSTS === "1") {
+    reply.header("Strict-Transport-Security", "max-age=15552000; includeSubDomains");
+  }
 }
 
 /**
@@ -48,9 +53,14 @@ export function registerPwaHttpHooks(app: FastifyInstance, corsAllowlist: Set<st
   });
 
   app.addHook("onSend", async (request, reply, payload) => {
+    const id = request.id;
+    reply.header("x-correlation-id", id);
+    /** Gleiche ID wie `correlationId` im Error-Envelope; Fallback für Clients laut `error-codes.json` (`x-request-id`). */
+    reply.header("x-request-id", id);
     const origin = request.headers.origin;
     if (typeof origin === "string" && corsAllowlist.has(origin)) {
       setCorsHeaders(reply, origin);
+      reply.header("Access-Control-Expose-Headers", "x-correlation-id, x-request-id");
     }
     setSecurityHeaders(reply);
     return payload;

@@ -10,13 +10,13 @@ export class ExportService {
     private readonly auditService: AuditService,
   ) {}
 
-  public prepareExport(input: {
+  public async prepareExport(input: {
     tenantId: TenantId;
     format: ExportFormat;
     entityType: "OFFER_VERSION" | "SUPPLEMENT_VERSION" | "INVOICE";
     entityId: UUID;
     actorUserId: UserId;
-  }): ExportRun {
+  }): Promise<ExportRun> {
     const validationErrors: string[] = [];
     const formatPolicy: Record<"OFFER_VERSION" | "SUPPLEMENT_VERSION" | "INVOICE", Array<"XRECHNUNG" | "GAEB">> = {
       OFFER_VERSION: ["GAEB"],
@@ -85,7 +85,7 @@ export class ExportService {
       createdBy: input.actorUserId,
     };
     this.repos.exportRuns.set(run.id, run);
-    this.auditService.append({
+    await this.auditService.append({
       id: randomUUID(),
       tenantId: input.tenantId,
       entityType: "EXPORT_RUN",

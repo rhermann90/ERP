@@ -1,5 +1,5 @@
 {
-  "contractVersion": "1.5.0-fin0",
+  "contractVersion": "1.7.0-audit-fail-hard",
   "phase": "phase-2-inc2-lv+fin0-contract",
   "qaClosure": {
     "defectId": "QA-P1-001",
@@ -9,14 +9,16 @@
   },
   "backendEnvelope": {
     "source": "src/api/app.ts handleError",
-    "httpStatusesUsed": [400, 401, 403, 404, 409, 422, 500],
+    "httpStatusesUsed": [400, 401, 403, 404, 409, 422, 429, 500, 503],
     "required": ["code", "message", "correlationId", "retryable", "blocking"],
     "optional": ["details"],
-    "retryableDerivation": "DomainError: retryable=true only for codes in { AUTH_SESSION_EXPIRED, VALIDATION_FAILED, EXPORT_CHANNEL_UNAVAILABLE }; all other DomainError codes => retryable=false. Non-DomainError catch-all => code VALIDATION_FAILED, http400, retryable=true, blocking=false.",
+    "retryableDerivation": "DomainError: retryable=true only for codes in { AUTH_SESSION_EXPIRED, AUTH_RATE_LIMITED, VALIDATION_FAILED, EXPORT_CHANNEL_UNAVAILABLE }; all other DomainError codes => retryable=false. Non-DomainError catch-all => code VALIDATION_FAILED, http400, retryable=true, blocking=false.",
     "blockingDerivation": "blocking = !retryable for DomainError; non-DomainError VALIDATION_FAILED => blocking=false.",
     "correlationIdDerivation": "UUID generated per error response in handleError (not from request header in phase 1)."
   },
   "domainErrorCodesEmitted": [
+    "AUDIT_PERSIST_FAILED",
+    "AUTH_RATE_LIMITED",
     "AUTH_ROLE_FORBIDDEN",
     "DOCUMENT_NOT_FOUND",
     "MEASUREMENT_NEW_VERSION_FORBIDDEN",
@@ -43,6 +45,8 @@
     "LV_VERSION_NOT_FOUND",
     "OFFER_NOT_FOUND",
     "OFFER_VERSION_NOT_FOUND",
+    "PASSWORD_RESET_INVALID",
+    "PASSWORD_RESET_MAIL_NOT_CONFIGURED",
     "SUPPLEMENT_BILLING_EFFECT_FORBIDDEN",
     "SUPPLEMENT_BASE_NOT_ACCEPTED",
     "SUPPLEMENT_NOT_FOUND",
@@ -51,7 +55,12 @@
     "TENANT_SCOPE_VIOLATION",
     "TRACEABILITY_FIELD_MISMATCH",
     "TRACEABILITY_LINK_MISSING",
-    "UNAUTHORIZED"
+    "UNAUTHORIZED",
+    "USER_EMAIL_CONFLICT",
+    "USER_LAST_ADMIN_FORBIDDEN",
+    "USER_MANAGEMENT_REQUIRES_DB",
+    "USER_NOT_FOUND",
+    "USER_SELF_DEACTIVATION_FORBIDDEN"
   ],
   "nonDomainErrorCodesEmitted": [
     {
@@ -93,6 +102,13 @@
     {
       "classId": "authorization",
       "codes": [
+        {
+          "code": "AUTH_RATE_LIMITED",
+          "httpStatus": 429,
+          "retryable": true,
+          "blocking": false,
+          "uiReaction": "Show cooldown message; disable submit until backoff."
+        },
         {
           "code": "AUTH_ROLE_FORBIDDEN",
           "httpStatus": 403,
@@ -254,6 +270,13 @@
           "retryable": false,
           "blocking": true,
           "uiReaction": "Interner Fehler bei LV-Versionskopie; Support/Vorgang erneut versuchen."
+        },
+        {
+          "code": "AUDIT_PERSIST_FAILED",
+          "httpStatus": 500,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Audit konnte nicht gespeichert werden; Vorgang nicht als erfolgreich werten; Support/Betrieb."
         }
       ]
     },
@@ -359,6 +382,60 @@
       ]
     },
     {
+      "classId": "user_account",
+      "codes": [
+        {
+          "code": "USER_NOT_FOUND",
+          "httpStatus": 404,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Benutzer im Mandant nicht gefunden; Liste neu laden."
+        },
+        {
+          "code": "USER_EMAIL_CONFLICT",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "E-Mail im Mandanten bereits vergeben."
+        },
+        {
+          "code": "USER_LAST_ADMIN_FORBIDDEN",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Letzter aktiver Administrator geschützt."
+        },
+        {
+          "code": "USER_SELF_DEACTIVATION_FORBIDDEN",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Eigenes Konto nicht deaktivieren."
+        },
+        {
+          "code": "USER_MANAGEMENT_REQUIRES_DB",
+          "httpStatus": 503,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Benutzerverwaltung nur mit Postgres-Backend."
+        },
+        {
+          "code": "PASSWORD_RESET_INVALID",
+          "httpStatus": 400,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Reset-Link ungültig oder abgelaufen; neu anfordern."
+        },
+        {
+          "code": "PASSWORD_RESET_MAIL_NOT_CONFIGURED",
+          "httpStatus": 503,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "SMTP/App-URL für Reset-Mail in Produktion prüfen."
+        }
+      ]
+    },
+    {
       "classId": "measurement_validation",
       "codes": [
         {
@@ -373,7 +450,7 @@
   ],
   "qaP0MappingHints": [
     "tenant: TENANT_SCOPE_VIOLATION",
-    "authz: AUTH_ROLE_FORBIDDEN|FORBIDDEN_AUDIT_READ|UNAUTHORIZED",
+    "authz: AUTH_RATE_LIMITED|AUTH_ROLE_FORBIDDEN|FORBIDDEN_AUDIT_READ|UNAUTHORIZED",
     "versioning: FOLLOWUP_DOCUMENT_REQUIRED",
     "supplement: SUPPLEMENT_BASE_NOT_ACCEPTED|SUPPLEMENT_STATUS_TRANSITION_FORBIDDEN|SUPPLEMENT_BILLING_EFFECT_FORBIDDEN|SUPPLEMENT_NOT_FOUND",
     "traceability: TRACEABILITY_LINK_MISSING|TRACEABILITY_FIELD_MISMATCH",
@@ -382,6 +459,7 @@
     "measurement: MEASUREMENT_NOT_FOUND|MEASUREMENT_STATUS_TRANSITION_FORBIDDEN|MEASUREMENT_POSITION_EDIT_FORBIDDEN|MEASUREMENT_NEW_VERSION_FORBIDDEN|MEASUREMENT_VERSION_NOT_CURRENT|MEASUREMENT_POSITIONS_REQUIRED",
     "lv: LV_CATALOG_NOT_FOUND|LV_VERSION_NOT_FOUND|LV_VERSION_NOT_CURRENT|LV_NODE_NOT_FOUND|LV_POSITION_NOT_FOUND|LV_HIERARCHY_INVALID|LV_POSITION_VERSION_MISMATCH|LV_STRUCTURE_LOCKED|LV_SYSTEM_TEXT_IMMUTABLE|LV_STATUS_TRANSITION_FORBIDDEN|LV_NEW_VERSION_FORBIDDEN|LV_COPY_FAILED",
     "lv-references: LV_VERSION_NOT_FOUND|LV_POSITION_NOT_FOUND|LV_POSITION_VERSION_MISMATCH",
-    "finance-fin0-stub: TRACEABILITY_LINK_MISSING|EXPORT_PREFLIGHT_FAILED|DOCUMENT_NOT_FOUND|VALIDATION_FAILED — siehe docs/contracts/finance-fin0-openapi-mapping.md (keine neuen Codes in FIN-0)"
+    "finance-fin0-stub: TRACEABILITY_LINK_MISSING|EXPORT_PREFLIGHT_FAILED|DOCUMENT_NOT_FOUND|VALIDATION_FAILED — siehe docs/contracts/finance-fin0-openapi-mapping.md (keine neuen Codes in FIN-0)",
+    "user_account: USER_NOT_FOUND|USER_EMAIL_CONFLICT|USER_LAST_ADMIN_FORBIDDEN|USER_SELF_DEACTIVATION_FORBIDDEN|USER_MANAGEMENT_REQUIRES_DB|PASSWORD_RESET_INVALID|PASSWORD_RESET_MAIL_NOT_CONFIGURED"
   ]
 }
