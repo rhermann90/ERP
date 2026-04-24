@@ -7,6 +7,7 @@
 - **Validierung:** `npm run prisma:validate`, `npx prisma generate`, `npm run verify:ci` (Audit, Contract-YAML, Typecheck, Web-Build, Vitest inkl. Root) erfolgreich lokal.
 - **Persistenz / Migrate:** `npm run verify:ci:local-db` setzt **laufendes Docker** (Postgres 16 laut `ensure-local-test-db`) voraus; ohne Docker hier nicht ausgeführt — in CI (`backend` mit Postgres-Service) weiterhin Pflicht.
 - **Dependabot:** Gruppen-PR [#21](https://github.com/rhermann90/ERP/pull/21) hob nur `@prisma/client` an und wurde **geschlossen** (Split-Risiko). Künftige Prisma-PRs müssen **CLI + Client + Adapter** gemeinsam anheben.
+- **Transitive CLI-Deps:** Pakete wie `@hono/node-server` (Kette `prisma` → `@prisma/dev`) sind nur Dev-/CLI-Tooling, tauchen aber in **Dependency Review** auf. Bis Prisma ein Release mit angehobener Abhängigkeit liefert, können sie per Root-[`overrides`](../../package.json) in `package.json` auf eine gepatchte Version gezogen werden (z. B. [GHSA-92pp-h63x-v22m](https://github.com/advisories/GHSA-92pp-h63x-v22m) — Floor ≥ 1.19.13); `npm audit fix --force` vermeiden, wenn es einen ungewollten Prisma-Major nahelegt.
 
 ### Remote-Branches noch mit Prisma 5.22 (Stand Abfrage)
 
