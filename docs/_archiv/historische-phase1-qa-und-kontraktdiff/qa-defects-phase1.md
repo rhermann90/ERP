@@ -13,6 +13,6 @@
 
 ## v1.2 P0 Erweiterung (SoT/API)
 - Ausfuehrung: `OFFER_CREATE_VERSION` Statusmatrix gegen v1.2 inkl. Negativfaelle `ANGENOMMEN`, `ABGELEHNT`, `ARCHIVIERT`.
-- **Nachtrag (SoT-Luecke formal geschlossen):** `OFFER_CREATE_SUPPLEMENT` nach `ANGENOMMEN` fuer `ADMIN`/`VERTRIEB`/`GESCHAEFTSFUEHRUNG` in `allowedActions` und abgestimmt mit `POST /offers/{offerId}/supplements` (`P0-15`); fehlt fuer `VIEWER` (und `BUCHHALTUNG`) inkl. API `403` (`P0-16`).
+- **Nachtrag (SoT-Luecke formal geschlossen):** `OFFER_CREATE_SUPPLEMENT` nach `ANGENOMMEN` fuer `ADMIN`/`VERTRIEB_BAULEITUNG`/`GESCHAEFTSFUEHRUNG` in `allowedActions` und abgestimmt mit `POST /offers/{offerId}/supplements` (`P0-15`); fehlt fuer `VIEWER` (und `BUCHHALTUNG`) inkl. API `403` (`P0-16`).
 - Ergebnis: Keine neuen Defekte; SoT (`allowedActions`) und API-Verhalten konsistent.
 - Re-Test-Status: **Regression gruen (28/28)**; Matrix mit `it("...")`-Zeilenverweisen: `./qa-p0-matrix-phase1.md`.

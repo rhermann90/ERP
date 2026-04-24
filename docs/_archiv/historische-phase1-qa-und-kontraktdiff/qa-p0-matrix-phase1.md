@@ -19,11 +19,11 @@ Quelle: `../systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`
 | P0-08 | P0 | Falsches Format zur Entitaet | `POST /exports` | fail-closed | `POST /exports` | `EXPORT_PREFLIGHT_FAILED` (422) | Details | **L683:** `it("enforces format policy matrix (negative)", ...)` |
 | P0-09 | P0 | Rolle `VIEWER` | Audit Read | least-privilege | `GET /audit-events` | `FORBIDDEN_AUDIT_READ` (403) | normiert | **L157:** `it("enforces role isolation on audit endpoint (negative)", ...)` |
 | P0-10 | P0 | Dokument vorhanden | `GET .../allowed-actions` | SoT-Liste | `GET /documents/{id}/allowed-actions` | `200` | — | **L263:** `it("returns backend source-of-truth allowed actions per role", ...)` |
-| P0-11 | P0 | Status `IN_FREIGABE`, Rolle `VERTRIEB` | SoT + `POST /offers/version` | `OFFER_CREATE_VERSION` + `201` | GET + `POST /offers/version` | `200` + `201` | — | **L633:** `it("exposes OFFER_CREATE_VERSION on allowed-actions while IN_FREIGABE (SoT matches POST /offers/version)", ...)` |
+| P0-11 | P0 | Status `IN_FREIGABE`, Rolle `VERTRIEB_BAULEITUNG` | SoT + `POST /offers/version` | `OFFER_CREATE_VERSION` + `201` | GET + `POST /offers/version` | `200` + `201` | — | **L633:** `it("exposes OFFER_CREATE_VERSION on allowed-actions while IN_FREIGABE (SoT matches POST /offers/version)", ...)` |
 | P0-12 | P0 | Status `ANGENOMMEN` | SoT + `POST /offers/version` | kein `OFFER_CREATE_VERSION`, API `409` | GET + `POST /offers/version` | `FOLLOWUP_DOCUMENT_REQUIRED` | normiert | **L322:** `it("blocks POST /offers/version when current version is ANGENOMMEN (v1.2, FOLLOWUP_DOCUMENT_REQUIRED)", ...)` |
 | P0-13 | P0 | Status `ABGELEHNT` | wie P0-12 | blockiert | `POST /offers/version` | `409` | normiert | **L358:** `it("blocks POST /offers/version when current version is ABGELEHNT (v1.2, SoT + API)", ...)` |
 | P0-14 | P0 | Status `ARCHIVIERT` | wie P0-12 | blockiert | `POST /offers/version` | `409` | normiert | **L396:** `it("blocks POST /offers/version when current version is ARCHIVIERT (v1.2, SoT + API)", ...)` |
-| **P0-15** | **P0** | Status **`ANGENOMMEN`**, Rollen **ADMIN / VERTRIEB / GESCHAEFTSFUEHRUNG** | `GET .../allowed-actions` + **`POST /offers/{id}/supplements`** | SoT enthaelt **`OFFER_CREATE_SUPPLEMENT`**, POST je Rolle **`201`**, kein `OFFER_CREATE_VERSION` | `GET` + `POST /offers/{offerId}/supplements` | `200` + `201` | Positiv: Response Body | **L459:** `it("P0: SoT lists OFFER_CREATE_SUPPLEMENT after ANGENOMMEN for ADMIN, VERTRIEB, GESCHAEFTSFUEHRUNG", ...)` |
+| **P0-15** | **P0** | Status **`ANGENOMMEN`**, Rollen **ADMIN / VERTRIEB_BAULEITUNG / GESCHAEFTSFUEHRUNG** | `GET .../allowed-actions` + **`POST /offers/{id}/supplements`** | SoT enthaelt **`OFFER_CREATE_SUPPLEMENT`**, POST je Rolle **`201`**, kein `OFFER_CREATE_VERSION` | `GET` + `POST /offers/{offerId}/supplements` | `200` + `201` | Positiv: Response Body | **L459:** `it("P0: SoT lists OFFER_CREATE_SUPPLEMENT after ANGENOMMEN for ADMIN, VERTRIEB_BAULEITUNG, GESCHAEFTSFUEHRUNG", ...)` |
 | **P0-16** | **P0** | Status **`ANGENOMMEN`**, Rollen **VIEWER** (und zusaetzlich **BUCHHALTUNG**) | SoT + `POST /supplements` | **kein** `OFFER_CREATE_SUPPLEMENT` in Liste; **POST** `403` `AUTH_ROLE_FORBIDDEN` + Envelope | `GET` + `POST` | `403` | `correlationId`, `blocking=true` | **L513:** `it("P0: SoT omits OFFER_CREATE_SUPPLEMENT for VIEWER and BUCHHALTUNG after ANGENOMMEN; POST supplements forbidden", ...)` |
 | P1-01 | P1 | Frontend Fehlerobjekt | alle kritischen Pfade | Passthrough / Map | diverse | laut `error-codes.json` | — | implizit ueber Envelope-Assertions in P0-Tests (z. B. **L68**, **L513**) |
 | P2-01 | P2 | Row/Bulk `allowedActions` | — | Phase 2, kein P0-Fail | — | — | — | *nicht ausgefuehrt* |
@@ -32,14 +32,14 @@ Quelle: `../systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`
 
 | Status | `OFFER_CREATE_VERSION` in allowedActions | `POST /offers/version` | Referenz |
 | --- | --- | --- | --- |
-| `ENTWURF` … `VERSENDET` (ohne Annahme) | ja (Rollen ADMIN/VERTRIEB) | `201` wo erlaubt | v1.2 Abs. 2 / 5.2 |
+| `ENTWURF` … `VERSENDET` (ohne Annahme) | ja (Rollen ADMIN/VERTRIEB_BAULEITUNG) | `201` wo erlaubt | v1.2 Abs. 2 / 5.2 |
 | `ANGENOMMEN`, `ABGELEHNT`, `ARCHIVIERT` | nein | `409 FOLLOWUP_DOCUMENT_REQUIRED` | v1.2 |
 
 ## v1.2-Anhang: OFFER_CREATE_SUPPLEMENT (Nachtrag, SoT vs API)
 
 | Status | `OFFER_CREATE_SUPPLEMENT` in allowedActions | `POST /offers/{offerId}/supplements` | Referenz |
 | --- | --- | --- | --- |
-| `ANGENOMMEN` | ja fuer **ADMIN, VERTRIEB, GESCHAEFTSFUEHRUNG**; **nein** fuer **VIEWER, BUCHHALTUNG** | `201` wenn Rolle + Basis `ANGENOMMEN`; sonst `403` / `409` | `action-contracts.json` `OFFER_CREATE_SUPPLEMENT`; **P0-15, P0-16** |
+| `ANGENOMMEN` | ja fuer **ADMIN, VERTRIEB_BAULEITUNG, GESCHAEFTSFUEHRUNG**; **nein** fuer **VIEWER, BUCHHALTUNG** | `201` wenn Rolle + Basis `ANGENOMMEN`; sonst `403` / `409` | `action-contracts.json` `OFFER_CREATE_SUPPLEMENT`; **P0-15, P0-16** |
 
 ## Ergaenzende Regression (ohne eigene P0-ID)
 

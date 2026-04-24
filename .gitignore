@@ -32,6 +32,8 @@ coverage/
 .nyc_output/
 
 # Prisma (keep migrations/ — do not ignore)
+# Client output when using generator output (Prisma 7+ reference branch); not used on main 5.x default generate
+generated/
 
 # Playwright
 playwright-report/

@@ -67,7 +67,7 @@ Traceability-Prüfungen für Rechnungsentwurf und **Buchung**: `src/services/inv
 
 ## Idempotency-Key (8.7)
 
-- **`POST /finance/payments/intake`:** Header `Idempotency-Key` **Pflicht**, **case-insensitive** gelesen; Wert muss **UUID** sein — sonst `400` / `VALIDATION_FAILED` (Zod), siehe `components.parameters.IdempotencyKey`.
+- **`POST /finance/payments/intake`:** Header `Idempotency-Key` **Pflicht**, **case-insensitive** gelesen; Wert muss **UUID** sein — sonst `400` / `VALIDATION_FAILED` (Zod), konsistent zu `docs/api-contract.yaml` (`components.parameters.IdempotencyKey`; `responses` für denselben Pfad) und `docs/contracts/qa-fin-0-stub-test-matrix.md`.
 - DB-Eindeutigkeit `(tenant_id, idempotency_key)` (`payment_intakes`); fachlicher Replay nur bei identischem `invoiceId` und `amountCents`, sonst `PAYMENT_INTAKE_IDEMPOTENCY_MISMATCH`.
 
 ## Referenz

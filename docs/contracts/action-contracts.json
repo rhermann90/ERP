@@ -17,7 +17,7 @@
   "actions": [
     {
       "actionId": "OFFER_CREATE_VERSION",
-      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
       "allowedFromStatus": ["ENTWURF", "IN_FREIGABE", "FREIGEGEBEN", "VERSENDET"],
       "allowedToStatus": ["ENTWURF"],
       "validationSchema": {
@@ -48,7 +48,7 @@
     },
     {
       "actionId": "OFFER_CREATE_SUPPLEMENT",
-      "requiredRole": ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"],
       "allowedFromStatus": ["ANGENOMMEN"],
       "allowedToStatus": ["ENTWURF"],
       "validationSchema": {
@@ -79,7 +79,7 @@
     },
     {
       "actionId": "SUPPLEMENT_SET_IN_FREIGABE",
-      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
       "allowedFromStatus": ["ENTWURF"],
       "allowedToStatus": ["IN_FREIGABE"],
       "validationSchema": {
@@ -123,7 +123,7 @@
     },
     {
       "actionId": "SUPPLEMENT_SET_VERSENDET",
-      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
       "allowedFromStatus": ["FREIGEGEBEN"],
       "allowedToStatus": ["VERSENDET"],
       "validationSchema": {
@@ -145,7 +145,7 @@
     },
     {
       "actionId": "SUPPLEMENT_SET_BEAUFTRAGT",
-      "requiredRole": ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"],
       "allowedFromStatus": ["VERSENDET"],
       "allowedToStatus": ["BEAUFTRAGT"],
       "validationSchema": {
@@ -167,7 +167,7 @@
     },
     {
       "actionId": "SUPPLEMENT_SET_ABGELEHNT",
-      "requiredRole": ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"],
       "allowedFromStatus": ["VERSENDET"],
       "allowedToStatus": ["ABGELEHNT"],
       "validationSchema": {
@@ -236,7 +236,7 @@
     },
     {
       "actionId": "OFFER_SET_IN_FREIGABE",
-      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
       "allowedFromStatus": ["ENTWURF"],
       "allowedToStatus": ["IN_FREIGABE"],
       "validationSchema": {
@@ -270,7 +270,7 @@
     },
     {
       "actionId": "OFFER_SET_VERSENDET",
-      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
       "allowedFromStatus": ["FREIGEGEBEN"],
       "allowedToStatus": ["VERSENDET"],
       "validationSchema": {
@@ -286,7 +286,7 @@
     },
     {
       "actionId": "OFFER_SET_ANGENOMMEN",
-      "requiredRole": ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"],
       "allowedFromStatus": ["VERSENDET"],
       "allowedToStatus": ["ANGENOMMEN"],
       "validationSchema": {
@@ -303,7 +303,7 @@
     },
     {
       "actionId": "OFFER_SET_ABGELEHNT",
-      "requiredRole": ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"],
       "allowedFromStatus": ["VERSENDET"],
       "allowedToStatus": ["ABGELEHNT"],
       "validationSchema": {
@@ -450,7 +450,7 @@
     },
     {
       "actionId": "EXPORT_OFFER_VERSION",
-      "requiredRole": ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"],
       "allowedFromStatus": ["FREIGEGEBEN", "VERSENDET", "ANGENOMMEN", "ABGELEHNT"],
       "allowedToStatus": ["FREIGEGEBEN", "VERSENDET", "ANGENOMMEN", "ABGELEHNT"],
       "validationSchema": {
@@ -468,7 +468,7 @@
     },
     {
       "actionId": "EXPORT_SUPPLEMENT_VERSION",
-      "requiredRole": ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"],
       "allowedFromStatus": ["FREIGEGEBEN", "VERSENDET", "BEAUFTRAGT", "ABGELEHNT"],
       "allowedToStatus": ["FREIGEGEBEN", "VERSENDET", "BEAUFTRAGT", "ABGELEHNT"],
       "validationSchema": {
@@ -486,7 +486,7 @@
     },
     {
       "actionId": "MEASUREMENT_CREATE",
-      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
       "allowedFromStatus": ["N_A"],
       "allowedToStatus": ["ENTWURF"],
       "validationSchema": {
@@ -518,7 +518,7 @@
     },
     {
       "actionId": "MEASUREMENT_UPDATE_POSITIONS",
-      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
       "allowedFromStatus": ["ENTWURF"],
       "allowedToStatus": ["ENTWURF"],
       "validationSchema": {
@@ -547,7 +547,7 @@
     },
     {
       "actionId": "MEASUREMENT_SET_GEPRUEFT",
-      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
       "allowedFromStatus": ["ENTWURF"],
       "allowedToStatus": ["GEPRUEFT"],
       "validationSchema": {
@@ -643,7 +643,7 @@
     },
     {
       "actionId": "MEASUREMENT_CREATE_VERSION",
-      "requiredRole": ["ADMIN", "VERTRIEB", "GESCHAEFTSFUEHRUNG"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"],
       "allowedFromStatus": ["FREIGEGEBEN", "ABGERECHNET"],
       "allowedToStatus": ["ENTWURF"],
       "validationSchema": {
@@ -669,7 +669,7 @@
     },
     {
       "actionId": "LV_CATALOG_CREATE",
-      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
       "allowedFromStatus": ["N_A"],
       "allowedToStatus": ["ENTWURF"],
       "validationSchema": {
@@ -784,7 +784,7 @@
     },
     {
       "actionId": "LV_ADD_STRUCTURE_NODE",
-      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
       "allowedFromStatus": ["ENTWURF"],
       "allowedToStatus": ["ENTWURF"],
       "validationSchema": {
@@ -816,7 +816,7 @@
     },
     {
       "actionId": "LV_ADD_POSITION",
-      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
       "allowedFromStatus": ["ENTWURF"],
       "allowedToStatus": ["ENTWURF"],
       "validationSchema": {
@@ -858,7 +858,7 @@
     },
     {
       "actionId": "LV_UPDATE_NODE_EDITING_TEXT",
-      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
       "allowedFromStatus": ["ENTWURF"],
       "allowedToStatus": ["ENTWURF"],
       "validationSchema": {
@@ -887,7 +887,7 @@
     },
     {
       "actionId": "LV_UPDATE_POSITION",
-      "requiredRole": ["ADMIN", "VERTRIEB"],
+      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
       "allowedFromStatus": ["ENTWURF"],
       "allowedToStatus": ["ENTWURF"],
       "validationSchema": {

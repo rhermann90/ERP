@@ -1,4 +1,7 @@
 # Lokale PostgreSQL für ERP (Prisma). Kein Produktions-Deployment.
+# DB-Name `erp_test` wie in GitHub Actions — lokale CI-Parität: `npm run verify:ci:local-db`.
+# Host-Port **15432** → Container 5432 (weniger Konflikt mit lokalem Postgres auf 5432).
+# `npm run ensure:local-test-db` legt `erp_test` an, falls ein altes Volume nur noch `erp` hatte.
 # Start: docker compose up -d
 # Stop:  docker compose down
 # Daten: benanntes Volume `erp_pg_data`
@@ -15,13 +18,13 @@ services:
     environment:
       POSTGRES_USER: erp
       POSTGRES_PASSWORD: erp
-      POSTGRES_DB: erp
+      POSTGRES_DB: erp_test
     ports:
-      - "5432:5432"
+      - "15432:5432"
     volumes:
       - erp_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U erp -d erp"]
+      test: ["CMD-SHELL", "pg_isready -U erp -d erp_test"]
       interval: 5s
       timeout: 5s
       retries: 10

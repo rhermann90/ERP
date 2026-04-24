@@ -15,6 +15,8 @@ Dieser Stand ist als Integrations-/Abnahmebasis gedacht (API + Contracts + PWA-S
 3. **Backend:** `AUTH_TOKEN_SECRET` setzen, optional `CORS_ORIGINS`, dann `npm run dev` (Port **3000**).
 4. **PWA:** siehe [`apps/web/README.md`](./apps/web/README.md) (`npm run dev:web`).
 
+**Vite (Major-Upgrades):** `vite`, `@vitejs/plugin-react` und `vite-plugin-pwa` werden **nicht** im Dependabot-Sammel-PR angehoben — bewusst in **einem** koordinierten PR nach Checkliste in [`docs/tickets/VITE-MAJOR-UPGRADE.md`](./docs/tickets/VITE-MAJOR-UPGRADE.md).
+
 **Postgres ohne eingechecktes Compose:** z. B. einmalig `docker run --name erp-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=erp -p 5432:5432 -d postgres:16` und dann `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/erp?schema=public` — oder eine lokale Postgres-Installation mit gleicher URL.
 
 ## Betriebsvariablen
@@ -22,6 +24,7 @@ Dieser Stand ist als Integrations-/Abnahmebasis gedacht (API + Contracts + PWA-S
 - `AUTH_TOKEN_SECRET` (Pflicht außerhalb `NODE_ENV=test`): Signier-Secret für Bearer-Tokens, in Produktion mindestens 32 Zeichen.
 - `ERP_ALLOW_INSECURE_DEV_AUTH=1` (nur non-prod): aktiviert einen unsicheren Demo-Fallback für lokale Demos; niemals in Produktion.
 - `CORS_ORIGINS` (optional): kommagetrennte, exakte Browser-Origins, z. B. `http://localhost:5173`.
+- `ERP_ENABLE_HSTS=1` (optional): setzt `Strict-Transport-Security` auf API-Antworten — **nur** sinnvoll hinter HTTPS-Terminierung (sonst Browser-Warnungen).
 - **`DATABASE_URL`**: Postgres-Connection-String. **Pflicht**, wenn `NODE_ENV=production` oder `ERP_DEPLOYMENT=integration` (Fail-closed beim Start). In Development: wenn gesetzt und nicht `ERP_REPOSITORY=memory`, werden **LV + Aufmass + Offer/OfferVersion** (ADR-0006) und **Nachtrag (`supplement_offers` / `supplement_versions`, ADR-0002 D5)** nach Postgres geschrieben; Rechnung, Traceability-Links u. a. siehe Teilpersistenz unten.
 - **`ERP_REPOSITORY=memory`**: erzwingt In-Memory-Modus (z. B. Tests, `buildApp({ repositoryMode: "memory" })`).
 - **`ERP_DEPLOYMENT=integration`**: behandelt wie produktionsnah bzgl. DB-Pflicht (ohne `NODE_ENV=production` zu setzen).
@@ -34,21 +37,24 @@ Siehe Vorlage: [`.env.example`](./.env.example)
 2. Schema anwenden: `npx prisma migrate deploy` (Deploy) oder lokal `npm run prisma:migrate` (`prisma migrate dev`).
 3. **Kein** `db push` als verbindlicher Merge-Pfad — versionierte Migrationen unter `prisma/migrations/`.
 4. Validierung ohne echte DB: `npm run prisma:validate`
-5. Details: [`docs/adr/0006-offer-vertical-slice-persistence.md`](./docs/adr/0006-offer-vertical-slice-persistence.md)
+5. **ORM-Version:** Die tatsächliche Prisma-Major-Version steht in [`package.json`](./package.json) (`prisma` / `@prisma/client`). Geplantes Upgrade auf 7.x: [`docs/tickets/PRISMA-7-UPGRADE.md`](./docs/tickets/PRISMA-7-UPGRADE.md); Konsistenz-Check: `npm run check:prisma-stack`.
+6. Details: [`docs/adr/0006-offer-vertical-slice-persistence.md`](./docs/adr/0006-offer-vertical-slice-persistence.md)
 
 ## CI / Persistenz-Tests
 
-- GitHub Actions: [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) startet **Postgres**, setzt **`PERSISTENCE_DB_TEST_URL`** (und `DATABASE_URL`), führt **`prisma migrate deploy`** aus und **`npm test`** — Persistenz-Suites laufen **ohne SKIP**.
+- GitHub Actions: [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) startet **Postgres**, setzt **`PERSISTENCE_DB_TEST_URL`** (und `DATABASE_URL`), führt **`prisma migrate deploy`** aus und **`npm test`** — Persistenz-Suites laufen **ohne SKIP**. **Kein zweiter CI-Job nötig:** derselbe Job **`backend`** ist die kanonische Merge-Evidence; `npm run verify:ci:local-db` ist das **lokale Äquivalent** (siehe Runbook).
+- **Lokale CI-Parität:** `npm run verify:ci:local-db` (Compose-Postgres auf Host-Port **15432**, siehe [`docs/runbook/ci-and-persistence-tests.md`](./docs/runbook/ci-and-persistence-tests.md)).
 - Lokal und Troubleshooting: [`docs/runbook/ci-and-persistence-tests.md`](./docs/runbook/ci-and-persistence-tests.md)
 
-**Repository-Prozess (Merge):** PR-Vorlage [`.github/pull_request_template.md`](./.github/pull_request_template.md); Merge-Evidence und QA-Pflicht **§5a** in [`docs/contracts/qa-fin-0-gate-readiness.md`](./docs/contracts/qa-fin-0-gate-readiness.md). Branch-Schutz (Pflicht-Statuscheck **`backend`**): [`docs/runbooks/github-branch-protection-backend.md`](./docs/runbooks/github-branch-protection-backend.md).
+**Repository-Prozess (Merge):** PR-Vorlage [`.github/pull_request_template.md`](./.github/pull_request_template.md); Merge-Evidence und QA-Pflicht **§5a** in [`docs/contracts/qa-fin-0-gate-readiness.md`](./docs/contracts/qa-fin-0-gate-readiness.md). Branch-Schutz (Pflicht-Statuscheck **`backend`**): [`docs/runbooks/github-branch-protection-backend.md`](./docs/runbooks/github-branch-protection-backend.md). **Aktueller Entwicklungsplan (nächste Schritte):** [`docs/plans/nächste-schritte.md`](./docs/plans/nächste-schritte.md).
 
-**Hinweis Health:** Es gibt `GET /health` (Liveness). Ein separates **Ready**-Endpoint (z. B. DB erreichbar) ist Sache des Backends; die PWA verwendet `VITE_API_BASE_URL` nur als API-Origin — bis ein Ready-Pfad dokumentiert ist, sind Start-/Verbindungsprobleme normale HTTP-/Netzwerkfehler.
+**Health / Readiness:** `GET /health` = Liveness (Prozess lebt). `GET /ready` = Readiness: im **Postgres-Modus** einmal `SELECT 1` über Prisma (**503**, wenn die DB nicht erreichbar); im **Memory-Modus** **200** mit `checks.database: not_configured`. Die PWA nutzt weiterhin `VITE_API_BASE_URL` als Origin — Orchestrierung kann `/ready` für Traffic schalten, sobald die Umgebung Postgres nutzt.
 
 ## API / Contracts
 
 - OpenAPI: [`docs/api-contract.yaml`](./docs/api-contract.yaml)
 - Contracts: [`docs/contracts/`](./docs/contracts/)
+- PWA / v1.3-Rollen → API-Rolle (Mapping-Tabelle): [`docs/contracts/ui-role-mapping-v1-3.md`](./docs/contracts/ui-role-mapping-v1-3.md)
 - Passwort-Login / Multi-User (Mandant): [`docs/authentication-login.md`](./docs/authentication-login.md)
 - Domäne (MVP): [`docs/ERP-Systembeschreibung.md`](./docs/ERP-Systembeschreibung.md)
 - KI-/Agenten-Orientierung: [`AGENTS.md`](./AGENTS.md) · Code-Landkarte [`docs/CODEMAPS/overview.md`](./docs/CODEMAPS/overview.md)

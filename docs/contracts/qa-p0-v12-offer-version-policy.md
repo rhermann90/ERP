@@ -39,7 +39,7 @@ Automatisierte Evidenz: `test/app.test.ts` (Abschnitte zu Versand, Annahme, Nach
 const blockedUpdate = await app.inject({
   method: "PATCH",
   url: `/offer-versions/${SEED_IDS.offerVersionId}`,
-  headers: buildHeaders("VERTRIEB"),
+  headers: buildHeaders("VERTRIEB_BAULEITUNG"),
   payload: { editingText: "In-place Versuch" },
 });
 expect([404, 405]).toContain(blockedUpdate.statusCode);
@@ -50,7 +50,7 @@ expect([404, 405]).toContain(blockedUpdate.statusCode);
 const createAfterSent = await app.inject({
   method: "POST",
   url: "/offers/version",
-  headers: buildHeaders("VERTRIEB"),
+  headers: buildHeaders("VERTRIEB_BAULEITUNG"),
   payload: {
     offerId: SEED_IDS.offerId,
     lvVersionId: "99999999-9999-4999-8999-999999999999",
@@ -64,7 +64,7 @@ expect(createAfterSent.statusCode).toBe(201);
 ### P0-V12-03 (curl)
 ```bash
 curl -s -X GET "http://localhost:3000/documents/<offerVersionId>/allowed-actions?entityType=OFFER_VERSION" \
-  -H "authorization: Bearer <token_VERTRIEB>" \
+  -H "authorization: Bearer <token_VERTRIEB_BAULEITUNG>" \
   -H "x-tenant-id: <tenantId>"
 # Erwartung: allowedActions enthält OFFER_CREATE_VERSION (bei Status VERSENDET)
 ```
@@ -74,7 +74,7 @@ curl -s -X GET "http://localhost:3000/documents/<offerVersionId>/allowed-actions
 const blockedCreate = await app.inject({
   method: "POST",
   url: "/offers/version",
-  headers: buildHeaders("VERTRIEB"),
+  headers: buildHeaders("VERTRIEB_BAULEITUNG"),
   payload: {
     offerId: SEED_IDS.offerId,
     lvVersionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -91,7 +91,7 @@ expect(blockedCreate.json().code).toBe("FOLLOWUP_DOCUMENT_REQUIRED");
 const actionsAfterAccepted = await app.inject({
   method: "GET",
   url: `/documents/${SEED_IDS.offerVersionId}/allowed-actions?entityType=OFFER_VERSION`,
-  headers: buildHeaders("VERTRIEB"),
+  headers: buildHeaders("VERTRIEB_BAULEITUNG"),
 });
 expect(actionsAfterAccepted.statusCode).toBe(200);
 expect(actionsAfterAccepted.json().allowedActions).not.toContain("OFFER_CREATE_VERSION");
@@ -135,7 +135,7 @@ const tenantMismatch = await app.inject({
   method: "POST",
   url: "/offers/version",
   headers: {
-    ...buildHeaders("VERTRIEB"),
+    ...buildHeaders("VERTRIEB_BAULEITUNG"),
     "x-tenant-id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
   },
   payload: {
