@@ -51,6 +51,9 @@ jobs:
       - name: npm audit (full tree incl. workspaces, Phase A2)
         run: npm audit --audit-level=high
 
+      - name: Prisma stack sanity (major + config convention)
+        run: npm run check:prisma-stack
+
       - name: Prisma migrate deploy (test DB)
         run: npx prisma migrate deploy
 
