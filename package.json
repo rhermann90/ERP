@@ -24,7 +24,7 @@
     "verify:ci:with-migrate": "npx prisma migrate deploy && npm run verify:ci",
     "docker:db-up": "docker compose up -d",
     "ensure:local-test-db": "node scripts/ensure-local-postgres-test-db.mjs",
-    "verify:ci:local-db": "npm run ensure:local-test-db && sh -c 'export DATABASE_URL=${DATABASE_URL:-postgresql://erp:erp@127.0.0.1:15432/erp_test} PERSISTENCE_DB_TEST_URL=${PERSISTENCE_DB_TEST_URL:-postgresql://erp:erp@127.0.0.1:15432/erp_test} && npm run verify:ci:with-migrate'",
+    "verify:ci:local-db": "npm run ensure:local-test-db && sh -c 'export DATABASE_URL=${DATABASE_URL:-postgresql://erp:erp@127.0.0.1:5432/erp_test} PERSISTENCE_DB_TEST_URL=${PERSISTENCE_DB_TEST_URL:-postgresql://erp:erp@127.0.0.1:5432/erp_test} && npm run verify:ci:with-migrate'",
     "validate:api-contract-yaml": "node scripts/validate-api-contract-yaml.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
@@ -39,15 +39,16 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@fastify/rate-limit": "^10.3.0",
     "@prisma/client": "^5.22.0",
-    "bcryptjs": "^2.4.0",
+    "bcryptjs": "^3.0.3",
     "fastify": "^5.8.5",
     "nodemailer": "^8.0.5",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
-    "@types/bcryptjs": "^2.4.6",
+    "@types/bcryptjs": "^3.0.0",
     "@types/node": "^25.6.0",
     "@types/nodemailer": "^6.4.17",
     "concurrently": "^9.1.2",

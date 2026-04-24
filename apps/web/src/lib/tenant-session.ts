@@ -26,6 +26,7 @@ export function persistSession(token: string, tenantId: string, mode: SessionSto
     clearPersistedSession();
     return;
   }
+  // Tab-lokal: Bearer nur in sessionStorage (kein localStorage); siehe Modulbeschreibung oben.
   sessionStorage.setItem(SS_TOKEN, token);
   sessionStorage.setItem(SS_TENANT, tenantId);
 }
