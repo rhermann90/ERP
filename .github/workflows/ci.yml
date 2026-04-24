@@ -81,6 +81,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: backend
     timeout-minutes: 20
+    env:
+      DATABASE_URL: postgresql://erp:erp@localhost:5432/erp_test
     steps:
       - uses: actions/checkout@v6
 
