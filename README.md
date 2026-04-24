@@ -15,6 +15,8 @@ Dieser Stand ist als Integrations-/Abnahmebasis gedacht (API + Contracts + PWA-S
 3. **Backend:** `AUTH_TOKEN_SECRET` setzen, optional `CORS_ORIGINS`, dann `npm run dev` (Port **3000**).
 4. **PWA:** siehe [`apps/web/README.md`](./apps/web/README.md) (`npm run dev:web`).
 
+**Vite (Major-Upgrades):** `vite`, `@vitejs/plugin-react` und `vite-plugin-pwa` werden **nicht** im Dependabot-Sammel-PR angehoben — bewusst in **einem** koordinierten PR nach Checkliste in [`docs/tickets/VITE-MAJOR-UPGRADE.md`](./docs/tickets/VITE-MAJOR-UPGRADE.md).
+
 **Postgres ohne eingechecktes Compose:** z. B. einmalig `docker run --name erp-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=erp -p 5432:5432 -d postgres:16` und dann `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/erp?schema=public` — oder eine lokale Postgres-Installation mit gleicher URL.
 
 ## Betriebsvariablen
