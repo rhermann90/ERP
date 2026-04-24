@@ -1,0 +1,30 @@
+# Lokale PostgreSQL für ERP (Prisma). Kein Produktions-Deployment.
+# Start: docker compose up -d
+# Stop:  docker compose down
+# Daten: benanntes Volume `erp_pg_data`
+#
+# ERP-API-Container (falls später ergänzt): `ERP_HTTP_HOST=0.0.0.0` und Ports `Host:Container`
+# publizieren (z. B. 3000:3000). Mit `ERP_HTTP_HOST=127.0.0.1` **im Container** ist die API
+# von außen oft **nicht** erreichbar — dann nur `network_mode: host` oder Bind `0.0.0.0` nutzen.
+# Siehe `docs/runbooks/phase-a-network-security-checklist.md`.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: erp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: erp
+      POSTGRES_PASSWORD: erp
+      POSTGRES_DB: erp
+    ports:
+      - "5432:5432"
+    volumes:
+      - erp_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp -d erp"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  erp_pg_data:

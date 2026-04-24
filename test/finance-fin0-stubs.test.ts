@@ -30,26 +30,75 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     await app.close();
   });
 
-  it("POST /finance/payment-terms/versions returns 422 TRACEABILITY_LINK_MISSING when body valid", async () => {
+  it("POST /finance/payment-terms/versions creates version (FIN-1)", async () => {
+    const projectId = randomUUID();
+    const customerId = randomUUID();
     const res = await app.inject({
       method: "POST",
       url: "/finance/payment-terms/versions",
       headers: buildHeaders(),
       payload: {
-        projectId: randomUUID(),
-        customerId: randomUUID(),
+        projectId,
+        customerId,
         termsLabel: "14 Tage netto",
-        reason: "FIN-0 stub test",
+        reason: "FIN-1 integration test",
       },
     });
-    expect(res.statusCode).toBe(422);
-    const body = res.json() as { code: string; retryable: boolean; blocking: boolean };
-    expect(body.code).toBe("TRACEABILITY_LINK_MISSING");
-    expect(body.retryable).toBe(false);
-    expect(body.blocking).toBe(true);
+    expect(res.statusCode).toBe(201);
+    const body = res.json() as {
+      paymentTermsVersionId: string;
+      paymentTermsHeadId: string;
+      versionNumber: number;
+      projectId: string;
+    };
+    expect(body.versionNumber).toBe(1);
+    expect(body.projectId).toBe(projectId);
+    expect(body.paymentTermsVersionId).toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  it("POST /invoices returns 422 TRACEABILITY_LINK_MISSING when body valid", async () => {
+  it("GET /finance/payment-terms returns 404 without head for random project", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: `/finance/payment-terms?projectId=${randomUUID()}`,
+      headers: buildHeaders(),
+    });
+    expect(res.statusCode).toBe(404);
+    expect((res.json() as { code: string }).code).toBe("DOCUMENT_NOT_FOUND");
+  });
+
+  it("POST /finance/payment-terms/versions increments versionNumber for same project", async () => {
+    const projectId = randomUUID();
+    const customerId = randomUUID();
+    const headers = buildHeaders();
+    const first = await app.inject({
+      method: "POST",
+      url: "/finance/payment-terms/versions",
+      headers,
+      payload: {
+        projectId,
+        customerId,
+        termsLabel: "30 Tage netto",
+        reason: "first version test",
+      },
+    });
+    expect(first.statusCode).toBe(201);
+    expect((first.json() as { versionNumber: number }).versionNumber).toBe(1);
+    const second = await app.inject({
+      method: "POST",
+      url: "/finance/payment-terms/versions",
+      headers,
+      payload: {
+        projectId,
+        customerId,
+        termsLabel: "60 Tage netto",
+        reason: "second version test",
+      },
+    });
+    expect(second.statusCode).toBe(201);
+    expect((second.json() as { versionNumber: number }).versionNumber).toBe(2);
+  });
+
+  it("POST /invoices creates draft when traceability satisfied (FIN-2)", async () => {
     const res = await app.inject({
       method: "POST",
       url: "/invoices",
@@ -58,14 +107,30 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
         lvVersionId: SEED_IDS.lvVersionId,
         offerVersionId: SEED_IDS.offerVersionId,
         invoiceCurrencyCode: "EUR",
-        reason: "FIN-0 stub test invoice",
+        reason: "FIN-2 draft integration test",
       },
     });
-    expect(res.statusCode).toBe(422);
-    expect((res.json() as { code: string }).code).toBe("TRACEABILITY_LINK_MISSING");
+    expect(res.statusCode).toBe(201);
+    const draft = res.json() as { invoiceId: string; lvNetCents: number; totalGrossCents: number };
+    expect(draft.invoiceId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(draft.lvNetCents).toBe(125000);
+    expect(draft.totalGrossCents).toBe(148750);
   });
 
-  it("GET /invoices/:id returns 404 DOCUMENT_NOT_FOUND", async () => {
+  it("GET /invoices/:id returns 200 for seed invoice", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: `/invoices/${SEED_IDS.invoiceId}`,
+      headers: buildHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { invoiceId: string; status: string };
+    expect(body.invoiceId).toBe(SEED_IDS.invoiceId);
+    expect(body.status).toBe("GEBUCHT_VERSENDET");
+    expect((body as { totalGrossCents?: number }).totalGrossCents).toBe(148750);
+  });
+
+  it("GET /invoices/:id returns 404 for unknown id", async () => {
     const id = randomUUID();
     const res = await app.inject({
       method: "GET",
@@ -126,8 +191,92 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
         reason: "FIN-0 stub test payment",
       },
     });
-    expect(res.statusCode).toBe(422);
-    expect((res.json() as { code: string }).code).toBe("TRACEABILITY_LINK_MISSING");
+    expect(res.statusCode).toBe(404);
+    expect((res.json() as { code: string }).code).toBe("DOCUMENT_NOT_FOUND");
+  });
+
+  it("POST /finance/payments/intake accepts Idempotency-Key header name case-insensitive (UPPERCASE)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/finance/payments/intake",
+      headers: {
+        ...buildHeaders(),
+        "IDEMPOTENCY-KEY": randomUUID(),
+      },
+      payload: {
+        invoiceId: randomUUID(),
+        amountCents: 100,
+        externalReference: "ext-1",
+        reason: "FIN-0 stub test payment idem upper",
+      },
+    });
+    expect(res.statusCode).toBe(404);
+    expect((res.json() as { code: string }).code).toBe("DOCUMENT_NOT_FOUND");
+  });
+
+  it("POST /finance/payments/intake trims Idempotency-Key value before UUID parse", async () => {
+    const idem = randomUUID();
+    const res = await app.inject({
+      method: "POST",
+      url: "/finance/payments/intake",
+      headers: {
+        ...buildHeaders(),
+        "Idempotency-Key": `  ${idem}  `,
+      },
+      payload: {
+        invoiceId: randomUUID(),
+        amountCents: 100,
+        externalReference: "ext-1",
+        reason: "FIN-0 stub test payment idem trim",
+      },
+    });
+    expect(res.statusCode).toBe(404);
+    expect((res.json() as { code: string }).code).toBe("DOCUMENT_NOT_FOUND");
+  });
+
+  it("POST /finance/payments/intake records full payment for seed invoice (FIN-3)", async () => {
+    const idem = randomUUID();
+    const res = await app.inject({
+      method: "POST",
+      url: "/finance/payments/intake",
+      headers: { ...buildHeaders(), "Idempotency-Key": idem },
+      payload: {
+        invoiceId: SEED_IDS.invoiceId,
+        amountCents: 148750,
+        externalReference: "bank-ref-full",
+        reason: "FIN-3 full payment integration test",
+      },
+    });
+    expect(res.statusCode).toBe(201);
+    const body = res.json() as { invoiceOpenCentsAfter: number; invoiceStatus: string };
+    expect(body.invoiceOpenCentsAfter).toBe(0);
+    expect(body.invoiceStatus).toBe("BEZAHLT");
+  });
+
+  it("POST /finance/payments/intake is idempotent (200 replay)", async () => {
+    const idem = randomUUID();
+    const headers = { ...buildHeaders(), "Idempotency-Key": idem };
+    const payload = {
+      invoiceId: SEED_IDS.invoiceId,
+      amountCents: 5000,
+      externalReference: "idem-ext",
+      reason: "FIN-3 idempotent replay integration test",
+    };
+    const first = await app.inject({
+      method: "POST",
+      url: "/finance/payments/intake",
+      headers,
+      payload,
+    });
+    expect(first.statusCode).toBe(201);
+    const second = await app.inject({
+      method: "POST",
+      url: "/finance/payments/intake",
+      headers,
+      payload,
+    });
+    expect(second.statusCode).toBe(200);
+    expect(second.json()).toEqual(first.json());
   });
 
   it("rejects tenant header mismatch with 403", async () => {
@@ -149,6 +298,26 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     expect((res.json() as { code: string }).code).toBe("TENANT_SCOPE_VIOLATION");
   });
 
+  it("POST /finance/payments/intake rejects tenant header mismatch with 403", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/finance/payments/intake",
+      headers: {
+        ...buildHeaders(),
+        "x-tenant-id": randomUUID(),
+        "Idempotency-Key": randomUUID(),
+      },
+      payload: {
+        invoiceId: randomUUID(),
+        amountCents: 100,
+        externalReference: "ext-1",
+        reason: "wrong tenant on payment intake",
+      },
+    });
+    expect(res.statusCode).toBe(403);
+    expect((res.json() as { code: string }).code).toBe("TENANT_SCOPE_VIOLATION");
+  });
+
   it("GET /invoices/:id rejects invalid Bearer with 401 UNAUTHORIZED", async () => {
     const id = randomUUID();
     const res = await app.inject({
@@ -161,6 +330,20 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     });
     expect(res.statusCode).toBe(401);
     expect((res.json() as { code: string }).code).toBe("UNAUTHORIZED");
+  });
+
+  it("GET /invoices/:id rejects tenant header mismatch with 403", async () => {
+    const id = randomUUID();
+    const res = await app.inject({
+      method: "GET",
+      url: `/invoices/${id}`,
+      headers: {
+        ...buildHeaders(),
+        "x-tenant-id": randomUUID(),
+      },
+    });
+    expect(res.statusCode).toBe(403);
+    expect((res.json() as { code: string }).code).toBe("TENANT_SCOPE_VIOLATION");
   });
 
   it("POST /invoices returns 400 VALIDATION_FAILED when reason too short", async () => {

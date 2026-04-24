@@ -13,7 +13,12 @@ export function resolveRepositoryMode(input?: ResolveRepositoryModeInput): Repos
   if (input?.repositoryMode === "memory") return "memory";
   if (input?.repositoryMode === "postgres") return "postgres";
   if (process.env.NODE_ENV === "test") return "memory";
-  if (process.env.ERP_REPOSITORY === "memory") return "memory";
+  /**
+   * `ERP_REPOSITORY=memory` nur ohne DB-URL: sonst würde eine alte .env-Zeile
+   * (Beispiel aus .env.example) jeden Shell-`export DATABASE_URL` überschreiben.
+   * Explizit nur In-Memory trotz URL: URL aus der Umgebung entfernen oder `buildApp({ repositoryMode: "memory" })`.
+   */
+  if (process.env.ERP_REPOSITORY === "memory" && !process.env.DATABASE_URL?.trim()) return "memory";
 
   const deploymentRequiresDb =
     process.env.NODE_ENV === "production" || process.env.ERP_DEPLOYMENT === "integration";
