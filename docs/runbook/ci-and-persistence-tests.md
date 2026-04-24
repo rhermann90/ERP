@@ -7,6 +7,7 @@ Workflow: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)
 - **Postgres 16** als Service-Container auf Port5432.
 - **`DATABASE_URL`** und **`PERSISTENCE_DB_TEST_URL`** zeigen auf dieselbe Test-DB (`erp_test`).
 - Ablauf: `npm ci` → `prisma migrate deploy` → `prisma:validate` → `typecheck` → `npm test`.
+- **Prisma-CLI-Version** entspricht den Root-Abhängigkeiten in `package.json` / `package-lock.json` (Major-Upgrade: [`docs/tickets/PRISMA-7-UPGRADE.md`](../tickets/PRISMA-7-UPGRADE.md)). In CI: `npm run check:prisma-stack` vor `prisma:validate`.
 
 Ohne `PERSISTENCE_DB_TEST_URL` schlagen die Persistenz-Suites in CI nicht fehl durch Überspringen: `test/persistence*.ts` werfen bei `GITHUB_ACTIONS=true` ohne Variable einen Fehler (**Stop-the-line**).
 
