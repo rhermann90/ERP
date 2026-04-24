@@ -54,8 +54,8 @@
     "concurrently": "^9.1.2",
     "prisma": "^5.22.0",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.2",
-    "vitest": "^4.1.4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5",
     "yaml": "^2.8.3"
   }
 }
