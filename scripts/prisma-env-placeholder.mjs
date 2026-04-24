@@ -1,5 +1,6 @@
 /**
- * Prisma CLI lädt env("DATABASE_URL") beim Validieren; für CI ohne echte DB reicht ein Platzhalter.
+ * Prisma CLI lädt env("DATABASE_URL") aus prisma.config.ts (validate, generate, postinstall).
+ * Fehlt die Variable, setzen wir einen syntaktisch gültigen Platzhalter — ohne echte DB-Verbindung.
  */
 import { spawnSync } from "node:child_process";
 

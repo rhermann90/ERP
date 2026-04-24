@@ -1,7 +1,7 @@
 # FIN-2-Start-Gate (Rechnung + Berechnungskette 8.4)
 
 **Rolle:** Kanonische, **binäre** Freigabebedingungen vor Beginn der **Implementierung** von **FIN-2** (`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`).  
-**Domänenquelle:** `ERP Systembeschreibung v1.3.md` — **8.1**, **8.2**, **8.4**, **5.5**, Traceability; Quality Gate spätere MVP-Abnahme: **§15**.  
+**Domänenquelle:** `docs/ERP-Systembeschreibung.md` — **8.1**, **8.2**, **8.4**, **5.5**, Traceability; Quality Gate spätere MVP-Abnahme: **§15**.  
 **Status:** Gate-Nachweise im Repo gepflegt; Spalte „erfüllt“ auf **ja** gesetzt (2026-04-21). Formale Gegenzeichnung: Abschnitt 4.
 
 ---
@@ -84,7 +84,7 @@ Team,
 4. **QA:** `docs/contracts/qa-fin-0-gate-readiness.md`, `docs/contracts/qa-fin-2-start-gate-stub-matrix.md`  
 5. **Koordination / QA-Gate:** `docs/contracts/qa-fin-0-gate-readiness.md`  
 6. **Phasenüberblick:** `docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`  
-7. **MVP-Abnahme später:** `ERP Systembeschreibung v1.3.md` **§15**.
+7. **MVP-Abnahme später:** `docs/ERP-Systembeschreibung.md` **§15**.
 
 Nächste Rollen: **Backend** ADR/OpenAPI finalisieren; **Frontend** nur falls im FIN-0-PR vereinbart; **QA** Gate-Testbarkeit + CI; **Code Review** Merge nur ohne verstecktes FIN-2-Business-Volume.
 
@@ -100,7 +100,7 @@ Projektleitung
 - `docs/api-contract.yaml`, `docs/contracts/finance-fin0-openapi-mapping.md`, `docs/contracts/error-codes.json`  
 - `docs/contracts/qa-fin-0-gate-readiness.md`, `docs/contracts/qa-fin-2-start-gate-stub-matrix.md`  
 - `apps/web/README.md` (Abschnitt **MVP Finanz / Offline**, FIN-0 ohne UI-Change)  
-- `ERP Systembeschreibung v1.3.md` **§15**, **§16**  
+- `docs/ERP-Systembeschreibung.md` **§15**, **§16**  
 - `docs/tickets/FOLLOWUP-LV-DELETE-WITH-DEPENDENT-OFFERS.md` (LV-Löschung vs. `offer_versions.lv_version_id` / **RESTRICT** — fachliche Regel offen; **kein stiller DB-Fix**)  
 - `docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md` — **Option B (fail-hard)** umgesetzt; atomare Transaktion Audit+Domäne / Outbox weiterhin separates Thema
 

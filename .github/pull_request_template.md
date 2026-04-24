@@ -4,6 +4,11 @@
 
 **Branch-Schutz (Repo-Admin):** Pflicht-Statuscheck **`backend`** — [`docs/runbooks/github-branch-protection-backend.md`](../docs/runbooks/github-branch-protection-backend.md).
 
+### Abhängigkeiten vs. Produkt (Pflicht bei gemischtem Kontext)
+
+- **Dependabot-Branches** (`dependabot/…`): nur Dependency-Updates mergen — **kein** Produkt-/Finanz-WIP darauf committen.
+- **Feature-Branches** von `main` (`feat/…`, `fix/…`): Mandanten- und Finanz-Änderungen **nur** dort und in **eigenen** PRs gegen `main`, damit Rollback und Verantwortung klar bleiben.
+
 ### Schnell-Check (kleine PRs: Refactor, Typos, keine Finanz-/Contract-Änderung)
 
 - [ ] `npm run verify:ci` lokal grün **oder** bewusst auf Remote-CI vertraut
@@ -11,6 +16,8 @@
 - [ ] Bei Touch von `src/` + Mandanten/Finanz: mindestens bestehende Tests für den Pfad mitbedacht
 
 **Finanz, Zahlungsfluss, Rechnung, OpenAPI, `error-codes.json`, `prisma/migrations`:** unten **Merge-Evidence §5a** vollständig; bei Unsicherheit PL/Review einbeziehen.
+
+**Rechts-/Produktiv-Go (nur wenn PR Rechnung, Steuerausweis, E-Rechnung-Export, Aufbewahrung oder vergleichbare Compliance-Relevanz hat):** Verweis, ob [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) im Ticket/Release-Note aktualisiert oder bewusst „keine Änderung“ — kein stiller GoBD-/StB-Nachweis durch Merge allein.
 
 ---
 

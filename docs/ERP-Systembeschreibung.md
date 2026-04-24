@@ -615,6 +615,7 @@ Phase 1 ist nur abgeschlossen, wenn:
 - Rollen-/Aktionsrechte je Status definiert sind — **v1.3: inkl. Zahlungs- und Mahnaktionen**
 - AuditEvent-Modell umgesetzt ist
 - DSGVO- und Exportregeln mit Pflichtfeldern dokumentiert sind
+- **Operative Abnahme neben Software-QA:** fuer Mandanten-Go unter **UStG / HGB / AO / GoBD / E-Rechnung / DSGVO** die Checkliste [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) mit **Steuerberatung, Datenschutz und Projektleitung** abgearbeitet (kein Ersatz fuer separates Release-GO; siehe [`README.md`](../README.md))
 
 ## 16. Offene Risiken und Annahmen (Pflichtabschnitt)
 
@@ -664,11 +665,11 @@ Die folgende **vierstufige** Reihenfolge dient **nur** als **Startvorlage** fuer
 
 ## Anhang — Archivhinweis
 
-Die vormals separaten Dateien **`ERP Systembeschreibung v1.2.md`**, **`ERP Systembeschreibung v1.3.md`**, **`ERP Systembeschreibung.txt`** sowie **`ENTWICKLUNGSPHASEN-MVP-V1.3.md`** liegen unter:
+Die historischen Einzelstände (**ERP Systembeschreibung v1.2** / **v1.3**, **ERP Systembeschreibung.txt**, **ERP Systembeschreibung.docx**) und die Referenzkopie **ENTWICKLUNGSPHASEN-MVP-V1.3.md** liegen ausschließlich unter:
 
 `docs/_archiv/systembeschreibung-und-phasen-legacy/`
 
-Sie sind **nicht** mehr maßgeblich; bei Widersprüchen gilt **dieses** Dokument (`docs/ERP-Systembeschreibung.md`).
+Die vormals im **Repo-Root** liegenden Duplikate dieser Dateien wurden entfernt. Archivierte Dateien sind **nicht** maßgeblich; bei Widersprüchen gilt **dieses** Dokument (`docs/ERP-Systembeschreibung.md`).
 
 **Phase A (Teil III) — Artefakte im Repo:** `docs/runbooks/phase-a-vulnerability-register.md`, `docs/runbooks/phase-a-staging-prod-env-checklist.md`, `docs/runbooks/phase-a-database-backup-restore.md`, `docs/runbooks/phase-a-observability-incident-drill.md`, `docs/runbooks/phase-a-network-security-checklist.md`, `docs/runbooks/github-branch-protection-backend.md`, `docs/contracts/phase-a-critical-path-test-matrix.md`.
 

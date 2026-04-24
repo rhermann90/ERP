@@ -1,5 +1,5 @@
 {
-  "contractVersion": "1.4.1",
+  "contractVersion": "1.6.0-fin4-dunning-write-sot",
   "phase": "phase-2-inc2-lv",
   "policy": {
     "sourceOfTruth": "backend.allowedActions",
@@ -319,6 +319,39 @@
       "backendErrors": ["STATUS_TRANSITION_FORBIDDEN", "AUTH_ROLE_FORBIDDEN", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
     },
     {
+      "actionId": "BOOK_INVOICE",
+      "requiredRole": ["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["ENTWURF"],
+      "allowedToStatus": ["GEBUCHT_VERSENDET"],
+      "validationSchema": {
+        "endpoint": "POST /invoices/{invoiceId}/book",
+        "requiredFields": ["reason"],
+        "fieldRules": {
+          "reason": "minLength:5",
+          "issueDate": "optional ISO yyyy-mm-dd"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": [
+        "INVOICE_NOT_BOOKABLE",
+        "INVOICE_NUMBER_CONFLICT",
+        "INVOICE_DRAFT_INCOMPLETE",
+        "TRACEABILITY_LINK_MISSING",
+        "TRACEABILITY_FIELD_MISMATCH",
+        "DOCUMENT_NOT_FOUND",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "VALIDATION_FAILED"
+      ],
+      "backendPolicyMirror": {
+        "source": "AuthorizationService.assertCanBookInvoice + allowedInvoiceActionsByStatus",
+        "sourceOfTruthEndpoint": "GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE",
+        "canonicalActionId": "BOOK_INVOICE"
+      }
+    },
+    {
       "actionId": "EXPORT_INVOICE",
       "requiredRole": ["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG"],
       "allowedFromStatus": ["FREIGEGEBEN", "GEBUCHT_VERSENDET", "TEILBEZAHLT", "BEZAHLT"],
@@ -347,6 +380,72 @@
         "sourceOfTruthEndpoint": "GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE",
         "canonicalActionId": "EXPORT_INVOICE",
         "legacyForbidden": ["EXPORT_INVOICE_XRECHNUNG"]
+      }
+    },
+    {
+      "actionId": "RECORD_PAYMENT_INTAKE",
+      "requiredRole": ["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["GEBUCHT_VERSENDET", "TEILBEZAHLT"],
+      "allowedToStatus": ["TEILBEZAHLT", "BEZAHLT"],
+      "validationSchema": {
+        "endpoint": "POST /finance/payments/intake",
+        "requiredFields": ["invoiceId", "amountCents", "externalReference", "reason"],
+        "headerFields": ["Idempotency-Key"],
+        "fieldRules": {
+          "invoiceId": "uuid",
+          "amountCents": "integer>=1",
+          "externalReference": "maxLength:200",
+          "reason": "minLength:5",
+          "Idempotency-Key": "uuid"
+        }
+      },
+      "idempotencyKeyRequired": true,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": [
+        "PAYMENT_EXCEEDS_OPEN_AMOUNT",
+        "PAYMENT_INTAKE_IDEMPOTENCY_MISMATCH",
+        "PAYMENT_INVOICE_AMOUNT_MISSING",
+        "PAYMENT_INVOICE_NOT_PAYABLE",
+        "DOCUMENT_NOT_FOUND",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "VALIDATION_FAILED"
+      ],
+      "backendPolicyMirror": {
+        "source": "AuthorizationService.assertCanRecordPaymentIntake + allowedInvoiceActionsByStatus",
+        "sourceOfTruthEndpoint": "GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE",
+        "canonicalActionId": "RECORD_PAYMENT_INTAKE"
+      }
+    },
+    {
+      "actionId": "RECORD_DUNNING_REMINDER",
+      "requiredRole": ["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG"],
+      "allowedFromStatus": ["GEBUCHT_VERSENDET", "TEILBEZAHLT"],
+      "allowedToStatus": ["GEBUCHT_VERSENDET", "TEILBEZAHLT"],
+      "validationSchema": {
+        "endpoint": "POST /invoices/{invoiceId}/dunning-reminders",
+        "requiredFields": ["stageOrdinal", "reason"],
+        "fieldRules": {
+          "stageOrdinal": "integer 1-9",
+          "note": "optional maxLength 500",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "STATUS_CHANGED",
+      "backendErrors": [
+        "DUNNING_INVOICE_NOT_ELIGIBLE",
+        "DOCUMENT_NOT_FOUND",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "VALIDATION_FAILED"
+      ],
+      "backendPolicyMirror": {
+        "source": "AuthorizationService.assertCanRecordDunningReminder + allowedInvoiceActionsByStatus",
+        "sourceOfTruthEndpoint": "GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE",
+        "canonicalActionId": "RECORD_DUNNING_REMINDER"
       }
     },
     {

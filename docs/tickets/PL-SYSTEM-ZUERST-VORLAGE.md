@@ -30,6 +30,7 @@
 **Gates / Merge-Regeln (kurz):**
 - FIN-2 / produktive Finanz-API: erst nach Schließen G1–G10 in docs/tickets/FIN-2-START-GATE.md
 - PR mit Audit-Verhalten (AuditService / Dual-Write / Transaktionsgrenze Audit): erst nach vollständigem „PL-Eintrag“ in docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md (alle vier Zellen ohne —)
+- Mandanten-Go Finanz (UStG / GoBD / E-Rechnung / DSGVO u. a.): fachliche Checkliste `Checklisten/compliance-rechnung-finanz.md` mit StB/DSB/PL — zusätzlich zu CI; kein Ersatz für separates Release-GO (siehe README)
 
 **Optional — Branch-Schutz / CI:** <z. B. Required Check „backend“ auf main — ja/nein/offen>
 
@@ -51,4 +52,5 @@
 | Repo-Einstieg | [`README.md`](../../README.md) |
 | GitHub-Review-Vorlage (Gate) | [`GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](./GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md) |
 | Multi-Agent-Kernregeln | [`.cursor/rules/erp-multi-agent.mdc`](../../.cursor/rules/erp-multi-agent.mdc) |
-| Domänenquelle MVP | [`ERP Systembeschreibung v1.3.md`](../../ERP%20Systembeschreibung%20v1.3.md) |
+| Domänenquelle MVP | [`docs/ERP-Systembeschreibung.md`](../ERP-Systembeschreibung.md) |
+| Produktiv-Go Finanz (fachlich, neben CI) | [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) |

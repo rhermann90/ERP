@@ -4,7 +4,7 @@
 **CLOSED (Iteration 1) — Final Closure erteilt; Implementierung und Abnahme abgeschlossen. Folgearbeit: Iteration 1b / Persistenz siehe unten.**
 
 ## Kontext (verbindlich)
-`ERP Systembeschreibung v1.2.md`:
+`docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`:
 - **§5.3 Nachtragsangebot**: `Entwurf -> In Freigabe -> Freigegeben -> Versendet -> Beauftragt/Abgelehnt -> Archiviert`
 - **Wirkung**: „Wirkung auf abrechenbare Mengen **erst nach Status Beauftragt**“
 - **§7**: Jede Abweichung im **Aufmass** und in der **Rechnung** nachvollziehbar; Ursprungsangebot historisch unverändert
@@ -128,7 +128,7 @@ Nachtrag technisch und fachlich von „nur ENTWURF-Anlage“ auf **vollständige
 - **ADMIN**, **VERTRIEB_BAULEITUNG**, **GESCHAEFTSFUEHRUNG** dürfen aus `VERSENDET` **ANGENOMMEN** bzw. **ABGELEHNT** setzen (bereits in `AuthorizationService` umgesetzt; fachlich bestätigt).
 
 ## Verweise
-- `ERP Systembeschreibung v1.2.md` (§5.3, §7)
+- `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md` (§5.3, §7)
 - `docs/tickets/TICKET-001-nachtrag-minimal-api.md`
 - `docs/adr/0002-nachtrag-lifecycle.md` (ACCEPTED für Iteration-1-Schnitt)
 - `docs/tickets/PHASE-2-STARTAUFTRAG.md`

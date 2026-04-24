@@ -46,7 +46,7 @@
 - Vorher: `error-codes.json` enthielt `backendGap` (correlationId/retryable/blocking als nicht backendgeliefert); Abweichung zu `handleError` und OpenAPI `Error`-Schema.
 - Nachher: `backendGap` entfernt / QA-Closure dokumentiert; `backendEnvelope` und `domainErrorCodesEmitted` 1:1 zu Implementierung; OpenAPI `Error` mit Pflichtfeldern wie Backend; Decision-Log: Frontend **Passthrough**, Fallback nur temporär begründet.
 - Kritikalität: **mittel** (Dokumentation, keine Fachlogikänderung)
-- Geschlossen: **2026-04-14** (siehe `docs/contracts/qa-defects-phase1.md`)
+- Geschlossen: **2026-04-14** (siehe `./qa-defects-phase1.md`)
 
 ## Delta-Bewertung
 - Kritische Deltas offen: **0**
