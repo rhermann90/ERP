@@ -118,7 +118,6 @@ import { DunningReminderEmailService } from "../services/dunning-reminder-email-
 import { DunningReminderRunService } from "../services/dunning-reminder-run-service.js";
 import { DunningReminderService } from "../services/dunning-reminder-service.js";
 import { DunningTenantAutomationService } from "../services/dunning-tenant-automation-service.js";
-import { runDunningAutomationCronTick } from "../services/dunning-automation-cron-tick.js";
 import { PaymentIntakeService } from "../services/payment-intake-service.js";
 import { registerPaymentIntakeRoutes } from "./finance-payment-intake-routes.js";
 import { registerPaymentTermsRoutes } from "./finance-payment-terms-routes.js";
@@ -301,7 +300,18 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   const paymentIntakeService = new PaymentIntakeService(repos, audit, invoicePersistence, paymentIntakePersistence);
   const dunningReminderService = new DunningReminderService(repos, audit, dunningReminderPersistence);
   const dunningReminderConfigService = new DunningReminderConfigService(dunningStageConfigPersistence, audit, prisma);
-  const dunningReminderCandidatesService = new DunningReminderCandidatesService(repos, dunningReminderConfigService);
+  const dunningTenantAutomationService = new DunningTenantAutomationService(
+    dunningTenantAutomationPersistence,
+    audit,
+    prisma,
+  );
+  const dunningReminderCandidatesService = new DunningReminderCandidatesService(
+    repos,
+    dunningReminderConfigService,
+    prisma
+      ? { get: (tenantId: string) => dunningTenantAutomationService.getEligibilityContext(tenantId) }
+      : undefined,
+  );
   const dunningReminderRunService = new DunningReminderRunService(
     dunningReminderCandidatesService,
     dunningReminderService,
@@ -319,11 +329,6 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     repos,
     dunningEmailSendPersistence,
     mailTransport,
-  );
-  const dunningTenantAutomationService = new DunningTenantAutomationService(
-    dunningTenantAutomationPersistence,
-    audit,
-    prisma,
   );
   const measurementService = new MeasurementService(repos, audit, lvRef, lvMeasurementPersistence);
   const lvService = new LvService(repos, audit, lvMeasurementPersistence);
@@ -727,35 +732,6 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     dunningReminderRunService,
     dunningTenantAutomationService,
   });
-
-  const dunningCronSecret = process.env.ERP_INTERNAL_DUNNING_CRON_SECRET?.trim();
-  if (prisma && dunningCronSecret) {
-    app.post(
-      "/internal/cron/dunning-automation",
-      {
-        config: {
-          rateLimit: false,
-        },
-      },
-      async (request, reply) => {
-        try {
-          const raw = request.headers["x-internal-cron-secret"];
-          const secretHeader = typeof raw === "string" ? raw.trim() : undefined;
-          if (secretHeader !== dunningCronSecret) {
-            throw new DomainError("UNAUTHORIZED", "Ungueltiges Cron-Geheimnis", 401);
-          }
-          const summary = await runDunningAutomationCronTick({
-            prisma,
-            dunningReminderCandidatesService,
-            dunningReminderRunService,
-          });
-          return reply.status(200).send({ data: summary });
-        } catch (error) {
-          return handleHttpError(error, request, reply);
-        }
-      },
-    );
-  }
 
   registerInvoiceFinanceRoutes(app, {
     authorizationService,

@@ -13,4 +13,4 @@ Diese Pakete sind in [`.github/dependabot.yml`](../../.github/dependabot.yml) au
 3. `npm ci`, `npm run build -w apps/web`, `npm run verify:ci`.
 4. Nach erfolgreichem Merge: optional `exclude-patterns` in Dependabot für diese Pakete überdenken (eigene Minor-PRs wieder erlauben).
 
-**Stand:** Produktionslinie bleibt auf Vite **6.x** und `@vitejs/plugin-react` **5.x**, bis die obige Checkliste erfüllt ist.
+**Stand (2026-04-25):** Produktionslinie [`apps/web/package.json`](../../apps/web/package.json): **Vite ^8.0.10**, `@vitejs/plugin-react` **^6.0.1**, `vite-plugin-pwa` **^1.2.0** — Major-Checkliste erledigt. Weitere Majors weiterhin als eigenes Inkrement + `npm run verify:ci`.

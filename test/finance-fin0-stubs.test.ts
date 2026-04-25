@@ -4,6 +4,7 @@ import { FastifyInstance } from "fastify";
 import { buildApp } from "../src/api/app.js";
 import { SEED_IDS } from "../src/composition/seed.js";
 import { createSignedToken } from "../src/auth/token-auth.js";
+import { ERP_OPENAPI_INFO_VERSION } from "../src/domain/openapi-contract-version.js";
 
 describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
   let app: FastifyInstance;
@@ -64,6 +65,126 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     });
     expect(res.statusCode).toBe(404);
     expect((res.json() as { code: string }).code).toBe("DOCUMENT_NOT_FOUND");
+  });
+
+  it("GET /finance/payment-terms allows VIEWER (read-only FIN-1)", async () => {
+    const projectId = randomUUID();
+    const customerId = randomUUID();
+    const adminTok = createSignedToken({
+      sub: "77777777-7777-4777-8777-777777777777",
+      tenantId: SEED_IDS.tenantId,
+      role: "ADMIN",
+      exp: Math.floor(Date.now() / 1000) + 600,
+    });
+    await app.inject({
+      method: "POST",
+      url: "/finance/payment-terms/versions",
+      headers: { authorization: `Bearer ${adminTok}`, "x-tenant-id": SEED_IDS.tenantId },
+      payload: {
+        projectId,
+        customerId,
+        termsLabel: "7 Tage netto",
+        reason: "seed payment terms for viewer read test",
+      },
+    });
+    const viewerTok = createSignedToken({
+      sub: SEED_IDS.seedViewerUserId,
+      tenantId: SEED_IDS.tenantId,
+      role: "VIEWER",
+      exp: Math.floor(Date.now() / 1000) + 600,
+    });
+    const res = await app.inject({
+      method: "GET",
+      url: `/finance/payment-terms?projectId=${projectId}`,
+      headers: { authorization: `Bearer ${viewerTok}`, "x-tenant-id": SEED_IDS.tenantId },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { versions: { versionNumber: number }[] };
+    expect(body.versions).toHaveLength(1);
+  });
+
+  it("POST /finance/payment-terms/versions rejects VIEWER (AUTH_ROLE_FORBIDDEN)", async () => {
+    const viewerTok = createSignedToken({
+      sub: SEED_IDS.seedViewerUserId,
+      tenantId: SEED_IDS.tenantId,
+      role: "VIEWER",
+      exp: Math.floor(Date.now() / 1000) + 600,
+    });
+    const res = await app.inject({
+      method: "POST",
+      url: "/finance/payment-terms/versions",
+      headers: { authorization: `Bearer ${viewerTok}`, "x-tenant-id": SEED_IDS.tenantId },
+      payload: {
+        projectId: randomUUID(),
+        customerId: randomUUID(),
+        termsLabel: "14 Tage",
+        reason: "viewer must not create payment terms",
+      },
+    });
+    expect(res.statusCode).toBe(403);
+    expect((res.json() as { code: string }).code).toBe("AUTH_ROLE_FORBIDDEN");
+  });
+
+  it("POST /finance/payment-terms/versions rejects customerId drift vs existing head (409)", async () => {
+    const projectId = randomUUID();
+    const customerA = randomUUID();
+    const headers = buildHeaders();
+    const first = await app.inject({
+      method: "POST",
+      url: "/finance/payment-terms/versions",
+      headers,
+      payload: {
+        projectId,
+        customerId: customerA,
+        termsLabel: "30 Tage",
+        reason: "first head customer A",
+      },
+    });
+    expect(first.statusCode).toBe(201);
+    const second = await app.inject({
+      method: "POST",
+      url: "/finance/payment-terms/versions",
+      headers,
+      payload: {
+        projectId,
+        customerId: randomUUID(),
+        termsLabel: "60 Tage",
+        reason: "second version wrong customer",
+      },
+    });
+    expect(second.statusCode).toBe(409);
+    expect((second.json() as { code: string }).code).toBe("VALIDATION_FAILED");
+  });
+
+  it("POST /invoices rejects paymentTermsVersionId for other project (TRACEABILITY_FIELD_MISMATCH)", async () => {
+    const otherProject = randomUUID();
+    const pt = await app.inject({
+      method: "POST",
+      url: "/finance/payment-terms/versions",
+      headers: buildHeaders(),
+      payload: {
+        projectId: otherProject,
+        customerId: randomUUID(),
+        termsLabel: "90 Tage",
+        reason: "payment terms on different project than seed offer",
+      },
+    });
+    expect(pt.statusCode).toBe(201);
+    const paymentTermsVersionId = (pt.json() as { paymentTermsVersionId: string }).paymentTermsVersionId;
+    const res = await app.inject({
+      method: "POST",
+      url: "/invoices",
+      headers: buildHeaders(),
+      payload: {
+        lvVersionId: SEED_IDS.lvVersionId,
+        offerVersionId: SEED_IDS.offerVersionId,
+        invoiceCurrencyCode: "EUR",
+        paymentTermsVersionId,
+        reason: "invoice must bind PT to offer project only",
+      },
+    });
+    expect(res.statusCode).toBe(422);
+    expect((res.json() as { code: string }).code).toBe("TRACEABILITY_FIELD_MISMATCH");
   });
 
   it("POST /finance/payment-terms/versions increments versionNumber for same project", async () => {
@@ -441,22 +562,37 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
       headers: buildHeaders(),
     });
     expect(res.statusCode).toBe(200);
+    expect(res.headers["x-erp-openapi-contract-version"]).toBe(ERP_OPENAPI_INFO_VERSION);
     const body = res.json() as {
       data: {
         stageOrdinal: number;
         daysAfterDueForStage: number;
         asOfDate: string;
-        candidates: Array<{ invoiceId: string; dueDate: string; openAmountCents: number }>;
+        eligibilityContext: {
+          ianaTimezone: string;
+          federalStateCode: string | null;
+          paymentTermDayKind: string;
+          preferredDunningChannel: string;
+        };
+        candidates: Array<{
+          invoiceId: string;
+          dueDate: string;
+          stageDeadlineIso: string;
+          openAmountCents: number;
+        }>;
       };
     };
     expect(body.data.stageOrdinal).toBe(1);
     expect(body.data.daysAfterDueForStage).toBe(14);
     expect(body.data.asOfDate).toBe("2026-04-28");
+    expect(body.data.eligibilityContext.ianaTimezone).toBe("Europe/Berlin");
+    expect(body.data.eligibilityContext.paymentTermDayKind).toBe("CALENDAR");
     const ids = body.data.candidates.map((c) => c.invoiceId).sort();
     expect(ids).toContain(SEED_IDS.invoiceId);
     expect(ids).toContain(SEED_IDS.inconsistentInvoiceId);
     for (const c of body.data.candidates) {
       expect(c.dueDate).toBe("2026-04-14");
+      expect(c.stageDeadlineIso).toBe("2026-04-28");
       expect(c.openAmountCents).toBeGreaterThan(0);
     }
   });
@@ -524,7 +660,7 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
       data: {
         mode: string;
         outcome: string;
-        planned: Array<{ invoiceId: string }>;
+        planned: Array<{ invoiceId: string; stageDeadlineIso: string }>;
       };
     };
     expect(body.data.mode).toBe("DRY_RUN");
@@ -532,6 +668,9 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     const ids = body.data.planned.map((p) => p.invoiceId).sort();
     expect(ids).toContain(SEED_IDS.invoiceId);
     expect(ids).toContain(SEED_IDS.inconsistentInvoiceId);
+    for (const p of body.data.planned) {
+      expect(p.stageDeadlineIso).toBe("2026-04-28");
+    }
   });
 
   it("POST /finance/dunning-reminder-run EXECUTE records and replays with Idempotency-Key (M4 Slice 5b-1)", async () => {

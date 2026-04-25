@@ -11,7 +11,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg"],
+      includeAssets: ["favicon.svg", "pwa-icon-maskable.svg"],
       manifest: {
         name: "ERP Konstruktion",
         short_name: "ERP",
@@ -20,7 +20,10 @@ export default defineConfig({
         background_color: "#ffffff",
         display: "standalone",
         start_url: "/",
-        icons: [{ src: "favicon.svg", sizes: "512x512", type: "image/svg+xml", purpose: "any" }],
+        icons: [
+          { src: "favicon.svg", sizes: "512x512", type: "image/svg+xml", purpose: "any" },
+          { src: "pwa-icon-maskable.svg", sizes: "512x512", type: "image/svg+xml", purpose: "maskable" },
+        ],
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],

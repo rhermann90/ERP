@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" aria-hidden="true">
+  <!-- Maskable-safe: markantes Motiv im inneren ~80%-Kreis; äußerer Rand als Puffer für adaptive Icons. -->
+  <rect width="512" height="512" rx="112" fill="#1d1d1f"/>
+  <g transform="translate(64 64) scale(6)">
+    <path d="M18 44V20h8l8 14 8-14h8v24h-7V30l-7 12h-3L25 30v14h-7z" fill="#f5f5f7"/>
+  </g>
+</svg>

@@ -12,17 +12,33 @@
       "infer additional status transitions",
       "execute hidden actions by handcrafted requests",
       "assume idempotency replay semantics not implemented by backend"
-    ]
+    ],
+    "ticket002LifecycleNote": "SUPPLEMENT_SET_* etc. describe target contracts; HTTP for POST /supplements/status and related lifecycle only after Review-GO per docs/tickets/TICKET-002-pre-go-runbook.md"
   },
   "actions": [
     {
       "actionId": "OFFER_CREATE_VERSION",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
-      "allowedFromStatus": ["ENTWURF", "IN_FREIGABE", "FREIGEGEBEN", "VERSENDET"],
-      "allowedToStatus": ["ENTWURF"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG"
+      ],
+      "allowedFromStatus": [
+        "ENTWURF",
+        "IN_FREIGABE",
+        "FREIGEGEBEN",
+        "VERSENDET"
+      ],
+      "allowedToStatus": [
+        "ENTWURF"
+      ],
       "validationSchema": {
         "endpoint": "POST /offers/version",
-        "requiredFields": ["offerId", "lvVersionId", "editingText", "reason"],
+        "requiredFields": [
+          "offerId",
+          "lvVersionId",
+          "editingText",
+          "reason"
+        ],
         "fieldRules": {
           "offerId": "uuid",
           "lvVersionId": "uuid",
@@ -43,17 +59,32 @@
       ],
       "backendPolicyMirror": {
         "source": "src/domain/offer-create-version-policy.ts",
-        "emitsNo": ["NEW_VERSION_REQUIRED"]
+        "emitsNo": [
+          "NEW_VERSION_REQUIRED"
+        ]
       }
     },
     {
       "actionId": "OFFER_CREATE_SUPPLEMENT",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["ANGENOMMEN"],
-      "allowedToStatus": ["ENTWURF"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "ANGENOMMEN"
+      ],
+      "allowedToStatus": [
+        "ENTWURF"
+      ],
       "validationSchema": {
         "endpoint": "POST /offers/{offerId}/supplements",
-        "requiredFields": ["baseOfferVersionId", "lvVersionId", "editingText", "reason"],
+        "requiredFields": [
+          "baseOfferVersionId",
+          "lvVersionId",
+          "editingText",
+          "reason"
+        ],
         "fieldRules": {
           "baseOfferVersionId": "uuid",
           "lvVersionId": "uuid",
@@ -79,12 +110,23 @@
     },
     {
       "actionId": "SUPPLEMENT_SET_IN_FREIGABE",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
-      "allowedFromStatus": ["ENTWURF"],
-      "allowedToStatus": ["IN_FREIGABE"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG"
+      ],
+      "allowedFromStatus": [
+        "ENTWURF"
+      ],
+      "allowedToStatus": [
+        "IN_FREIGABE"
+      ],
       "validationSchema": {
         "endpoint": "POST /supplements/status",
-        "requiredFields": ["supplementVersionId", "nextStatus", "reason"],
+        "requiredFields": [
+          "supplementVersionId",
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "nextStatus": "literal:IN_FREIGABE"
         }
@@ -101,12 +143,23 @@
     },
     {
       "actionId": "SUPPLEMENT_SET_FREIGEGEBEN",
-      "requiredRole": ["ADMIN", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["IN_FREIGABE"],
-      "allowedToStatus": ["FREIGEGEBEN"],
+      "requiredRole": [
+        "ADMIN",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "IN_FREIGABE"
+      ],
+      "allowedToStatus": [
+        "FREIGEGEBEN"
+      ],
       "validationSchema": {
         "endpoint": "POST /supplements/status",
-        "requiredFields": ["supplementVersionId", "nextStatus", "reason"],
+        "requiredFields": [
+          "supplementVersionId",
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "nextStatus": "literal:FREIGEGEBEN"
         }
@@ -123,12 +176,23 @@
     },
     {
       "actionId": "SUPPLEMENT_SET_VERSENDET",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
-      "allowedFromStatus": ["FREIGEGEBEN"],
-      "allowedToStatus": ["VERSENDET"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG"
+      ],
+      "allowedFromStatus": [
+        "FREIGEGEBEN"
+      ],
+      "allowedToStatus": [
+        "VERSENDET"
+      ],
       "validationSchema": {
         "endpoint": "POST /supplements/status",
-        "requiredFields": ["supplementVersionId", "nextStatus", "reason"],
+        "requiredFields": [
+          "supplementVersionId",
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "nextStatus": "literal:VERSENDET"
         }
@@ -145,12 +209,24 @@
     },
     {
       "actionId": "SUPPLEMENT_SET_BEAUFTRAGT",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["VERSENDET"],
-      "allowedToStatus": ["BEAUFTRAGT"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "VERSENDET"
+      ],
+      "allowedToStatus": [
+        "BEAUFTRAGT"
+      ],
       "validationSchema": {
         "endpoint": "POST /supplements/status",
-        "requiredFields": ["supplementVersionId", "nextStatus", "reason"],
+        "requiredFields": [
+          "supplementVersionId",
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "nextStatus": "literal:BEAUFTRAGT"
         }
@@ -167,12 +243,24 @@
     },
     {
       "actionId": "SUPPLEMENT_SET_ABGELEHNT",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["VERSENDET"],
-      "allowedToStatus": ["ABGELEHNT"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "VERSENDET"
+      ],
+      "allowedToStatus": [
+        "ABGELEHNT"
+      ],
       "validationSchema": {
         "endpoint": "POST /supplements/status",
-        "requiredFields": ["supplementVersionId", "nextStatus", "reason"],
+        "requiredFields": [
+          "supplementVersionId",
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "nextStatus": "literal:ABGELEHNT"
         }
@@ -189,12 +277,25 @@
     },
     {
       "actionId": "SUPPLEMENT_SET_ARCHIVIERT",
-      "requiredRole": ["ADMIN", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["ENTWURF", "BEAUFTRAGT", "ABGELEHNT"],
-      "allowedToStatus": ["ARCHIVIERT"],
+      "requiredRole": [
+        "ADMIN",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "ENTWURF",
+        "BEAUFTRAGT",
+        "ABGELEHNT"
+      ],
+      "allowedToStatus": [
+        "ARCHIVIERT"
+      ],
       "validationSchema": {
         "endpoint": "POST /supplements/status",
-        "requiredFields": ["supplementVersionId", "nextStatus", "reason"],
+        "requiredFields": [
+          "supplementVersionId",
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "nextStatus": "literal:ARCHIVIERT"
         }
@@ -211,12 +312,23 @@
     },
     {
       "actionId": "SUPPLEMENT_APPLY_BILLING_IMPACT",
-      "requiredRole": ["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["BEAUFTRAGT"],
-      "allowedToStatus": ["BEAUFTRAGT"],
+      "requiredRole": [
+        "ADMIN",
+        "BUCHHALTUNG",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "BEAUFTRAGT"
+      ],
+      "allowedToStatus": [
+        "BEAUFTRAGT"
+      ],
       "validationSchema": {
         "endpoint": "POST /supplements/{supplementVersionId}/billing-impact",
-        "requiredFields": ["invoiceId", "reason"],
+        "requiredFields": [
+          "invoiceId",
+          "reason"
+        ],
         "fieldRules": {
           "invoiceId": "uuid",
           "reason": "minLength:5"
@@ -236,12 +348,23 @@
     },
     {
       "actionId": "OFFER_SET_IN_FREIGABE",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
-      "allowedFromStatus": ["ENTWURF"],
-      "allowedToStatus": ["IN_FREIGABE"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG"
+      ],
+      "allowedFromStatus": [
+        "ENTWURF"
+      ],
+      "allowedToStatus": [
+        "IN_FREIGABE"
+      ],
       "validationSchema": {
         "endpoint": "POST /offers/status",
-        "requiredFields": ["offerVersionId", "nextStatus", "reason"],
+        "requiredFields": [
+          "offerVersionId",
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "offerVersionId": "uuid",
           "nextStatus": "literal:IN_FREIGABE",
@@ -250,48 +373,97 @@
       },
       "idempotencyKeyRequired": false,
       "auditEventType": "STATUS_CHANGED",
-      "backendErrors": ["STATUS_TRANSITION_FORBIDDEN", "AUTH_ROLE_FORBIDDEN", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
+      "backendErrors": [
+        "STATUS_TRANSITION_FORBIDDEN",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED"
+      ]
     },
     {
       "actionId": "OFFER_SET_FREIGEGEBEN",
-      "requiredRole": ["ADMIN", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["IN_FREIGABE"],
-      "allowedToStatus": ["FREIGEGEBEN"],
+      "requiredRole": [
+        "ADMIN",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "IN_FREIGABE"
+      ],
+      "allowedToStatus": [
+        "FREIGEGEBEN"
+      ],
       "validationSchema": {
         "endpoint": "POST /offers/status",
-        "requiredFields": ["offerVersionId", "nextStatus", "reason"],
+        "requiredFields": [
+          "offerVersionId",
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "nextStatus": "literal:FREIGEGEBEN"
         }
       },
       "idempotencyKeyRequired": false,
       "auditEventType": "STATUS_CHANGED",
-      "backendErrors": ["STATUS_TRANSITION_FORBIDDEN", "AUTH_ROLE_FORBIDDEN", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
+      "backendErrors": [
+        "STATUS_TRANSITION_FORBIDDEN",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED"
+      ]
     },
     {
       "actionId": "OFFER_SET_VERSENDET",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
-      "allowedFromStatus": ["FREIGEGEBEN"],
-      "allowedToStatus": ["VERSENDET"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG"
+      ],
+      "allowedFromStatus": [
+        "FREIGEGEBEN"
+      ],
+      "allowedToStatus": [
+        "VERSENDET"
+      ],
       "validationSchema": {
         "endpoint": "POST /offers/status",
-        "requiredFields": ["offerVersionId", "nextStatus", "reason"],
+        "requiredFields": [
+          "offerVersionId",
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "nextStatus": "literal:VERSENDET"
         }
       },
       "idempotencyKeyRequired": false,
       "auditEventType": "STATUS_CHANGED",
-      "backendErrors": ["STATUS_TRANSITION_FORBIDDEN", "AUTH_ROLE_FORBIDDEN", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
+      "backendErrors": [
+        "STATUS_TRANSITION_FORBIDDEN",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED"
+      ]
     },
     {
       "actionId": "OFFER_SET_ANGENOMMEN",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["VERSENDET"],
-      "allowedToStatus": ["ANGENOMMEN"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "VERSENDET"
+      ],
+      "allowedToStatus": [
+        "ANGENOMMEN"
+      ],
       "validationSchema": {
         "endpoint": "POST /offers/status",
-        "requiredFields": ["offerVersionId", "nextStatus", "reason"],
+        "requiredFields": [
+          "offerVersionId",
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "nextStatus": "literal:ANGENOMMEN",
           "reason": "minLength:5"
@@ -299,16 +471,33 @@
       },
       "idempotencyKeyRequired": false,
       "auditEventType": "STATUS_CHANGED",
-      "backendErrors": ["STATUS_TRANSITION_FORBIDDEN", "AUTH_ROLE_FORBIDDEN", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
+      "backendErrors": [
+        "STATUS_TRANSITION_FORBIDDEN",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED"
+      ]
     },
     {
       "actionId": "OFFER_SET_ABGELEHNT",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["VERSENDET"],
-      "allowedToStatus": ["ABGELEHNT"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "VERSENDET"
+      ],
+      "allowedToStatus": [
+        "ABGELEHNT"
+      ],
       "validationSchema": {
         "endpoint": "POST /offers/status",
-        "requiredFields": ["offerVersionId", "nextStatus", "reason"],
+        "requiredFields": [
+          "offerVersionId",
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "nextStatus": "literal:ABGELEHNT",
           "reason": "minLength:5"
@@ -316,16 +505,31 @@
       },
       "idempotencyKeyRequired": false,
       "auditEventType": "STATUS_CHANGED",
-      "backendErrors": ["STATUS_TRANSITION_FORBIDDEN", "AUTH_ROLE_FORBIDDEN", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
+      "backendErrors": [
+        "STATUS_TRANSITION_FORBIDDEN",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED"
+      ]
     },
     {
       "actionId": "BOOK_INVOICE",
-      "requiredRole": ["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["ENTWURF"],
-      "allowedToStatus": ["GEBUCHT_VERSENDET"],
+      "requiredRole": [
+        "ADMIN",
+        "BUCHHALTUNG",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "ENTWURF"
+      ],
+      "allowedToStatus": [
+        "GEBUCHT_VERSENDET"
+      ],
       "validationSchema": {
         "endpoint": "POST /invoices/{invoiceId}/book",
-        "requiredFields": ["reason"],
+        "requiredFields": [
+          "reason"
+        ],
         "fieldRules": {
           "reason": "minLength:5",
           "issueDate": "optional ISO yyyy-mm-dd"
@@ -353,12 +557,30 @@
     },
     {
       "actionId": "EXPORT_INVOICE",
-      "requiredRole": ["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["FREIGEGEBEN", "GEBUCHT_VERSENDET", "TEILBEZAHLT", "BEZAHLT"],
-      "allowedToStatus": ["FREIGEGEBEN", "GEBUCHT_VERSENDET", "TEILBEZAHLT", "BEZAHLT"],
+      "requiredRole": [
+        "ADMIN",
+        "BUCHHALTUNG",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "FREIGEGEBEN",
+        "GEBUCHT_VERSENDET",
+        "TEILBEZAHLT",
+        "BEZAHLT"
+      ],
+      "allowedToStatus": [
+        "FREIGEGEBEN",
+        "GEBUCHT_VERSENDET",
+        "TEILBEZAHLT",
+        "BEZAHLT"
+      ],
       "validationSchema": {
         "endpoint": "POST /exports",
-        "requiredFields": ["entityType", "entityId", "format"],
+        "requiredFields": [
+          "entityType",
+          "entityId",
+          "format"
+        ],
         "fieldRules": {
           "entityType": "literal:INVOICE",
           "entityId": "uuid",
@@ -379,18 +601,37 @@
         "source": "AuthorizationService.assertCanExport + allowedInvoiceActionsByStatus",
         "sourceOfTruthEndpoint": "GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE",
         "canonicalActionId": "EXPORT_INVOICE",
-        "legacyForbidden": ["EXPORT_INVOICE_XRECHNUNG"]
+        "legacyForbidden": [
+          "EXPORT_INVOICE_XRECHNUNG"
+        ]
       }
     },
     {
       "actionId": "RECORD_PAYMENT_INTAKE",
-      "requiredRole": ["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["GEBUCHT_VERSENDET", "TEILBEZAHLT"],
-      "allowedToStatus": ["TEILBEZAHLT", "BEZAHLT"],
+      "requiredRole": [
+        "ADMIN",
+        "BUCHHALTUNG",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "GEBUCHT_VERSENDET",
+        "TEILBEZAHLT"
+      ],
+      "allowedToStatus": [
+        "TEILBEZAHLT",
+        "BEZAHLT"
+      ],
       "validationSchema": {
         "endpoint": "POST /finance/payments/intake",
-        "requiredFields": ["invoiceId", "amountCents", "externalReference", "reason"],
-        "headerFields": ["Idempotency-Key"],
+        "requiredFields": [
+          "invoiceId",
+          "amountCents",
+          "externalReference",
+          "reason"
+        ],
+        "headerFields": [
+          "Idempotency-Key"
+        ],
         "fieldRules": {
           "invoiceId": "uuid",
           "amountCents": "integer>=1",
@@ -420,12 +661,25 @@
     },
     {
       "actionId": "RECORD_DUNNING_REMINDER",
-      "requiredRole": ["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["GEBUCHT_VERSENDET", "TEILBEZAHLT"],
-      "allowedToStatus": ["GEBUCHT_VERSENDET", "TEILBEZAHLT"],
+      "requiredRole": [
+        "ADMIN",
+        "BUCHHALTUNG",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "GEBUCHT_VERSENDET",
+        "TEILBEZAHLT"
+      ],
+      "allowedToStatus": [
+        "GEBUCHT_VERSENDET",
+        "TEILBEZAHLT"
+      ],
       "validationSchema": {
         "endpoint": "POST /invoices/{invoiceId}/dunning-reminders",
-        "requiredFields": ["stageOrdinal", "reason"],
+        "requiredFields": [
+          "stageOrdinal",
+          "reason"
+        ],
         "fieldRules": {
           "stageOrdinal": "integer 1-9",
           "note": "optional maxLength 500",
@@ -450,12 +704,30 @@
     },
     {
       "actionId": "EXPORT_OFFER_VERSION",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["FREIGEGEBEN", "VERSENDET", "ANGENOMMEN", "ABGELEHNT"],
-      "allowedToStatus": ["FREIGEGEBEN", "VERSENDET", "ANGENOMMEN", "ABGELEHNT"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "FREIGEGEBEN",
+        "VERSENDET",
+        "ANGENOMMEN",
+        "ABGELEHNT"
+      ],
+      "allowedToStatus": [
+        "FREIGEGEBEN",
+        "VERSENDET",
+        "ANGENOMMEN",
+        "ABGELEHNT"
+      ],
       "validationSchema": {
         "endpoint": "POST /exports",
-        "requiredFields": ["entityType", "entityId", "format"],
+        "requiredFields": [
+          "entityType",
+          "entityId",
+          "format"
+        ],
         "fieldRules": {
           "entityType": "literal:OFFER_VERSION",
           "entityId": "uuid",
@@ -464,16 +736,39 @@
       },
       "idempotencyKeyRequired": false,
       "auditEventType": "EXPORT_SUCCEEDED|EXPORT_FAILED",
-      "backendErrors": ["EXPORT_PREFLIGHT_FAILED", "AUTH_ROLE_FORBIDDEN", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
+      "backendErrors": [
+        "EXPORT_PREFLIGHT_FAILED",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED"
+      ]
     },
     {
       "actionId": "EXPORT_SUPPLEMENT_VERSION",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["FREIGEGEBEN", "VERSENDET", "BEAUFTRAGT", "ABGELEHNT"],
-      "allowedToStatus": ["FREIGEGEBEN", "VERSENDET", "BEAUFTRAGT", "ABGELEHNT"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "FREIGEGEBEN",
+        "VERSENDET",
+        "BEAUFTRAGT",
+        "ABGELEHNT"
+      ],
+      "allowedToStatus": [
+        "FREIGEGEBEN",
+        "VERSENDET",
+        "BEAUFTRAGT",
+        "ABGELEHNT"
+      ],
       "validationSchema": {
         "endpoint": "POST /exports",
-        "requiredFields": ["entityType", "entityId", "format"],
+        "requiredFields": [
+          "entityType",
+          "entityId",
+          "format"
+        ],
         "fieldRules": {
           "entityType": "literal:SUPPLEMENT_VERSION",
           "entityId": "uuid",
@@ -482,16 +777,34 @@
       },
       "idempotencyKeyRequired": false,
       "auditEventType": "EXPORT_SUCCEEDED|EXPORT_FAILED",
-      "backendErrors": ["EXPORT_PREFLIGHT_FAILED", "AUTH_ROLE_FORBIDDEN", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
+      "backendErrors": [
+        "EXPORT_PREFLIGHT_FAILED",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED"
+      ]
     },
     {
       "actionId": "MEASUREMENT_CREATE",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
-      "allowedFromStatus": ["N_A"],
-      "allowedToStatus": ["ENTWURF"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG"
+      ],
+      "allowedFromStatus": [
+        "N_A"
+      ],
+      "allowedToStatus": [
+        "ENTWURF"
+      ],
       "validationSchema": {
         "endpoint": "POST /measurements",
-        "requiredFields": ["projectId", "customerId", "lvVersionId", "positions", "reason"],
+        "requiredFields": [
+          "projectId",
+          "customerId",
+          "lvVersionId",
+          "positions",
+          "reason"
+        ],
         "fieldRules": {
           "projectId": "uuid",
           "customerId": "uuid",
@@ -518,12 +831,22 @@
     },
     {
       "actionId": "MEASUREMENT_UPDATE_POSITIONS",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
-      "allowedFromStatus": ["ENTWURF"],
-      "allowedToStatus": ["ENTWURF"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG"
+      ],
+      "allowedFromStatus": [
+        "ENTWURF"
+      ],
+      "allowedToStatus": [
+        "ENTWURF"
+      ],
       "validationSchema": {
         "endpoint": "POST /measurements/{measurementVersionId}/positions",
-        "requiredFields": ["positions", "reason"],
+        "requiredFields": [
+          "positions",
+          "reason"
+        ],
         "fieldRules": {
           "positions": "array min 1",
           "reason": "minLength:5"
@@ -547,12 +870,23 @@
     },
     {
       "actionId": "MEASUREMENT_SET_GEPRUEFT",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
-      "allowedFromStatus": ["ENTWURF"],
-      "allowedToStatus": ["GEPRUEFT"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG"
+      ],
+      "allowedFromStatus": [
+        "ENTWURF"
+      ],
+      "allowedToStatus": [
+        "GEPRUEFT"
+      ],
       "validationSchema": {
         "endpoint": "POST /measurements/status",
-        "requiredFields": ["measurementVersionId", "nextStatus", "reason"],
+        "requiredFields": [
+          "measurementVersionId",
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "nextStatus": "literal:GEPRUEFT",
           "reason": "minLength:5"
@@ -571,12 +905,23 @@
     },
     {
       "actionId": "MEASUREMENT_SET_FREIGEGEBEN",
-      "requiredRole": ["ADMIN", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["GEPRUEFT"],
-      "allowedToStatus": ["FREIGEGEBEN"],
+      "requiredRole": [
+        "ADMIN",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "GEPRUEFT"
+      ],
+      "allowedToStatus": [
+        "FREIGEGEBEN"
+      ],
       "validationSchema": {
         "endpoint": "POST /measurements/status",
-        "requiredFields": ["measurementVersionId", "nextStatus", "reason"],
+        "requiredFields": [
+          "measurementVersionId",
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "nextStatus": "literal:FREIGEGEBEN",
           "reason": "minLength:5"
@@ -595,12 +940,23 @@
     },
     {
       "actionId": "MEASUREMENT_SET_ABGERECHNET",
-      "requiredRole": ["ADMIN", "BUCHHALTUNG"],
-      "allowedFromStatus": ["FREIGEGEBEN"],
-      "allowedToStatus": ["ABGERECHNET"],
+      "requiredRole": [
+        "ADMIN",
+        "BUCHHALTUNG"
+      ],
+      "allowedFromStatus": [
+        "FREIGEGEBEN"
+      ],
+      "allowedToStatus": [
+        "ABGERECHNET"
+      ],
       "validationSchema": {
         "endpoint": "POST /measurements/status",
-        "requiredFields": ["measurementVersionId", "nextStatus", "reason"],
+        "requiredFields": [
+          "measurementVersionId",
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "nextStatus": "literal:ABGERECHNET",
           "reason": "minLength:5"
@@ -619,12 +975,23 @@
     },
     {
       "actionId": "MEASUREMENT_SET_ARCHIVIERT",
-      "requiredRole": ["ADMIN", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["ABGERECHNET"],
-      "allowedToStatus": ["ARCHIVIERT"],
+      "requiredRole": [
+        "ADMIN",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "ABGERECHNET"
+      ],
+      "allowedToStatus": [
+        "ARCHIVIERT"
+      ],
       "validationSchema": {
         "endpoint": "POST /measurements/status",
-        "requiredFields": ["measurementVersionId", "nextStatus", "reason"],
+        "requiredFields": [
+          "measurementVersionId",
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "nextStatus": "literal:ARCHIVIERT",
           "reason": "minLength:5"
@@ -643,12 +1010,24 @@
     },
     {
       "actionId": "MEASUREMENT_CREATE_VERSION",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["FREIGEGEBEN", "ABGERECHNET"],
-      "allowedToStatus": ["ENTWURF"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "FREIGEGEBEN",
+        "ABGERECHNET"
+      ],
+      "allowedToStatus": [
+        "ENTWURF"
+      ],
       "validationSchema": {
         "endpoint": "POST /measurements/version",
-        "requiredFields": ["measurementId", "reason"],
+        "requiredFields": [
+          "measurementId",
+          "reason"
+        ],
         "fieldRules": {
           "measurementId": "uuid",
           "reason": "minLength:5"
@@ -669,12 +1048,24 @@
     },
     {
       "actionId": "LV_CATALOG_CREATE",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
-      "allowedFromStatus": ["N_A"],
-      "allowedToStatus": ["ENTWURF"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG"
+      ],
+      "allowedFromStatus": [
+        "N_A"
+      ],
+      "allowedToStatus": [
+        "ENTWURF"
+      ],
       "validationSchema": {
         "endpoint": "POST /lv/catalogs",
-        "requiredFields": ["name", "headerSystemText", "headerEditingText", "reason"],
+        "requiredFields": [
+          "name",
+          "headerSystemText",
+          "headerEditingText",
+          "reason"
+        ],
         "fieldRules": {
           "name": "minLength:1 maxLength:200",
           "headerSystemText": "minLength:1",
@@ -697,12 +1088,21 @@
     },
     {
       "actionId": "LV_CREATE_NEXT_VERSION",
-      "requiredRole": ["ADMIN", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["FREIGEGEBEN"],
-      "allowedToStatus": ["ENTWURF"],
+      "requiredRole": [
+        "ADMIN",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "FREIGEGEBEN"
+      ],
+      "allowedToStatus": [
+        "ENTWURF"
+      ],
       "validationSchema": {
         "endpoint": "POST /lv/catalogs/{lvCatalogId}/version",
-        "requiredFields": ["reason"],
+        "requiredFields": [
+          "reason"
+        ],
         "fieldRules": {
           "reason": "minLength:5"
         }
@@ -726,12 +1126,22 @@
     },
     {
       "actionId": "LV_SET_FREIGEGEBEN",
-      "requiredRole": ["ADMIN", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["ENTWURF"],
-      "allowedToStatus": ["FREIGEGEBEN"],
+      "requiredRole": [
+        "ADMIN",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "ENTWURF"
+      ],
+      "allowedToStatus": [
+        "FREIGEGEBEN"
+      ],
       "validationSchema": {
         "endpoint": "POST /lv/versions/{lvVersionId}/status",
-        "requiredFields": ["nextStatus", "reason"],
+        "requiredFields": [
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "nextStatus": "literal:FREIGEGEBEN",
           "reason": "minLength:5"
@@ -755,12 +1165,22 @@
     },
     {
       "actionId": "LV_SET_ARCHIVIERT",
-      "requiredRole": ["ADMIN", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["FREIGEGEBEN"],
-      "allowedToStatus": ["ARCHIVIERT"],
+      "requiredRole": [
+        "ADMIN",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "FREIGEGEBEN"
+      ],
+      "allowedToStatus": [
+        "ARCHIVIERT"
+      ],
       "validationSchema": {
         "endpoint": "POST /lv/versions/{lvVersionId}/status",
-        "requiredFields": ["nextStatus", "reason"],
+        "requiredFields": [
+          "nextStatus",
+          "reason"
+        ],
         "fieldRules": {
           "nextStatus": "literal:ARCHIVIERT",
           "reason": "minLength:5"
@@ -784,12 +1204,25 @@
     },
     {
       "actionId": "LV_ADD_STRUCTURE_NODE",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
-      "allowedFromStatus": ["ENTWURF"],
-      "allowedToStatus": ["ENTWURF"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG"
+      ],
+      "allowedFromStatus": [
+        "ENTWURF"
+      ],
+      "allowedToStatus": [
+        "ENTWURF"
+      ],
       "validationSchema": {
         "endpoint": "POST /lv/versions/{lvVersionId}/nodes",
-        "requiredFields": ["kind", "sortOrdinal", "systemText", "editingText", "reason"],
+        "requiredFields": [
+          "kind",
+          "sortOrdinal",
+          "systemText",
+          "editingText",
+          "reason"
+        ],
         "fieldRules": {
           "parentNodeId": "uuid|null",
           "kind": "BEREICH|TITEL|UNTERTITEL",
@@ -816,9 +1249,16 @@
     },
     {
       "actionId": "LV_ADD_POSITION",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
-      "allowedFromStatus": ["ENTWURF"],
-      "allowedToStatus": ["ENTWURF"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG"
+      ],
+      "allowedFromStatus": [
+        "ENTWURF"
+      ],
+      "allowedToStatus": [
+        "ENTWURF"
+      ],
       "validationSchema": {
         "endpoint": "POST /lv/versions/{lvVersionId}/positions",
         "requiredFields": [
@@ -858,12 +1298,22 @@
     },
     {
       "actionId": "LV_UPDATE_NODE_EDITING_TEXT",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
-      "allowedFromStatus": ["ENTWURF"],
-      "allowedToStatus": ["ENTWURF"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG"
+      ],
+      "allowedFromStatus": [
+        "ENTWURF"
+      ],
+      "allowedToStatus": [
+        "ENTWURF"
+      ],
       "validationSchema": {
         "endpoint": "PATCH /lv/nodes/{nodeId}/editing-text",
-        "requiredFields": ["editingText", "reason"],
+        "requiredFields": [
+          "editingText",
+          "reason"
+        ],
         "fieldRules": {
           "reason": "minLength:5"
         }
@@ -887,12 +1337,21 @@
     },
     {
       "actionId": "LV_UPDATE_POSITION",
-      "requiredRole": ["ADMIN", "VERTRIEB_BAULEITUNG"],
-      "allowedFromStatus": ["ENTWURF"],
-      "allowedToStatus": ["ENTWURF"],
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG"
+      ],
+      "allowedFromStatus": [
+        "ENTWURF"
+      ],
+      "allowedToStatus": [
+        "ENTWURF"
+      ],
       "validationSchema": {
         "endpoint": "PATCH /lv/positions/{positionId}",
-        "requiredFields": ["reason"],
+        "requiredFields": [
+          "reason"
+        ],
         "fieldRules": {
           "reason": "minLength:5",
           "patch": "min one of editingText|quantity|unit|unitPriceCents|sortOrdinal"
@@ -917,12 +1376,23 @@
     },
     {
       "actionId": "AUDIT_READ",
-      "requiredRole": ["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG"],
-      "allowedFromStatus": ["N_A"],
-      "allowedToStatus": ["N_A"],
+      "requiredRole": [
+        "ADMIN",
+        "BUCHHALTUNG",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "N_A"
+      ],
+      "allowedToStatus": [
+        "N_A"
+      ],
       "validationSchema": {
         "endpoint": "GET /audit-events",
-        "requiredFields": ["page", "pageSize"],
+        "requiredFields": [
+          "page",
+          "pageSize"
+        ],
         "fieldRules": {
           "page": "int>=1",
           "pageSize": "int(1..100)"
@@ -930,7 +1400,11 @@
       },
       "idempotencyKeyRequired": false,
       "auditEventType": "N_A",
-      "backendErrors": ["FORBIDDEN_AUDIT_READ", "TENANT_SCOPE_VIOLATION", "UNAUTHORIZED"]
+      "backendErrors": [
+        "FORBIDDEN_AUDIT_READ",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED"
+      ]
     }
   ]
 }

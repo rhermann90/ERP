@@ -51,3 +51,8 @@ Vorbereitungsdokument fuer Sprint-Fortfuehrung **ohne** produktive Implementieru
 3. Ticket-002 Scope/Gates unveraendert nachvollziehbar
 4. Backlog-Schnitt Iteration-1 vs. 1b dokumentiert (kein Scope-Drift)
 
+## Contract-Readiness (ohne Implementierung)
+
+- [`docs/contracts/action-contracts.json`](../contracts/action-contracts.json) enthaelt Nachtrags-Lifecycle-Aktionen (`SUPPLEMENT_SET_*`, …) als **Zielbild** fuer UI/QA; referenzierte Endpunkte (z. B. `POST /supplements/status`) **erst nach Review-GO** im Hauptticket produktiv umsetzen — bis dahin keine Phantom-`error`-Codes in OpenAPI, die das Backend nicht emittiert.
+- P0-Matrix und Codes: [`docs/contracts/qa-p0-ticket-002-nachtrag-lifecycle.md`](../contracts/qa-p0-ticket-002-nachtrag-lifecycle.md) mit [`docs/contracts/error-codes.json`](../contracts/error-codes.json) abgleichen.
+

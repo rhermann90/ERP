@@ -19,7 +19,7 @@ Kurzüberblick für Navigation in `src/` (Fastify-Backend) und `apps/web` (PWA).
 | `*-routes.ts` | Ressourcen-Routen (LV, Aufmass, Angebot, Finanz, Auth, Nutzer, …) |
 | `http-response.ts`, `idempotency-header.ts` | Gemeinsame HTTP-Hilfen |
 
-Neue Endpunkte: OpenAPI [`docs/api-contract.yaml`](../api-contract.yaml) und Fehlercodes [`docs/contracts/error-codes.json`](../contracts/error-codes.json) mitführen, wo verbindlich.
+Neue Endpunkte: OpenAPI [`docs/api-contract.yaml`](../api-contract.yaml) und Fehlercodes [`docs/contracts/error-codes.json`](../contracts/error-codes.json) mitführen, wo verbindlich. **`info.version`** synchron zu [`src/domain/openapi-contract-version.ts`](../../src/domain/openapi-contract-version.ts); FIN-4-Integratoren: [`docs/contracts/FIN4-external-client-integration.md`](../contracts/FIN4-external-client-integration.md).
 
 ## Domäne (`src/domain/`)
 
@@ -61,7 +61,8 @@ Token, Passwort-Login-Konfiguration; zugehörige Routen unter `src/api/auth-logi
 | `src/lib/api-client.ts`, `api-error.ts` | API-Aufrufe und Fehler |
 | `src/lib/tenant-session.ts`, `token-payload.ts` | Mandanten-Session |
 | `src/lib/action-executor.ts`, `role-quick-actions.ts`, `v13-domain-role-mapping.ts` | Aktionen / Rollen |
-| `src/components/*.tsx` | UI (Shell, Login, Finanz-Vorbereitung, Dokument-Texte, …) |
+| `src/components/*.tsx` | UI (Shell, Login, Dokument-Texte, …) |
+| `src/components/FinancePreparation.tsx`, `src/components/finance/FinancePreparation*Panel.tsx` | Finanz-Vorbereitung `#/finanz-vorbereitung`: Tabs Rechnung & Zahlung / Mahnwesen / Fortgeschritten; Automation-Modus OFF/SEMI + SEMI-Kontext (ADR-0010 / ADR-0011) |
 | `vite.config.ts` | Build/Dev |
 
 ## Verträge & Datenbank

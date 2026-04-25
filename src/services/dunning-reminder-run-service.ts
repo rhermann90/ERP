@@ -100,6 +100,7 @@ export class DunningReminderRunService {
           planned: targets.map((t) => ({
             invoiceId: t.invoiceId,
             dueDate: t.dueDate,
+            stageDeadlineIso: t.stageDeadlineIso,
             openAmountCents: t.openAmountCents,
             wouldRecordStageOrdinal: stageOrdinal,
           })),

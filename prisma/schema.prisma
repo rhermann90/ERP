@@ -411,12 +411,16 @@ model DunningReminderRunIntent {
   @@map("dunning_reminder_run_intents")
 }
 
-/// FIN-4 / M4: Mandanten-Modus Mahnlauf (OFF | SEMI | AUTO). ADR-0010 Erweiterung.
+/// FIN-4 / M4: Mandanten-Modus Mahnlauf (OFF | SEMI). job_hour_utc historisch (immer null). SEMI-Kontext: ADR-0011.
 model DunningTenantAutomation {
-  tenantId    String   @id @map("tenant_id") @db.Uuid
-  runMode     String   @default("SEMI") @map("run_mode") @db.VarChar(12)
-  jobHourUtc  Int?     @map("job_hour_utc")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenantId                  String   @id @map("tenant_id") @db.Uuid
+  runMode                   String   @default("SEMI") @map("run_mode") @db.VarChar(12)
+  jobHourUtc                Int?     @map("job_hour_utc")
+  ianaTimezone              String   @default("Europe/Berlin") @map("iana_timezone") @db.VarChar(64)
+  federalStateCode          String?  @map("federal_state_code") @db.VarChar(4)
+  paymentTermDayKind        String   @default("CALENDAR") @map("payment_term_day_kind") @db.VarChar(16)
+  preferredDunningChannel   String   @default("EMAIL") @map("preferred_dunning_channel") @db.VarChar(10)
+  updatedAt                 DateTime @updatedAt @map("updated_at")
 
   @@map("dunning_tenant_automation")
 }

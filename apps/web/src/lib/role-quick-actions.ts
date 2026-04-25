@@ -23,7 +23,7 @@ const finance: QuickPreset = {
   kind: "finance",
   id: "finance-prep",
   label: "Finanz-Vorbereitung",
-  subtitle: "Zahlungsbedingungen, Rechnungen, Zahlungseingang (read-only Shell)",
+  subtitle: "Hash #/finanz-vorbereitung — Tabs Rechnung, Mahnwesen, Fortgeschritten",
 };
 
 const doc = (

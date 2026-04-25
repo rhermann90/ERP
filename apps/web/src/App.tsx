@@ -46,6 +46,21 @@ function saveDocPrefs(tenantId: string, documentId: string, entityType: EntityTy
 }
 
 export default function App() {
+  const [browserOnline, setBrowserOnline] = useState(
+    () => typeof navigator === "undefined" || navigator.onLine !== false,
+  );
+
+  useEffect(() => {
+    const on = () => setBrowserOnline(true);
+    const off = () => setBrowserOnline(false);
+    globalThis.addEventListener?.("online", on);
+    globalThis.addEventListener?.("offline", off);
+    return () => {
+      globalThis.removeEventListener?.("online", on);
+      globalThis.removeEventListener?.("offline", off);
+    };
+  }, []);
+
   const viteDefaultTenant =
     typeof import.meta.env.VITE_DEFAULT_TENANT_ID === "string" && import.meta.env.VITE_DEFAULT_TENANT_ID.trim()
       ? (import.meta.env.VITE_DEFAULT_TENANT_ID as string).trim()
@@ -416,7 +431,13 @@ export default function App() {
   }, [modalAction, form, measurementDetail]);
 
   return (
-    <AppShell offlineNote="Offline: nur App-Shell/Assets (Workbox). Keine Buchung ohne Backend.">
+    <AppShell
+      offlineNote={
+        browserOnline
+          ? undefined
+          : "Offline (Browser): nur App-Shell und statische Assets (Workbox). API und Schreibaktionen (Buchung, Mahnung, Zahlung, …) erfordern Netz und Backend — keine Offline-Schreibsimulation."
+      }
+    >
       <nav className="shell-nav" aria-label="Hauptnavigation">
         <a href="#/">Shell / Dokument</a>
         {" · "}

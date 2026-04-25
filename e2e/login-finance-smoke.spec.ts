@@ -13,5 +13,10 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await page.getByRole("link", { name: "Finanz (Vorbereitung)" }).click();
     await expect(page.getByRole("heading", { name: /Finanz \(Vorbereitung\)/i })).toBeVisible({ timeout: 15_000 });
     await expect(page.locator("section.finance-prep")).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole("tab", { name: /Grundeinstellungen Mahnlauf/i }).click();
+    await expect(page.getByRole("heading", { name: /Grundeinstellungen Mahnlauf \(SEMI, ADR-0011\)/i })).toBeVisible({
+      timeout: 10_000,
+    });
   });
 });
