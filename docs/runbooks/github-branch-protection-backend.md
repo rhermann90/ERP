@@ -8,7 +8,7 @@
 2. **Target branches:** `main` (ggf. `master` analog).
 3. **Require status checks to pass** aktivieren.
 4. **Status checks** hinzufügen: den Check-Namen exakt wie in GitHub Actions angezeigt — typisch **`backend`** (Name des Jobs in `ci.yml`).
-5. Optional (wenn das Team UI-Regressionen mit-merge-blockieren will): zweiten Check **`e2e-smoke`** hinzufügen (Playwright-Rauchtest aus demselben Workflow). Standard bleibt **nur `backend`** als Pflicht; `e2e-smoke` läuft dann dennoch nach jedem grünen `backend` und warnt sichtbar bei Rot.
+5. Optional bzw. Team-Entscheid: zweiten Check **`e2e-smoke`** (Playwright-Rauchtest, derselbe Workflow). **Stand Repo `rhermann90/ERP` (2026-04-25):** Ruleset verlangt **`backend`** und **`e2e-smoke`**. Vorher galt nur `backend` als Pflicht; `e2e-smoke` lief mit und warnte. **Nach Aktivierung als Pflicht:** Team/QA informieren; Status in [`docs/plans/nächste-schritte.md`](../plans/nächste-schritte.md) Schritt 4 spiegeln.
 6. Optional: **Require branches to be up to date before merging** (Team-Entscheidung).
 7. Speichern; Test-PR mit absichtlich rotem Step → Merge sollte blockieren.
 
@@ -22,3 +22,38 @@
 - Ohne Org-Rechte: Ticket an Admin mit Verweis auf diese Datei und auf **QA**-Pflicht §5a in `qa-fin-0-gate-readiness.md`.
 
 **Ersetzt nicht:** menschliche Code-Reviews oder PL-Gates (`FIN-2-START-GATE.md`).
+
+## Projektleitung / QA: Nachweis zur Pflicht für `e2e-smoke`
+
+**Aktuell (siehe Tabelle unten):** Merge auf Default-Branch ist nur bei grünem **`backend`** und grünem **`e2e-smoke`** möglich (Ruleset „branch protection“).
+
+Wenn die Branch-Protection auf **zwei Pflicht-Checks** (`backend` + `e2e-smoke`) umgestellt **oder zurück** auf nur `backend` gestellt wird:
+
+1. Datum und Kurzbegründung in Release-Notes, PR-Diskussion oder unten als eine Zeile eintragen.
+2. QA explizit informieren: bei **Aktivierung** von `e2e-smoke` als Pflicht ist Merge ohne grünen E2E ausgeschlossen; bei **Rücknahme** auf nur `backend` das Gegenteil kommunizieren (Vorlage unten ggf. anpassen).
+3. In [`docs/plans/nächste-schritte.md`](../plans/nächste-schritte.md) (Schritt 4) den operativen Status kurz spiegeln, damit Plan und Runbook übereinstimmen.
+
+| Datum      | `e2e-smoke` als Merge-Pflicht | Referenz (PR/Notiz) |
+|------------|-------------------------------|---------------------|
+| 2026-04-25 | ja                            | Ruleset `branch protection` (ID 15256596): `gh api repos/rhermann90/ERP/rulesets/15256596 -X PUT` mit `required_status_checks` für `backend` + `e2e-smoke` (GitHub Actions `integration_id` 15368). |
+
+### Team / QA — Kurzmeldung (copy-paste)
+
+```text
+Merge auf main: ab sofort blockiert, wenn einer der beiden CI-Checks fehlschlägt:
+• backend (wie bisher)
+• e2e-smoke (Playwright „Login → Finanz“, u. a. Tab „Grundeinstellungen Mahnlauf“)
+Details: docs/runbooks/github-branch-protection-backend.md
+```
+
+### GitHub CLI — Ruleset mit zwei Pflicht-Checks (Referenz)
+
+Klassische `branches/main/protection` liefert bei Rulesets oft 404; stattdessen Ruleset per ID lesen/schreiben:
+
+```bash
+gh api repos/<org>/<repo>/rulesets --jq '.[] | {id, name}'
+gh api repos/<org>/<repo>/rulesets/<RULESET_ID> | jq .
+# PUT-Body: JSON mit rules[].type == required_status_checks und
+# parameters.required_status_checks: [ { context, integration_id }, … ]
+# integration_id 15368 = GitHub Actions (typisch für Workflow-Jobs).
+```
