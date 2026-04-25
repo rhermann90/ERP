@@ -2,45 +2,42 @@ import type { Invoice, TenantId, UUID } from "../domain/types.js";
 import {
   isCompleteTenantStageConfig,
 } from "../domain/dunning-reminder-config-defaults.js";
+import { deadlineAfterIssueDate, localTodayIsoDateInZone } from "../domain/dunning-due-date.js";
 import { DomainError } from "../errors/domain-error.js";
 import type { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
+import type { DunningTenantEligibilityContext } from "./dunning-tenant-automation-service.js";
 import type { DunningReminderConfigService } from "./dunning-reminder-config-service.js";
 
 const DUNNABLE: ReadonlySet<Invoice["status"]> = new Set(["GEBUCHT_VERSENDET", "TEILBEZAHLT"]);
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-function utcTodayIsoDate(): string {
-  const d = new Date();
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-/** Kalendertage ab ISO-Datum (UTC); `isoDate` muss yyyy-mm-dd sein. */
-function addCalendarDaysToIsoDate(isoDate: string, days: number): string {
-  const m = ISO_DATE.exec(isoDate);
-  if (!m) {
-    throw new DomainError("VALIDATION_FAILED", "Internes Datumsformat ungueltig", 400);
-  }
-  const base = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
-  base.setUTCDate(base.getUTCDate() + days);
-  const y = base.getUTCFullYear();
-  const mo = String(base.getUTCMonth() + 1).padStart(2, "0");
-  const da = String(base.getUTCDate()).padStart(2, "0");
-  return `${y}-${mo}-${da}`;
-}
+const FALLBACK_ELIGIBILITY: DunningTenantEligibilityContext = {
+  ianaTimezone: "Europe/Berlin",
+  federalStateCode: null,
+  paymentTermDayKind: "CALENDAR",
+  preferredDunningChannel: "EMAIL",
+};
 
 export type DunningReminderCandidateRow = {
   invoiceId: UUID;
   /**
-   * MVP 5b-0: gleiches Datum wie `issueDate` (Fälligkeitsanker bis separates `dueDate` im Modell).
-   * API-Feldname `dueDate` bleibt stabil für Clients gemäß ADR-0010.
+   * MVP: Fälligkeitsanker = Rechnungsdatum (`issueDate`), bis ein separates Rechnungs-`dueDate` persistiert wird.
+   * Die tatsächliche Stufenfrist steht in `stageDeadlineIso` (gleiche Berechnung wie Eligibility).
    */
   dueDate: string;
+  /** Ende der Frist für diese Stufe: `issueDate` + `daysAfterDue` (Kalender- oder Werktage laut Mandanten-Automation). */
+  stageDeadlineIso: string;
   openAmountCents: number;
   lastDunningStageOrdinal?: number;
+};
+
+/** Kontext, der für `asOfDate` und Fristberechnung verwendet wurde (tenant-scoped). */
+export type DunningCandidatesEligibilityContextRead = {
+  ianaTimezone: string;
+  federalStateCode: string | null;
+  paymentTermDayKind: "CALENDAR" | "BUSINESS";
+  preferredDunningChannel: "EMAIL" | "PRINT";
 };
 
 export type ListDunningReminderCandidatesResult = {
@@ -49,14 +46,20 @@ export type ListDunningReminderCandidatesResult = {
     asOfDate: string;
     stageOrdinal: number;
     daysAfterDueForStage: number;
+    eligibilityContext: DunningCandidatesEligibilityContextRead;
     candidates: DunningReminderCandidateRow[];
   };
+};
+
+export type DunningEligibilityContextSource = {
+  get(tenantId: TenantId): Promise<DunningTenantEligibilityContext>;
 };
 
 export class DunningReminderCandidatesService {
   constructor(
     private readonly repos: InMemoryRepositories,
     private readonly dunningReminderConfigService: DunningReminderConfigService,
+    private readonly eligibilityContext?: DunningEligibilityContextSource,
   ) {}
 
   public async listCandidates(input: {
@@ -70,7 +73,11 @@ export class DunningReminderCandidatesService {
     }
 
     const rawAsOf = input.asOfDate?.trim();
-    const asOfDate = rawAsOf && rawAsOf.length > 0 ? rawAsOf : utcTodayIsoDate();
+    const ctx = this.eligibilityContext
+      ? await this.eligibilityContext.get(tenantId)
+      : FALLBACK_ELIGIBILITY;
+    const asOfDate =
+      rawAsOf && rawAsOf.length > 0 ? rawAsOf : localTodayIsoDateInZone(ctx.ianaTimezone);
     if (!ISO_DATE.test(asOfDate)) {
       throw new DomainError("VALIDATION_FAILED", "asOfDate muss ISO yyyy-mm-dd sein", 400);
     }
@@ -116,12 +123,18 @@ export class DunningReminderCandidatesService {
         continue;
       }
 
-      const deadlineIso = addCalendarDaysToIsoDate(inv.issueDate, stageRow.daysAfterDue);
+      const deadlineIso = deadlineAfterIssueDate(
+        inv.issueDate,
+        stageRow.daysAfterDue,
+        ctx.paymentTermDayKind,
+        ctx.federalStateCode,
+      );
       if (deadlineIso > asOfDate) continue;
 
       const row: DunningReminderCandidateRow = {
         invoiceId: inv.id,
         dueDate: inv.issueDate,
+        stageDeadlineIso: deadlineIso,
         openAmountCents,
       };
       if (reminders.length > 0) {
@@ -138,6 +151,12 @@ export class DunningReminderCandidatesService {
         asOfDate,
         stageOrdinal,
         daysAfterDueForStage: stageRow.daysAfterDue,
+        eligibilityContext: {
+          ianaTimezone: ctx.ianaTimezone,
+          federalStateCode: ctx.federalStateCode,
+          paymentTermDayKind: ctx.paymentTermDayKind,
+          preferredDunningChannel: ctx.preferredDunningChannel,
+        },
         candidates,
       },
     };

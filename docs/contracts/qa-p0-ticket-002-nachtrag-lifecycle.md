@@ -18,6 +18,12 @@
 ## Hinweis
 Konkrete Endpunkte, Fehlercodes und Rollen pro Zeile werden beim Implementierungsstart aus `action-contracts.json` und ADR-0002 übernommen.
 
+## QA und Review (vor Merge nach GO)
+
+- **Contract-Matrix:** Jede P0-Zeile mit tatsächlich emittiertem Domänencode im Backend und Eintrag in [`error-codes.json`](./error-codes.json) / [`api-contract.yaml`](../api-contract.yaml) abgleichen — keine „PASS“-Labels für nicht implementierte Pfade ([`TICKET-002-pre-go-runbook.md`](../tickets/TICKET-002-pre-go-runbook.md)).
+- **Merge-Evidence:** [`qa-fin-0-gate-readiness.md`](./qa-fin-0-gate-readiness.md) **§5a-pre** (grüner Job `backend`, PR-Kommentar); gemischte PRs **§5b**.
+- **Review:** [`review-checklist-finanz-pr.md`](./review-checklist-finanz-pr.md) und Rollenmatrix aus ADR-0002 / Hauptticket.
+
 ## Beispiel-Requests je P0-ID
 
 ### P0-N-01 Tenant-Isolation (Fastify inject)

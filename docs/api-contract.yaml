@@ -1,13 +1,14 @@
 openapi: 3.0.3
 info:
   title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-1/2/3/4 Finance)
-  version: 1.23.0-fin4-m4-dunning-tenant-automation
+  version: 1.25.1-fin4-contract-metadata
   description: |
     **PWA / Browser-Anbindung**
     - **CORS**: Umgebungsvariable `CORS_ORIGINS` — kommagetrennte, exakte Origins (z. B. `https://app.example.com,http://localhost:5173`). Leer oder unset: keine `Access-Control-*`-Header (gleiche Origin oder Server-zu-Server).
     - **Auth**: `Authorization: Bearer <signed-v1-token>` (siehe `bearerToken`); optionaler Header `X-Tenant-Id` muss zum Tenant im Token passen, sonst `TENANT_SCOPE_VIOLATION`. **Passwort-Login:** `POST /auth/login` mit JSON `{ tenantId, email, password }` — siehe `docs/authentication-login.md`. **Passwort vergessen (öffentlich):** `POST /auth/request-password-reset`, `POST /auth/confirm-password-reset` — nur mit Postgres; Link `#/password-reset?token=…` (Basis `ERP_PUBLIC_APP_BASE_URL`); Produktion: SMTP + Basis-URL Pflicht. **Benutzerverwaltung:** `GET|POST /users`, `PATCH /users/{userId}` inkl. optional **E-Mail** (nur Rolle **ADMIN**, nur mit Postgres) — Audit-Ereignisse `USER` / `USER_CREATED` / `USER_UPDATED`. **Betrieb:** `AUTH_TOKEN_SECRET` (min. 32 Zeichen bei `NODE_ENV=production`); ohne Secret kein Start — siehe Repo-`.env.example`. Nur lokaler Demo-Modus: `ERP_ALLOW_INSECURE_DEV_AUTH=1` und nicht `production` (niemals deployen).
     - **Logs**: Strukturierte Fastify-Request-Logs enthalten keine `Authorization`- oder `Cookie`-Werte (`LOG_LEVEL`, `LOG_DISABLE=1` siehe Betrieb).
     - **Fehler**: Antwort-JSON gemäß Schema `Error` — Felder `code`, `message`, `correlationId`, `retryable`, `blocking`, optional `details` (Frontend-Passthrough laut `docs/contracts/decision-log-phase1-frontend.md`). **Header:** `x-correlation-id` und `x-request-id` sind gleich der Request-ID (`request.id`) und entsprechen `correlationId` im Body bei Fehlerantworten.
+    - **FIN-4 / Integratoren:** Auf Pfaden unter **`/finance/dunning-reminder…`**, **`/finance/dunning-reminder-automation`** und **`/finance/dunning-email-footer`** sendet der Server zusätzlich **`x-erp-openapi-contract-version`** (Wert identisch zu `info.version` dieser Datei). Laufzeit-Abgleich und Breaking-Notes: `docs/contracts/FIN4-external-client-integration.md`. Browser-Cross-Origin: Header steht in `Access-Control-Expose-Headers`, wenn CORS aktiv ist (`CORS_ORIGINS`).
 servers:
   - url: http://localhost:3000
 tags:
@@ -27,7 +28,7 @@ tags:
       Mapping: `docs/contracts/finance-fin0-openapi-mapping.md`.
   - name: Finance (FIN-4)
     description: |
-      Mahnwesen (Spez 8.10): **Kern** — `GET|PUT /finance/dunning-reminder-config` und `PATCH|DELETE …/stages/{stageOrdinal}` (Lesen: MVP **oder** 9 **aktive** DB-Stufen; Schreiben: Postgres, Rollen wie Zahlungseingang); `GET /invoices/{invoiceId}/dunning-reminders` (Liste); `POST` Mahn-Ereignis; Tabellen `dunning_reminders`, `dunning_tenant_stage_config` — `docs/adr/0009-fin4-mahnwesen-slice.md`. **M4** — `GET /finance/dunning-reminder-templates` (Slice 1: MVP **oder** 18 aktive DB-Zeilen 9×2 Kanäle); **`PATCH …/templates/stages/{stageOrdinal}/channels/{channel}`** (Slice 2: `body` mit Pflichtplatzhaltern §8.10, Audit in DB-Tx); **`GET|PATCH /finance/dunning-email-footer`** (Slice 3: Impressum-Stammdaten); **`POST …/dunning-reminders/email-preview`** und **`POST …/send-email-stub`** (Slice 4: Plain-Text-Vorschau; Versand nur Audit, kein SMTP); **`POST …/dunning-reminders/send-email`** (Slice 5a: SMTP, Idempotenz); **`GET /finance/dunning-reminder-candidates`** (Slice **5b-0**: Lesepfad Mahnlauf-Kandidaten, keine Mutation); **`POST /finance/dunning-reminder-run`** (Slice **5b-1**: Mahnlauf `DRY_RUN`/`EXECUTE`, Idempotenz `dunning_reminder_run_intents`); **`GET|PATCH /finance/dunning-reminder-automation`** (Mandanten-Modus OFF/SEMI/AUTO, optional `job_hour_utc`); Tabellen `dunning_tenant_stage_templates`, `dunning_tenant_email_footer`, `dunning_email_sends`, `dunning_tenant_automation` — `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`. SoT **`RECORD_DUNNING_REMINDER`** in `allowed-actions` für gebuchte/teilbezahlte Rechnung.
+      Mahnwesen (Spez 8.10): **Kern** — `GET|PUT /finance/dunning-reminder-config` und `PATCH|DELETE …/stages/{stageOrdinal}` (Lesen: MVP **oder** 9 **aktive** DB-Stufen; Schreiben: Postgres, Rollen wie Zahlungseingang); `GET /invoices/{invoiceId}/dunning-reminders` (Liste); `POST` Mahn-Ereignis; Tabellen `dunning_reminders`, `dunning_tenant_stage_config` — `docs/adr/0009-fin4-mahnwesen-slice.md`. **M4** — `GET /finance/dunning-reminder-templates` (Slice 1: MVP **oder** 18 aktive DB-Zeilen 9×2 Kanäle); **`PATCH …/templates/stages/{stageOrdinal}/channels/{channel}`** (Slice 2: `body` mit Pflichtplatzhaltern §8.10, Audit in DB-Tx); **`GET|PATCH /finance/dunning-email-footer`** (Slice 3: Impressum-Stammdaten); **`POST …/dunning-reminders/email-preview`** und **`POST …/send-email-stub`** (Slice 4: Plain-Text-Vorschau; Versand nur Audit, kein SMTP); **`POST …/dunning-reminders/send-email`** (Slice 5a: SMTP, Idempotenz); **`GET /finance/dunning-reminder-candidates`** (Slice **5b-0**: Lesepfad Mahnlauf-Kandidaten, keine Mutation); **`POST /finance/dunning-reminder-run`** (Slice **5b-1**: Mahnlauf `DRY_RUN`/`EXECUTE`, Idempotenz `dunning_reminder_run_intents`); **`GET|PATCH /finance/dunning-reminder-automation`** (Mandanten-Modus OFF/SEMI, SEMI-Kontext: Zeitzone, optional DE-Bundesland, Kalender-/Werktage-Frist, Kanal-Vorgabe); Tabellen `dunning_tenant_stage_templates`, `dunning_tenant_email_footer`, `dunning_email_sends`, `dunning_tenant_automation` — `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`, `docs/adr/0011-fin4-semi-dunning-context.md`. SoT **`RECORD_DUNNING_REMINDER`** in `allowed-actions` für gebuchte/teilbezahlte Rechnung.
   - name: Finance (FIN-1)
     description: |
       Zahlungsbedingungen (Spez 8.5): Konditionskopf pro Projekt, append-only Versionen — `docs/adr/0008-payment-terms-fin1.md`.
@@ -795,9 +796,26 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/DunningReminderTemplatesReadData'
+    DunningCandidatesEligibilityContextRead:
+      type: object
+      required: [ianaTimezone, federalStateCode, paymentTermDayKind, preferredDunningChannel]
+      properties:
+        ianaTimezone:
+          type: string
+          description: IANA-Zeitzone für „heute“ und `asOfDate` (ADR-0011).
+        federalStateCode:
+          type: string
+          nullable: true
+          description: DE-Ländercode (ISO 3166-2:DE) für Feiertags-Werktage; null wenn nicht gesetzt.
+        paymentTermDayKind:
+          type: string
+          enum: [CALENDAR, BUSINESS]
+        preferredDunningChannel:
+          type: string
+          enum: [EMAIL, PRINT]
     DunningReminderCandidateRow:
       type: object
-      required: [invoiceId, dueDate, openAmountCents]
+      required: [invoiceId, dueDate, stageDeadlineIso, openAmountCents]
       properties:
         invoiceId:
           type: string
@@ -807,6 +825,11 @@ components:
           format: date
           description: |
             MVP 5b-0: Fälligkeitsanker entspricht `issueDate` (Rechnungsdatum), bis ein separates `dueDate` im Modell existiert (ADR-0010).
+        stageDeadlineIso:
+          type: string
+          format: date
+          description: |
+            Berechnetes Ende der Frist für diese Stufe (`issueDate` + `daysAfterDue` gemäß `paymentTermDayKind` und optional DE-Feiertage); gleiche Logik wie Eligibility (ADR-0011 B3).
         openAmountCents:
           type: integer
           minimum: 1
@@ -817,7 +840,7 @@ components:
           description: Höchste bisher protokollierte Mahnstufe; fehlt, wenn noch kein Mahn-Ereignis.
     DunningReminderCandidatesReadData:
       type: object
-      required: [configSource, asOfDate, stageOrdinal, daysAfterDueForStage, candidates]
+      required: [configSource, asOfDate, stageOrdinal, daysAfterDueForStage, eligibilityContext, candidates]
       properties:
         configSource:
           type: string
@@ -833,6 +856,8 @@ components:
           type: integer
           minimum: 0
           maximum: 3650
+        eligibilityContext:
+          $ref: '#/components/schemas/DunningCandidatesEligibilityContextRead'
         candidates:
           type: array
           items:
@@ -861,7 +886,7 @@ components:
         asOfDate:
           type: string
           format: date
-          description: ISO `yyyy-mm-dd` (wie Kandidaten-Lesepfad); ohne Angabe nutzt der Server heute UTC.
+          description: ISO `yyyy-mm-dd` wie GET Kandidaten (Kalendertag in Mandanten-IANA-Zeitzone aus Automation); ohne Angabe = heute in dieser Zone (ADR-0011).
         invoiceIds:
           type: array
           maxItems: 500
@@ -875,7 +900,7 @@ components:
           description: Optional; wird an `POST …/dunning-reminders` pro Rechnung durchgereicht.
     DunningReminderRunPlannedRow:
       type: object
-      required: [invoiceId, dueDate, openAmountCents, wouldRecordStageOrdinal]
+      required: [invoiceId, dueDate, stageDeadlineIso, openAmountCents, wouldRecordStageOrdinal]
       properties:
         invoiceId:
           type: string
@@ -883,6 +908,10 @@ components:
         dueDate:
           type: string
           format: date
+        stageDeadlineIso:
+          type: string
+          format: date
+          description: Wie Kandidaten-API `stageDeadlineIso` (Stufenfristende).
         openAmountCents:
           type: integer
           minimum: 1
@@ -1087,7 +1116,15 @@ components:
             DE-Mandanten USt-Id grob DE+9 Ziffern.
     DunningTenantAutomationReadData:
       type: object
-      required: [automationSource, tenantId, runMode, jobHourUtc]
+      required:
+        - automationSource
+        - tenantId
+        - runMode
+        - jobHourUtc
+        - ianaTimezone
+        - federalStateCode
+        - paymentTermDayKind
+        - preferredDunningChannel
       properties:
         automationSource:
           type: string
@@ -1097,14 +1134,29 @@ components:
           format: uuid
         runMode:
           type: string
-          enum: [OFF, SEMI, AUTO]
+          enum: [OFF, SEMI]
           description: Ohne gespeicherte Zeile liefert GET effektiv SEMI (Quelle NOT_CONFIGURED).
         jobHourUtc:
           type: integer
           nullable: true
-          minimum: 0
-          maximum: 23
-          description: Optional; nur für AUTO-Cron (UTC-Stunde); null = bei jedem Cron-Lauf.
+          description: Historisch; immer null (kein Cron).
+        ianaTimezone:
+          type: string
+          maxLength: 64
+          description: IANA-Zeitzone für „heute“ bei Mahn-Kandidaten (Default Europe/Berlin).
+        federalStateCode:
+          type: string
+          nullable: true
+          maxLength: 4
+          description: DE-Bundeslandcode für Feiertags-Werktage (z. B. BY, BW); null = nur bundesweite Feiertage.
+        paymentTermDayKind:
+          type: string
+          enum: [CALENDAR, BUSINESS]
+          description: Interpretation von daysAfterDue je Stufe gegenüber Rechnungsdatum (Kalender- vs. Werktage).
+        preferredDunningChannel:
+          type: string
+          enum: [EMAIL, PRINT]
+          description: Mandanten-Vorgabe Kanal (SEMI; technische Umsetzung Druck folgt Inkrementen).
     DunningTenantAutomationReadResponse:
       type: object
       required: [data]
@@ -1121,12 +1173,22 @@ components:
           maxLength: 500
         runMode:
           type: string
-          enum: [OFF, SEMI, AUTO]
-        jobHourUtc:
-          type: integer
+          enum: [OFF, SEMI]
+        ianaTimezone:
+          type: string
+          minLength: 1
+          maxLength: 64
+        federalStateCode:
+          type: string
           nullable: true
-          minimum: 0
-          maximum: 23
+          minLength: 2
+          maxLength: 4
+        paymentTermDayKind:
+          type: string
+          enum: [CALENDAR, BUSINESS]
+        preferredDunningChannel:
+          type: string
+          enum: [EMAIL, PRINT]
     DunningEmailFooterReadResponse:
       type: object
       required: [data]
@@ -2416,7 +2478,7 @@ paths:
     get:
       tags: [Finance (FIN-4)]
       operationId: finDunningReminderAutomationGet
-      summary: Mandanten-Modus Mahnlauf lesen (OFF/SEMI/AUTO)
+      summary: Mandanten-Modus Mahnlauf lesen (OFF/SEMI + SEMI-Kontext)
       description: |
         Lesemodell inkl. `automationSource` NOT_CONFIGURED | TENANT_DATABASE. Ohne DB-Zeile effektiv **SEMI** (teil-automatisierte UI möglich; kein Cron).
         Rolle wie Mahn-Konfig-Lesepfad (`assertCanReadInvoice`).
@@ -2481,8 +2543,8 @@ paths:
       operationId: finDunningReminderCandidatesGet
       summary: Mahnlauf-Kandidaten lesen (M4 Slice 5b-0)
       description: |
-        **M4 Slice 5b-0:** Ermittelt Rechnungen, die für **eine** gewählte Mahnstufe (`stageOrdinal`) zum Referenzdatum `asOfDate` (Default heute UTC, `yyyy-mm-dd`) fällig sind — **ohne** Mutation und **ohne** E-Mail.
-        Eligibility und Fälligkeitsanker (`dueDate` im Payload = `issueDate` im MVP) siehe ADR-0010 Abschnitt Slice 5b.
+        **M4 Slice 5b-0:** Ermittelt Rechnungen, die für **eine** gewählte Mahnstufe (`stageOrdinal`) zum Referenzdatum `asOfDate` (Default „heute“ in der Mandanten-IANA-Zeitzone aus Automation, `yyyy-mm-dd`) fällig sind — **ohne** Mutation und **ohne** E-Mail.
+        Eligibility und Fälligkeitsanker (`dueDate` im Payload = `issueDate` im MVP) siehe ADR-0010 und ADR-0011 (Slice 5b).
         Gleiche Leserolle wie Vorlagen (`assertCanReadInvoice`).
       security:
         - bearerToken: []
@@ -2501,7 +2563,7 @@ paths:
           schema:
             type: string
             format: date
-            description: ISO `yyyy-mm-dd` (UTC-Kalendertag); ohne Parameter = heute UTC.
+            description: ISO `yyyy-mm-dd` (Kalendertag in Mandanten-Zeitzone); ohne Parameter = heute in dieser Zone.
       responses:
         '200':
           description: Kandidatenliste und Kontext (Konfig-Quelle, Frist-Metadaten der Stufe)

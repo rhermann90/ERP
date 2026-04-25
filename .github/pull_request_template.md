@@ -14,8 +14,11 @@
 - [ ] `npm run verify:ci` lokal grün **oder** bewusst auf Remote-CI vertraut
 - [ ] Keine Secrets / keine echten Kundendaten in Diff oder Fixtures
 - [ ] Bei Touch von `src/` + Mandanten/Finanz: mindestens bestehende Tests für den Pfad mitbedacht
+- [ ] **Follow-up-Tickets (PL-Pflicht):** Kein stiller Merge von LV-`ON DELETE`-/FK-Änderungen oder Audit-Transaktionsänderungen ohne abgeschlossenes PL-Gate — [`docs/tickets/FOLLOWUP-LV-DELETE-WITH-DEPENDENT-OFFERS.md`](../docs/tickets/FOLLOWUP-LV-DELETE-WITH-DEPENDENT-OFFERS.md), [`docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](../docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md); siehe [`docs/runbook/ci-and-persistence-tests.md`](../docs/runbook/ci-and-persistence-tests.md) PR-Checkliste.
 
 **Finanz, Zahlungsfluss, Rechnung, OpenAPI, `error-codes.json`, `prisma/migrations`:** unten **Merge-Evidence §5a** vollständig; bei Unsicherheit PL/Review einbeziehen.
+
+- [ ] **FIN-4 / OpenAPI:** Berührt der PR `docs/api-contract.yaml` (Mahn-Kandidaten, `dunning-reminder-run`, `info.version`)? Dann **Breaking-Note** in der PR-Beschreibung (neue Pflichtfelder, betroffene Integratoren) — siehe [`docs/contracts/FIN4-external-client-integration.md`](../docs/contracts/FIN4-external-client-integration.md) und [`docs/runbook/ci-and-persistence-tests.md`](../docs/runbook/ci-and-persistence-tests.md) (Querschnitt, Punkt 5).
 
 **Rechts-/Produktiv-Go (nur wenn PR Rechnung, Steuerausweis, E-Rechnung-Export, Aufbewahrung oder vergleichbare Compliance-Relevanz hat):** Verweis, ob [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) im Ticket/Release-Note aktualisiert oder bewusst „keine Änderung“ — kein stiller GoBD-/StB-Nachweis durch Merge allein.
 

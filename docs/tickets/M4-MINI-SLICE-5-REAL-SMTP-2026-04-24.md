@@ -19,7 +19,7 @@ Ein **produktiver** Plain-Text-Versand einer Mahn-E-Mail je Rechnung und Stufe �
 
 ## Out-of-Scope (Non-Goals)
 
-- Massenversand, Cron/Mahnlauf-Orchestrierung (**Slice 5b** / separates Ticket).
+- Massenversand; Orchestrierung außerhalb der dokumentierten SEMI-APIs (`dunning-reminder-candidates` / `dunning-reminder-run`) — siehe ADR-0011.
 - HTML-Templates, vollständiger Rechtshinweis-Block.
 - Empfänger automatisch aus Kundenstamm (folgt Datenmodell-Erweiterung).
 

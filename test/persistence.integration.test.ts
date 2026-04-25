@@ -393,6 +393,97 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     expect(res.statusCode).toBe(201);
   });
 
+  it("FIN-1 M1: zwei Zahlungsbedingungs-Versionen; Rechnung bleibt auf alter Version (Postgres); Buchung ändert PT-Referenz nicht", async () => {
+    const pt1 = await app.inject({
+      method: "POST",
+      url: "/finance/payment-terms/versions",
+      headers: adminHeaders(),
+      payload: {
+        projectId: SEED_IDS.projectId,
+        customerId: SEED_IDS.customerId,
+        termsLabel: "30 Tage netto M1a",
+        reason: "Persistenz FIN-1 M1 erste Zahlungsbedingungsversion",
+      },
+    });
+    expect(pt1.statusCode).toBe(201);
+    const pt1Body = pt1.json() as {
+      paymentTermsVersionId: string;
+      paymentTermsHeadId: string;
+      versionNumber: number;
+    };
+    expect(pt1Body.versionNumber).toBe(1);
+    const v1Id = pt1Body.paymentTermsVersionId;
+    const headId = pt1Body.paymentTermsHeadId;
+
+    const inv = await app.inject({
+      method: "POST",
+      url: "/invoices",
+      headers: adminHeaders(),
+      payload: {
+        lvVersionId: SEED_IDS.lvVersionId,
+        offerVersionId: SEED_IDS.offerVersionId,
+        invoiceCurrencyCode: "EUR",
+        paymentTermsVersionId: v1Id,
+        reason: "Persistenz FIN-1 M1 Rechnungsentwurf mit PT v1",
+      },
+    });
+    expect(inv.statusCode).toBe(201);
+    const invoiceId = (inv.json() as { invoiceId: string }).invoiceId;
+
+    const pt2 = await app.inject({
+      method: "POST",
+      url: "/finance/payment-terms/versions",
+      headers: adminHeaders(),
+      payload: {
+        projectId: SEED_IDS.projectId,
+        customerId: SEED_IDS.customerId,
+        termsLabel: "60 Tage netto M1b",
+        reason: "Persistenz FIN-1 M1 zweite Zahlungsbedingungsversion gleiches Projekt",
+      },
+    });
+    expect(pt2.statusCode).toBe(201);
+    const v2Id = (pt2.json() as { paymentTermsVersionId: string }).paymentTermsVersionId;
+    expect((pt2.json() as { versionNumber: number }).versionNumber).toBe(2);
+    expect(v2Id).not.toBe(v1Id);
+
+    const versions = await prisma.paymentTermsVersion.findMany({
+      where: { tenantId: SEED_IDS.tenantId, headId },
+      orderBy: { versionNumber: "asc" },
+    });
+    expect(versions).toHaveLength(2);
+    expect(versions[0]?.id).toBe(v1Id);
+    expect(versions[1]?.id).toBe(v2Id);
+
+    const row = await prisma.invoice.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: invoiceId } },
+    });
+    expect(row?.paymentTermsVersionId).toBe(v1Id);
+    expect(row?.status).toBe("ENTWURF");
+    expect(row?.lvNetCents).toBe(125000);
+    expect(row?.totalGrossCents).toBe(148750);
+
+    const getRes = await app.inject({
+      method: "GET",
+      url: `/invoices/${invoiceId}`,
+      headers: adminHeaders(),
+    });
+    expect(getRes.statusCode).toBe(200);
+    expect((getRes.json() as { paymentTermsVersionId?: string }).paymentTermsVersionId).toBe(v1Id);
+
+    const book = await app.inject({
+      method: "POST",
+      url: `/invoices/${invoiceId}/book`,
+      headers: adminHeaders(),
+      payload: { reason: "Persistenz FIN-1 M1 Buchung fixiert Zahlungsbedingungs-Version v1" },
+    });
+    expect(book.statusCode).toBe(200);
+    const afterBook = await prisma.invoice.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: invoiceId } },
+    });
+    expect(afterBook?.status).toBe("GEBUCHT_VERSENDET");
+    expect(afterBook?.paymentTermsVersionId).toBe(v1Id);
+  });
+
   it("POST /invoices/{draftId}/book: Entwurf gebucht, Zeile in Postgres inkl. Rechnungsnummer", async () => {
     const book = await app.inject({
       method: "POST",
@@ -1063,16 +1154,40 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
       method: "PATCH",
       url: "/finance/dunning-reminder-automation",
       headers: adminHeaders(),
-      payload: { reason: "Persistenztest Automation SEMI", runMode: "SEMI", jobHourUtc: 6 },
+      payload: {
+        reason: "Persistenztest Automation SEMI",
+        runMode: "SEMI",
+        ianaTimezone: "Europe/Berlin",
+        federalStateCode: "BY",
+        paymentTermDayKind: "BUSINESS",
+        preferredDunningChannel: "PRINT",
+      },
     });
     expect(patch.statusCode).toBe(200);
-    const p = patch.json() as { data: { runMode: string; jobHourUtc: number } };
+    const p = patch.json() as {
+      data: {
+        runMode: string;
+        jobHourUtc: null;
+        ianaTimezone: string;
+        federalStateCode: string | null;
+        paymentTermDayKind: string;
+        preferredDunningChannel: string;
+      };
+    };
     expect(p.data.runMode).toBe("SEMI");
-    expect(p.data.jobHourUtc).toBe(6);
+    expect(p.data.jobHourUtc).toBeNull();
+    expect(p.data.ianaTimezone).toBe("Europe/Berlin");
+    expect(p.data.federalStateCode).toBe("BY");
+    expect(p.data.paymentTermDayKind).toBe("BUSINESS");
+    expect(p.data.preferredDunningChannel).toBe("PRINT");
 
     const row = await prisma.dunningTenantAutomation.findUnique({ where: { tenantId: SEED_IDS.tenantId } });
     expect(row?.runMode).toBe("SEMI");
-    expect(row?.jobHourUtc).toBe(6);
+    expect(row?.jobHourUtc).toBeNull();
+    expect(row?.ianaTimezone).toBe("Europe/Berlin");
+    expect(row?.federalStateCode).toBe("BY");
+    expect(row?.paymentTermDayKind).toBe("BUSINESS");
+    expect(row?.preferredDunningChannel).toBe("PRINT");
   });
 
   it("Audit: Schreibpfad Postgres + GET liefert nur minimierte Felder", async () => {

@@ -4,6 +4,8 @@
 
 **Hinweis Dateiname:** Historisch `finance-fin0-…`; Inhalt deckt **FIN-1**, **FIN-2**, **FIN-3** (Zahlungseingang), **FIN-4** (Mahnwesen Lesepfad + Mahn-POST + Konfig **GET/PUT/PATCH/DELETE**) + **M4** (Vorlagen/Footer/E-Mail; siehe **`docs/adr/0010-fin4-m4-dunning-email-and-templates.md`**) und verbleibende **FIN-0**-Contract-Stubs ab.
 
+**Externe Integratoren (FIN-4):** Release-Notes, Breaking-Felder und Antwort-Header `x-erp-openapi-contract-version` — [`FIN4-external-client-integration.md`](./FIN4-external-client-integration.md).
+
 ## Implementierungsstand (Technik)
 
 | Bereich | HTTP | Module / Einordnung |
@@ -23,10 +25,11 @@
 | **FIN-4 / M4** | `GET|PATCH /finance/dunning-email-footer` | `finance-dunning-config-routes.ts`, `dunning-email-footer-service.ts`, `dunning-email-footer-persistence.ts`, `dunning-email-footer.ts` — ADR-0010 **M4 Slice 3** |
 | **FIN-4 / M4** | `POST /invoices/{invoiceId}/dunning-reminders/email-preview`, `POST …/send-email-stub` | `finance-invoice-routes.ts`, `dunning-reminder-email-service.ts`, `dunning-email-compose.ts` — ADR-0010 **M4 Slice 4** (Plain-Text-Vorschau; Versand nur Audit-Stub) |
 | **FIN-4 / M4** | `POST /invoices/{invoiceId}/dunning-reminders/send-email` (Header `Idempotency-Key`) | `finance-invoice-routes.ts`, `dunning-reminder-email-service.ts`, `dunning-email-send-persistence.ts`, `smtp-mail-transport.ts` — ADR-0010 **M4 Slice 5a** (SMTP; Idempotenz `dunning_email_sends`; Audit `DUNNING_EMAIL_SENT`) |
-| **FIN-4 / M4** | `GET /finance/dunning-reminder-candidates` | `finance-dunning-config-routes.ts`, `dunning-reminder-candidates-service.ts`, `dunning-reminder-config-service.ts` — ADR-0010 **M4 Slice 5b-0** (Lesepfad; `assertCanReadInvoice`; kein SMTP) |
+| **FIN-4 / M4** | `GET /finance/dunning-reminder-candidates` | `finance-dunning-config-routes.ts`, `dunning-reminder-candidates-service.ts`, `dunning-reminder-config-service.ts` — ADR-0010 **M4 Slice 5b-0** (Lesepfad; `assertCanReadInvoice`; kein SMTP); Antwort inkl. `eligibilityContext` und pro Kandidat `stageDeadlineIso` (ADR-0011 **B3**) |
 | **FIN-4 / M4** | `POST /finance/dunning-reminder-run` | `finance-dunning-config-routes.ts`, `dunning-reminder-run-service.ts`, `dunning-reminder-run-intent-persistence.ts` — ADR-0010 **M4 Slice 5b-1** (`DRY_RUN`: `assertCanReadInvoice`; `EXECUTE`: `assertCanRecordDunningReminder`, Header `Idempotency-Key`, Idempotenz/Replay wie ADR) |
-| **FIN-4 / M4** | `GET|PATCH /finance/dunning-reminder-automation` | `finance-dunning-config-routes.ts`, `dunning-tenant-automation-service.ts`, `dunning-tenant-automation-persistence.ts` — Mandanten-Modus **OFF**/**SEMI**/**AUTO**; PATCH nur Postgres (`DUNNING_AUTOMATION_NOT_PERSISTABLE` im Memory-Modus); siehe ADR-0010 Erweiterung |
-| **Betrieb (optional)** | `POST /internal/cron/dunning-automation` | `src/api/app.ts` — nur wenn `DATABASE_URL` (Postgres) **und** `ERP_INTERNAL_DUNNING_CRON_SECRET` gesetzt; Header `X-Internal-Cron-Secret`; ruft `runDunningAutomationCronTick` (`dunning-automation-cron-tick.ts`) auf — ADR-0010 **5b-2** |
+| **FIN-4 / M4** | `GET|PATCH /finance/dunning-reminder-automation` | `finance-dunning-config-routes.ts`, `dunning-tenant-automation-service.ts`, `dunning-tenant-automation-persistence.ts` — Mandanten-Modus **OFF**/**SEMI** + SEMI-Kontext (Zeitzone, optional DE-Bundesland, Kalender-/Werktage, Kanal); PATCH nur Postgres (`DUNNING_AUTOMATION_NOT_PERSISTABLE` im Memory-Modus); ADR-0010, **ADR-0011** |
+
+*Hintergrund-Cron oder Mandantenmodus **AUTO** für Mahnungen sind nicht Bestandteil des Produkts — ADR-0011, Runbooks unter `docs/runbooks/dunning-*.md`.*
 
 Traceability-Prüfungen für Rechnungsentwurf und **Buchung**: `src/services/invoice-service.ts` / `TraceabilityService.assertInvoiceTraceability` (u. a. Aufmaß → LV → Angebot); siehe ADR-0007 / Gate **G5** (`lvVersionId` konsistent zu `offerVersionId`).
 

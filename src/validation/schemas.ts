@@ -168,12 +168,15 @@ export const dunningReminderRunBodySchema = z
   })
   .strict();
 
-/** Mandanten-Modus Mahnlauf (OFF | SEMI | AUTO); optional Cron-Stunde UTC 0–23. */
+/** Mandanten-Modus Mahnlauf (OFF | SEMI); SEMI-Kontext für Fälligkeit/Kanal (ADR-0011). */
 export const patchDunningTenantAutomationSchema = z
   .object({
     reason: z.string().min(5).max(500),
-    runMode: z.enum(["OFF", "SEMI", "AUTO"]),
-    jobHourUtc: z.number().int().min(0).max(23).nullable().optional(),
+    runMode: z.enum(["OFF", "SEMI"]),
+    ianaTimezone: z.string().min(1).max(64).optional(),
+    federalStateCode: z.string().min(2).max(4).nullable().optional(),
+    paymentTermDayKind: z.enum(["CALENDAR", "BUSINESS"]).optional(),
+    preferredDunningChannel: z.enum(["EMAIL", "PRINT"]).optional(),
   })
   .strict();
 

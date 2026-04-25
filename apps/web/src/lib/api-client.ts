@@ -1,4 +1,9 @@
 import { ApiError } from "./api-error.js";
+import { warnIfResponseContractVersionMismatch } from "./fin4-openapi-contract-header.js";
+import type {
+  DunningReminderCandidatesReadResponse,
+  DunningReminderRunResponse,
+} from "./finance-dunning-api-types.js";
 
 /** Vite: leere `VITE_API_BASE_URL=""` bleibt leer → relative URLs auf :5173. Default wie Backend-Port 3000. */
 export const DEFAULT_API_BASE_URL = "http://localhost:3000";
@@ -260,8 +265,12 @@ export type DunningTenantAutomationReadResponse = {
   data: {
     automationSource: "NOT_CONFIGURED" | "TENANT_DATABASE";
     tenantId: string;
-    runMode: "OFF" | "SEMI" | "AUTO";
+    runMode: "OFF" | "SEMI";
     jobHourUtc: number | null;
+    ianaTimezone: string;
+    federalStateCode: string | null;
+    paymentTermDayKind: "CALENDAR" | "BUSINESS";
+    preferredDunningChannel: "EMAIL" | "PRINT";
   };
 };
 
@@ -368,17 +377,20 @@ export type ApiClient = {
   getDunningReminderAutomation(): Promise<DunningTenantAutomationReadResponse>;
   patchDunningReminderAutomation(body: {
     reason: string;
-    runMode: "OFF" | "SEMI" | "AUTO";
-    jobHourUtc?: number | null;
+    runMode: "OFF" | "SEMI";
+    ianaTimezone?: string;
+    federalStateCode?: string | null;
+    paymentTermDayKind?: "CALENDAR" | "BUSINESS";
+    preferredDunningChannel?: "EMAIL" | "PRINT";
   }): Promise<DunningTenantAutomationReadResponse>;
-  getDunningReminderCandidates(params: { stageOrdinal: number; asOfDate?: string }): Promise<unknown>;
+  getDunningReminderCandidates(params: { stageOrdinal: number; asOfDate?: string }): Promise<DunningReminderCandidatesReadResponse>;
   postDunningReminderRunDryRun(body: {
     stageOrdinal: number;
     reason: string;
     asOfDate?: string;
     invoiceIds?: string[];
     note?: string;
-  }): Promise<unknown>;
+  }): Promise<DunningReminderRunResponse>;
   postDunningReminderRunExecute(
     body: {
       stageOrdinal: number;
@@ -388,7 +400,7 @@ export type ApiClient = {
       note?: string;
     },
     idempotencyKey: string,
-  ): Promise<unknown>;
+  ): Promise<DunningReminderRunResponse>;
   getAuditEvents(page?: number, pageSize?: number): Promise<AuditEventsListResponse>;
 };
 
@@ -432,6 +444,7 @@ export function createApiClient(options: {
         requestIdFromHeader: correlationFromResponse(res),
       });
     }
+    warnIfResponseContractVersionMismatch(path, res);
     return parsed as T;
   }
 
@@ -547,10 +560,16 @@ export function createApiClient(options: {
       if (params.asOfDate?.trim()) {
         q.set("asOfDate", params.asOfDate.trim());
       }
-      return requestJson<unknown>("GET", `/finance/dunning-reminder-candidates?${q}`);
+      return requestJson<DunningReminderCandidatesReadResponse>(
+        "GET",
+        `/finance/dunning-reminder-candidates?${q}`,
+      );
     },
     postDunningReminderRunDryRun(body) {
-      return requestJson<unknown>("POST", "/finance/dunning-reminder-run", { ...body, mode: "DRY_RUN" });
+      return requestJson<DunningReminderRunResponse>("POST", "/finance/dunning-reminder-run", {
+        ...body,
+        mode: "DRY_RUN",
+      });
     },
     async postDunningReminderRunExecute(body, idempotencyKey) {
       const token = options.getToken();
@@ -582,7 +601,8 @@ export function createApiClient(options: {
           requestIdFromHeader: correlationFromResponse(res),
         });
       }
-      return parsed;
+      warnIfResponseContractVersionMismatch("/finance/dunning-reminder-run", res);
+      return parsed as DunningReminderRunResponse;
     },
     async sendDunningReminderEmail(invoiceId, idempotencyKey, body) {
       const token = options.getToken();

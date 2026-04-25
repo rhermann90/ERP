@@ -38,3 +38,7 @@ Damit ist ein **DB-seitiges** Löschen einer `lv_versions`-Zeile **abgelehnt**, 
 - **Option A — Implementierung:** sobald PL die fachlichen Antworten (Abschnitt „Von PL / Fachlichkeit zu klären“) geliefert hat: API/Domain + ggf. Migration **nur** im Scope des genehmigten Tickets; weiterhin **keine** Phantom-Error-Codes.
 - **Option B — Technischer Spike:** kurzer Nachweis (z. B. repro-Skript, dokumentierte FK-Fehlermeldungen) **nur** in Ticket/ADR — **ohne** Schemaänderung bis PL-Freigabe.
 - Bis dahin: **kein** heimliches Anpassen von FKs/`ON DELETE`.
+
+## Verknuepfung (Betrieb / CI)
+
+- PR-Checkliste Punkt **LV-Löschen / FKs:** [`docs/runbook/ci-and-persistence-tests.md`](docs/runbook/ci-and-persistence-tests.md) (Abschnitt „PR-Checkliste“, letzter Punkt).

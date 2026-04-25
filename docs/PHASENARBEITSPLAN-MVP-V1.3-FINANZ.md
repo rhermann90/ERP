@@ -62,12 +62,12 @@
 
 ## D — Master-Tabelle: FIN-Phasen × Ist × Lücke × Nächster Schritt
 
-*Ist-Stand an [`ENTWICKLUNGSPHASEN-MVP-V1.3.md`](./ENTWICKLUNGSPHASEN-MVP-V1.3.md) §1 (Kurz-Iststand) angelehnt; zuletzt abgeglichen **2026-04-22**; technische Verifikation auf Commit [`03ea2676`](https://github.com/rhermann90/ERP/commit/03ea2676c149a02770d79fc4d6ba2ae3187dd305). Nach größeren Releases diese Tabelle und den Anker-Commit oben aktualisieren.*
+*Ist-Stand an [`ENTWICKLUNGSPHASEN-MVP-V1.3.md`](./ENTWICKLUNGSPHASEN-MVP-V1.3.md) §1 (Kurz-Iststand) angelehnt; FIN-1-M1-Zeile und DoD zuletzt **2026-04-25**; QA lokal `verify:ci` + `verify:ci:local-db` auf Commit [`b31c1b4`](https://github.com/rhermann90/ERP/commit/b31c1b4693724d1b8394183c7f00b19b9a969ea7). Nach größeren Releases diese Tabelle und den Anker-Commit oben aktualisieren.*
 
 | Phase | Meilenstein | DoD-Kern (Kurz) | Ist (Repo, hochlevel) | Lücke / Risiko | Nächster sinnvoller Schritt |
 |-------|-------------|-----------------|------------------------|----------------|----------------------------|
 | **FIN-0** | M0 | ADR + OpenAPI + Test-/Gate-Strategie | Verträge, ADRs 0007–0009 (+ **0010** M4 E-Mail/Vorlagen), Stub-Matrix, Gate-Readiness | Phantom-Codes, Drift OpenAPI ↔ Implementierung | Bei jedem API-Change: G8-Bündel + Matrix; §5a-Evidenz im PR |
-| **FIN-1** | M1 | Versionierte Konditionen, append-only | `payment_terms_*` in Postgres, APIs; FIN-1 in PWA-Demo angebunden | M1-DoD voll (zwei Versionen, alte Rechnung auf alter Version) **explizit** nachweisen | Persistenz-/Integrationstest oder dokumentierter Abnahme-Pfad; §8.5 |
+| **FIN-1** | M1 | Versionierte Konditionen, append-only | `payment_terms_*` in Postgres, APIs; PWA-Demo angebunden; **M1-DoD:** Persistenz-`it` „FIN-1 M1: zwei Zahlungsbedingungs-Versionen …“ in [`test/persistence.integration.test.ts`](../test/persistence.integration.test.ts) (zwei Versionen, Rechnung auf **v1**, Buchung behält **v1**) | Rest optional: UX/Copy in Finanz-Vorbereitung zu PT; §8.5 | Nach PL: nächster Strang laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) (Default **A**); kein Mix mit 8.4(2–6)/Pfad C ohne Gate |
 | **FIN-2** | M2 | Gebuchte Rechnung, 8.4-Kette, E2E aus LV-Kette | Entwurf, Buchung `BOOK_INVOICE`, 8.4(1)+USt/Brutto, **B2-1a** `skontoBps` (Wave3 Pfad A laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md)); PWA Shell + Finanz-Vorbereitung (SoT, Skonto optional API-first) | **8.4(2–6)**-Motor; Pfad GEPRUEFT/FREIGEGEBEN (**Pfad C**, eigenes Gate); belastbarer **LV→Rechnung**-E2E | PL: nach Wave3 **nicht** parallel 8.4-Tiefe + Pfad C mischen; nächste Priorität **FIN-4 Mini-Slice (Phase 3)** *oder* bewusst 8.4(2–6) / Konvergenz — siehe Wave3-Non-Goals |
 | **FIN-3** | M3 | Zahlung, Status, Idempotenz 8.7 | Intake POST, Liste GET, SoT, Status TEILBEZAHLT/BEZAHLT; PWA SoT-gekoppelt | Überzahlung / Regeln explizit; Bankfile out of scope, Modell dennoch konsistent | Domainfälle + Tests; Audit bei Zahlungsmutationen |
 | **FIN-4** | M4 | Mahnwesen 8.10 inkl. Konfig, Vorlagen, E-Mail | Slice: `dunning_reminders`, `dunning_tenant_stage_config`, `dunning_tenant_stage_templates`, GET/POST Mahn, **`GET|PUT|PATCH|DELETE`** Konfig-Stufen (9× inkl. Soft-Delete), **Audit+Tx** bei Schreiben, SoT **RECORD_DUNNING_REMINDER**, **ADR-0009** (Kern); **`GET|PUT /finance/dunning-reminder-config`** + Stufen-PATCH/DELETE; M4 **Vorlagen** `GET` + `PATCH` Text; M4 **E-Mail-Footer-Stammdaten** `GET|PATCH` [`/finance/dunning-email-footer`](./tickets/M4-MINI-SLICE-3-EMAIL-FOOTER-2026-04-23.md); Vorschau/Stub/SMTP — **ADR-0010** | **M4** (Mahnlauf-Orchestrierung Slice 5b, Rendering, System-Rechtshinweis im Footer) | **Nächster Schritt:** PL laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) — Default M4 weiter; kein Mix mit 8.4(2–6) oder Pfad C |
@@ -93,7 +93,7 @@
 4. **Postgres + Persistenz:** bei Migrationen/Services: [`docs/runbook/ci-and-persistence-tests.md`](./runbook/ci-and-persistence-tests.md) bzw. `npm run verify:ci:local-db`
 5. **Web:** bei `apps/web`-Änderungen: `npm run build -w apps/web && npm run test -w apps/web`
 6. **HTTP-Stubs / Finanz-Codes:** Stichprobe [`qa-fin-0-stub-test-matrix.md`](./contracts/qa-fin-0-stub-test-matrix.md) + Mapping [`finance-fin0-openapi-mapping.md`](./contracts/finance-fin0-openapi-mapping.md)
-7. **Merge auf `main`:** grüner **GitHub Actions**-Run (Job `backend`), **SHA** muss zum Merge passen — **lokal grün ersetzt Remote nicht** (§5a/§5b in `qa-fin-0-gate-readiness.md`).
+7. **Merge auf `main`:** grüne **GitHub Actions**-Runs (Jobs **`backend`** und **`e2e-smoke`**), **SHA** muss zum Merge passen — **lokal grün ersetzt Remote nicht** (§5a/§5b in `qa-fin-0-gate-readiness.md`; Branch-Protection: [`docs/runbooks/github-branch-protection-backend.md`](./runbooks/github-branch-protection-backend.md)).
 
 **Evidenz-Tabelle (Kopie pro Paket):**
 
@@ -102,6 +102,8 @@
 | 2026-04-22 | `npm run typecheck` (Repo-Root) | Exit 0 | [Commit `03ea2676…`](https://github.com/rhermann90/ERP/commit/03ea2676c149a02770d79fc4d6ba2ae3187dd305) |
 | 2026-04-22 | `npm run build -w apps/web && npm run test -w apps/web` | 8 Testdateien, **27** Tests bestanden | [lokaler Commit `03ea2676…`](https://github.com/rhermann90/ERP/commit/03ea2676c149a02770d79fc4d6ba2ae3187dd305) |
 | 2026-04-22 | GitHub Actions **workflow `ci.yml`**, Run auf `main` (Job `backend`) | **success** (`gh run list --workflow=ci.yml --branch=main`; Job per `gh run view 24792922353 --json jobs`) | [Run 24792922353](https://github.com/rhermann90/ERP/actions/runs/24792922353), Job [backend](https://github.com/rhermann90/ERP/actions/runs/24792922353/job/72555004789) — Merge-SHA [`900ec2f3…`](https://github.com/rhermann90/ERP/commit/900ec2f3408be60ec788724130b1e7436b22bc87) |
+| 2026-04-25 | `npm run verify:ci` + `npm run verify:ci:local-db` (Repo-Root, Compose **15432**) | Exit 0; **257** Tests (Persistenzsuite inkl. FIN-1 M1-`it`) | Historisch: [`b31c1b4…`](https://github.com/rhermann90/ERP/commit/b31c1b4693724d1b8394183c7f00b19b9a969ea7) |
+| 2026-04-25 | `npm run verify:ci` + `npm run verify:ci:local-db` + `npx playwright test e2e/login-finance-smoke.spec.ts` (FIN-4 SEMI / ADR-0011) | Exit 0; Root-Suite inkl. Persistenz grün; E2E **1** bestanden | **§5a (Remote, PR-Head):** [PR #40](https://github.com/rhermann90/ERP/pull/40), Tip [`e346fa9…`](https://github.com/rhermann90/ERP/commit/e346fa9ef10f0b9cdd6176ef7673743f4c587215) — GitHub Actions **backend** + **e2e-smoke** **success** ([CI workflow run](https://github.com/rhermann90/ERP/actions/runs/24919930108), UTC 2026-04-25). Feature-Bundle: [`32dfc73…`](https://github.com/rhermann90/ERP/commit/32dfc73ff79f49c214272aaf6bbe1d281d847439). [`qa-fin-0-gate-readiness.md`](./contracts/qa-fin-0-gate-readiness.md) §5a. |
 
 *Hinweis: Root-`npm test` inkl. Postgres-Persistenz (`PERSISTENCE_DB_TEST_URL`) vor Merge-PR zusätzlich laut [`ci-and-persistence-tests.md`](./runbook/ci-and-persistence-tests.md) / `verify:ci` ausführen — nicht durch die beiden Zeilen oben ersetzt.*
 
@@ -118,6 +120,7 @@
 
 | PR | Reviewer | Entscheidung (Approve / Changes / Block) | Datum |
 |----|----------|------------------------------------------|-------|
+| — (Doku/QA-Session) | — | FIN-1 M1 Persistenznachweis + `verify:ci`/`verify:ci:local-db` laut E1; kein Produkt-PR | 2026-04-25 |
 | | | | |
 
 ---
@@ -163,7 +166,7 @@
 
 **DoD:**
 
-- [ ] M1-Szenario aus ENTWICKLUNGSPHASEN §4 FIN-1 in Tests oder dokumentiertem manuellen Nachweis abgedeckt
+- [x] M1-Szenario aus ENTWICKLUNGSPHASEN §4 FIN-1 in Tests oder dokumentiertem manuellen Nachweis abgedeckt — Persistenz: `it("FIN-1 M1: zwei Zahlungsbedingungs-Versionen; Rechnung bleibt auf alter Version (Postgres); Buchung ändert PT-Referenz nicht", …)` in [`test/persistence.integration.test.ts`](../test/persistence.integration.test.ts)
 
 ---
 

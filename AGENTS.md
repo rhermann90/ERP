@@ -10,7 +10,7 @@ Kurzbriefing für automatisierte oder assistierte Arbeit am Repository. Verbindl
 4. **Technische Verträge** — [`docs/api-contract.yaml`](./docs/api-contract.yaml), [`docs/contracts/`](./docs/contracts/) (inkl. `error-codes.json`), relevante [`docs/adr/`](./docs/adr/).
 5. **Produktiv-Go Finanz (fachlich, nicht nur CI)** — [`Checklisten/compliance-rechnung-finanz.md`](./Checklisten/compliance-rechnung-finanz.md) vor Mandanten-Go mit StB/DSB/PL abarbeiten.
 
-Tickets und Gates (z. B. FIN-2, QA §5a) stehen in `docs/tickets/` und `docs/contracts/`; bei merge-kritischen Themen README und PR-Vorlage beachten.
+Tickets und Gates (z. B. FIN-2, QA §5a) stehen in `docs/tickets/` und `docs/contracts/`; bei merge-kritischen Themen README und PR-Vorlage beachten. **QA/Review vor Merge:** Querschnitt in [`docs/runbook/ci-and-persistence-tests.md`](./docs/runbook/ci-and-persistence-tests.md) (Abschnitt „QA und Review vor Merge auf `main`“).
 
 ## 2. Repo-Layout (Kurz)
 
@@ -19,6 +19,7 @@ Tickets und Gates (z. B. FIN-2, QA §5a) stehen in `docs/tickets/` und `docs/con
 | `src/` | Fastify-Backend: API, Domäne, Services, Persistenz, Auth |
 | `apps/web/` | Vite-PWA (`npm run dev -w apps/web`) |
 | `prisma/` | Schema und versionierte Migrationen |
+| `generated/` | Prisma-Client-Ausgabe (`generator client` → `generated/prisma`); in `.gitignore` — **nicht** committen; nach `npm install` (`postinstall`: `prisma generate`) bzw. `npm run prisma:generate` lokal vorhanden |
 | `docs/` | Systembeschreibung, ADRs, OpenAPI, Verträge, Runbooks, **CODEMAPS** |
 | `Checklisten/` | Abnahme-Checklisten (Compliance/Produktiv-Go), **ohne** Ersatz für StB/DSB |
 | `.github/` | CI (`backend`-Job), PR-Vorlage, Workflows |

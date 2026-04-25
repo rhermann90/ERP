@@ -1,12 +1,20 @@
 import type { PrismaClient } from "../prisma-client.js";
 import type { PrismaTransactionClient } from "./prisma-tx-types.js";
 
-export type DunningTenantAutomationRunMode = "OFF" | "SEMI" | "AUTO";
+export type DunningTenantAutomationRunMode = "OFF" | "SEMI";
+
+export type PaymentTermDayKind = "CALENDAR" | "BUSINESS";
+
+export type PreferredDunningChannel = "EMAIL" | "PRINT";
 
 export type DunningTenantAutomationRow = {
   tenantId: string;
   runMode: DunningTenantAutomationRunMode;
   jobHourUtc: number | null;
+  ianaTimezone: string;
+  federalStateCode: string | null;
+  paymentTermDayKind: PaymentTermDayKind;
+  preferredDunningChannel: PreferredDunningChannel;
 };
 
 export interface DunningTenantAutomationPersistencePort {
@@ -25,9 +33,37 @@ export const noopDunningTenantAutomationPersistence: DunningTenantAutomationPers
   upsertAutomationInTx: undefined,
 };
 
-function rowToDomain(r: { tenantId: string; runMode: string; jobHourUtc: number | null }): DunningTenantAutomationRow {
-  const runMode = r.runMode as DunningTenantAutomationRunMode;
-  return { tenantId: r.tenantId, runMode, jobHourUtc: r.jobHourUtc };
+function normalizeRunMode(raw: string): DunningTenantAutomationRunMode {
+  if (raw === "OFF" || raw === "SEMI") return raw;
+  return "SEMI";
+}
+
+function normalizeDayKind(raw: string): PaymentTermDayKind {
+  return raw === "BUSINESS" ? "BUSINESS" : "CALENDAR";
+}
+
+function normalizeChannel(raw: string): PreferredDunningChannel {
+  return raw === "PRINT" ? "PRINT" : "EMAIL";
+}
+
+function rowToDomain(r: {
+  tenantId: string;
+  runMode: string;
+  jobHourUtc: number | null;
+  ianaTimezone: string;
+  federalStateCode: string | null;
+  paymentTermDayKind: string;
+  preferredDunningChannel: string;
+}): DunningTenantAutomationRow {
+  return {
+    tenantId: r.tenantId,
+    runMode: normalizeRunMode(r.runMode),
+    jobHourUtc: null,
+    ianaTimezone: r.ianaTimezone?.trim() || "Europe/Berlin",
+    federalStateCode: r.federalStateCode?.trim() ? r.federalStateCode.trim().toUpperCase() : null,
+    paymentTermDayKind: normalizeDayKind(r.paymentTermDayKind),
+    preferredDunningChannel: normalizeChannel(r.preferredDunningChannel),
+  };
 }
 
 export class PrismaDunningTenantAutomationPersistence implements DunningTenantAutomationPersistencePort {
@@ -51,11 +87,19 @@ export class PrismaDunningTenantAutomationPersistence implements DunningTenantAu
       create: {
         tenantId,
         runMode: row.runMode,
-        jobHourUtc: row.jobHourUtc,
+        jobHourUtc: null,
+        ianaTimezone: row.ianaTimezone,
+        federalStateCode: row.federalStateCode,
+        paymentTermDayKind: row.paymentTermDayKind,
+        preferredDunningChannel: row.preferredDunningChannel,
       },
       update: {
         runMode: row.runMode,
-        jobHourUtc: row.jobHourUtc,
+        jobHourUtc: null,
+        ianaTimezone: row.ianaTimezone,
+        federalStateCode: row.federalStateCode,
+        paymentTermDayKind: row.paymentTermDayKind,
+        preferredDunningChannel: row.preferredDunningChannel,
       },
     });
     return { previous };

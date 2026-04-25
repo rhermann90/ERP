@@ -116,7 +116,10 @@ export function registerDunningReminderConfigRoutes(
         actorUserId: auth.userId,
         reason: body.reason,
         runMode: body.runMode,
-        jobHourUtc: body.jobHourUtc,
+        ianaTimezone: body.ianaTimezone,
+        federalStateCode: body.federalStateCode,
+        paymentTermDayKind: body.paymentTermDayKind,
+        preferredDunningChannel: body.preferredDunningChannel,
       });
       return reply.status(200).send({ data });
     } catch (error) {

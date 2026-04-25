@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { ERP_OPENAPI_INFO_VERSION } from "../domain/openapi-contract-version.js";
 
 /** Kommagetrennte Origins, z. B. `https://app.example.com,http://localhost:5173`. Leer = kein CORS (same-origin / Server-zu-Server). */
 export function parseCorsOriginsFromEnv(): string[] {
@@ -57,10 +58,21 @@ export function registerPwaHttpHooks(app: FastifyInstance, corsAllowlist: Set<st
     reply.header("x-correlation-id", id);
     /** Gleiche ID wie `correlationId` im Error-Envelope; Fallback für Clients laut `error-codes.json` (`x-request-id`). */
     reply.header("x-request-id", id);
+    const rawUrl = request.raw.url ?? "";
+    const pathOnly = rawUrl.split("?")[0] ?? "";
+    if (
+      pathOnly.startsWith("/finance/dunning-reminder") ||
+      pathOnly.startsWith("/finance/dunning-email-footer")
+    ) {
+      reply.header("x-erp-openapi-contract-version", ERP_OPENAPI_INFO_VERSION);
+    }
     const origin = request.headers.origin;
     if (typeof origin === "string" && corsAllowlist.has(origin)) {
       setCorsHeaders(reply, origin);
-      reply.header("Access-Control-Expose-Headers", "x-correlation-id, x-request-id");
+      reply.header(
+        "Access-Control-Expose-Headers",
+        "x-correlation-id, x-request-id, x-erp-openapi-contract-version",
+      );
     }
     setSecurityHeaders(reply);
     return payload;

@@ -17,6 +17,7 @@ import {
 } from "../lib/finance-sot.js";
 import { FinanceCollapsibleJson } from "./finance/FinanceCollapsibleJson.js";
 import { FinanceFeatureMatrix } from "./finance/FinanceFeatureMatrix.js";
+import { FinanceDunningGrundeinstellungenPanel } from "./finance/FinanceDunningGrundeinstellungenPanel.js";
 import { FinancePrepPanel } from "./finance/FinancePrepPanel.js";
 import { FinancePreparationDunningPanel } from "./finance/FinancePreparationDunningPanel.js";
 import { FinancePreparationPaymentPanel } from "./finance/FinancePreparationPaymentPanel.js";
@@ -36,6 +37,9 @@ const SOT_ENTITY_TYPES = [
 
 type SotEntityType = (typeof SOT_ENTITY_TYPES)[number];
 
+/** Haupt-Tabs innerhalb `#/finanz-vorbereitung` (PL: keine Unter-Hash-Routen). */
+type FinancePrepMainTab = "rechnung" | "grundeinstellungen" | "mahnwesen" | "fortgeschritten";
+
 const DOC_LINKS: { label: string; repoPath: string }[] = [
   {
     label: "ADR 0007 — Finance-Persistenz und Rechnungsgrenzen",
@@ -52,6 +56,10 @@ const DOC_LINKS: { label: string; repoPath: string }[] = [
   {
     label: "ADR 0010 — FIN-4 / M4: Vorlagen, Footer und E-Mail",
     repoPath: "docs/adr/0010-fin4-m4-dunning-email-and-templates.md",
+  },
+  {
+    label: "ADR 0011 — FIN-4: SEMI-Mahnkontext (Zeitzone, Fristlogik, Kanal)",
+    repoPath: "docs/adr/0011-fin4-semi-dunning-context.md",
   },
   {
     label: "M4 Mini-Slice 1 — Vorlagen-Read",
@@ -131,13 +139,22 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
   const [dunningTemplatesJson, setDunningTemplatesJson] = useState<string>("");
   const [dunningEmailFooterJson, setDunningEmailFooterJson] = useState<string>("");
   const [dunningAutomationJson, setDunningAutomationJson] = useState<string>("");
-  const [dunningAutomationRunMode, setDunningAutomationRunMode] = useState<"OFF" | "SEMI" | "AUTO">("SEMI");
-  const [dunningAutomationJobHour, setDunningAutomationJobHour] = useState("");
+  const [dunningAutomationRunMode, setDunningAutomationRunMode] = useState<"OFF" | "SEMI">("SEMI");
+  /** Servertreu nach GET/PATCH Automation (nur OFF/SEMI). */
+  const [dunningAutomationServerRunMode, setDunningAutomationServerRunMode] = useState<"OFF" | "SEMI" | null>(null);
+  const [financePrepMainTab, setFinancePrepMainTab] = useState<FinancePrepMainTab>("rechnung");
+  const [dunningAutomationIanaTimezone, setDunningAutomationIanaTimezone] = useState("Europe/Berlin");
+  const [dunningAutomationFederalState, setDunningAutomationFederalState] = useState("");
+  const [dunningAutomationPaymentTermDayKind, setDunningAutomationPaymentTermDayKind] = useState<"CALENDAR" | "BUSINESS">(
+    "CALENDAR",
+  );
+  const [dunningAutomationPreferredChannel, setDunningAutomationPreferredChannel] = useState<"EMAIL" | "PRINT">("EMAIL");
   const [dunningAutomationPatchReason, setDunningAutomationPatchReason] = useState(
     "Finanz-Vorbereitung PATCH Mandanten-Automation (Mahnmodus)",
   );
   const [dunningBatchAsOfDate, setDunningBatchAsOfDate] = useState("");
   const [dunningBatchRunJson, setDunningBatchRunJson] = useState("");
+  const [dunningCandidatesJson, setDunningCandidatesJson] = useState("");
   const [dunningEmailPreviewJson, setDunningEmailPreviewJson] = useState<string>("");
   const [dunningEmailSendStubJson, setDunningEmailSendStubJson] = useState<string>("");
   const [dunningEmailSendJson, setDunningEmailSendJson] = useState<string>("");
@@ -198,7 +215,7 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
 
   const loadDunningReads = useCallback(async () => {
     try {
-      const [cfg, tpl, footer, auto] = await Promise.all([
+      const [cfg, tpl, footer, dunningAutomationRead] = await Promise.all([
         api.getDunningReminderConfig(),
         api.getDunningReminderTemplates(),
         api.getDunningEmailFooter(),
@@ -207,15 +224,21 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
       setDunningReminderConfigJson(JSON.stringify(cfg, null, 2));
       setDunningTemplatesJson(JSON.stringify(tpl, null, 2));
       setDunningEmailFooterJson(JSON.stringify(footer, null, 2));
-      setDunningAutomationJson(JSON.stringify(auto, null, 2));
-      setDunningAutomationRunMode(auto.data.runMode);
-      setDunningAutomationJobHour(auto.data.jobHourUtc === null ? "" : String(auto.data.jobHourUtc));
+      setDunningAutomationJson(JSON.stringify(dunningAutomationRead, null, 2));
+      const srvRm = dunningAutomationRead.data.runMode;
+      setDunningAutomationServerRunMode(srvRm);
+      setDunningAutomationRunMode(srvRm);
+      setDunningAutomationIanaTimezone(dunningAutomationRead.data.ianaTimezone?.trim() || "Europe/Berlin");
+      setDunningAutomationFederalState(dunningAutomationRead.data.federalStateCode ?? "");
+      setDunningAutomationPaymentTermDayKind(dunningAutomationRead.data.paymentTermDayKind ?? "CALENDAR");
+      setDunningAutomationPreferredChannel(dunningAutomationRead.data.preferredDunningChannel ?? "EMAIL");
       setDunningPanelError(null);
     } catch (e) {
       setDunningReminderConfigJson("");
       setDunningTemplatesJson("");
       setDunningEmailFooterJson("");
       setDunningAutomationJson("");
+      setDunningAutomationServerRunMode(null);
       setDunningPanelError(e instanceof ApiError ? { kind: "api", error: e } : { kind: "text", text: String(e) });
     }
   }, [api]);
@@ -453,32 +476,53 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
         setDunningPanelError({ kind: "text", text: "Grund für Automation-PATCH mindestens 5 Zeichen." });
         return;
       }
-      let jobHourUtc: number | null | undefined;
-      const jh = dunningAutomationJobHour.trim();
-      if (jh.length > 0) {
-        const n = Number.parseInt(jh, 10);
-        if (!Number.isFinite(n) || n < 0 || n > 23) {
-          setDunningPanelError({ kind: "text", text: "Cron-Stunde leer oder ganze Zahl 0–23 (UTC)." });
-          return;
-        }
-        jobHourUtc = n;
-      } else {
-        jobHourUtc = null;
+      const tz = dunningAutomationIanaTimezone.trim();
+      if (!tz || tz.length > 64) {
+        setDunningPanelError({ kind: "text", text: "IANA-Zeitzone 1–64 Zeichen (z. B. Europe/Berlin)." });
+        return;
+      }
+      const fs = dunningAutomationFederalState.trim().toUpperCase();
+      if (fs.length === 1) {
+        setDunningPanelError({
+          kind: "text",
+          text: "Bundesland leer oder 2–4 Zeichen (z. B. BY, BW) oder Feld leer lassen.",
+        });
+        return;
+      }
+      if (fs.length > 4) {
+        setDunningPanelError({ kind: "text", text: "Bundesland höchstens 4 Zeichen." });
+        return;
       }
       const out = await api.patchDunningReminderAutomation({
         reason: r,
         runMode: dunningAutomationRunMode,
-        jobHourUtc,
+        ianaTimezone: tz,
+        federalStateCode: fs.length === 0 ? null : fs,
+        paymentTermDayKind: dunningAutomationPaymentTermDayKind,
+        preferredDunningChannel: dunningAutomationPreferredChannel,
       });
       setDunningAutomationJson(JSON.stringify(out, null, 2));
-      setDunningAutomationRunMode(out.data.runMode);
-      setDunningAutomationJobHour(out.data.jobHourUtc === null ? "" : String(out.data.jobHourUtc));
+      const outRm = out.data.runMode;
+      setDunningAutomationServerRunMode(outRm);
+      setDunningAutomationRunMode(outRm);
+      setDunningAutomationIanaTimezone(out.data.ianaTimezone);
+      setDunningAutomationFederalState(out.data.federalStateCode ?? "");
+      setDunningAutomationPaymentTermDayKind(out.data.paymentTermDayKind);
+      setDunningAutomationPreferredChannel(out.data.preferredDunningChannel);
     } catch (e) {
       setDunningPanelError(e instanceof ApiError ? { kind: "api", error: e } : { kind: "text", text: String(e) });
     } finally {
       setBusy(false);
     }
-  }, [api, dunningAutomationJobHour, dunningAutomationPatchReason, dunningAutomationRunMode]);
+  }, [
+    api,
+    dunningAutomationFederalState,
+    dunningAutomationIanaTimezone,
+    dunningAutomationPatchReason,
+    dunningAutomationPaymentTermDayKind,
+    dunningAutomationPreferredChannel,
+    dunningAutomationRunMode,
+  ]);
 
   const submitDunningBatchDryRun = useCallback(async () => {
     setDunningPanelError(null);
@@ -543,6 +587,30 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
       setBusy(false);
     }
   }, [api, canRecordDunningReminder, dunningBatchAsOfDate, dunningStageOrdinal, loadInvoice, loadDunningReads]);
+
+  const submitLoadDunningCandidates = useCallback(async () => {
+    setDunningPanelError(null);
+    setBusy(true);
+    setDunningCandidatesJson("");
+    try {
+      const stage = Number.parseInt(dunningStageOrdinal.trim(), 10);
+      if (!Number.isFinite(stage) || stage < 1 || stage > 9) {
+        setDunningPanelError({ kind: "text", text: "Mahn-Stufe für Kandidaten 1–9 (gleiches Feld wie Einzel-Mahnung im Tab Mahnwesen)." });
+        return;
+      }
+      const asOf = dunningBatchAsOfDate.trim();
+      const out = await api.getDunningReminderCandidates({
+        stageOrdinal: stage,
+        ...(asOf ? { asOfDate: asOf } : {}),
+      });
+      setDunningCandidatesJson(JSON.stringify(out, null, 2));
+    } catch (e) {
+      setDunningCandidatesJson("");
+      setDunningPanelError(e instanceof ApiError ? { kind: "api", error: e } : { kind: "text", text: String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [api, dunningBatchAsOfDate, dunningStageOrdinal]);
 
   const prefillConfigPutFromGet = useCallback(() => {
     setDunningPanelError(null);
@@ -890,7 +958,7 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
         Zahlungseingang — nur mit gültiger Anmeldung; Demo nutzt feste Seed-UUIDs aus dem Backend. <strong>FIN-3 Schreiben:</strong> nur wenn{" "}
         <code>GET /documents/…/allowed-actions?entityType=INVOICE</code> die Aktion <code>{RECORD_PAYMENT_INTAKE_ACTION_ID}</code> liefert (wird
         automatisch mit „GET Rechnung laden“ geholt). Nach Buchungen hilft <strong>Audit</strong> (<code>GET /audit-events</code>) zur
-        Nachvollziehbarkeit im Mandanten.
+        Nachvollziehbarkeit im Mandanten. Tab <strong>Grundeinstellungen Mahnlauf</strong>: Mandanten-Automation <strong>OFF</strong> oder <strong>SEMI</strong>, Kandidaten-GET mit <code>eligibilityContext</code> und <code>stageDeadlineIso</code> (ADR-0011). Tab <strong>Mahnwesen</strong>: Konfiguration, E-Mail, Einzel-Mahnung — kein Hintergrund-Cron; keine juristische Mahnung — Massen-E-Mail nur nach PL/Compliance (Einzelversand Slice 5a).
       </p>
       <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
         <a href="#/">Zurück zur Shell (Start)</a>
@@ -917,6 +985,107 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
         className="finance-prep-tools"
         style={{ marginTop: "1rem", width: "100%", maxWidth: "min(42rem, 100%)", boxSizing: "border-box" }}
       >
+        <div
+          role="tablist"
+          aria-label="Bereiche Finanz-Vorbereitung"
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0.35rem",
+            marginBottom: "0.75rem",
+            borderBottom: "1px solid var(--border)",
+            paddingBottom: "0.35rem",
+          }}
+        >
+          <button
+            type="button"
+            role="tab"
+            id="finance-prep-tab-rechnung"
+            aria-selected={financePrepMainTab === "rechnung"}
+            aria-controls="finance-prep-panel-rechnung"
+            onClick={() => setFinancePrepMainTab("rechnung")}
+            style={{
+              fontWeight: financePrepMainTab === "rechnung" ? 700 : 400,
+              borderBottom: financePrepMainTab === "rechnung" ? "2px solid var(--accent)" : "2px solid transparent",
+              marginBottom: "-1px",
+              padding: "0.35rem 0.6rem",
+              background: "transparent",
+              cursor: "pointer",
+            }}
+          >
+            {"Rechnung & Zahlung"}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="finance-prep-tab-grundeinstellungen"
+            aria-selected={financePrepMainTab === "grundeinstellungen"}
+            aria-controls="finance-prep-panel-grundeinstellungen"
+            onClick={() => setFinancePrepMainTab("grundeinstellungen")}
+            style={{
+              fontWeight: financePrepMainTab === "grundeinstellungen" ? 700 : 400,
+              borderBottom: financePrepMainTab === "grundeinstellungen" ? "2px solid var(--accent)" : "2px solid transparent",
+              marginBottom: "-1px",
+              padding: "0.35rem 0.6rem",
+              background: "transparent",
+              cursor: "pointer",
+            }}
+          >
+            Grundeinstellungen Mahnlauf
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="finance-prep-tab-mahnwesen"
+            aria-selected={financePrepMainTab === "mahnwesen"}
+            aria-controls="finance-prep-panel-mahnwesen"
+            onClick={() => setFinancePrepMainTab("mahnwesen")}
+            style={{
+              fontWeight: financePrepMainTab === "mahnwesen" ? 700 : 400,
+              borderBottom: financePrepMainTab === "mahnwesen" ? "2px solid var(--accent)" : "2px solid transparent",
+              marginBottom: "-1px",
+              padding: "0.35rem 0.6rem",
+              background: "transparent",
+              cursor: "pointer",
+            }}
+          >
+            Mahnwesen
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="finance-prep-tab-fortgeschritten"
+            aria-selected={financePrepMainTab === "fortgeschritten"}
+            aria-controls="finance-prep-panel-fortgeschritten"
+            onClick={() => setFinancePrepMainTab("fortgeschritten")}
+            style={{
+              fontWeight: financePrepMainTab === "fortgeschritten" ? 700 : 400,
+              borderBottom: financePrepMainTab === "fortgeschritten" ? "2px solid var(--accent)" : "2px solid transparent",
+              marginBottom: "-1px",
+              padding: "0.35rem 0.6rem",
+              background: "transparent",
+              cursor: "pointer",
+            }}
+          >
+            Fortgeschritten
+          </button>
+        </div>
+
+        {dunningPanelError?.kind === "api" ? (
+          <FinanceStructuredApiError envelope={dunningPanelError.error.envelope} status={dunningPanelError.error.status} />
+        ) : null}
+        {dunningPanelError?.kind === "text" ? (
+          <p role="alert" style={{ color: "var(--danger)", fontSize: "0.85rem", marginBottom: "0.65rem" }}>
+            {dunningPanelError.text}
+          </p>
+        ) : null}
+
+        <div
+          id="finance-prep-panel-rechnung"
+          role="tabpanel"
+          aria-labelledby="finance-prep-tab-rechnung"
+          hidden={financePrepMainTab !== "rechnung"}
+        >
         <FinancePrepPanel step={1} title="Zahlungsbedingungen (FIN-1)">
         <label style={{ display: "block", marginBottom: "0.5rem" }}>
           <span className="visually-hidden">Projekt-ID</span>
@@ -1166,7 +1335,9 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
                   <code>POST /invoices/…/dunning-reminders</code> mit SoT <code>{RECORD_DUNNING_REMINDER_ACTION_ID}</code>; siehe{" "}
                   <a href={repoDocHref("docs/adr/0009-fin4-mahnwesen-slice.md")}>ADR-0009</a>
                   {" · "}
-                  <a href={repoDocHref("docs/adr/0010-fin4-m4-dunning-email-and-templates.md")}>ADR-0010</a> (M4 E-Mail/Vorlagen).
+                  <a href={repoDocHref("docs/adr/0010-fin4-m4-dunning-email-and-templates.md")}>ADR-0010</a> (M4 E-Mail/Vorlagen)
+                  {" · "}
+                  <a href={repoDocHref("docs/adr/0011-fin4-semi-dunning-context.md")}>ADR-0011</a> (SEMI-Kontext).
                 </p>
                 {dunningReminders.length === 0 ? (
                   <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", margin: 0 }}>Keine Mahn-Ereignisse.</p>
@@ -1187,6 +1358,148 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
         ) : null}
         </FinancePrepPanel>
 
+        <FinancePreparationPaymentPanel
+          busy={busy}
+          openCents={openCents}
+          intakeAmountCents={intakeAmountCents}
+          setIntakeAmountCents={setIntakeAmountCents}
+          intakeExternalRef={intakeExternalRef}
+          setIntakeExternalRef={setIntakeExternalRef}
+          canRecordPaymentIntake={canRecordPaymentIntake}
+          invoiceIdLooksValid={invoiceIdLooksValid}
+          paymentPanelError={paymentPanelError}
+          intakeResultJson={intakeResultJson}
+          onApplyOpenBalance={applyOpenBalanceToIntake}
+          onSubmitPaymentIntake={submitPaymentIntake}
+        />
+        </div>
+
+        <div
+          id="finance-prep-panel-grundeinstellungen"
+          role="tabpanel"
+          aria-labelledby="finance-prep-tab-grundeinstellungen"
+          hidden={financePrepMainTab !== "grundeinstellungen"}
+        >
+          <FinanceDunningGrundeinstellungenPanel
+            busy={busy}
+            serverAutomationRunMode={dunningAutomationServerRunMode}
+            dunningAutomationJson={dunningAutomationJson}
+            dunningAutomationRunMode={dunningAutomationRunMode}
+            setDunningAutomationRunMode={setDunningAutomationRunMode}
+            dunningAutomationIanaTimezone={dunningAutomationIanaTimezone}
+            setDunningAutomationIanaTimezone={setDunningAutomationIanaTimezone}
+            dunningAutomationFederalState={dunningAutomationFederalState}
+            setDunningAutomationFederalState={setDunningAutomationFederalState}
+            dunningAutomationPaymentTermDayKind={dunningAutomationPaymentTermDayKind}
+            setDunningAutomationPaymentTermDayKind={setDunningAutomationPaymentTermDayKind}
+            dunningAutomationPreferredChannel={dunningAutomationPreferredChannel}
+            setDunningAutomationPreferredChannel={setDunningAutomationPreferredChannel}
+            dunningAutomationPatchReason={dunningAutomationPatchReason}
+            setDunningAutomationPatchReason={setDunningAutomationPatchReason}
+            onSubmitDunningTenantAutomationPatch={() => void submitDunningTenantAutomationPatch()}
+            dunningStageOrdinal={dunningStageOrdinal}
+            setDunningStageOrdinal={setDunningStageOrdinal}
+            dunningBatchAsOfDate={dunningBatchAsOfDate}
+            setDunningBatchAsOfDate={setDunningBatchAsOfDate}
+            dunningBatchRunJson={dunningBatchRunJson}
+            onDunningBatchDryRun={() => void submitDunningBatchDryRun()}
+            onDunningBatchExecute={() => void submitDunningBatchExecute()}
+            canRecordDunningReminder={canRecordDunningReminder}
+            dunningCandidatesJson={dunningCandidatesJson}
+            onLoadDunningCandidates={() => void submitLoadDunningCandidates()}
+          />
+        </div>
+
+        <div
+          id="finance-prep-panel-mahnwesen"
+          role="tabpanel"
+          aria-labelledby="finance-prep-tab-mahnwesen"
+          hidden={financePrepMainTab !== "mahnwesen"}
+        >
+        <FinancePreparationDunningPanel
+          busy={busy}
+          dunningReminderConfigJson={dunningReminderConfigJson}
+          dunningTemplatesJson={dunningTemplatesJson}
+          dunningEmailFooterJson={dunningEmailFooterJson}
+          dunningStageOrdinal={dunningStageOrdinal}
+          setDunningStageOrdinal={setDunningStageOrdinal}
+          dunningNote={dunningNote}
+          setDunningNote={setDunningNote}
+          canRecordDunningReminder={canRecordDunningReminder}
+          invoiceIdLooksValid={invoiceIdLooksValid}
+          dunningPanelError={dunningPanelError}
+          dunningResultJson={dunningResultJson}
+          onSubmitDunningReminder={submitDunningReminder}
+          configPutJson={configPutJson}
+          setConfigPutJson={setConfigPutJson}
+          configPutReason={configPutReason}
+          setConfigPutReason={setConfigPutReason}
+          onPrefillConfigPutFromGet={prefillConfigPutFromGet}
+          onSubmitDunningConfigPut={submitDunningConfigPut}
+          configPatchOrdinal={configPatchOrdinal}
+          setConfigPatchOrdinal={setConfigPatchOrdinal}
+          configPatchDays={configPatchDays}
+          setConfigPatchDays={setConfigPatchDays}
+          configPatchFee={configPatchFee}
+          setConfigPatchFee={setConfigPatchFee}
+          configPatchLabel={configPatchLabel}
+          setConfigPatchLabel={setConfigPatchLabel}
+          configPatchReason={configPatchReason}
+          setConfigPatchReason={setConfigPatchReason}
+          onSubmitDunningConfigPatch={submitDunningConfigPatch}
+          configDeleteOrdinal={configDeleteOrdinal}
+          setConfigDeleteOrdinal={setConfigDeleteOrdinal}
+          configDeleteReason={configDeleteReason}
+          setConfigDeleteReason={setConfigDeleteReason}
+          onSubmitDunningConfigDelete={submitDunningConfigDelete}
+          onReloadDunningReads={() => void loadDunningReads()}
+          hasLoadedInvoice={hasLoadedInvoice}
+          dunningEmailPreviewJson={dunningEmailPreviewJson}
+          dunningEmailSendStubJson={dunningEmailSendStubJson}
+          dunningEmailRecipient={dunningEmailRecipient}
+          setDunningEmailRecipient={setDunningEmailRecipient}
+          dunningEmailSendJson={dunningEmailSendJson}
+          canSendDunningReminderEmail={canSendDunningReminderEmail}
+          footerPatchReason={footerPatchReason}
+          setFooterPatchReason={setFooterPatchReason}
+          footerCompanyLegalName={footerCompanyLegalName}
+          setFooterCompanyLegalName={setFooterCompanyLegalName}
+          footerStreetLine={footerStreetLine}
+          setFooterStreetLine={setFooterStreetLine}
+          footerPostalCode={footerPostalCode}
+          setFooterPostalCode={setFooterPostalCode}
+          footerCity={footerCity}
+          setFooterCity={setFooterCity}
+          footerCountryCode={footerCountryCode}
+          setFooterCountryCode={setFooterCountryCode}
+          footerPublicEmail={footerPublicEmail}
+          setFooterPublicEmail={setFooterPublicEmail}
+          footerPublicPhone={footerPublicPhone}
+          setFooterPublicPhone={setFooterPublicPhone}
+          footerLegalRepresentative={footerLegalRepresentative}
+          setFooterLegalRepresentative={setFooterLegalRepresentative}
+          footerRegisterCourt={footerRegisterCourt}
+          setFooterRegisterCourt={setFooterRegisterCourt}
+          footerRegisterNumber={footerRegisterNumber}
+          setFooterRegisterNumber={setFooterRegisterNumber}
+          footerVatId={footerVatId}
+          setFooterVatId={setFooterVatId}
+          footerSignatureLine={footerSignatureLine}
+          setFooterSignatureLine={setFooterSignatureLine}
+          onPrefillFooterPatchFromGet={prefillFooterPatchFromGet}
+          onSubmitFooterPatch={() => void submitFooterPatch()}
+          onSubmitEmailPreview={() => void submitEmailPreview()}
+          onSubmitEmailSendStub={() => void submitEmailSendStub()}
+          onSubmitEmailSend={() => void submitEmailSend()}
+        />
+        </div>
+
+        <div
+          id="finance-prep-panel-fortgeschritten"
+          role="tabpanel"
+          aria-labelledby="finance-prep-tab-fortgeschritten"
+          hidden={financePrepMainTab !== "fortgeschritten"}
+        >
         <FinancePrepPanel step={4} title="SoT — erlaubte Aktionen (Fortgeschritten)">
         <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
           <code>GET /documents/:id/allowed-actions</code> — gleiche Quelle wie die Dokument-Shell; <code>id</code> ist die UUID der gewählten Entität (nicht immer die Rechnungs-ID).
@@ -1284,111 +1597,6 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
         <FinanceCollapsibleJson summary="Rohantwort allowed-actions (JSON)" json={sotJson} />
         </FinancePrepPanel>
 
-        <FinancePreparationPaymentPanel
-          busy={busy}
-          openCents={openCents}
-          intakeAmountCents={intakeAmountCents}
-          setIntakeAmountCents={setIntakeAmountCents}
-          intakeExternalRef={intakeExternalRef}
-          setIntakeExternalRef={setIntakeExternalRef}
-          canRecordPaymentIntake={canRecordPaymentIntake}
-          invoiceIdLooksValid={invoiceIdLooksValid}
-          paymentPanelError={paymentPanelError}
-          intakeResultJson={intakeResultJson}
-          onApplyOpenBalance={applyOpenBalanceToIntake}
-          onSubmitPaymentIntake={submitPaymentIntake}
-        />
-
-        <FinancePreparationDunningPanel
-          busy={busy}
-          dunningAutomationJson={dunningAutomationJson}
-          dunningAutomationRunMode={dunningAutomationRunMode}
-          setDunningAutomationRunMode={setDunningAutomationRunMode}
-          dunningAutomationJobHour={dunningAutomationJobHour}
-          setDunningAutomationJobHour={setDunningAutomationJobHour}
-          dunningAutomationPatchReason={dunningAutomationPatchReason}
-          setDunningAutomationPatchReason={setDunningAutomationPatchReason}
-          onSubmitDunningTenantAutomationPatch={() => void submitDunningTenantAutomationPatch()}
-          dunningBatchAsOfDate={dunningBatchAsOfDate}
-          setDunningBatchAsOfDate={setDunningBatchAsOfDate}
-          dunningBatchRunJson={dunningBatchRunJson}
-          onDunningBatchDryRun={() => void submitDunningBatchDryRun()}
-          onDunningBatchExecute={() => void submitDunningBatchExecute()}
-          dunningReminderConfigJson={dunningReminderConfigJson}
-          dunningTemplatesJson={dunningTemplatesJson}
-          dunningEmailFooterJson={dunningEmailFooterJson}
-          dunningStageOrdinal={dunningStageOrdinal}
-          setDunningStageOrdinal={setDunningStageOrdinal}
-          dunningNote={dunningNote}
-          setDunningNote={setDunningNote}
-          canRecordDunningReminder={canRecordDunningReminder}
-          invoiceIdLooksValid={invoiceIdLooksValid}
-          dunningPanelError={dunningPanelError}
-          dunningResultJson={dunningResultJson}
-          onSubmitDunningReminder={submitDunningReminder}
-          configPutJson={configPutJson}
-          setConfigPutJson={setConfigPutJson}
-          configPutReason={configPutReason}
-          setConfigPutReason={setConfigPutReason}
-          onPrefillConfigPutFromGet={prefillConfigPutFromGet}
-          onSubmitDunningConfigPut={submitDunningConfigPut}
-          configPatchOrdinal={configPatchOrdinal}
-          setConfigPatchOrdinal={setConfigPatchOrdinal}
-          configPatchDays={configPatchDays}
-          setConfigPatchDays={setConfigPatchDays}
-          configPatchFee={configPatchFee}
-          setConfigPatchFee={setConfigPatchFee}
-          configPatchLabel={configPatchLabel}
-          setConfigPatchLabel={setConfigPatchLabel}
-          configPatchReason={configPatchReason}
-          setConfigPatchReason={setConfigPatchReason}
-          onSubmitDunningConfigPatch={submitDunningConfigPatch}
-          configDeleteOrdinal={configDeleteOrdinal}
-          setConfigDeleteOrdinal={setConfigDeleteOrdinal}
-          configDeleteReason={configDeleteReason}
-          setConfigDeleteReason={setConfigDeleteReason}
-          onSubmitDunningConfigDelete={submitDunningConfigDelete}
-          onReloadDunningReads={() => void loadDunningReads()}
-          hasLoadedInvoice={hasLoadedInvoice}
-          dunningEmailPreviewJson={dunningEmailPreviewJson}
-          dunningEmailSendStubJson={dunningEmailSendStubJson}
-          dunningEmailRecipient={dunningEmailRecipient}
-          setDunningEmailRecipient={setDunningEmailRecipient}
-          dunningEmailSendJson={dunningEmailSendJson}
-          canSendDunningReminderEmail={canSendDunningReminderEmail}
-          footerPatchReason={footerPatchReason}
-          setFooterPatchReason={setFooterPatchReason}
-          footerCompanyLegalName={footerCompanyLegalName}
-          setFooterCompanyLegalName={setFooterCompanyLegalName}
-          footerStreetLine={footerStreetLine}
-          setFooterStreetLine={setFooterStreetLine}
-          footerPostalCode={footerPostalCode}
-          setFooterPostalCode={setFooterPostalCode}
-          footerCity={footerCity}
-          setFooterCity={setFooterCity}
-          footerCountryCode={footerCountryCode}
-          setFooterCountryCode={setFooterCountryCode}
-          footerPublicEmail={footerPublicEmail}
-          setFooterPublicEmail={setFooterPublicEmail}
-          footerPublicPhone={footerPublicPhone}
-          setFooterPublicPhone={setFooterPublicPhone}
-          footerLegalRepresentative={footerLegalRepresentative}
-          setFooterLegalRepresentative={setFooterLegalRepresentative}
-          footerRegisterCourt={footerRegisterCourt}
-          setFooterRegisterCourt={setFooterRegisterCourt}
-          footerRegisterNumber={footerRegisterNumber}
-          setFooterRegisterNumber={setFooterRegisterNumber}
-          footerVatId={footerVatId}
-          setFooterVatId={setFooterVatId}
-          footerSignatureLine={footerSignatureLine}
-          setFooterSignatureLine={setFooterSignatureLine}
-          onPrefillFooterPatchFromGet={prefillFooterPatchFromGet}
-          onSubmitFooterPatch={() => void submitFooterPatch()}
-          onSubmitEmailPreview={() => void submitEmailPreview()}
-          onSubmitEmailSendStub={() => void submitEmailSendStub()}
-          onSubmitEmailSend={() => void submitEmailSend()}
-        />
-
         <FinancePrepPanel step={7} title="Audit — Nachvollziehbarkeit">
         <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
           <code>GET /audit-events</code> — Leserecht nur für <strong>ADMIN</strong>, <strong>BUCHHALTUNG</strong>, <strong>GESCHAEFTSFUEHRUNG</strong> (sonst 403{" "}
@@ -1399,6 +1607,8 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
         </button>
         <FinanceCollapsibleJson summary="Rohantwort GET /audit-events (JSON)" json={auditJson} />
         </FinancePrepPanel>
+        </div>
+
         {notice?.kind === "api" ? (
           <FinanceStructuredApiError envelope={notice.error.envelope} status={notice.error.status} />
         ) : null}

@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { FinanceCollapsibleJson } from "./FinanceCollapsibleJson.js";
 import { FinancePrepPanel } from "./FinancePrepPanel.js";
-import { FinanceStructuredApiError } from "./FinanceStructuredApiError.js";
 import type { DunningEmailFooterData } from "./finance-prep-helpers.js";
 import {
   impressumComplianceTierExplanationDe,
@@ -10,22 +9,10 @@ import {
 } from "./finance-prep-helpers.js";
 import type { FinNotice } from "./finance-prep-types.js";
 import { RECORD_DUNNING_REMINDER_ACTION_ID } from "../../lib/finance-sot.js";
+import { repoDocHref } from "../../lib/repo-doc-links.js";
 
 export type FinancePreparationDunningPanelProps = {
   busy: boolean;
-  dunningAutomationJson: string;
-  dunningAutomationRunMode: "OFF" | "SEMI" | "AUTO";
-  setDunningAutomationRunMode: (v: "OFF" | "SEMI" | "AUTO") => void;
-  dunningAutomationJobHour: string;
-  setDunningAutomationJobHour: (v: string) => void;
-  dunningAutomationPatchReason: string;
-  setDunningAutomationPatchReason: (v: string) => void;
-  onSubmitDunningTenantAutomationPatch: () => void;
-  dunningBatchAsOfDate: string;
-  setDunningBatchAsOfDate: (v: string) => void;
-  dunningBatchRunJson: string;
-  onDunningBatchDryRun: () => void;
-  onDunningBatchExecute: () => void;
   /** JSON von `GET /finance/dunning-reminder-config` (MVP-Defaults), leer bis geladen. */
   dunningReminderConfigJson: string;
   /** JSON von `GET /finance/dunning-reminder-templates` (M4 Slice 1). */
@@ -107,19 +94,6 @@ export type FinancePreparationDunningPanelProps = {
 
 export function FinancePreparationDunningPanel({
   busy,
-  dunningAutomationJson,
-  dunningAutomationRunMode,
-  setDunningAutomationRunMode,
-  dunningAutomationJobHour,
-  setDunningAutomationJobHour,
-  dunningAutomationPatchReason,
-  setDunningAutomationPatchReason,
-  onSubmitDunningTenantAutomationPatch,
-  dunningBatchAsOfDate,
-  setDunningBatchAsOfDate,
-  dunningBatchRunJson,
-  onDunningBatchDryRun,
-  onDunningBatchExecute,
   dunningReminderConfigJson,
   dunningTemplatesJson,
   dunningEmailFooterJson,
@@ -215,16 +189,8 @@ export function FinancePreparationDunningPanel({
         <code>PATCH /finance/dunning-reminder-templates/stages/…/channels/EMAIL|PRINT</code> (§8.10-Pflichtplatzhalter, sonst <code>400</code>).
       </p>
       <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginTop: "0.35rem", marginBottom: "0.5rem" }}>
-        Fehler von Lesepfad oder Schreibaktionen erscheinen hier direkt darunter (<code>403</code> Rolle, <code>503</code> ohne Postgres, Validierung). Ohne erfolgreichen Lesepfad bleiben die JSON-Ausklappfelder leer — bei Lesepfad-Fehler „Mahn-Lesepfade erneut laden“ nutzen.
+        Fehler von Lesepfad oder Schreibaktionen erscheinen <strong>über den Tabs</strong> (<code>403</code> Rolle, <code>503</code> ohne Postgres, Validierung). Ohne erfolgreichen Lesepfad bleiben die JSON-Ausklappfelder leer — bei Lesepfad-Fehler „Mahn-Lesepfade erneut laden“ nutzen.
       </p>
-      {dunningPanelError?.kind === "api" ? (
-        <FinanceStructuredApiError envelope={dunningPanelError.error.envelope} status={dunningPanelError.error.status} />
-      ) : null}
-      {dunningPanelError?.kind === "text" ? (
-        <p role="alert" style={{ color: "var(--danger)", fontSize: "0.85rem", marginBottom: "0.5rem" }}>
-          {dunningPanelError.text}
-        </p>
-      ) : null}
       {readLoadFailed ? (
         <div style={{ marginBottom: "0.65rem" }}>
           <button type="button" disabled={busy} onClick={() => void onReloadDunningReads()} aria-label="Mahn-Lesepfade und E-Mail-Footer erneut laden">
@@ -232,82 +198,13 @@ export function FinancePreparationDunningPanel({
           </button>
         </div>
       ) : null}
-      <div style={{ marginBottom: "0.75rem", paddingBottom: "0.65rem", borderBottom: "1px solid var(--border)" }}>
-        <h3 style={{ fontSize: "0.95rem", margin: "0 0 0.35rem" }}>Mandanten-Mahnlauf (Automation + Batch 5b-1)</h3>
-        <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginTop: 0 }}>
-          <code>GET|PATCH /finance/dunning-reminder-automation</code> — Modus <strong>OFF</strong> / <strong>SEMI</strong> /{" "}
-          <strong>AUTO</strong> (PATCH nur mit Postgres). Batch nutzt dieselbe Stufe wie „Einzel-Mahnung“; optional{" "}
-          <code>asOfDate</code>. <code>POST /finance/dunning-reminder-run</code> mit <code>DRY_RUN</code> bzw.{" "}
-          <code>EXECUTE</code> + Header <code>Idempotency-Key</code> (UUID).
-        </p>
-        {dunningAutomationJson.trim() ? (
-          <FinanceCollapsibleJson summary="Mandanten-Automation (GET)" json={dunningAutomationJson} />
-        ) : null}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "flex-end", marginTop: "0.5rem" }}>
-          <label style={{ display: "flex", flexDirection: "column", fontSize: "0.8rem" }}>
-            Modus
-            <select
-              value={dunningAutomationRunMode}
-              onChange={(e) => setDunningAutomationRunMode(e.target.value as "OFF" | "SEMI" | "AUTO")}
-              disabled={busy}
-              aria-label="Mandanten-Mahnlauf-Modus"
-            >
-              <option value="OFF">OFF (kein Cron)</option>
-              <option value="SEMI">SEMI (UI, kein Cron)</option>
-              <option value="AUTO">AUTO (Cron optional)</option>
-            </select>
-          </label>
-          <label style={{ display: "flex", flexDirection: "column", fontSize: "0.8rem" }}>
-            Cron UTC-Stunde (optional)
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="leer = jeder Cron-Lauf"
-              value={dunningAutomationJobHour}
-              onChange={(e) => setDunningAutomationJobHour(e.target.value)}
-              disabled={busy}
-              aria-label="Cron-Stunde UTC 0-23"
-              style={{ width: "11rem" }}
-            />
-          </label>
-          <label style={{ display: "flex", flexDirection: "column", fontSize: "0.8rem", flex: "1 1 12rem", minWidth: "10rem" }}>
-            Grund (PATCH)
-            <input
-              type="text"
-              value={dunningAutomationPatchReason}
-              onChange={(e) => setDunningAutomationPatchReason(e.target.value)}
-              disabled={busy}
-              style={{ width: "100%" }}
-            />
-          </label>
-          <button type="button" disabled={busy} onClick={onSubmitDunningTenantAutomationPatch}>
-            Automation speichern
-          </button>
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "flex-end", marginTop: "0.65rem" }}>
-          <label style={{ display: "flex", flexDirection: "column", fontSize: "0.8rem" }}>
-            asOfDate (optional)
-            <input
-              type="text"
-              value={dunningBatchAsOfDate}
-              onChange={(e) => setDunningBatchAsOfDate(e.target.value)}
-              disabled={busy}
-              aria-label="asOfDate fuer Mahnlauf-Batch"
-              placeholder="yyyy-mm-dd"
-              style={{ width: "11rem", fontFamily: "monospace" }}
-            />
-          </label>
-          <button type="button" disabled={busy} onClick={onDunningBatchDryRun}>
-            Vorschau (Dry-Run)
-          </button>
-          <button type="button" disabled={busy || !canRecordDunningReminder} onClick={onDunningBatchExecute}>
-            Ausführen (EXECUTE)
-          </button>
-        </div>
-        {dunningBatchRunJson.trim() ? (
-          <FinanceCollapsibleJson summary="Letzter Batch-Lauf (Dry-Run oder EXECUTE)" json={dunningBatchRunJson} />
-        ) : null}
-      </div>
+      <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginBottom: "0.65rem", paddingBottom: "0.5rem", borderBottom: "1px solid var(--border)" }}>
+        <strong>Mandanten-Mahnlauf (Automation, Kandidaten, Batch):</strong> Tab <strong>Grundeinstellungen Mahnlauf</strong> (Hauptnavigation) —{" "}
+        <code>GET|PATCH …/dunning-reminder-automation</code>, <code>GET …/dunning-reminder-candidates</code>, <code>POST …/dunning-reminder-run</code> (siehe{" "}
+        <a href={repoDocHref("docs/adr/0011-fin4-semi-dunning-context.md")}>ADR-0011</a>
+        {", "}
+        <a href={repoDocHref("docs/contracts/FIN4-external-client-integration.md")}>FIN4-external-client-integration</a>).
+      </p>
       {dunningReminderConfigJson ? (
         <FinanceCollapsibleJson summary="Mahnstufen-Konfiguration (GET /finance/dunning-reminder-config)" json={dunningReminderConfigJson} />
       ) : null}

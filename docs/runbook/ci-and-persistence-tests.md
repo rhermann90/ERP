@@ -4,9 +4,19 @@
 
 **PR-Hygiene:** Produkt-PRs (z. B. Finanz/Mahnwesen) nicht mit **Dependabot-PRs** vermischen — getrennte Branches von `main`, getrennte Reviews; siehe [`.github/pull_request_template.md`](../../.github/pull_request_template.md) (Abschnitt „Abhängigkeiten vs. Produkt“).
 
+**Fokussierte PRs:** Auth/Rollen/Migrationen, Finanz/LV und reine Doku/Contract-PRs nicht vermischen; je PR `npm run verify:ci`, bei Schema/Migration zusätzlich `npm run verify:ci:local-db` (siehe Abschnitt „Repo-docker-compose“). Umfangreiche WIP-Branches vor Merge in thematisch getrennte PRs splitten.
+
+## QA und Review vor Merge auf `main` (Querschnitt)
+
+1. **PR-Beschreibung:** [`.github/pull_request_template.md`](../../.github/pull_request_template.md) vollständig; bei Finanz/SoT zusätzlich [`docs/contracts/review-checklist-finanz-pr.md`](../contracts/review-checklist-finanz-pr.md) abhaken oder gleichwertige Review-Notiz im PR verlinken.
+2. **Lokal (Autor):** `npm run verify:ci`; bei Änderungen an `prisma/migrations/`, Postgres-Persistenz oder neuen Persistenz-`it` zusätzlich `npm run verify:ci:local-db` (dieses Runbook, Abschnitt „Repo-docker-compose“).
+3. **Remote (Merge-Evidence):** grüne GitHub-Actions-Jobs **`backend`** und **`e2e-smoke`** zum PR-Head (Branch-Protection: [`docs/runbooks/github-branch-protection-backend.md`](../runbooks/github-branch-protection-backend.md)); PR-Kommentar mit Vorlage **§5a-pre** aus [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) (Run-URL, SHA, Evidence-Zeile). Bei gemischten Doku-/`src`-PRs **§5b** prüfen.
+4. **Review:** mindestens ein fachlicher Review auf kritischen Pfaden (Mandantenisolation, Finanz-Traceability); Merge ersetzt keine StB-/DSB-Freigabe ([`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) nur bei produktionsnahen Themen).
+5. **FIN-4 Mahn-API — Breaking- und Release-Notes:** Änderungen an [`docs/api-contract.yaml`](../../docs/api-contract.yaml) an `GET /finance/dunning-reminder-candidates`, `POST /finance/dunning-reminder-run` oder an `info.version` (z. B. neue **Pflichtfelder** wie `eligibilityContext`, `stageDeadlineIso` in Kandidaten- und `DRY_RUN.planned`-Payloads ab **1.25.x**) im PR oder in Release-Notes explizit nennen, damit externe Clients mit striktem OpenAPI-/JSON-Schema nachziehen können. **Technischer Abgleich:** Antwort-Header `x-erp-openapi-contract-version` (synchron zu `info.version` und [`src/domain/openapi-contract-version.ts`](../../src/domain/openapi-contract-version.ts)); Leitfaden [`docs/contracts/FIN4-external-client-integration.md`](../contracts/FIN4-external-client-integration.md) — insb. Abschnitt **„Strikte Response-Validierung (Client-seitig)“** bei Schema-Fehlern nach Deploy. **Cron/Monitoring:** [`docs/runbooks/dunning-cron-and-monitoring-inventory.md`](./dunning-cron-and-monitoring-inventory.md), `npm run check:dunning-inventory`; Produktions-Sign-off: [`docs/runbooks/dunning-production-infra-signoff.md`](./dunning-production-infra-signoff.md).
+
 Workflow: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)
 
-- **Postgres 16** als Service-Container auf Port5432.
+- **Postgres 16** als Service-Container auf Port **5432** (im Actions-Job: Host-Port 5432 → Container 5432).
 - **`DATABASE_URL`** und **`PERSISTENCE_DB_TEST_URL`** zeigen auf dieselbe Test-DB (`erp_test`).
 - Ablauf: `npm ci` → `prisma migrate deploy` → `prisma:validate` → `typecheck` → `npm test`.
 - **Prisma-CLI-Version** entspricht den Root-Abhängigkeiten in `package.json` / `package-lock.json` (Major-Upgrade: [`docs/tickets/PRISMA-7-UPGRADE.md`](../tickets/PRISMA-7-UPGRADE.md)). In CI: `npm run check:prisma-stack` vor `prisma:validate`.
@@ -50,6 +60,8 @@ Ohne `PERSISTENCE_DB_TEST_URL` laufen die In-Memory- und Schema-Tests; die Postg
 ## PR-Checkliste (Persistenz / Schema)
 
 Bei jedem PR, der **Prisma** oder **Persistenz** berührt:
+
+**Prisma-Client-Ausgabe:** `generator client` in `prisma/schema.prisma` schreibt nach `../generated/prisma`. Der Ordner **`generated/`** ist in der Root-`.gitignore` — **nicht** committen. Lokal und in CI entsteht der Client durch **`npm install`** (`postinstall`: `prisma generate`) bzw. `npm run prisma:generate`.
 
 1. **Migrationen:** nur versionierte SQL unter `prisma/migrations/` (kein blindes `db push` als Merge-Pfad).
 2. Lokal oder in CI-äquivalenter Umgebung: **`npm run prisma:validate`**, **`npm run typecheck`**, **`npm test`**.

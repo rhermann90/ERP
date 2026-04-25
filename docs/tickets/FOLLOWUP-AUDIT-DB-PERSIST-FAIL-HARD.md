@@ -42,6 +42,7 @@
 ## Abhängigkeiten
 
 - Nächster Persistenz-Slice nach **PL** (Supplement vs. FIN-1); dieses Ticket kann **parallel** priorisiert werden, wenn Compliance P0 ist.
+- Formelle Mahnung **B5** ([`B5-FORMAL-DUNNING-PDF.md`](./B5-FORMAL-DUNNING-PDF.md)): eigenes Lieferobjekt; **kein** Audit-Transaktions-Refaktor im selben PR wie B5-PDF/UI (Wave3-Plan).
 
 ## PL-Eintrag (verbindlich; **nur durch PL**; vor jedem Audit-**Verhaltens**-PR ausfüllen)
 
@@ -92,3 +93,7 @@
 ## Querschnitt Finanz Welle 3 (PL-Termin)
 
 Für die laufende **Finanz-Welle-3**-Planung ([`NEXT-INCREMENT-FINANCE-WAVE3.md`](./NEXT-INCREMENT-FINANCE-WAVE3.md)) soll die **Projektleitung** einen kurzen **Abstimmungstermin** setzen: Review dieses Tickets im Kontext **GoBD / Nachweisbarkeit** vs. aktuellem **fail-hard**-Stand (`AuditService.append`), ob weitere Transaktions-/Outbox-Schritte vor Mandanten-Go nötig sind, und ob **Option B** für alle neuen Finanz-Schreibpfade (z. B. Mahn-Ereignis, Skonto-Entwurf) ausreichend dokumentiert abgenommen ist.
+
+## Verknuepfung CI / Merge
+
+- Kein Merge von PRs, die **AuditService**-Transaktionsgrenzen aendern, ohne PL-Eintrag: [`docs/runbook/ci-and-persistence-tests.md`](docs/runbook/ci-and-persistence-tests.md) (PR-Checkliste Audit).

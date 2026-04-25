@@ -37,8 +37,9 @@ Siehe Vorlage: [`.env.example`](./.env.example)
 2. Schema anwenden: `npx prisma migrate deploy` (Deploy) oder lokal `npm run prisma:migrate` (`prisma migrate dev`).
 3. **Kein** `db push` als verbindlicher Merge-Pfad — versionierte Migrationen unter `prisma/migrations/`.
 4. Validierung ohne echte DB: `npm run prisma:validate`
-5. **ORM-Version:** Die tatsächliche Prisma-Major-Version steht in [`package.json`](./package.json) (`prisma` / `@prisma/client`). Geplantes Upgrade auf 7.x: [`docs/tickets/PRISMA-7-UPGRADE.md`](./docs/tickets/PRISMA-7-UPGRADE.md); Konsistenz-Check: `npm run check:prisma-stack`.
-6. Details: [`docs/adr/0006-offer-vertical-slice-persistence.md`](./docs/adr/0006-offer-vertical-slice-persistence.md)
+5. **Prisma-Client (`generated/prisma`):** Das Schema schreibt den Client nach `generated/prisma` (nicht nach `node_modules`). Der Ordner **`generated/`** ist **gitignored** — nicht versionieren; er entsteht durch **`npm install`** (Root-`postinstall`: `prisma generate`) oder `npm run prisma:generate`. PR-Checkliste: [`docs/runbook/ci-and-persistence-tests.md`](./docs/runbook/ci-and-persistence-tests.md) (Abschnitt „PR-Checkliste (Persistenz / Schema)“).
+6. **ORM-Version:** Die tatsächliche Prisma-Major-Version steht in [`package.json`](./package.json) (`prisma` / `@prisma/client`). Geplantes Upgrade auf 7.x: [`docs/tickets/PRISMA-7-UPGRADE.md`](./docs/tickets/PRISMA-7-UPGRADE.md); Konsistenz-Check: `npm run check:prisma-stack`.
+7. Details: [`docs/adr/0006-offer-vertical-slice-persistence.md`](./docs/adr/0006-offer-vertical-slice-persistence.md)
 
 ## CI / Persistenz-Tests
 
@@ -48,7 +49,7 @@ Siehe Vorlage: [`.env.example`](./.env.example)
 
 **Repository-Prozess (Merge):** PR-Vorlage [`.github/pull_request_template.md`](./.github/pull_request_template.md); Merge-Evidence und QA-Pflicht **§5a** in [`docs/contracts/qa-fin-0-gate-readiness.md`](./docs/contracts/qa-fin-0-gate-readiness.md). Branch-Schutz (Pflicht-Statuscheck **`backend`**): [`docs/runbooks/github-branch-protection-backend.md`](./docs/runbooks/github-branch-protection-backend.md). **Aktueller Entwicklungsplan (nächste Schritte):** [`docs/plans/nächste-schritte.md`](./docs/plans/nächste-schritte.md).
 
-**Health / Readiness:** `GET /health` = Liveness (Prozess lebt). `GET /ready` = Readiness: im **Postgres-Modus** einmal `SELECT 1` über Prisma (**503**, wenn die DB nicht erreichbar); im **Memory-Modus** **200** mit `checks.database: not_configured`. Die PWA nutzt weiterhin `VITE_API_BASE_URL` als Origin — Orchestrierung kann `/ready` für Traffic schalten, sobald die Umgebung Postgres nutzt.
+**Health / Readiness:** `GET /health` = Liveness (Prozess lebt). `GET /ready` = Readiness: im **Postgres-Modus** einmal `SELECT 1` über Prisma (**503**, wenn die DB nicht erreichbar); im **Memory-Modus** **200** mit `checks.database: not_configured`. Die PWA nutzt weiterhin `VITE_API_BASE_URL` als Origin — Orchestrierung kann `/ready` für Traffic schalten, sobald die Umgebung Postgres nutzt. Optional: `VITE_EXPECTED_OPENAPI_CONTRACT_VERSION` in der PWA auf dieselbe `info.version` wie das deployte Backend setzen — Laufzeit-Hinweis bei Contract-Drift auf FIN-4-Pfaden, siehe [`apps/web/README.md`](./apps/web/README.md) und [`docs/contracts/FIN4-external-client-integration.md`](./docs/contracts/FIN4-external-client-integration.md).
 
 ## API / Contracts
 

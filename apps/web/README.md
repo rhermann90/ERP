@@ -12,6 +12,7 @@ In der Shell: **Darstellung** → System (Standard), Hell oder Dunkel. Gespeiche
 |----------|-----------|
 | `VITE_API_BASE_URL` | Backend-Origin, z. B. `http://localhost:3000` (Default im Code, falls unset) |
 | `VITE_REPO_DOCS_BASE` | Optional: GitHub-`blob/main`-URL **ohne** trailing slash — klickbare Links auf der Seite **Finanz (Vorbereitung)** (`#/finanz-vorbereitung`) |
+| `VITE_EXPECTED_OPENAPI_CONTRACT_VERSION` | Optional: gleicher Wert wie `docs/api-contract.yaml` `info.version` zum PWA-Release — bei Abweichung zu `x-erp-openapi-contract-version` auf FIN-4-Pfaden nur `console.warn` (siehe [`docs/contracts/FIN4-external-client-integration.md`](../docs/contracts/FIN4-external-client-integration.md)) |
 
 Kopiere `apps/web/.env.example` nach `.env` (nur Vite-Variablen). Backend-Umgebung siehe Repo-Root [`.env.example`](../.env.example).
 

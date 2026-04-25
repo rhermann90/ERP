@@ -31,9 +31,15 @@ export function FinanceFeatureMatrix() {
     },
     {
       area: "FIN-4 Mahnung",
-      inUi: "Liste GET + Ereignis POST",
+      inUi: "Tab Mahnwesen: Liste GET + Ereignis POST; Konfig/Vorlagen/Footer/E-Mail",
       einordnung: "nicht Zielprodukt (M4)",
-      hinweis: "Slice 1–2 laut ADR-0009; Konfig/Vorlagen/E-Mail/M4 explizit Non-Goal in Wave3.",
+      hinweis: "Slice 1–2 laut ADR-0009; vollständiger M4-Produktivpfad weiterhin PL/Compliance.",
+    },
+    {
+      area: "FIN-4 Mahn-Kandidaten / Automation (SEMI)",
+      inUi: "Tab Grundeinstellungen: GET/PATCH automation, GET candidates, Dry-Run/EXECUTE",
+      einordnung: "nicht Zielprodukt (M4)",
+      hinweis: "ADR-0011 B3 (stageDeadlineIso, eligibilityContext); kein Cron/AUTO; keine Offline-Schreibsimulation.",
     },
     {
       area: "SoT / andere Entitäten",
