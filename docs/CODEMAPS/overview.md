@@ -55,6 +55,8 @@ Token, Passwort-Login-Konfiguration; zugehörige Routen unter `src/api/auth-logi
 
 ## PWA (`apps/web/`)
 
+UI/UX-Leitfaden und Darstellungsmodi: [`docs/ui-ux-style-guide.md`](../ui-ux-style-guide.md); Tokens und Theming: [`docs/web-theming.md`](../web-theming.md); **Referenz (Links):** [`docs/referenz-ui-ux.md`](../referenz-ui-ux.md).
+
 | Pfad | Rolle |
 |------|--------|
 | `src/main.tsx`, `src/App.tsx` | Einstieg, Routing-Oberfläche |
@@ -62,7 +64,8 @@ Token, Passwort-Login-Konfiguration; zugehörige Routen unter `src/api/auth-logi
 | `src/lib/tenant-session.ts`, `token-payload.ts` | Mandanten-Session |
 | `src/lib/action-executor.ts`, `role-quick-actions.ts`, `v13-domain-role-mapping.ts` | Aktionen / Rollen |
 | `src/components/*.tsx` | UI (Shell, Login, Dokument-Texte, …) |
-| `src/components/FinancePreparation.tsx`, `src/components/finance/FinancePreparation*Panel.tsx` | Finanz-Vorbereitung `#/finanz-vorbereitung`: Tabs Rechnung & Zahlung / Mahnwesen / Fortgeschritten; Automation-Modus OFF/SEMI + SEMI-Kontext (ADR-0010 / ADR-0011) |
+| `src/lib/hash-route.ts`, `normalizeFinancePrepHashToCanon` in `App.tsx` | Finanz-Hash-Routing: Kanon `#/finanz-vorbereitung?tab=…`, Alias `#/finanz-grundeinstellungen` → einmalige Normalisierung per `replaceState`; `FINANCE_PREP_*` Konstanten |
+| `src/components/FinancePreparation.tsx`, `src/components/finance/FinancePreparation*Panel.tsx` | Finanz-Vorbereitung: Tabs inkl. Grundeinstellungen Mahnlauf; OFF/SEMI; OFF-1a (Batch-Buttons bei Server-OFF); SEMI-Kontext (ADR-0010 / ADR-0011) |
 | `vite.config.ts` | Build/Dev |
 
 ## Verträge & Datenbank

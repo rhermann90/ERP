@@ -115,6 +115,7 @@ import { DunningReminderConfigService } from "../services/dunning-reminder-confi
 import { DunningReminderTemplateService } from "../services/dunning-reminder-template-service.js";
 import { DunningEmailFooterService } from "../services/dunning-email-footer-service.js";
 import { DunningReminderEmailService } from "../services/dunning-reminder-email-service.js";
+import { DunningReminderBatchEmailService } from "../services/dunning-reminder-batch-email-service.js";
 import { DunningReminderRunService } from "../services/dunning-reminder-run-service.js";
 import { DunningReminderService } from "../services/dunning-reminder-service.js";
 import { DunningTenantAutomationService } from "../services/dunning-tenant-automation-service.js";
@@ -316,6 +317,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     dunningReminderCandidatesService,
     dunningReminderService,
     dunningReminderRunIntentPersistence,
+    dunningTenantAutomationService,
   );
   const dunningReminderTemplateService = new DunningReminderTemplateService(dunningTemplatePersistence, audit, prisma);
   const dunningEmailFooterService = new DunningEmailFooterService(dunningEmailFooterPersistence, audit, prisma);
@@ -329,6 +331,11 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     repos,
     dunningEmailSendPersistence,
     mailTransport,
+  );
+  const dunningReminderBatchEmailService = new DunningReminderBatchEmailService(
+    dunningReminderCandidatesService,
+    dunningTenantAutomationService,
+    dunningReminderEmailService,
   );
   const measurementService = new MeasurementService(repos, audit, lvRef, lvMeasurementPersistence);
   const lvService = new LvService(repos, audit, lvMeasurementPersistence);
@@ -730,6 +737,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     dunningEmailFooterService,
     dunningReminderCandidatesService,
     dunningReminderRunService,
+    dunningReminderBatchEmailService,
     dunningTenantAutomationService,
   });
 

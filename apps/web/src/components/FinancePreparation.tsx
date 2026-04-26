@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FINANCE_PREP_HASH } from "../lib/hash-route.js";
+import {
+  applyFinancePrepTabToLocationHash,
+  financePrepHashWithTab,
+  FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH,
+  FINANCE_PREP_HASH,
+  type FinancePrepMainTab,
+} from "../lib/hash-route.js";
 import { DEMO_SEED_IDS } from "../lib/demo-seed-ids.js";
 import { repoDocHref } from "../lib/repo-doc-links.js";
 import type {
@@ -36,9 +42,6 @@ const SOT_ENTITY_TYPES = [
 ] as const;
 
 type SotEntityType = (typeof SOT_ENTITY_TYPES)[number];
-
-/** Haupt-Tabs innerhalb `#/finanz-vorbereitung` (PL: keine Unter-Hash-Routen). */
-type FinancePrepMainTab = "rechnung" | "grundeinstellungen" | "mahnwesen" | "fortgeschritten";
 
 const DOC_LINKS: { label: string; repoPath: string }[] = [
   {
@@ -120,7 +123,7 @@ function openAmountCents(overview: InvoiceOverview | null): number | null {
   return Math.max(0, overview.totalGrossCents - paid);
 }
 
-export function FinancePreparation({ api }: { api: ApiClient }) {
+export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; initialMainTab?: FinancePrepMainTab }) {
   const [projectId, setProjectId] = useState(DEMO_PROJECT_ID);
   const [termsLabel, setTermsLabel] = useState("14 Tage netto");
   const [listJson, setListJson] = useState<string>("");
@@ -142,7 +145,12 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
   const [dunningAutomationRunMode, setDunningAutomationRunMode] = useState<"OFF" | "SEMI">("SEMI");
   /** Servertreu nach GET/PATCH Automation (nur OFF/SEMI). */
   const [dunningAutomationServerRunMode, setDunningAutomationServerRunMode] = useState<"OFF" | "SEMI" | null>(null);
-  const [financePrepMainTab, setFinancePrepMainTab] = useState<FinancePrepMainTab>("rechnung");
+  const [financePrepMainTab, setFinancePrepMainTab] = useState<FinancePrepMainTab>(() => initialMainTab ?? "rechnung");
+
+  const selectFinancePrepMainTab = useCallback((t: FinancePrepMainTab) => {
+    setFinancePrepMainTab(t);
+    applyFinancePrepTabToLocationHash(t);
+  }, []);
   const [dunningAutomationIanaTimezone, setDunningAutomationIanaTimezone] = useState("Europe/Berlin");
   const [dunningAutomationFederalState, setDunningAutomationFederalState] = useState("");
   const [dunningAutomationPaymentTermDayKind, setDunningAutomationPaymentTermDayKind] = useState<"CALENDAR" | "BUSINESS">(
@@ -155,6 +163,8 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
   const [dunningBatchAsOfDate, setDunningBatchAsOfDate] = useState("");
   const [dunningBatchRunJson, setDunningBatchRunJson] = useState("");
   const [dunningCandidatesJson, setDunningCandidatesJson] = useState("");
+  const [dunningBatchEmailItemsJson, setDunningBatchEmailItemsJson] = useState("[]");
+  const [dunningBatchEmailResultJson, setDunningBatchEmailResultJson] = useState("");
   const [dunningEmailPreviewJson, setDunningEmailPreviewJson] = useState<string>("");
   const [dunningEmailSendStubJson, setDunningEmailSendStubJson] = useState<string>("");
   const [dunningEmailSendJson, setDunningEmailSendJson] = useState<string>("");
@@ -312,14 +322,14 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
     }
   }, [api, draftSkontoBps]);
 
-  const loadInvoice = useCallback(async () => {
+  const loadInvoice = useCallback(async (overrideInvoiceId?: string) => {
     setNotice(null);
     setPaymentPanelError(null);
     setDunningPanelError(null);
     setBookPanelError(null);
     setBusy(true);
     try {
-      const id = invoiceIdRead.trim();
+      const id = (overrideInvoiceId ?? invoiceIdRead).trim();
       const data = await api.getInvoice(id);
       setInvoiceOverview(data);
       const [sot, payList, dunList] = await Promise.all([
@@ -340,6 +350,49 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
       setBusy(false);
     }
   }, [api, invoiceIdRead]);
+
+  useEffect(() => {
+    if (invoiceOverview) {
+      setDraftSkontoBps(String(invoiceOverview.skontoBps));
+    }
+  }, [invoiceOverview]);
+
+  const submitEntwurfSkontoRecalc = useCallback(async () => {
+    setNotice(null);
+    if (!invoiceOverview || invoiceOverview.status !== "ENTWURF") {
+      setNotice({ kind: "text", text: "Nur für Rechnungen im Status ENTWURF." });
+      return;
+    }
+    if (!invoiceOverview.offerVersionId) {
+      setNotice({ kind: "text", text: "Rechnung ohne offerVersionId — Traceability unvollständig." });
+      return;
+    }
+    const bps = Number.parseInt(draftSkontoBps.trim(), 10);
+    if (!Number.isFinite(bps) || bps < 0 || bps > 10_000) {
+      setNotice({ kind: "text", text: "Skonto (Basispunkte): ganze Zahl von 0 bis 10_000." });
+      return;
+    }
+    setBusy(true);
+    try {
+      const data = await api.createInvoiceDraft({
+        lvVersionId: invoiceOverview.lvVersionId,
+        offerVersionId: invoiceOverview.offerVersionId,
+        invoiceCurrencyCode: "EUR",
+        skontoBps: bps,
+        reason: "Finanz-Vorbereitung: Skonto auf Entwurf anwenden (POST /invoices)",
+      });
+      setInvoiceIdRead(data.invoiceId);
+      setDraftJson(JSON.stringify(data, null, 2));
+      setDraftSummary(
+        `Skonto ${formatSkontoDisplay(data.skontoBps)} — Netto (nach 8.4) ${formatEurFromCents(data.lvNetCents)} · USt ${formatEurFromCents(data.vatCents)} · Brutto ${formatEurFromCents(data.totalGrossCents)}`,
+      );
+      await loadInvoice(data.invoiceId);
+    } catch (e) {
+      setNotice(e instanceof ApiError ? { kind: "api", error: e } : { kind: "text", text: String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [api, draftSkontoBps, invoiceOverview, loadInvoice]);
 
   const bookInvoice = useCallback(async () => {
     setBookPanelError(null);
@@ -611,6 +664,131 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
       setBusy(false);
     }
   }, [api, dunningBatchAsOfDate, dunningStageOrdinal]);
+
+  const prefillBatchEmailItemsFromCandidates = useCallback(() => {
+    setDunningPanelError(null);
+    try {
+      const raw = dunningCandidatesJson.trim();
+      if (!raw) {
+        setDunningPanelError({ kind: "text", text: "Zuerst Kandidaten laden." });
+        return;
+      }
+      const o = JSON.parse(raw) as { data?: { candidates?: Array<{ invoiceId: string }> } };
+      const list = o?.data?.candidates;
+      if (!Array.isArray(list) || list.length === 0) {
+        setDunningPanelError({ kind: "text", text: "Keine Kandidaten im JSON." });
+        return;
+      }
+      const items = list.map((c) => ({
+        invoiceId: c.invoiceId,
+        toEmail: "bitte-ersetzen@example.com",
+      }));
+      setDunningBatchEmailItemsJson(JSON.stringify(items, null, 2));
+    } catch {
+      setDunningPanelError({ kind: "text", text: "Kandidaten-JSON ungültig." });
+    }
+  }, [dunningCandidatesJson]);
+
+  const submitDunningBatchEmailDryRun = useCallback(async () => {
+    setDunningPanelError(null);
+    setBusy(true);
+    setDunningBatchEmailResultJson("");
+    try {
+      const stage = Number.parseInt(dunningStageOrdinal.trim(), 10);
+      if (!Number.isFinite(stage) || stage < 1 || stage > 9) {
+        setDunningPanelError({ kind: "text", text: "Mahn-Stufe 1–9." });
+        return;
+      }
+      const asOf = dunningBatchAsOfDate.trim();
+      let items: unknown;
+      try {
+        items = JSON.parse(dunningBatchEmailItemsJson.trim());
+      } catch {
+        setDunningPanelError({ kind: "text", text: "items-JSON ungültig." });
+        return;
+      }
+      if (!Array.isArray(items) || items.length === 0) {
+        setDunningPanelError({ kind: "text", text: "items muss ein nicht-leeres Array sein." });
+        return;
+      }
+      const out = await api.postDunningReminderBatchSendEmails({
+        stageOrdinal: stage,
+        reason: "Finanz-Vorbereitung Batch-E-Mail DRY_RUN (M4 5c)",
+        mode: "DRY_RUN",
+        ...(asOf ? { asOfDate: asOf } : {}),
+        items: items as Array<{ invoiceId: string; toEmail: string; idempotencyKey?: string }>,
+      });
+      setDunningBatchEmailResultJson(JSON.stringify(out, null, 2));
+    } catch (e) {
+      setDunningPanelError(e instanceof ApiError ? { kind: "api", error: e } : { kind: "text", text: String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [api, dunningBatchAsOfDate, dunningBatchEmailItemsJson, dunningStageOrdinal]);
+
+  const submitDunningBatchEmailExecute = useCallback(async () => {
+    setDunningPanelError(null);
+    if (!canRecordDunningReminder) {
+      setDunningPanelError({
+        kind: "text",
+        text: `Batch-E-Mail EXECUTE nur mit SoT ${RECORD_DUNNING_REMINDER_ACTION_ID} — gebuchte/teilbezahlte Rechnung laden.`,
+      });
+      return;
+    }
+    setBusy(true);
+    setDunningBatchEmailResultJson("");
+    try {
+      const stage = Number.parseInt(dunningStageOrdinal.trim(), 10);
+      if (!Number.isFinite(stage) || stage < 1 || stage > 9) {
+        setDunningPanelError({ kind: "text", text: "Mahn-Stufe 1–9." });
+        return;
+      }
+      const asOf = dunningBatchAsOfDate.trim();
+      let items: Array<{ invoiceId: string; toEmail: string; idempotencyKey?: string }>;
+      try {
+        items = JSON.parse(dunningBatchEmailItemsJson.trim()) as Array<{
+          invoiceId: string;
+          toEmail: string;
+          idempotencyKey?: string;
+        }>;
+      } catch {
+        setDunningPanelError({ kind: "text", text: "items-JSON ungültig." });
+        return;
+      }
+      if (!Array.isArray(items) || items.length === 0) {
+        setDunningPanelError({ kind: "text", text: "items muss ein nicht-leeres Array sein." });
+        return;
+      }
+      const augmented = items.map((row) => ({
+        ...row,
+        idempotencyKey: row.idempotencyKey?.trim() ? row.idempotencyKey.trim() : crypto.randomUUID(),
+      }));
+      if (
+        !globalThis.confirm(
+          `Massen-E-Mail EXECUTE: ${String(augmented.length)} Zeile(n). SMTP wird pro Zeile wie 5a ausgeführt. Fortfahren?`,
+        )
+      ) {
+        return;
+      }
+      if (!globalThis.confirm("Zweite Bestätigung: confirmBatchSend=true — kein stiller Massenversand.")) {
+        return;
+      }
+      const out = await api.postDunningReminderBatchSendEmails({
+        stageOrdinal: stage,
+        reason: "Finanz-Vorbereitung Batch-E-Mail EXECUTE (M4 5c)",
+        mode: "EXECUTE",
+        confirmBatchSend: true,
+        ...(asOf ? { asOfDate: asOf } : {}),
+        items: augmented,
+      });
+      setDunningBatchEmailResultJson(JSON.stringify(out, null, 2));
+      await loadDunningReads();
+    } catch (e) {
+      setDunningPanelError(e instanceof ApiError ? { kind: "api", error: e } : { kind: "text", text: String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [api, canRecordDunningReminder, dunningBatchAsOfDate, dunningBatchEmailItemsJson, dunningStageOrdinal, loadDunningReads]);
 
   const prefillConfigPutFromGet = useCallback(() => {
     setDunningPanelError(null);
@@ -937,6 +1115,11 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
 
   const openCents = openAmountCents(invoiceOverview);
 
+  const financePrepPageTitle =
+    financePrepMainTab === "grundeinstellungen"
+      ? "Finanz (Vorbereitung) — Mahn-Grundeinstellungen"
+      : "Finanz (Vorbereitung)";
+
   const userFlowHint = invoiceOverview
     ? invoiceOverview.status === "ENTWURF"
       ? "Rechnung geladen (Entwurf). Buchung nur wenn die Schaltfläche „Rechnung buchen“ aktiv ist (SoT BOOK_INVOICE)."
@@ -949,7 +1132,7 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
 
   return (
     <section className="panel finance-prep" aria-labelledby="finance-prep-heading" aria-busy={busy}>
-      <h2 id="finance-prep-heading">Finanz (Vorbereitung)</h2>
+      <h2 id="finance-prep-heading">{financePrepPageTitle}</h2>
       <p
         id="finance-prep-intro"
         style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginTop: 0 }}
@@ -963,8 +1146,14 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
       <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
         <a href="#/">Zurück zur Shell (Start)</a>
         {" · "}
-        <span style={{ color: "var(--text-secondary)" }}>diese Seite: </span>
+        <span style={{ color: "var(--text-secondary)" }}>Basis-URL: </span>
         <code>{FINANCE_PREP_HASH}</code>
+        {" · "}
+        <span style={{ color: "var(--text-secondary)" }}>Tab per Query: </span>
+        <code>{financePrepHashWithTab("grundeinstellungen")}</code>
+        {" · "}
+        <span style={{ color: "var(--text-secondary)" }}>Alias Grundeinstellungen: </span>
+        <code>{FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH}</code>
       </p>
 
       <FinanceFeatureMatrix />
@@ -1003,7 +1192,7 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
             id="finance-prep-tab-rechnung"
             aria-selected={financePrepMainTab === "rechnung"}
             aria-controls="finance-prep-panel-rechnung"
-            onClick={() => setFinancePrepMainTab("rechnung")}
+            onClick={() => selectFinancePrepMainTab("rechnung")}
             style={{
               fontWeight: financePrepMainTab === "rechnung" ? 700 : 400,
               borderBottom: financePrepMainTab === "rechnung" ? "2px solid var(--accent)" : "2px solid transparent",
@@ -1021,7 +1210,7 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
             id="finance-prep-tab-grundeinstellungen"
             aria-selected={financePrepMainTab === "grundeinstellungen"}
             aria-controls="finance-prep-panel-grundeinstellungen"
-            onClick={() => setFinancePrepMainTab("grundeinstellungen")}
+            onClick={() => selectFinancePrepMainTab("grundeinstellungen")}
             style={{
               fontWeight: financePrepMainTab === "grundeinstellungen" ? 700 : 400,
               borderBottom: financePrepMainTab === "grundeinstellungen" ? "2px solid var(--accent)" : "2px solid transparent",
@@ -1039,7 +1228,7 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
             id="finance-prep-tab-mahnwesen"
             aria-selected={financePrepMainTab === "mahnwesen"}
             aria-controls="finance-prep-panel-mahnwesen"
-            onClick={() => setFinancePrepMainTab("mahnwesen")}
+            onClick={() => selectFinancePrepMainTab("mahnwesen")}
             style={{
               fontWeight: financePrepMainTab === "mahnwesen" ? 700 : 400,
               borderBottom: financePrepMainTab === "mahnwesen" ? "2px solid var(--accent)" : "2px solid transparent",
@@ -1057,7 +1246,7 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
             id="finance-prep-tab-fortgeschritten"
             aria-selected={financePrepMainTab === "fortgeschritten"}
             aria-controls="finance-prep-panel-fortgeschritten"
-            onClick={() => setFinancePrepMainTab("fortgeschritten")}
+            onClick={() => selectFinancePrepMainTab("fortgeschritten")}
             style={{
               fontWeight: financePrepMainTab === "fortgeschritten" ? 700 : 400,
               borderBottom: financePrepMainTab === "fortgeschritten" ? "2px solid var(--accent)" : "2px solid transparent",
@@ -1206,6 +1395,19 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
                   <dd style={{ margin: 0 }}>{openCents}</dd>
                 </>
               ) : null}
+              <dt style={{ color: "var(--text-secondary)" }}>Skonto (Entwurf)</dt>
+              <dd style={{ margin: 0 }}>
+                {invoiceOverview.status === "ENTWURF" ? (
+                  <span>
+                    Wert auch in Schritt 2;{" "}
+                    <button type="button" disabled={busy} onClick={() => void submitEntwurfSkontoRecalc()}>
+                      Skonto mit POST /invoices neu berechnen
+                    </button>
+                  </span>
+                ) : (
+                  <span style={{ color: "var(--text-secondary)" }}>nur bei ENTWURF</span>
+                )}
+              </dd>
               <dt style={{ color: "var(--text-secondary)" }}>SoT Zahlung</dt>
               <dd style={{ margin: 0 }}>
                 {invoiceAllowedActions == null ? (
@@ -1407,6 +1609,12 @@ export function FinancePreparation({ api }: { api: ApiClient }) {
             canRecordDunningReminder={canRecordDunningReminder}
             dunningCandidatesJson={dunningCandidatesJson}
             onLoadDunningCandidates={() => void submitLoadDunningCandidates()}
+            dunningBatchEmailItemsJson={dunningBatchEmailItemsJson}
+            setDunningBatchEmailItemsJson={setDunningBatchEmailItemsJson}
+            dunningBatchEmailResultJson={dunningBatchEmailResultJson}
+            onPrefillBatchEmailItemsFromCandidates={() => void prefillBatchEmailItemsFromCandidates()}
+            onDunningBatchEmailDryRun={() => void submitDunningBatchEmailDryRun()}
+            onDunningBatchEmailExecute={() => void submitDunningBatchEmailExecute()}
           />
         </div>
 

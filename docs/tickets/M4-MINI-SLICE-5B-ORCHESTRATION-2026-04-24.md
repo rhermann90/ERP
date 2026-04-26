@@ -5,7 +5,11 @@
 
 ## PL-Gate — vor Umsetzung abstimmen
 
-Projektleitung / Review trägt hier **Datum + Entscheid** ein (oder verweist auf Protokoll). **Protokoll 2026-04-23:** Tabelle mit **MVP-Team-Defaults** (5b-0). **Protokoll 2026-04-24 (5b-1):** Zeilen 5–7 für erste **EXECUTE**-Lieferung geschärft — siehe Entscheid-Spalte; ADR-0010 Abschnitt 5b-1 **Accepted**.
+Projektleitung / Review trägt hier **Datum + Entscheid** ein (oder verweist auf Protokoll). **Protokoll 2026-04-23:** Tabelle mit **MVP-Team-Defaults** (5b-0). **Protokoll 2026-04-24 (5b-1):** Zeilen 5–7 für erste **EXECUTE**-Lieferung geschärft — siehe Entscheid-Spalte; ADR-0010 Abschnitt 5b-1 **Accepted**. **Protokoll 2026-04-26 (P1-Wave-3 Phase 0, Doku-Sync):** Zeile **5** bleibt: kein SMTP-Batch **im** Mahnlauf-`POST`; **M4 Slice 5c** als **separater** `POST …/send-emails` erfüllt die Intention „Massen-E-Mail nach separatem PL“ mit [`M4-BATCH-DUNNING-EMAIL-SPEC.md`](./M4-BATCH-DUNNING-EMAIL-SPEC.md) — **PL** bestätigt oder korrigiert schriftlich (Link ersetzen).
+
+**Agent (Wave3-10-Tool-Todos, 2026-04-27):** Formulierung *Link ersetzen* / externes Protokoll **unverändert** — nur **Projektleitung** trägt die echte Protokoll-URL und das Sitzungsdatum ein (siehe [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) *PL-Inbound*).
+
+**PL-Inbound:** dieselbe Bestätigung **verlinkt** auch in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) (Tabelle *PL-Inbound*) und in [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) (*PL-Protokoll*).
 
 | # | Thema | Optionen / Frage | Entscheid (PL) |
 |---|--------|------------------|----------------|
@@ -20,6 +24,7 @@ Projektleitung / Review trägt hier **Datum + Entscheid** ein (oder verweist auf
 | 9 | **Mandanten-Modus Mahnlauf** | OFF / SEMI / ~~AUTO~~ | **Nur `OFF` und `SEMI`** (Persistenz + `GET|PATCH /finance/dunning-reminder-automation`). **SEMI:** UI/Batch `DRY_RUN`/`EXECUTE`. **AUTO** und Hintergrund-Cron **entfernt** (ADR-0011). |
 | 10 | **UI-Ort** | Grundeinstellungen vs. Finanz-Vorbereitung | **Bis PL:** Finanz-Vorbereitung + API; Umzug „Grundeinstellungen“ = späteres UX-Slice. |
 | 11 | **E-Mail + Mahnlauf** | `EXECUTE` ohne Mail | Unverändert: kein Batch-5a in `POST …/dunning-reminder-run`. |
+| 12 | **M4 Slice 5c (Batch-E-Mail, separater Pfad)** | Neuer Endpoint vs. Zeile 5/11 | **Doku-Sync 2026-04-26:** `POST /finance/dunning-reminder-run/send-emails` ist **zulässig** und **getrennt** von `POST …/dunning-reminder-run`; weiterhin **kein** SMTP-Batch **innerhalb** des Mahnlauf-POST. Spec + Vertrag: [`M4-BATCH-DUNNING-EMAIL-SPEC.md`](./M4-BATCH-DUNNING-EMAIL-SPEC.md), ADR-0010; **Compliance-Produktiv-Go** weiterhin [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) mit StB/DSB. |
 
 ## Ziel (Slice 5b, fachlich)
 
@@ -36,7 +41,7 @@ Aus Mandanten-Stufenkonfiguration und Rechnungs-/Zahlungsdaten **ermitteln**, we
 ## Out-of-Scope (Standard, bis PL erweitert)
 
 - Vollständiger **8.4(2–6)**-Motor; **Pfad C** Rechnungsstatus.
-- **Massenversand** ohne explizites PL (Rate-Limits, SMTP-Policy).
+- **Massenversand** ohne explizites PL (Rate-Limits, SMTP-Policy) — **Ausnahme dokumentiert 2026-04-26:** Slice **5c** ist der explizit spezifizierte Batch-Pfad (Zeile 12); produktiver Go weiterhin nur mit StB/PL und Checkliste.
 - ~~**Cron** in Produktion~~ (entfernt).
 - Automatischer **Empfänger** aus Kundenstamm (bleibt explizit wie 5a, sofern nicht PL-gewünscht).
 

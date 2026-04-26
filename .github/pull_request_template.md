@@ -22,6 +22,8 @@
 
 **Rechts-/Produktiv-Go (nur wenn PR Rechnung, Steuerausweis, E-Rechnung-Export, Aufbewahrung oder vergleichbare Compliance-Relevanz hat):** Verweis, ob [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) im Ticket/Release-Note aktualisiert oder bewusst „keine Änderung“ — kein stiller GoBD-/StB-Nachweis durch Merge allein.
 
+**Kleine PWA-/UX-Releases (Stakeholder-Changelog):** Wenn der PR vor allem **Finanz-Vorbereitung (PWA)** betrifft und kein eigenes OpenAPI-Bündel braucht, **eine Zeile Release-Note** im PR-Text und Link auf das passende Ticket unter `docs/tickets/RELEASE-*.md` setzen — Beispiel: [`docs/tickets/RELEASE-PWA-SKONTO-ENTWURF-WAVE3.md`](../docs/tickets/RELEASE-PWA-SKONTO-ENTWURF-WAVE3.md). Wellen-Kontext: [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](../docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) (Abschnitt „Stakeholder- / Release-Notizen“). **Finanz-Review-Anker:** dieselbe Erwartung steht in [`docs/contracts/review-checklist-finanz-pr.md`](../docs/contracts/review-checklist-finanz-pr.md) unter **Technisch → Punkt 5** (dort nur Verweis hierher — Inhalt zentral in diesem Absatz).
+
 ---
 
 ## Merge-Evidence (vor Merge auf `main` / `master`)

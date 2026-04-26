@@ -10,4 +10,12 @@ describe("quickPresetsForRole", () => {
       expect(ids.size).toBe(5);
     },
   );
+
+  it("bietet Mahn-Grundeinstellungen für alle API-Rollen (Quick-Nav)", () => {
+    for (const role of ["ADMIN", "BUCHHALTUNG", "GESCHAEFTSFUEHRUNG", "VERTRIEB_BAULEITUNG", "VIEWER"] as const) {
+      const ids = quickPresetsForRole(role).map((x) => x.id);
+      expect(ids).toContain("finance-grundeinstellungen");
+    }
+  });
+
 });

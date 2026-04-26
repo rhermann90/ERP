@@ -22,11 +22,13 @@ export function ThemePreferenceControl() {
             setStoredThemePreference(p);
             applyThemePreference(p);
           }}
-          aria-label="Farbschema: hell, dunkel oder Systemeinstellung"
+          title="Bei „System“ folgt die App dem Gerät. Im dunklen Systemmodus gilt die zuletzt gewählte Dunkel-Variante (warm oder neutral)."
+          aria-label="Farbschema: Hell, Dunkel warm, Dunkel neutral oder Systemeinstellung"
         >
           <option value="system">System</option>
           <option value="light">Hell</option>
-          <option value="dark">Dunkel</option>
+          <option value="warm-dark">Dunkel (warm)</option>
+          <option value="dark">Dunkel (neutral)</option>
         </select>
       </label>
     </div>

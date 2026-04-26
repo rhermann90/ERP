@@ -1,6 +1,7 @@
 import { ApiError } from "./api-error.js";
 import { warnIfResponseContractVersionMismatch } from "./fin4-openapi-contract-header.js";
 import type {
+  DunningReminderBatchEmailResponse,
   DunningReminderCandidatesReadResponse,
   DunningReminderRunResponse,
 } from "./finance-dunning-api-types.js";
@@ -401,6 +402,14 @@ export type ApiClient = {
     },
     idempotencyKey: string,
   ): Promise<DunningReminderRunResponse>;
+  postDunningReminderBatchSendEmails(body: {
+    stageOrdinal: number;
+    reason: string;
+    mode: "DRY_RUN" | "EXECUTE";
+    asOfDate?: string;
+    confirmBatchSend?: true;
+    items: Array<{ invoiceId: string; toEmail: string; idempotencyKey?: string }>;
+  }): Promise<DunningReminderBatchEmailResponse>;
   getAuditEvents(page?: number, pageSize?: number): Promise<AuditEventsListResponse>;
 };
 
@@ -603,6 +612,9 @@ export function createApiClient(options: {
       }
       warnIfResponseContractVersionMismatch("/finance/dunning-reminder-run", res);
       return parsed as DunningReminderRunResponse;
+    },
+    postDunningReminderBatchSendEmails(body) {
+      return requestJson<DunningReminderBatchEmailResponse>("POST", "/finance/dunning-reminder-run/send-emails", body);
     },
     async sendDunningReminderEmail(invoiceId, idempotencyKey, body) {
       const token = options.getToken();

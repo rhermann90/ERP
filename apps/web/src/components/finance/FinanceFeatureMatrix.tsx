@@ -19,7 +19,7 @@ export function FinanceFeatureMatrix() {
     },
     {
       area: "8.4 B2-1a Skonto",
-      inUi: "Optional beim Entwurf (Basispunkte)",
+      inUi: "Schritt 2: Basispunkte beim neuen Entwurf; nach GET Rechnung Sync; bei ENTWURF: neu berechnen (POST /invoices mit gleicher LV/Angebots-Version)",
       einordnung: "Demo",
       hinweis: "Wave3 API-first; Rechenweg serverseitig (8.4(1)+USt/Brutto); kein 8.4(2–6)-Motor.",
     },
@@ -37,9 +37,9 @@ export function FinanceFeatureMatrix() {
     },
     {
       area: "FIN-4 Mahn-Kandidaten / Automation (SEMI)",
-      inUi: "Tab Grundeinstellungen: GET/PATCH automation, GET candidates, Dry-Run/EXECUTE",
+      inUi: "Tab Grundeinstellungen: GET/PATCH automation, GET candidates, Dry-Run/EXECUTE; Deep-Link `#/finanz-vorbereitung?tab=…` / `#/finanz-grundeinstellungen`",
       einordnung: "nicht Zielprodukt (M4)",
-      hinweis: "ADR-0011 B3 (stageDeadlineIso, eligibilityContext); kein Cron/AUTO; keine Offline-Schreibsimulation.",
+      hinweis: "ADR-0011 B3 (stageDeadlineIso, eligibilityContext); kein Cron/AUTO; bei Server-OFF sind Mahnlauf-Dry-Run/EXECUTE und Batch-E-Mail (5c) in der PWA deaktiviert (Variante 1a); keine Offline-Schreibsimulation.",
     },
     {
       area: "SoT / andere Entitäten",

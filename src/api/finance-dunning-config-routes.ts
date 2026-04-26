@@ -7,6 +7,7 @@ import type { DunningEmailFooterService } from "../services/dunning-email-footer
 import type { DunningReminderCandidatesService } from "../services/dunning-reminder-candidates-service.js";
 import type { DunningReminderConfigService } from "../services/dunning-reminder-config-service.js";
 import type { DunningReminderRunService } from "../services/dunning-reminder-run-service.js";
+import type { DunningReminderBatchEmailService } from "../services/dunning-reminder-batch-email-service.js";
 import type { DunningReminderTemplateService } from "../services/dunning-reminder-template-service.js";
 import type { DunningTenantAutomationService } from "../services/dunning-tenant-automation-service.js";
 import { parseIdempotencyKeyHeader } from "./idempotency-header.js";
@@ -14,6 +15,7 @@ import {
   deleteDunningReminderStageSchema,
   dunningReminderCandidatesQuerySchema,
   dunningReminderRunBodySchema,
+  dunningReminderBatchEmailBodySchema,
   patchDunningEmailFooterSchema,
   patchDunningReminderStageSchema,
   patchDunningReminderTemplateBodySchema,
@@ -65,6 +67,7 @@ export function registerDunningReminderConfigRoutes(
     dunningEmailFooterService: DunningEmailFooterService;
     dunningReminderCandidatesService: DunningReminderCandidatesService;
     dunningReminderRunService: DunningReminderRunService;
+    dunningReminderBatchEmailService: DunningReminderBatchEmailService;
     dunningTenantAutomationService: DunningTenantAutomationService;
   },
 ): void {
@@ -157,6 +160,35 @@ export function registerDunningReminderConfigRoutes(
         invoiceIds: body.invoiceIds,
         note: body.note,
         idempotencyKey,
+      });
+      return reply.status(200).send(payload);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.post("/finance/dunning-reminder-run/send-emails", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      const body = dunningReminderBatchEmailBodySchema.parse(request.body);
+      if (body.mode === "DRY_RUN") {
+        deps.authorizationService.assertCanReadInvoice(auth.role);
+      } else {
+        deps.authorizationService.assertCanRecordDunningReminder(auth.role);
+      }
+      const payload = await deps.dunningReminderBatchEmailService.run({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        stageOrdinal: body.stageOrdinal,
+        reason: body.reason,
+        asOfDate: body.asOfDate,
+        mode: body.mode,
+        confirmBatchSend: body.confirmBatchSend,
+        items: body.items.map((it) => ({
+          invoiceId: it.invoiceId,
+          toEmail: it.toEmail,
+          idempotencyKey: it.idempotencyKey,
+        })),
       });
       return reply.status(200).send(payload);
     } catch (error) {

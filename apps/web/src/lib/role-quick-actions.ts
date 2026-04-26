@@ -23,7 +23,16 @@ const finance: QuickPreset = {
   kind: "finance",
   id: "finance-prep",
   label: "Finanz-Vorbereitung",
-  subtitle: "Hash #/finanz-vorbereitung — Tabs Rechnung, Mahnwesen, Fortgeschritten",
+  subtitle:
+    "Kanon #/finanz-vorbereitung?tab=… — Alias #/finanz-grundeinstellungen wird beim Laden auf ?tab=grundeinstellungen normalisiert",
+};
+
+/** Direkt Tab „Grundeinstellungen Mahnlauf“ (Automation, Kandidaten, Mahnlauf). */
+const financeGrundeinstellungen: QuickPreset = {
+  kind: "finance",
+  id: "finance-grundeinstellungen",
+  label: "Mahn-Grundeinstellungen",
+  subtitle: "Shortcut #/finanz-grundeinstellungen → Kanon ?tab=grundeinstellungen beim ersten Paint",
 };
 
 const doc = (
@@ -41,11 +50,11 @@ const invoice = doc("doc-inv", "Rechnung", "Rechnungskopf / Export-Kontext (Seed
 const lvNode = doc("doc-lv-node", "LV-Strukturknoten", "Bereich im Seed-LV (Struktur)", "LV_STRUCTURE_NODE", S.lvBereichId);
 
 const PRESETS: Record<ApiUserRole, QuickPreset[]> = {
-  ADMIN: [finance, invoice, offer, mass, lv],
-  BUCHHALTUNG: [invoice, finance, offer, mass, lv],
-  VERTRIEB_BAULEITUNG: [offer, mass, lv, finance, invoice],
-  GESCHAEFTSFUEHRUNG: [offer, finance, invoice, mass, lvNode],
-  VIEWER: [offer, lv, mass, invoice, finance],
+  ADMIN: [finance, financeGrundeinstellungen, invoice, offer, mass],
+  BUCHHALTUNG: [invoice, finance, financeGrundeinstellungen, offer, mass],
+  VERTRIEB_BAULEITUNG: [offer, mass, lv, financeGrundeinstellungen, invoice],
+  GESCHAEFTSFUEHRUNG: [offer, finance, financeGrundeinstellungen, invoice, lvNode],
+  VIEWER: [offer, lv, mass, invoice, financeGrundeinstellungen],
 };
 
 export function quickPresetsForRole(role: ApiUserRole): QuickPreset[] {

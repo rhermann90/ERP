@@ -4,6 +4,7 @@ import { DomainError } from "../errors/domain-error.js";
 import type { DunningReminderRunIntentPersistencePort } from "../persistence/dunning-reminder-run-intent-persistence.js";
 import type { DunningReminderCandidatesService } from "./dunning-reminder-candidates-service.js";
 import type { DunningReminderService } from "./dunning-reminder-service.js";
+import type { DunningTenantAutomationService } from "./dunning-tenant-automation-service.js";
 
 function isPrismaUniqueViolation(error: unknown): boolean {
   return (
@@ -39,6 +40,7 @@ export class DunningReminderRunService {
     private readonly candidatesService: DunningReminderCandidatesService,
     private readonly dunningReminderService: DunningReminderService,
     private readonly runIntentPersistence: DunningReminderRunIntentPersistencePort,
+    private readonly dunningTenantAutomationService: DunningTenantAutomationService,
   ) {}
 
   private fingerprintForExecute(input: {
@@ -59,6 +61,15 @@ export class DunningReminderRunService {
   }
 
   public async run(input: DunningReminderRunInput): Promise<Record<string, unknown>> {
+    const automation = await this.dunningTenantAutomationService.getReadModel(input.tenantId);
+    if (automation.runMode === "OFF") {
+      throw new DomainError(
+        "DUNNING_REMINDER_RUN_DISABLED",
+        "Mahnlauf ist fuer diesen Mandanten auf AUS (OFF). DRY_RUN und EXECUTE sind nicht verfuegbar; Kandidaten lesen und Automation auf SEMI stellen.",
+        409,
+      );
+    }
+
     const candidatesResult = await this.candidatesService.listCandidates({
       tenantId: input.tenantId,
       stageOrdinal: input.stageOrdinal,

@@ -40,6 +40,13 @@ Server-zu-Server: Header direkt lesen. **Browser + CORS:** nur sichtbar, wenn di
 
 Vollständige Schemas: `docs/api-contract.yaml`. Mapping: `docs/contracts/finance-fin0-openapi-mapping.md`.
 
+## Neu ab `1.26.0` (M4 Slice 5c — Batch-E-Mail)
+
+- **`POST /finance/dunning-reminder-run/send-emails`:** Batch-Versand bzw. **DRY_RUN** je Rechnungszeile; wiederholt die **5a**-Semantik pro `items[]`-Eintrag (explizites **`toEmail`**, bei **`EXECUTE`** **`idempotencyKey`** pro Zeile, **`confirmBatchSend: true`** Pflicht). Max. **25** Zeilen.
+- **Fehlercodes (Auswahl):** `DUNNING_BATCH_EMAIL_CONFIRM_REQUIRED`, `DUNNING_BATCH_EMAIL_DUPLICATE_INVOICE_ID`, `DUNNING_BATCH_EMAIL_DUPLICATE_IDEMPOTENCY_KEY`, `DUNNING_BATCH_EMAIL_TOO_MANY_ITEMS` — vollständig in [`error-codes.json`](./error-codes.json).
+- **Mandant `runMode=OFF`:** wie Mahnlauf **5b-1** — **409** `DUNNING_REMINDER_RUN_DISABLED` (HTTP **1b**).
+- **Spec (Semantik, Compliance-Anker):** [`docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md`](../tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md).
+
 ## Empfehlung für Integratoren
 
 1. Bei Start oder nach 4xx/Schema-Fehlern **`x-erp-openapi-contract-version`** mit dem in eurem gebündelten OpenAPI erwarteten `info.version` vergleichen.

@@ -7,3 +7,5 @@ Ziel: immutable PDF, Archiv (Hash/Version), Audit, E-Mail-/Drucknachweis — **f
 **Risiko-Abgrenzung (nach SEMI/B3):** `eligibilityContext` / `stageDeadlineIso` aus dem Mahn-Lesepfad dienen der **Nachvollziehbarkeit der Frist**; sie begründen **keine** formelle Mahnung und ersetzen keine Prüfung formeller Mahnvoraussetzungen durch die Steuerberatung.
 
 **Reihenfolge mit Querschnitt (eigener PR):** Nach technischem PDF-/Archiv-Slice den Audit-/Persistenz-Strang separat umsetzen — [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) **nicht** im selben PR wie B5-UI mixen (Wave3-Non-Goal).
+
+**Wave-3 Liefergrenze (Spec-only):** [`B5-SPEC-DELIVERY-BOUNDARY-WAVE3.md`](./B5-SPEC-DELIVERY-BOUNDARY-WAVE3.md) — inkl. **P1-Wave-3-Querschnitt** (projektinternes Protokoll 2026-04-26, kein StB-Ersatz).

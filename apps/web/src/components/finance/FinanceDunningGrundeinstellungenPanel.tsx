@@ -1,3 +1,10 @@
+/**
+ * Mandanten-Mahnlauf (ADR-0011, FIN-4 M4 5b).
+ *
+ * **PL / Team-Default „Variante 1a“ (runMode OFF):** In der PWA sind **Dry-Run**, **EXECUTE** (5b-1) und **Batch-E-Mail** (5c)
+ * deaktiviert, wenn der Server `runMode === "OFF"` meldet. **GET Kandidaten** bleibt erlaubt (Lesepfad,
+ * Transparenz). HTTP **1b:** `POST /finance/dunning-reminder-run` und `POST …/send-emails` liefern **409** `DUNNING_REMINDER_RUN_DISABLED`.
+ */
 import { useMemo } from "react";
 import { FinanceCollapsibleJson } from "./FinanceCollapsibleJson.js";
 import { FinancePrepPanel } from "./FinancePrepPanel.js";
@@ -54,6 +61,12 @@ export type FinanceDunningGrundeinstellungenPanelProps = {
   canRecordDunningReminder: boolean;
   dunningCandidatesJson: string;
   onLoadDunningCandidates: () => void;
+  dunningBatchEmailItemsJson: string;
+  setDunningBatchEmailItemsJson: (v: string) => void;
+  dunningBatchEmailResultJson: string;
+  onPrefillBatchEmailItemsFromCandidates: () => void;
+  onDunningBatchEmailDryRun: () => void;
+  onDunningBatchEmailExecute: () => void;
 };
 
 function parseCandidatesResponse(raw: string): DunningReminderCandidatesReadResponse["data"] | null {
@@ -98,8 +111,15 @@ export function FinanceDunningGrundeinstellungenPanel({
   canRecordDunningReminder,
   dunningCandidatesJson,
   onLoadDunningCandidates,
+  dunningBatchEmailItemsJson,
+  setDunningBatchEmailItemsJson,
+  dunningBatchEmailResultJson,
+  onPrefillBatchEmailItemsFromCandidates,
+  onDunningBatchEmailDryRun,
+  onDunningBatchEmailExecute,
 }: FinanceDunningGrundeinstellungenPanelProps) {
   const candidatesData = useMemo(() => parseCandidatesResponse(dunningCandidatesJson), [dunningCandidatesJson]);
+  const batchMahnlaufDisabled = serverAutomationRunMode === "OFF";
 
   return (
     <FinancePrepPanel step={5} title="Grundeinstellungen Mahnlauf (SEMI, ADR-0011)">
@@ -117,6 +137,15 @@ export function FinanceDunningGrundeinstellungenPanel({
         {serverAutomationRunMode != null && serverAutomationRunMode !== dunningAutomationRunMode ? (
           <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginTop: 0, marginBottom: "0.45rem" }}>
             <strong>Servertreu: {serverAutomationRunMode}.</strong> Formular weicht ab — nach Speichern oder erneutem GET angleichen.
+          </p>
+        ) : null}
+        {batchMahnlaufDisabled ? (
+          <p
+            role="status"
+            style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginTop: 0, marginBottom: "0.45rem" }}
+          >
+            <strong>Mandant OFF:</strong> Vorschau (Dry-Run) und Ausführen (EXECUTE) sind in der PWA deaktiviert (Variante 1a — API unverändert).{" "}
+            <strong>Kandidaten laden</strong> bleibt möglich.
           </p>
         ) : null}
         {dunningAutomationJson.trim() ? (
@@ -230,10 +259,14 @@ export function FinanceDunningGrundeinstellungenPanel({
           <button type="button" disabled={busy} onClick={onLoadDunningCandidates}>
             Kandidaten laden (GET)
           </button>
-          <button type="button" disabled={busy} onClick={onDunningBatchDryRun}>
+          <button type="button" disabled={busy || batchMahnlaufDisabled} onClick={onDunningBatchDryRun}>
             Vorschau (Dry-Run)
           </button>
-          <button type="button" disabled={busy || !canRecordDunningReminder} onClick={onDunningBatchExecute}>
+          <button
+            type="button"
+            disabled={busy || batchMahnlaufDisabled || !canRecordDunningReminder}
+            onClick={onDunningBatchExecute}
+          >
             Ausführen (EXECUTE)
           </button>
         </div>
@@ -334,6 +367,41 @@ export function FinanceDunningGrundeinstellungenPanel({
             </p>
           </>
         ) : null}
+        <h3 style={{ fontSize: "0.95rem", margin: "0.85rem 0 0.35rem" }}>Batch-E-Mail (M4 Slice 5c)</h3>
+        <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginTop: 0, marginBottom: "0.45rem" }}>
+          <code>POST /finance/dunning-reminder-run/send-emails</code> — pro Zeile wie Slice <strong>5a</strong> mit explizitem <code>toEmail</code> und eigenem <code>idempotencyKey</code> bei <code>EXECUTE</code>. Spec:{" "}
+          <a href={repoDocHref("docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md")}>M4-BATCH-DUNNING-EMAIL-SPEC</a>. Bei <strong>OFF</strong> gesperrt wie Mahnlauf.
+        </p>
+        <label style={{ display: "block", marginBottom: "0.45rem", fontSize: "0.78rem" }}>
+          items[] (JSON, max. 25)
+          <textarea
+            value={dunningBatchEmailItemsJson}
+            onChange={(e) => setDunningBatchEmailItemsJson(e.target.value)}
+            aria-label="Batch-E-Mail items JSON"
+            rows={6}
+            spellCheck={false}
+            style={{ width: "100%", fontFamily: "monospace", fontSize: "0.72rem", marginTop: "0.25rem" }}
+          />
+        </label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.55rem" }}>
+          <button type="button" disabled={busy || !candidatesData?.candidates?.length} onClick={onPrefillBatchEmailItemsFromCandidates}>
+            Items aus Kandidaten (Platzhalter-E-Mail)
+          </button>
+          <button type="button" disabled={busy || batchMahnlaufDisabled} onClick={onDunningBatchEmailDryRun}>
+            Batch-E-Mail Dry-Run
+          </button>
+          <button
+            type="button"
+            disabled={busy || batchMahnlaufDisabled || !canRecordDunningReminder}
+            onClick={onDunningBatchEmailExecute}
+          >
+            Batch-E-Mail EXECUTE
+          </button>
+        </div>
+        {dunningBatchEmailResultJson.trim() ? (
+          <FinanceCollapsibleJson summary="Letzter Batch-E-Mail-Lauf (send-emails)" json={dunningBatchEmailResultJson} />
+        ) : null}
+
       </div>
     </FinancePrepPanel>
   );

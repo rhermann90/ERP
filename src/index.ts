@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { assertAuthTokenSecretConfiguredAtStartup } from "./auth/token-auth.js";
 import { buildApp } from "./api/app.js";
 import { resolveListenHost, resolveListenPort } from "./config/http-listen.js";

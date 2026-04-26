@@ -17,6 +17,11 @@ export function FinanceStructuredApiError({ envelope, status }: { envelope: ApiE
         {status} · {envelope.code}
       </strong>
       <p style={{ margin: "0.35rem 0 0.5rem" }}>{envelope.message}</p>
+      {envelope.code === "DUNNING_REMINDER_RUN_DISABLED" ? (
+        <p style={{ margin: "0.35rem 0 0", fontSize: "0.82rem", color: "var(--text-primary)" }}>
+          Mandanten-Mahnlauf ist auf <strong>AUS (OFF)</strong>. Bitte unter Grundeinstellungen Automation auf <strong>SEMI</strong> stellen, oder nur Kandidaten laden (kein Dry-Run / keine Batch-Ausführung).
+        </p>
+      ) : null}
       <dl
         style={{
           margin: 0,

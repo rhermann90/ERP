@@ -820,6 +820,163 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     expect((res.json() as { code: string }).code).toBe("AUTH_ROLE_FORBIDDEN");
   });
 
+  it("POST /finance/dunning-reminder-run/send-emails DRY_RUN returns per-row footer gate in memory (M4 Slice 5c)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/finance/dunning-reminder-run/send-emails",
+      headers: buildHeaders(),
+      payload: {
+        stageOrdinal: 1,
+        asOfDate: "2026-04-28",
+        mode: "DRY_RUN",
+        reason: "FIN-0 batch email dry run stub",
+        items: [{ invoiceId: SEED_IDS.invoiceId, toEmail: "kunde@example.com" }],
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["x-erp-openapi-contract-version"]).toBe(ERP_OPENAPI_INFO_VERSION);
+    const body = res.json() as {
+      data: {
+        mode: string;
+        results: Array<{ invoiceId: string; outcome: string; code?: string }>;
+      };
+    };
+    expect(body.data.mode).toBe("DRY_RUN");
+    expect(body.data.results).toHaveLength(1);
+    expect(body.data.results[0].outcome).toBe("BLOCKED");
+    expect(body.data.results[0].code).toBe("DUNNING_EMAIL_FOOTER_NOT_READY");
+  });
+
+  it("POST /finance/dunning-reminder-run/send-emails EXECUTE requires confirmBatchSend (M4 Slice 5c)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/finance/dunning-reminder-run/send-emails",
+      headers: buildHeaders(),
+      payload: {
+        stageOrdinal: 1,
+        asOfDate: "2026-04-28",
+        mode: "EXECUTE",
+        reason: "FIN-0 batch email execute without confirm",
+        items: [
+          {
+            invoiceId: SEED_IDS.invoiceId,
+            toEmail: "kunde@example.com",
+            idempotencyKey: randomUUID(),
+          },
+        ],
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect((res.json() as { code: string }).code).toBe("DUNNING_BATCH_EMAIL_CONFIRM_REQUIRED");
+  });
+
+  it("POST /finance/dunning-reminder-run/send-emails EXECUTE returns VALIDATION_FAILED without per-item idempotencyKey (M4 Slice 5c)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/finance/dunning-reminder-run/send-emails",
+      headers: buildHeaders(),
+      payload: {
+        stageOrdinal: 1,
+        asOfDate: "2026-04-28",
+        mode: "EXECUTE",
+        reason: "FIN-0 batch email execute missing item key",
+        confirmBatchSend: true,
+        items: [{ invoiceId: SEED_IDS.invoiceId, toEmail: "kunde@example.com" }],
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect((res.json() as { code: string }).code).toBe("VALIDATION_FAILED");
+  });
+
+  it("POST /finance/dunning-reminder-run/send-emails returns DUNNING_RUN_INVOICES_INVALID for invoice not in candidates (M4 Slice 5c)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/finance/dunning-reminder-run/send-emails",
+      headers: buildHeaders(),
+      payload: {
+        stageOrdinal: 1,
+        asOfDate: "2026-04-28",
+        mode: "DRY_RUN",
+        reason: "FIN-0 batch email invalid invoice subset",
+        items: [{ invoiceId: randomUUID(), toEmail: "kunde@example.com" }],
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect((res.json() as { code: string }).code).toBe("DUNNING_RUN_INVOICES_INVALID");
+  });
+
+  it("POST /finance/dunning-reminder-run/send-emails returns DUNNING_BATCH_EMAIL_DUPLICATE_INVOICE_ID (M4 Slice 5c)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/finance/dunning-reminder-run/send-emails",
+      headers: buildHeaders(),
+      payload: {
+        stageOrdinal: 1,
+        asOfDate: "2026-04-28",
+        mode: "DRY_RUN",
+        reason: "FIN-0 batch email duplicate invoice rows",
+        items: [
+          { invoiceId: SEED_IDS.invoiceId, toEmail: "a@example.com" },
+          { invoiceId: SEED_IDS.invoiceId, toEmail: "b@example.com" },
+        ],
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect((res.json() as { code: string }).code).toBe("DUNNING_BATCH_EMAIL_DUPLICATE_INVOICE_ID");
+  });
+
+  it("POST /finance/dunning-reminder-run/send-emails DRY_RUN allows VIEWER (M4 Slice 5c)", async () => {
+    const token = createSignedToken({
+      sub: "88888888-8888-4888-8888-888888888888",
+      tenantId: SEED_IDS.tenantId,
+      role: "VIEWER",
+      exp: Math.floor(Date.now() / 1000) + 600,
+    });
+    const res = await app.inject({
+      method: "POST",
+      url: "/finance/dunning-reminder-run/send-emails",
+      headers: { authorization: `Bearer ${token}`, "x-tenant-id": SEED_IDS.tenantId },
+      payload: {
+        stageOrdinal: 1,
+        asOfDate: "2026-04-28",
+        mode: "DRY_RUN",
+        reason: "Viewer batch email dry run",
+        items: [{ invoiceId: SEED_IDS.invoiceId, toEmail: "kunde@example.com" }],
+      },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("POST /finance/dunning-reminder-run/send-emails EXECUTE rejects VIEWER with 403 (M4 Slice 5c)", async () => {
+    const token = createSignedToken({
+      sub: "88888888-8888-4888-8888-888888888888",
+      tenantId: SEED_IDS.tenantId,
+      role: "VIEWER",
+      exp: Math.floor(Date.now() / 1000) + 600,
+    });
+    const res = await app.inject({
+      method: "POST",
+      url: "/finance/dunning-reminder-run/send-emails",
+      headers: { authorization: `Bearer ${token}`, "x-tenant-id": SEED_IDS.tenantId },
+      payload: {
+        stageOrdinal: 1,
+        asOfDate: "2026-04-28",
+        mode: "EXECUTE",
+        reason: "Viewer batch email execute forbidden",
+        confirmBatchSend: true,
+        items: [
+          {
+            invoiceId: SEED_IDS.invoiceId,
+            toEmail: "kunde@example.com",
+            idempotencyKey: randomUUID(),
+          },
+        ],
+      },
+    });
+    expect(res.statusCode).toBe(403);
+    expect((res.json() as { code: string }).code).toBe("AUTH_ROLE_FORBIDDEN");
+  });
+
   it("GET /finance/dunning-reminder-automation returns effective SEMI when not configured (memory)", async () => {
     const res = await app.inject({
       method: "GET",

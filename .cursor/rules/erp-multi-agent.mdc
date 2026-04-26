@@ -5,7 +5,7 @@ alwaysApply: true
 
 # ERP Multi-Agent Core Rules
 
-Authoritative domain source is [`docs/ERP-Systembeschreibung.md`](../docs/ERP-Systembeschreibung.md) (konsolidiert v2.0; Abschnitte 1–17 entsprechen der historischen v1.3-Struktur). Archivierte Einzelstände: `docs/_archiv/systembeschreibung-und-phasen-legacy/`. Repository-Orientierung für Agenten: [`AGENTS.md`](../AGENTS.md).
+Authoritative domain source is [`docs/ERP-Systembeschreibung.md`](../docs/ERP-Systembeschreibung.md) (konsolidiert v2.0; Abschnitte 1–17 entsprechen der historischen v1.3-Struktur). Archivierte Einzelstände: `docs/_archiv/systembeschreibung-und-phasen-legacy/`. Repository-Orientierung für Agenten: [`AGENTS.md`](../AGENTS.md). PWA/UI-Link-Hub: [`docs/referenz-ui-ux.md`](../docs/referenz-ui-ux.md).
 
 Non-negotiable rules:
 - Do not simplify domain logic.
