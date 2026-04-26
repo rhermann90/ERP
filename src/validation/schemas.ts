@@ -168,6 +168,39 @@ export const dunningReminderRunBodySchema = z
   })
   .strict();
 
+const dunningBatchEmailItemSchema = z
+  .object({
+    invoiceId: z.string().uuid(),
+    toEmail: z.string().email().max(320),
+    idempotencyKey: z.string().uuid().optional(),
+  })
+  .strict();
+
+/** M4 Slice 5c: Batch-SMTP je Rechnung (5a pro Zeile); max. 25 Zeilen. */
+export const dunningReminderBatchEmailBodySchema = z
+  .object({
+    stageOrdinal: z.number().int().min(1).max(9),
+    reason: z.string().min(5).max(500),
+    mode: z.enum(["DRY_RUN", "EXECUTE"]),
+    asOfDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    confirmBatchSend: z.literal(true).optional(),
+    items: z.array(dunningBatchEmailItemSchema).min(1).max(25),
+  })
+  .strict()
+  .superRefine((val, ctx) => {
+    if (val.mode === "EXECUTE") {
+      for (let i = 0; i < val.items.length; i += 1) {
+        if (!val.items[i].idempotencyKey) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["items", i, "idempotencyKey"],
+            message: "EXECUTE: idempotencyKey pro item erforderlich",
+          });
+        }
+      }
+    }
+  });
+
 /** Mandanten-Modus Mahnlauf (OFF | SEMI); SEMI-Kontext für Fälligkeit/Kanal (ADR-0011). */
 export const patchDunningTenantAutomationSchema = z
   .object({

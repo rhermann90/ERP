@@ -9,6 +9,7 @@ describe("isFin4OpenApiContractResponsePath", () => {
   it("matches FIN-4 contract paths", () => {
     expect(isFin4OpenApiContractResponsePath("/finance/dunning-reminder-config")).toBe(true);
     expect(isFin4OpenApiContractResponsePath("/finance/dunning-reminder-run")).toBe(true);
+    expect(isFin4OpenApiContractResponsePath("/finance/dunning-reminder-run/send-emails")).toBe(true);
     expect(isFin4OpenApiContractResponsePath("/finance/dunning-email-footer")).toBe(true);
     expect(isFin4OpenApiContractResponsePath("/finance/dunning-email-footer?x=1")).toBe(true);
   });

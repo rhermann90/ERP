@@ -8,9 +8,14 @@ Kurzbriefing für automatisierte oder assistierte Arbeit am Repository. Verbindl
 2. **[`docs/CODEMAPS/overview.md`](./docs/CODEMAPS/overview.md)** — Modul-Landkarte (`src/` vs. `apps/web/`), ohne Fachbuch.
 3. **Fachliche Quelle** — [`docs/ERP-Systembeschreibung.md`](./docs/ERP-Systembeschreibung.md): nur die für die Aufgabe nötigen Teile (z. B. referenzierte §), nicht zwangsläufig das ganze Dokument.
 4. **Technische Verträge** — [`docs/api-contract.yaml`](./docs/api-contract.yaml), [`docs/contracts/`](./docs/contracts/) (inkl. `error-codes.json`), relevante [`docs/adr/`](./docs/adr/).
-5. **Produktiv-Go Finanz (fachlich, nicht nur CI)** — [`Checklisten/compliance-rechnung-finanz.md`](./Checklisten/compliance-rechnung-finanz.md) vor Mandanten-Go mit StB/DSB/PL abarbeiten.
+5. **PWA / UI-UX** (bei Arbeit unter `apps/web/`) — Link-Hub [`docs/referenz-ui-ux.md`](./docs/referenz-ui-ux.md); [`docs/ui-ux-style-guide.md`](./docs/ui-ux-style-guide.md), [`docs/web-theming.md`](./docs/web-theming.md); Cursor-Rule **erp-web-ui** (`apps/web/**`).
+6. **Produktiv-Go Finanz (fachlich, nicht nur CI)** — [`Checklisten/compliance-rechnung-finanz.md`](./Checklisten/compliance-rechnung-finanz.md) vor Mandanten-Go mit StB/DSB/PL abarbeiten.
 
 Tickets und Gates (z. B. FIN-2, QA §5a) stehen in `docs/tickets/` und `docs/contracts/`; bei merge-kritischen Themen README und PR-Vorlage beachten. **QA/Review vor Merge:** Querschnitt in [`docs/runbook/ci-and-persistence-tests.md`](./docs/runbook/ci-and-persistence-tests.md) (Abschnitt „QA und Review vor Merge auf `main`“).
+
+**P1-4 (B5 / Audit-Code):** Kein Implementierungs-PR für formelles Mahn-PDF (**B5**) oder Audit-**Verhaltens**-Änderungen (z. B. Option A) ohne dokumentierte Gates — [`docs/tickets/B5-SPEC-DELIVERY-BOUNDARY-WAVE3.md`](./docs/tickets/B5-SPEC-DELIVERY-BOUNDARY-WAVE3.md) (*Implementierungs-Gate*) und [`docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) (*PL-Eintrag* / *PL-Protokoll*).
+
+**Agent nach finanz-relevantem Merge auf `main`:** Nächste freie Zeile in [`docs/tickets/P1-3-DOCS-MILESTONE-WAVE3.md`](./docs/tickets/P1-3-DOCS-MILESTONE-WAVE3.md) ausfüllen (Merge-Datum UTC, PR-URL) — siehe Abschnitt **„Pflege (Agent)“** dort. **PL-Sitzungsprotokoll** (Tabelle unter „PL-Protokoll“) in [`docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md): weiterhin **nur Projektleitung**, keine erfundenen Links durch den Agenten.
 
 ## 2. Repo-Layout (Kurz)
 
@@ -29,6 +34,7 @@ Tickets und Gates (z. B. FIN-2, QA §5a) stehen in `docs/tickets/` und `docs/con
 | Zweck | Befehl |
 |-------|--------|
 | CI-ähnliche Vorprüfung | `npm run verify:ci` |
+| **Vor Merge auf `main` (lokal)** | `npm run verify:ci` (entspricht Erwartung GitHub-Job `backend`); bei Touch von `docs/api-contract.yaml` / `info.version` zusätzlich [`FIN4-external-client-integration.md`](./docs/contracts/FIN4-external-client-integration.md) und P1-3-Notiz in [`P1-3-DOCS-MILESTONE-WAVE3.md`](./docs/tickets/P1-3-DOCS-MILESTONE-WAVE3.md) prüfen |
 | Mit DB-Migration wie Deploy-Pfad | `npm run verify:ci:with-migrate` (lokal `DATABASE_URL` setzen) |
 | Persistenz-Suite wie CI (lokal) | `npm run verify:ci:local-db` (siehe README) |
 | Nur Backend-Tests | `npm test` |
@@ -47,8 +53,9 @@ Die pfadbezogene Orientierung liegt zentral unter **[`docs/CODEMAPS/`](./docs/CO
 | **`AGENTS.md`** | Session-Bootstrap: Schichtung, Befehle, Link zur Codemap — bewusst kurz, um Tokens zu sparen. |
 | **`docs/CODEMAPS/overview.md`** | Strukturorientierung im Code; wird bei neuen vertikalen Slices oder größeren Verschiebungen aktualisiert. |
 | **`docs/ERP-Systembeschreibung.md`** | Fachliche Wahrheit; bei Konflikt gewinnt Fachlogik gegen Implementierungsbequemlichkeit. |
+| **[Checklisten/compliance-rechnung-finanz.md](./Checklisten/compliance-rechnung-finanz.md)** | Mandanten-Go Rechnung/Mahn/Massen-E-Mail: mit **StB / DSB / PL** vor Live-Schaltung abarbeiten (ergänzend zu README „Produktiv-Go“ und grünem CI). |
 
-**Optional später:** Zusätzliche Cursor-Regeln mit `globs` (z. B. nur `apps/web/**`) für UI-spezifische Hinweise — nur wenn die globale Rule zu unspezifisch wird.
+**PWA-UI:** Zusätzliche Cursor-Regel [`.cursor/rules/erp-web-ui.mdc`](./.cursor/rules/erp-web-ui.mdc) mit `globs: apps/web/**` — Style-Guide und Theming für Web-Änderungen.
 
 ## 6. Ausgabeformat
 

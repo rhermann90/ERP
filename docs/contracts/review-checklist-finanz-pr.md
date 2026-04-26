@@ -13,6 +13,7 @@
 2. **Contract-Bündel (G8):** Bei neuen oder geänderten Domänencodes — [`error-codes.json`](./error-codes.json) + [`api-contract.yaml`](../api-contract.yaml) + Mapping in [`finance-fin0-openapi-mapping.md`](./finance-fin0-openapi-mapping.md) **im selben PR**, soweit betroffen.
 3. **Mandanten-FK:** Neue Tabellen wie bei `payment_intakes` — Composite `(tenant_id, …)` wo vorgesehen (siehe ADR-0007).
 4. **Tests:** `npm run verify:ci`; bei Persistenz/Migrationen zusätzlich lokale Spiegelung [`../runbook/ci-and-persistence-tests.md`](../runbook/ci-and-persistence-tests.md) (`verify:ci:local-db`).
+5. **Kleine PWA-/Stakeholder-Release-Notizen** (ohne OpenAPI-Bündel): nur gemäß zentraler [`.github/pull_request_template.md`](../../.github/pull_request_template.md) (Abschnitt „Kleine PWA-/UX-Releases“; dort **Finanz-Review-Anker** zurück auf diesen Punkt) — **keine** parallele Release-Checkliste in dieser Datei.
 
 ## Misch-PR und QA-Gate
 

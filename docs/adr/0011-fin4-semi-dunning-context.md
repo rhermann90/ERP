@@ -25,6 +25,10 @@ Mandanten-Mahnlauf-Automatisierung soll **ohne Cron/AUTO** auskommen (Betrieb, C
 - **B3 (Traceability):** Kandidaten-API soll explizit die **berechnete Stufenfrist** (`stageDeadlineIso`) und den verwendeten **Eligibility-Kontext** (Zeitzone, `payment_term_day_kind`, …) ausliefern, damit UI/PDF dieselbe Frist sehen wie die Engine (`deadlineAfterIssueDate` in `src/domain/dunning-due-date.ts`). OpenAPI + Tests anpassen.
 - **B5:** Ticket [`docs/tickets/B5-FORMAL-DUNNING-PDF.md`](../tickets/B5-FORMAL-DUNNING-PDF.md); Domänenmodul `src/domain/dunning-formal-notice-spec.ts` (nach Agent-Modus-Freigabe) als Pflichtfeld-Anker für den späteren PDF-Generator.
 
+### Serverseitige Sperre bei OFF (API 1b)
+
+- Wenn die Mandantenzeile `dunning_tenant_automation.run_mode` **OFF** ist, lehnt `POST /finance/dunning-reminder-run` sowohl **DRY_RUN** als auch **EXECUTE** mit **409** und Code **`DUNNING_REMINDER_RUN_DISABLED`** ab (Lesepfade `GET …/dunning-reminder-candidates` und Automation-Read bleiben erlaubt; PWA OFF-1a und HTTP-1b konsistent).
+
 ## Bezug
 
 - Präzisiert/supersediert in ADR-0010 beschriebene **AUTO**- und **5b-2**-Cron-Pfade (entfernt).

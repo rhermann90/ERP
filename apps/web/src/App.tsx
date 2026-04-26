@@ -6,7 +6,15 @@ import { LoginPage } from "./components/LoginPage.js";
 import { PasswordResetPage } from "./components/PasswordResetPage.js";
 import { RoleQuickNav } from "./components/RoleQuickNav.js";
 import { DEMO_SEED_IDS as SEED } from "./lib/demo-seed-ids.js";
-import { FINANCE_PREP_HASH, useHashRoute } from "./lib/hash-route.js";
+import {
+  FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH,
+  FINANCE_PREP_HASH,
+  isFinancePrepHashPath,
+  normalizeFinancePrepHashToCanon,
+  readHashQuery,
+  resolveFinancePrepInitialMainTab,
+  useHashRoute,
+} from "./lib/hash-route.js";
 import {
   CANONICAL_EXPORT_INVOICE_ACTION_ID,
   ENTITY_TYPES,
@@ -137,9 +145,17 @@ export default function App() {
   const tenantMismatch = tokenTenant && tenantId && tokenTenant !== tenantId;
 
   const hashPath = useHashRoute();
-  const showFinancePrep = hashPath === "/finanz-vorbereitung";
+  const hashQuery = readHashQuery();
+  const showFinancePrep = isFinancePrepHashPath(hashPath);
+  const financePrepInitialMainTab = resolveFinancePrepInitialMainTab(hashPath, hashQuery);
+  const financePrepRouteKey = `${hashPath}:${hashQuery.get("tab") ?? ""}`;
   const showLogin = hashPath === "/login";
   const showPasswordReset = hashPath === "/password-reset";
+
+  useEffect(() => {
+    if (!showFinancePrep) return;
+    normalizeFinancePrepHashToCanon();
+  }, [showFinancePrep, hashPath]);
 
   useEffect(() => {
     if (tenantId !== prevTenant) {
@@ -208,7 +224,8 @@ export default function App() {
   const runQuickPreset = useCallback(
     async (p: QuickPreset) => {
       if (p.kind === "finance") {
-        window.location.hash = FINANCE_PREP_HASH;
+        window.location.hash =
+          p.id === "finance-grundeinstellungen" ? FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH : FINANCE_PREP_HASH;
         return;
       }
       window.location.hash = "#/";
@@ -443,6 +460,8 @@ export default function App() {
         {" · "}
         <a href={FINANCE_PREP_HASH}>Finanz (Vorbereitung)</a>
         {" · "}
+        <a href={FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH}>Finanz (Grundeinstellungen Mahnlauf)</a>
+        {" · "}
         <a href="#/login">Anmeldung</a>
         {" · "}
         <a href="#/password-reset">Passwort vergessen</a>
@@ -481,7 +500,7 @@ export default function App() {
       ) : null}
 
       {showFinancePrep ? (
-        <FinancePreparation api={client} />
+        <FinancePreparation key={financePrepRouteKey} api={client} initialMainTab={financePrepInitialMainTab} />
       ) : null}
 
       {showLogin ? (

@@ -32,6 +32,7 @@ function makeClient(): ApiClient {
     getDunningReminderCandidates: vi.fn(),
     postDunningReminderRunDryRun: vi.fn(),
     postDunningReminderRunExecute: vi.fn(),
+    postDunningReminderBatchSendEmails: vi.fn(),
     getAuditEvents: vi.fn(),
   };
 }

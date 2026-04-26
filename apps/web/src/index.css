@@ -1,21 +1,22 @@
+/* Default = helles warmes Paper (erster Paint; System: /theme-boot.js + main.tsx). */
 :root {
   color-scheme: light;
-  --theme-color: #f5f5f7;
-  --bg: #f5f5f7;
+  --theme-color: #f7f5f2;
+  --bg: #f7f5f2;
   --surface: #ffffff;
   --text: #1d1d1f;
   --text-secondary: #6e6e73;
-  --border: rgba(0, 0, 0, 0.08);
+  --border: rgba(55, 40, 30, 0.09);
   --accent: #0071e3;
   --danger: #d70015;
   --success: #248a3d;
   --radius: 12px;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --input-bg: #fafafa;
-  --accent-muted: #e8e8e8;
-  --panel-2: #f0f0f0;
-  --muted-surface: rgba(0, 0, 0, 0.04);
-  --btn-secondary-bg: rgba(0, 0, 0, 0.06);
+  --input-bg: #faf6f2;
+  --accent-muted: #ebe5df;
+  --panel-2: #f0ece8;
+  --muted-surface: rgba(55, 40, 30, 0.05);
+  --btn-secondary-bg: rgba(55, 40, 30, 0.07);
   --error-banner-bg: rgba(215, 0, 21, 0.08);
   --error-banner-border: rgba(215, 0, 21, 0.25);
   --error-banner-text: #5c0009;
@@ -25,34 +26,8 @@
   --modal-backdrop: rgba(0, 0, 0, 0.35);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --theme-color: #1c1c1e;
-    --bg: #1c1c1e;
-    --surface: #2c2c2e;
-    --text: #f5f5f7;
-    --text-secondary: #98989d;
-    --border: rgba(255, 255, 255, 0.12);
-    --accent: #0a84ff;
-    --danger: #ff453a;
-    --success: #32d74b;
-    --input-bg: #3a3a3c;
-    --accent-muted: #3a3a3c;
-    --panel-2: #3a3a3c;
-    --muted-surface: rgba(255, 255, 255, 0.06);
-    --btn-secondary-bg: rgba(255, 255, 255, 0.12);
-    --error-banner-bg: rgba(255, 69, 58, 0.15);
-    --error-banner-border: rgba(255, 69, 58, 0.35);
-    --error-banner-text: #ffe8e6;
-    --success-banner-bg: rgba(52, 199, 89, 0.18);
-    --success-banner-border: rgba(52, 199, 89, 0.4);
-    --modal-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
-    --modal-backdrop: rgba(0, 0, 0, 0.55);
-  }
-}
-
-:root[data-theme="dark"] {
+:root[data-theme="dark"][data-dark-palette="cool"],
+:root[data-theme="dark"]:not([data-dark-palette]) {
   color-scheme: dark;
   --theme-color: #1c1c1e;
   --bg: #1c1c1e;
@@ -77,30 +52,32 @@
   --modal-backdrop: rgba(0, 0, 0, 0.55);
 }
 
-:root[data-theme="light"] {
-  color-scheme: light;
-  --theme-color: #f5f5f7;
-  --bg: #f5f5f7;
-  --surface: #ffffff;
-  --text: #1d1d1f;
-  --text-secondary: #6e6e73;
-  --border: rgba(0, 0, 0, 0.08);
-  --accent: #0071e3;
-  --danger: #d70015;
-  --success: #248a3d;
-  --input-bg: #fafafa;
-  --accent-muted: #e8e8e8;
-  --panel-2: #f0f0f0;
-  --muted-surface: rgba(0, 0, 0, 0.04);
-  --btn-secondary-bg: rgba(0, 0, 0, 0.06);
-  --error-banner-bg: rgba(215, 0, 21, 0.08);
-  --error-banner-border: rgba(215, 0, 21, 0.25);
-  --error-banner-text: #5c0009;
-  --success-banner-bg: rgba(52, 199, 89, 0.12);
-  --success-banner-border: rgba(52, 199, 89, 0.35);
-  --modal-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
-  --modal-backdrop: rgba(0, 0, 0, 0.35);
+:root[data-theme="dark"][data-dark-palette="warm"] {
+  color-scheme: dark;
+  --theme-color: #1e1c1a;
+  --bg: #1e1c1a;
+  --surface: #2c2826;
+  --text: #f5f2ef;
+  --text-secondary: #a89f98;
+  --border: rgba(255, 210, 180, 0.12);
+  --accent: #0a84ff;
+  --danger: #ff453a;
+  --success: #32d74b;
+  --input-bg: #3d3834;
+  --accent-muted: #3d3834;
+  --panel-2: #35312e;
+  --muted-surface: rgba(255, 220, 200, 0.07);
+  --btn-secondary-bg: rgba(255, 220, 200, 0.12);
+  --error-banner-bg: rgba(255, 69, 58, 0.15);
+  --error-banner-border: rgba(255, 69, 58, 0.35);
+  --error-banner-text: #ffe8e6;
+  --success-banner-bg: rgba(52, 199, 89, 0.18);
+  --success-banner-border: rgba(52, 199, 89, 0.4);
+  --modal-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+  --modal-backdrop: rgba(0, 0, 0, 0.55);
 }
+
+/* Hell: nur :root (pre-JS + data-theme=light); keine zweite Token-Liste nötig. */
 
 *,
 *::before,
@@ -452,7 +429,7 @@ textarea {
 }
 
 .theme-pref-select {
-  min-width: 7.5rem;
+  min-width: 12rem;
   padding: 0.35rem 0.5rem;
   border-radius: 8px;
   border: 1px solid var(--border);

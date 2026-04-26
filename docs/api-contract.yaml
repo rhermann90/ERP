@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-1/2/3/4 Finance)
-  version: 1.25.1-fin4-contract-metadata
+  version: 1.26.0-fin4-batch-dunning-email-5c
   description: |
     **PWA / Browser-Anbindung**
     - **CORS**: Umgebungsvariable `CORS_ORIGINS` — kommagetrennte, exakte Origins (z. B. `https://app.example.com,http://localhost:5173`). Leer oder unset: keine `Access-Control-*`-Header (gleiche Origin oder Server-zu-Server).
@@ -970,6 +970,93 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/DunningReminderRunResponseData'
+    DunningReminderBatchEmailItem:
+      type: object
+      required: [invoiceId, toEmail]
+      properties:
+        invoiceId:
+          type: string
+          format: uuid
+        toEmail:
+          type: string
+          format: email
+          maxLength: 320
+        idempotencyKey:
+          type: string
+          format: uuid
+          description: Pflicht bei mode EXECUTE; pro Zeile wie Slice 5a.
+    DunningReminderBatchEmailRequest:
+      type: object
+      required: [stageOrdinal, reason, mode, items]
+      properties:
+        stageOrdinal:
+          type: integer
+          minimum: 1
+          maximum: 9
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 500
+        mode:
+          type: string
+          enum: [DRY_RUN, EXECUTE]
+        asOfDate:
+          type: string
+          format: date
+        confirmBatchSend:
+          type: boolean
+          enum: [true]
+          description: Bei mode EXECUTE muss true gesetzt sein (kein stiller Massenversand).
+        items:
+          type: array
+          minItems: 1
+          maxItems: 25
+          items:
+            $ref: '#/components/schemas/DunningReminderBatchEmailItem'
+    DunningReminderBatchEmailRowResult:
+      type: object
+      required: [invoiceId, toEmail, outcome]
+      properties:
+        invoiceId:
+          type: string
+          format: uuid
+        toEmail:
+          type: string
+        outcome:
+          type: string
+          enum: [WOULD_SEND, BLOCKED, SENT, REPLAY, FAILED]
+        code:
+          type: string
+        message:
+          type: string
+        auditEventId:
+          type: string
+          format: uuid
+        smtpMessageId:
+          type: string
+    DunningReminderBatchEmailResponseData:
+      type: object
+      required: [mode, stageOrdinal, asOfDate, results]
+      properties:
+        mode:
+          type: string
+          enum: [DRY_RUN, EXECUTE]
+        stageOrdinal:
+          type: integer
+        asOfDate:
+          type: string
+          format: date
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/DunningReminderBatchEmailRowResult'
+    DunningReminderBatchEmailResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/DunningReminderBatchEmailResponseData'
+
     PutDunningReminderConfigRequest:
       type: object
       required: [stages, reason]
@@ -2596,6 +2683,7 @@ paths:
         **M4 Slice 5b-1:** `DRY_RUN` — gleiche Eligibility wie `GET /finance/dunning-reminder-candidates`, Antwort mit `planned` (keine Mutation, Leserolle).
         `EXECUTE` — protokolliert Mahn-Ereignisse wie `POST /invoices/{invoiceId}/dunning-reminders` für jede Zielrechnung; Header **`Idempotency-Key`** (UUID) **Pflicht**; Canonical-Fingerprint aus `stageOrdinal`, `asOfDate`, optional sortierte `invoiceIds` (sonst alle Kandidaten).
         Wiederholung mit gleichem Key und gleichem Fingerprint → **200** mit `outcome: REPLAY` und gespeichertem Ergebnis; anderer Fingerprint bei gleichem Key → **400** `DUNNING_RUN_IDEMPOTENCY_MISMATCH`.
+        **Mandant `runMode` OFF** (`GET|PATCH /finance/dunning-reminder-automation`): beide Modi **DRY_RUN** und **EXECUTE** → **409** `DUNNING_REMINDER_RUN_DISABLED` (Lesepfad Kandidaten/Automation unverändert; ADR-0011).
         Persistenz der Absicht: Postgres `dunning_reminder_run_intents`; In-Memory-Modus prozesslokal.
         ADR: `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`.
       security:
@@ -2634,11 +2722,58 @@ paths:
         '401':
           description: UNAUTHORIZED
         '409':
-          description: DUNNING_RUN_CONFIG_INCOMPLETE
+          description: DUNNING_RUN_CONFIG_INCOMPLETE | DUNNING_REMINDER_RUN_DISABLED
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /finance/dunning-reminder-run/send-emails:
+    post:
+      tags: [Finance (FIN-4)]
+      operationId: finDunningReminderBatchEmailPost
+      summary: Batch-Mahn-E-Mail je Rechnung (M4 Slice 5c, 5a pro Zeile)
+      description: |
+        **M4 Slice 5c:** SMTP-Versand fuer mehrere Kandidaten-Rechnungen derselben Stufe; **wiederholt** die Pipeline von `POST /invoices/{invoiceId}/dunning-reminders/send-email` (Slice 5a) — **explizites** `toEmail` und **eigener** `Idempotency-Key` pro Zeile.
+        **DRY_RUN:** Leserolle; pro Zeile Vorschau/Footer-Gate ohne SMTP. **EXECUTE:** Schreibrolle; `confirmBatchSend: true` Pflicht; sequentieller Versand; Teilfehler in `results[]` ohne Rollback bereits gesendeter Mails.
+        Bei Mandanten-**runMode OFF**: **409** `DUNNING_REMINDER_RUN_DISABLED`. Max. **25** Zeilen. Spec: `docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DunningReminderBatchEmailRequest'
+      responses:
+        '200':
+          description: Dry-Run-Ergebnis oder Batch-Versand-Ergebnis je Zeile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningReminderBatchEmailResponse'
+        '400':
+          description: VALIDATION_FAILED | DUNNING_RUN_INVOICES_INVALID | DUNNING_BATCH_EMAIL_CONFIRM_REQUIRED | DUNNING_BATCH_EMAIL_DUPLICATE_INVOICE_ID | DUNNING_BATCH_EMAIL_DUPLICATE_IDEMPOTENCY_KEY | DUNNING_BATCH_EMAIL_TOO_MANY_ITEMS | DUNNING_EMAIL_* 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+        '409':
+          description: DUNNING_REMINDER_RUN_DISABLED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: DUNNING_EMAIL_SMTP_ERROR (bei EXECUTE, Zeilenfehler auch in results)
+        '503':
+          description: DUNNING_EMAIL_SMTP_NOT_CONFIGURED
+
   /finance/dunning-reminder-templates/stages/{stageOrdinal}/channels/{channel}:
     patch:
       tags: [Finance (FIN-4)]

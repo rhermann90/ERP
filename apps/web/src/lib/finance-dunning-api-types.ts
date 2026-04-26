@@ -65,3 +65,22 @@ export type DunningReminderRunResponseData =
 export type DunningReminderRunResponse = {
   data: DunningReminderRunResponseData;
 };
+
+export type DunningReminderBatchEmailRowResult = {
+  invoiceId: string;
+  toEmail: string;
+  outcome: "WOULD_SEND" | "BLOCKED" | "SENT" | "REPLAY" | "FAILED";
+  code?: string;
+  message?: string;
+  auditEventId?: string;
+  smtpMessageId?: string;
+};
+
+export type DunningReminderBatchEmailResponse = {
+  data: {
+    mode: "DRY_RUN" | "EXECUTE";
+    stageOrdinal: number;
+    asOfDate: string;
+    results: DunningReminderBatchEmailRowResult[];
+  };
+};

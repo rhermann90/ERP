@@ -2,6 +2,11 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest";
 import type { ApiClient, DunningStageConfigReadRow } from "../lib/api-client.js";
 import { ApiError } from "../lib/api-error.js";
+import {
+  financePrepHashWithTab,
+  isFinancePrepHashPath,
+  resolveFinancePrepInitialMainTab,
+} from "../lib/hash-route.js";
 import { FinancePreparation } from "./FinancePreparation.js";
 
 const draftResponse = {
@@ -245,6 +250,14 @@ const noopApi = {
       executed: [],
     },
   }),
+  postDunningReminderBatchSendEmails: async () => ({
+    data: {
+      mode: "DRY_RUN",
+      stageOrdinal: 1,
+      asOfDate: "2026-04-28",
+      results: [],
+    },
+  }),
 } as unknown as ApiClient;
 
 describe("FinancePreparation", () => {
@@ -343,6 +356,59 @@ describe("FinancePreparation", () => {
         invoiceCurrencyCode: "EUR",
       }),
     );
+  });
+
+  it("recalculates ENTWURF skonto via POST /invoices after GET invoice with traceability", async () => {
+    const invoiceId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const entwurfOverview = {
+      invoiceId,
+      projectId: "10101010-1010-4010-8010-101010101010",
+      customerId: "20202020-2020-4020-8020-202020202020",
+      measurementId: "m0000000-0000-4000-8000-000000000001",
+      lvVersionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001",
+      offerId: "o0000000-0000-4000-8000-000000000002",
+      offerVersionId: "33333333-3333-4333-8333-333333333333",
+      status: "ENTWURF" as const,
+      skontoBps: 0,
+      lvNetCents: 100_000,
+      vatRateBps: 1900,
+      vatCents: 19_000,
+      totalGrossCents: 119_000,
+      totalPaidCents: 0,
+    };
+    const createInvoiceDraft = vi.fn().mockResolvedValue({
+      ...draftResponse,
+      invoiceId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      skontoBps: 150,
+    });
+    const getInvoice = vi.fn().mockResolvedValue(entwurfOverview);
+    const api = { ...noopApi, getInvoice, createInvoiceDraft } as unknown as ApiClient;
+    await act(async () => {
+      render(<FinancePreparation api={api} />);
+    });
+    fireEvent.change(screen.getByLabelText(/Rechnungs-ID für GET/i), { target: { value: invoiceId } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Rechnung laden$/i }));
+    });
+    await waitFor(() => expect(getInvoice).toHaveBeenCalledWith(invoiceId));
+    fireEvent.change(screen.getByLabelText(/Skonto in Basispunkten für neuen Rechnungsentwurf/i), {
+      target: { value: "150" },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Skonto mit POST \/invoices neu berechnen/i }));
+    });
+    await waitFor(() => expect(createInvoiceDraft).toHaveBeenCalled());
+    expect(createInvoiceDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lvVersionId: entwurfOverview.lvVersionId,
+        offerVersionId: entwurfOverview.offerVersionId,
+        invoiceCurrencyCode: "EUR",
+        skontoBps: 150,
+        reason: expect.stringContaining("Skonto"),
+      }),
+    );
+    const newInvoiceId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+    await waitFor(() => expect(getInvoice).toHaveBeenCalledWith(newInvoiceId));
   });
 
   it("disables Rechnung laden until invoice id looks like a UUID", async () => {
@@ -625,5 +691,100 @@ describe("FinancePreparation", () => {
     const tr = cell.closest("tr");
     expect(tr?.getAttribute("title")).toContain("Stufenfrist (Engine)");
     expect(tr?.getAttribute("title")).toContain("Europe/Berlin");
+  });
+
+  it("öffnet Tab Mahnwesen direkt über initialMainTab", async () => {
+    await act(async () => {
+      render(<FinancePreparation api={noopApi} initialMainTab="mahnwesen" />);
+      await Promise.resolve();
+    });
+    expect(screen.getByRole("tab", { name: /^Mahnwesen$/i }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("heading", { name: /Mahn-Ereignis \(FIN-4\)/i })).not.toBeNull();
+  });
+
+  it("deaktiviert Dry-Run/EXECUTE bei Server runMode OFF (Variante 1a)", async () => {
+    const getDunningReminderAutomation = vi.fn().mockResolvedValue({
+      data: {
+        automationSource: "TENANT_DATABASE" as const,
+        tenantId: "00000000-0000-4000-8000-000000000001",
+        runMode: "OFF" as const,
+        jobHourUtc: null,
+        ianaTimezone: "Europe/Berlin",
+        federalStateCode: null,
+        paymentTermDayKind: "CALENDAR" as const,
+        preferredDunningChannel: "EMAIL" as const,
+      },
+    });
+    const postDunningReminderRunDryRun = vi.fn();
+    const api = { ...noopApi, getDunningReminderAutomation, postDunningReminderRunDryRun } as unknown as ApiClient;
+    await act(async () => {
+      render(<FinancePreparation api={api} initialMainTab="grundeinstellungen" />);
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(screen.getByText(/Mandant OFF:/i)).not.toBeNull();
+    });
+    const dry = screen.getByRole("button", { name: /Vorschau \(Dry-Run\)/i }) as HTMLButtonElement;
+    const exec = screen.getByRole("button", { name: /Ausführen \(EXECUTE\)/i }) as HTMLButtonElement;
+    const batchDry = screen.getByRole("button", { name: /Batch-E-Mail Dry-Run/i }) as HTMLButtonElement;
+    const batchExec = screen.getByRole("button", { name: /Batch-E-Mail EXECUTE/i }) as HTMLButtonElement;
+    expect(dry.disabled).toBe(true);
+    expect(exec.disabled).toBe(true);
+    expect(batchDry.disabled).toBe(true);
+    expect(batchExec.disabled).toBe(true);
+    await act(async () => {
+      fireEvent.click(dry);
+    });
+    expect(postDunningReminderRunDryRun).not.toHaveBeenCalled();
+  });
+
+  it("offers Batch-E-Mail dry-run control in Grundeinstellungen tab", async () => {
+    const postDunningReminderBatchSendEmails = vi.fn().mockResolvedValue({
+      data: { mode: "DRY_RUN", stageOrdinal: 1, asOfDate: "2026-04-28", results: [] },
+    });
+    const api = { ...noopApi, postDunningReminderBatchSendEmails } as unknown as ApiClient;
+    await act(async () => {
+      render(<FinancePreparation api={api} />);
+    });
+    fireEvent.click(screen.getByRole("tab", { name: /Grundeinstellungen Mahnlauf/i }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Batch-E-Mail Dry-Run/i })).not.toBeNull();
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: /Batch-E-Mail items JSON/i }), {
+      target: {
+        value: '[{"invoiceId":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","toEmail":"kunde@example.com"}]',
+      },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Batch-E-Mail Dry-Run/i }));
+    });
+    await waitFor(() => {
+      expect(postDunningReminderBatchSendEmails).toHaveBeenCalled();
+    });
+  });
+});
+
+describe("hash-route — Finanz-Vorbereitung (Deep-Link)", () => {
+  it("isFinancePrepHashPath", () => {
+    expect(isFinancePrepHashPath("/finanz-vorbereitung")).toBe(true);
+    expect(isFinancePrepHashPath("/finanz-grundeinstellungen")).toBe(true);
+    expect(isFinancePrepHashPath("/")).toBe(false);
+  });
+
+  it("resolveFinancePrepInitialMainTab", () => {
+    expect(resolveFinancePrepInitialMainTab("/finanz-grundeinstellungen", new URLSearchParams())).toBe("grundeinstellungen");
+    expect(resolveFinancePrepInitialMainTab("/finanz-vorbereitung", new URLSearchParams("tab=mahnwesen"))).toBe("mahnwesen");
+    expect(resolveFinancePrepInitialMainTab("/finanz-vorbereitung", new URLSearchParams("tab=bad"))).toBe("rechnung");
+  });
+
+  it("financePrepHashWithTab", () => {
+    expect(financePrepHashWithTab("fortgeschritten")).toBe("#/finanz-vorbereitung?tab=fortgeschritten");
+  });
+
+  it("Seitentitel bei initialem Tab Grundeinstellungen (Alias-Pfad)", async () => {
+    await act(async () => {
+      render(<FinancePreparation api={noopApi as unknown as ApiClient} initialMainTab="grundeinstellungen" />);
+    });
+    expect(screen.getByRole("heading", { name: /Finanz \(Vorbereitung\) — Mahn-Grundeinstellungen/i })).not.toBeNull();
   });
 });

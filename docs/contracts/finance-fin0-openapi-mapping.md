@@ -26,7 +26,8 @@
 | **FIN-4 / M4** | `POST /invoices/{invoiceId}/dunning-reminders/email-preview`, `POST …/send-email-stub` | `finance-invoice-routes.ts`, `dunning-reminder-email-service.ts`, `dunning-email-compose.ts` — ADR-0010 **M4 Slice 4** (Plain-Text-Vorschau; Versand nur Audit-Stub) |
 | **FIN-4 / M4** | `POST /invoices/{invoiceId}/dunning-reminders/send-email` (Header `Idempotency-Key`) | `finance-invoice-routes.ts`, `dunning-reminder-email-service.ts`, `dunning-email-send-persistence.ts`, `smtp-mail-transport.ts` — ADR-0010 **M4 Slice 5a** (SMTP; Idempotenz `dunning_email_sends`; Audit `DUNNING_EMAIL_SENT`) |
 | **FIN-4 / M4** | `GET /finance/dunning-reminder-candidates` | `finance-dunning-config-routes.ts`, `dunning-reminder-candidates-service.ts`, `dunning-reminder-config-service.ts` — ADR-0010 **M4 Slice 5b-0** (Lesepfad; `assertCanReadInvoice`; kein SMTP); Antwort inkl. `eligibilityContext` und pro Kandidat `stageDeadlineIso` (ADR-0011 **B3**) |
-| **FIN-4 / M4** | `POST /finance/dunning-reminder-run` | `finance-dunning-config-routes.ts`, `dunning-reminder-run-service.ts`, `dunning-reminder-run-intent-persistence.ts` — ADR-0010 **M4 Slice 5b-1** (`DRY_RUN`: `assertCanReadInvoice`; `EXECUTE`: `assertCanRecordDunningReminder`, Header `Idempotency-Key`, Idempotenz/Replay wie ADR) |
+| **FIN-4 / M4** | `POST /finance/dunning-reminder-run` | `finance-dunning-config-routes.ts`, `dunning-reminder-run-service.ts`, `dunning-reminder-run-intent-persistence.ts`, `dunning-tenant-automation-service.ts` — ADR-0010 **M4 Slice 5b-1** + **OFF-1b**: bei persistiertem `runMode` **OFF** → **409** `DUNNING_REMINDER_RUN_DISABLED` für `DRY_RUN` und `EXECUTE` (`DRY_RUN`: `assertCanReadInvoice`; `EXECUTE`: …) |
+| **FIN-4 / M4** | `POST /finance/dunning-reminder-run/send-emails` | `finance-dunning-config-routes.ts`, `dunning-reminder-batch-email-service.ts`, `dunning-reminder-candidates-service.ts`, `dunning-reminder-email-service.ts`, `dunning-tenant-automation-service.ts` — ADR-0010 **M4 Slice 5c**: Batch-SMTP je Rechnung (5a pro Zeile); `confirmBatchSend: true` bei **EXECUTE**; **409** `DUNNING_REMINDER_RUN_DISABLED` bei **OFF** wie 5b-1; max. 25 Zeilen; Spec `docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md` |
 | **FIN-4 / M4** | `GET|PATCH /finance/dunning-reminder-automation` | `finance-dunning-config-routes.ts`, `dunning-tenant-automation-service.ts`, `dunning-tenant-automation-persistence.ts` — Mandanten-Modus **OFF**/**SEMI** + SEMI-Kontext (Zeitzone, optional DE-Bundesland, Kalender-/Werktage, Kanal); PATCH nur Postgres (`DUNNING_AUTOMATION_NOT_PERSISTABLE` im Memory-Modus); ADR-0010, **ADR-0011** |
 
 *Hintergrund-Cron oder Mandantenmodus **AUTO** für Mahnungen sind nicht Bestandteil des Produkts — ADR-0011, Runbooks unter `docs/runbooks/dunning-*.md`.*
@@ -59,6 +60,12 @@ Traceability-Prüfungen für Rechnungsentwurf und **Buchung**: `src/services/inv
 | Mahn-Ereignis anlegen, Rechnung unbekannt | 404 | `DOCUMENT_NOT_FOUND` | |
 | Mahn-Ereignis anlegen, Rolle ohne Buchhaltungsrecht | 403 | `AUTH_ROLE_FORBIDDEN` | wie `assertCanRecordDunningReminder` |
 | Mahnlauf `POST …/dunning-reminder-run`, `invoiceIds` nicht in Kandidatenmenge | 400 | `DUNNING_RUN_INVOICES_INVALID` | Slice 5b-1 |
+| Mahnlauf `POST …/dunning-reminder-run`, Mandanten-Automation **OFF** | 409 | `DUNNING_REMINDER_RUN_DISABLED` | Batch/Vorschau gesperrt; Kandidaten/Automation lesen weiter möglich (ADR-0011) |
+| Batch-E-Mail `POST …/dunning-reminder-run/send-emails`, `invoiceId` nicht Kandidat | 400 | `DUNNING_RUN_INVOICES_INVALID` | Slice 5c |
+| Batch-E-Mail `EXECUTE` ohne `confirmBatchSend: true` | 400 | `DUNNING_BATCH_EMAIL_CONFIRM_REQUIRED` | Kein stiller Massenversand |
+| Batch-E-Mail doppelte `invoiceId` in `items` | 400 | `DUNNING_BATCH_EMAIL_DUPLICATE_INVOICE_ID` | Slice 5c |
+| Batch-E-Mail `items` > 25 | 400 | `DUNNING_BATCH_EMAIL_TOO_MANY_ITEMS` | Slice 5c |
+| Batch-E-Mail Mandant **OFF** | 409 | `DUNNING_REMINDER_RUN_DISABLED` | wie Mahnlauf 5b-1 |
 | Mahnlauf `EXECUTE`, gleicher Idempotency-Key, anderer Fingerprint | 400 | `DUNNING_RUN_IDEMPOTENCY_MISMATCH` | Slice 5b-1 |
 | Token/Tenant/Rolle | 401/403 | `UNAUTHORIZED`, `TENANT_SCOPE_VIOLATION`, `AUTH_ROLE_FORBIDDEN` | unverändert |
 

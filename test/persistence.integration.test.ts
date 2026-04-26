@@ -1190,6 +1190,77 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     expect(row?.preferredDunningChannel).toBe("PRINT");
   });
 
+  it("POST /finance/dunning-reminder-run: 409 DUNNING_REMINDER_RUN_DISABLED when automation runMode OFF (1b)", async () => {
+    const patchOff = await app.inject({
+      method: "PATCH",
+      url: "/finance/dunning-reminder-automation",
+      headers: adminHeaders(),
+      payload: {
+        reason: "Persistenztest Mahnlauf OFF fuer API-1b",
+        runMode: "OFF",
+        ianaTimezone: "Europe/Berlin",
+        federalStateCode: null,
+        paymentTermDayKind: "CALENDAR",
+        preferredDunningChannel: "EMAIL",
+      },
+    });
+    expect(patchOff.statusCode).toBe(200);
+    expect((patchOff.json() as { data: { runMode: string } }).data.runMode).toBe("OFF");
+
+    const dry = await app.inject({
+      method: "POST",
+      url: "/finance/dunning-reminder-run",
+      headers: adminHeaders(),
+      payload: {
+        stageOrdinal: 1,
+        asOfDate: "2026-04-28",
+        mode: "DRY_RUN",
+        reason: "DRY_RUN bei OFF muss 409 liefern",
+      },
+    });
+    expect(dry.statusCode).toBe(409);
+    expect((dry.json() as { code: string }).code).toBe("DUNNING_REMINDER_RUN_DISABLED");
+
+    const idem = randomUUID();
+    const exec = await app.inject({
+      method: "POST",
+      url: "/finance/dunning-reminder-run",
+      headers: { ...adminHeaders(), "Idempotency-Key": idem },
+      payload: {
+        stageOrdinal: 1,
+        asOfDate: "2026-04-28",
+        mode: "EXECUTE",
+        reason: "EXECUTE bei OFF muss 409 liefern",
+        invoiceIds: [SEED_IDS.inconsistentInvoiceId],
+      },
+    });
+    expect(exec.statusCode).toBe(409);
+    expect((exec.json() as { code: string }).code).toBe("DUNNING_REMINDER_RUN_DISABLED");
+
+    const cand = await app.inject({
+      method: "GET",
+      url: "/finance/dunning-reminder-candidates?stageOrdinal=1&asOfDate=2026-04-28",
+      headers: adminHeaders(),
+    });
+    expect(cand.statusCode).toBe(200);
+
+    const restore = await app.inject({
+      method: "PATCH",
+      url: "/finance/dunning-reminder-automation",
+      headers: adminHeaders(),
+      payload: {
+        reason: "Persistenztest Mahnlauf zurueck SEMI nach API-1b",
+        runMode: "SEMI",
+        ianaTimezone: "Europe/Berlin",
+        federalStateCode: null,
+        paymentTermDayKind: "CALENDAR",
+        preferredDunningChannel: "EMAIL",
+      },
+    });
+    expect(restore.statusCode).toBe(200);
+    expect((restore.json() as { data: { runMode: string } }).data.runMode).toBe("SEMI");
+  });
+
   it("Audit: Schreibpfad Postgres + GET liefert nur minimierte Felder", async () => {
     await app.inject({
       method: "POST",

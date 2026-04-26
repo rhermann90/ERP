@@ -87,4 +87,10 @@
 
 ---
 
+## Team-Dokumentation (nach fachlicher Bearbeitung)
+
+Nach Durcharbeitung mit **StB / DSB / PL:** Kurz **Datum**, **Ergebnis** (z. B. Freigabe mit Einschränkung / offene Punkte) und **Verweis** auf das interne Protokoll oder Wiki festhalten — **nicht** durch automatisierte Agenten-Sessions; **keine** Platzhalter-URLs im Repo als Ersatz für echte Nachweise.
+
+---
+
 *Checkliste als Ergänzung zur Software-Roadmap, nicht als Ersatz für externe Prüfung.*

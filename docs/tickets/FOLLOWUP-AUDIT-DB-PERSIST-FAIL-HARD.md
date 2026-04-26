@@ -94,6 +94,37 @@
 
 Für die laufende **Finanz-Welle-3**-Planung ([`NEXT-INCREMENT-FINANCE-WAVE3.md`](./NEXT-INCREMENT-FINANCE-WAVE3.md)) soll die **Projektleitung** einen kurzen **Abstimmungstermin** setzen: Review dieses Tickets im Kontext **GoBD / Nachweisbarkeit** vs. aktuellem **fail-hard**-Stand (`AuditService.append`), ob weitere Transaktions-/Outbox-Schritte vor Mandanten-Go nötig sind, und ob **Option B** für alle neuen Finanz-Schreibpfade (z. B. Mahn-Ereignis, Skonto-Entwurf) ausreichend dokumentiert abgenommen ist.
 
+### Protokoll (P1-Wave-3 Abschluss, projektintern 2026-04-26)
+
+**Kein Ersatz** für ein echtes PL-Protokoll oder für die ausgefüllte **PL-Eintrag**-Tabelle oben.
+
+| Thema | Feststellung / nächste Aktion |
+|-------|------------------------------|
+| M4 Slice **5c** vs. Audit | Unverändert: 5c nutzt **5a-Pipeline** und **Audit pro Versandzeile**; **keine** neue gemeinsame DB-Transaktion Domäne↔Audit (siehe Abschnitt **Wave 3 — Meilenstein 4** unten). |
+| Option **A** (Audit+Domäne eine Tx) | **Weiter gesperrt**, bis PL die vier Zellen der Tabelle „PL-Eintrag“ setzt — keine Entwickler-Vorausfüllung. |
+| Mandanten-Go | Produktiver Rechnungs-/Mahn-Go nur mit StB/DSB/PL und [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md). |
+| **PL-Follow-up** | Projektleitung **bestätigt oder korrigiert** das Doku-Protokoll 2026-04-26 in [`M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md`](./M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md) (Protokollzeile + Zeile 12). **Team-Entscheid 2026-04-26:** PL trägt ein **echtes** Sitzungsprotokoll (Datum + Link) unten nach — nicht optional. |
+
+### PL-Protokoll (verbindlich von PL nachzutragen)
+
+Siehe auch **PL-Inbound**-Tabelle in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) (gleiche URL/Datum-Quelle, keine Doppelpflege mit fiktiven Werten).
+
+| Sitzungsdatum | Verlinktes Protokoll (URL) | Inhalt mindestens |
+|---------------|----------------------------|-------------------|
+| — | — | Bestätigung/Korrektur M4-5b **Protokoll 2026-04-26** + **Zeile 12** (5c); Abgleich P1-4 / Audit / Mandanten-Go |
+
+**Hinweis:** Zelle **„Verlinktes Protokoll“** mit echtem Link ersetzen (Wiki, Confluence, internes Docs-Repo o. ä.); kein Ersatz für die **PL-Eintrag**-Vier-Zellen-Tabelle weiter oben in diesem Ticket. **Agent:** füllt **diese** Tabelle nicht mit erfundenen URLs; PR-/Meilenstein-Pflege für Finanz-Merges liegt in [`P1-3-DOCS-MILESTONE-WAVE3.md`](./P1-3-DOCS-MILESTONE-WAVE3.md) (siehe [`AGENTS.md`](../../AGENTS.md)).
+
+**Wave3-10-Tool-Todos (Agent, 2026-04-27):** **Merge-Sperre** für PRs mit `AuditService` / Dual-Write / Transaktionsgrenze unverändert aktiv; Tabellenzeile **Sitzungsdatum / Verlinktes Protokoll** weiter `—` bis PL echte Werte setzt (gleiche Quelle wie **PL-Inbound** in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md)).
+
 ## Verknuepfung CI / Merge
 
 - Kein Merge von PRs, die **AuditService**-Transaktionsgrenzen aendern, ohne PL-Eintrag: [`docs/runbook/ci-and-persistence-tests.md`](docs/runbook/ci-and-persistence-tests.md) (PR-Checkliste Audit).
+
+
+## Wave 3 — Meilenstein 4 (Plan-Abgleich, kein Option-A-Code)
+
+**Stand Entwicklung (ohne PL-Änderung an der verbindlichen Tabelle oben):** M4 Slice **5c** (`POST /finance/dunning-reminder-run/send-emails`) nutzt weiterhin die **bestehende** 5a-Pipeline inkl. **Audit pro Versandzeile**; es wird **keine** neue Transaktionsgrenze zwischen Domäne und `AuditService.append` eingeführt.
+
+**Option A** (Audit + Domäne in **einer** DB-Transaktion) bleibt **gesperrt**, bis die **vier** Inhaltszellen der Tabelle „PL-Eintrag“ **ohne** Platzhalter `—` durch **Projektleitung** gesetzt sind (siehe Merge-Sperre oben). Dieser Abschnitt dokumentiert nur den **Plan-Abgleich** — **kein** Ersatz für ausgefüllte PL-Zellen.
+

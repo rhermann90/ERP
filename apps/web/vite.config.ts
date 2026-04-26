@@ -16,7 +16,7 @@ export default defineConfig({
         name: "ERP Konstruktion",
         short_name: "ERP",
         description: "PWA-Shell für mandantensichere ERP-Prozesse (Contracts-getrieben).",
-        theme_color: "#f5f5f7",
+        theme_color: "#f7f5f2",
         background_color: "#ffffff",
         display: "standalone",
         start_url: "/",

@@ -118,3 +118,10 @@ Aus **`dunning_tenant_stage_config`** bzw. dem gleichen **Konfig-Lesemodell** wi
 - PWA **Finanz (Vorbereitung)** bindet Vorlagen/Footer/E-Mail-Preview/Stub/SMTP-Versand ein; SoT für Schreibaktionen wie in Slice 4/5a beschrieben.
 - **Hinweis:** `dunning_reminders` und **`dunning_tenant_stage_config`** bleiben fachlich und dokumentarisch in **ADR-0009**; Schema und FKs bleiben ein gemeinsames Postgres-Modell.
 - **Slice 5b:** **5b-0** und **5b-1** sind **Accepted** und ticketgebunden — [`docs/tickets/M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md`](../tickets/M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md). ~~Cron **5b-2**~~ entfernt (2026-04-25); SEMI-Kontext siehe **[ADR-0011](./0011-fin4-semi-dunning-context.md)**; Runbook-Cron-Datei nur noch Archiv-Hinweis.
+
+## M4 — Slice 5c (Batch-E-Mail nach 5a)
+
+Details und Compliance: [`docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md`](../tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md).
+
+- **HTTP:** `POST /finance/dunning-reminder-run/send-emails` (`DRY_RUN` \| `EXECUTE`); `EXECUTE` mit `confirmBatchSend: true`; pro Zeile `invoiceId`, `toEmail`, eigener `Idempotency-Key`; Wiederverwendung `DunningReminderEmailService.sendEmail`; bei **OFF** 409 wie 5b-1.
+- **Non-Goals:** automatischer Empfaenger aus Stammdaten; paralleles SMTP ohne Reihenfolge.
