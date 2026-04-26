@@ -32,19 +32,21 @@ Wann **nach** dem Merge auf `main` ausfüllen (noch in derselben Session oder di
 
 ## Einträge
 
-**Stand (Agent):** Zuletzt geprüft gegen `origin/main` @ `7eddd03` (#40 FIN4/SEMI/PWA, Merge-Commit **2026-04-25** Europe/Berlin). Für die **ersten drei** Meilenstein-Zeilen zählen nur qualifizierte Finanz-Merges mit Merge-Datum **nicht vor** Kalendertag **2026-04-26** (lokal Git-Datum des Merge-Commits auf `main`); #40 liegt davor → Zeilen 1–3 bleiben `—` bis ein passender Merge existiert — dann Zeilen 1→3 nacheinander laut **„Pflege (Agent)“** füllen.
+**Stand (Agent):** Zuletzt geprüft gegen `origin/main` @ `ca887dd` (Merge **#42** Wave3 FIN4 Batch/PWA/Theming, **2026-04-26** UTC). Für die **ersten drei** Meilenstein-Zeilen zählen nur qualifizierte Finanz-Merges mit Merge-Datum **nicht vor** Kalendertag **2026-04-26**; Zeile **1** ist mit #42 befüllt — Zeilen 2→3 bei den nächsten qualifizierten Merges.
 
 **Agent-Abnahme (Session 2026-04-26):** erneuter `git fetch`/`git log` auf `origin/main` — kein neuer qualifizierter Finanz-Merge seit letztem Stand; Meilenstein-Zeilen unverändert; Regeln **FIN4** / **Punkt 5** und **`npm run verify:ci`** vor Merge auf `main` weiter verbindlich (siehe **Pflege (Agent)**).
 
 **Agent-Abnahme (Session-Folge 2026-04-26):** erneuter Abgleich `origin/main` (HEAD unverändert @ `7eddd03`); keine neuen Merges; Zeilen 1–3 weiter `—`; in derselben Session **`npm run verify:ci`** erneut ausgeführt (grün).
 
-**Agent-Abnahme (Wave3-10-Tool-Todos, 2026-04-27):** `git fetch origin main`; HEAD weiterhin @ `7eddd03`; kein neuer qualifizierter Finanz-Merge (Stichtag-Regel unverändert); Meilenstein-Zeilen 1–3 weiter `—`; **`npm run verify:ci`** in dieser Session ausgeführt (siehe Todo „CI vor Merge“).
+**Agent-Abnahme (Wave3-10-Tool-Todos, 2026-04-27):** `git fetch origin main`; zu diesem Zeitpunkt HEAD noch @ `7eddd03` — **superseded** durch nachfolgende Abnahme **Merge #42** (Zeile 1 befüllt).
+
+**Agent-Abnahme (Merge #42, 2026-04-27):** PR [#42](https://github.com/rhermann90/ERP/pull/42) auf `main` gemergt (`ca887dd`); Meilenstein **Zeile 1** befüllt. Lokal auf dem PR-Branch **`npm run verify:ci`** grün; Remote-Checks **`backend`** und **`e2e-smoke`** grün.
 
 **Fortschreibung (Team-Entscheid, offene Frage geklärt):** Nach vollständiger Belegung der Zeilen **1–3** gilt **weiterhin Fortschreibung in derselben Tabelle** — unter die bestehende Tabelle **weitere Zeilen** im gleichen Spaltenformat anhängen (# 4, 5, …), solange das für Nachvollziehbarkeit sinnvoll ist. **Nur** wenn Projektleitung / Team ausdrücklich einen Schnitt wünscht (z. B. neues Release-Train): archivierte Kopie des „Einträge“-Blocks plus **neue** leere Tabelle starten; nicht der Default.
 
 | # | Merge-Datum (UTC) | PR / Referenz | Notiz |
 |---|-------------------|----------------|-------|
-| 1 | — | — | Nach Merge: PR-Nummer + `https://github.com/rhermann90/ERP/pull/<n>` + Kurzcheck FIN4 / Punkt 5 erfüllt |
+| 1 | 2026-04-26 | https://github.com/rhermann90/ERP/pull/42 | FIN4 OpenAPI 5c + `FIN4-external-client-integration.md`; PWA Finanz-Vorbereitung; PR-Punkt5/RELEASE-Verweise in PR #42 |
 | 2 | — | — | wie Zeile 1 |
 | 3 | — | — | wie Zeile 1 |
 
