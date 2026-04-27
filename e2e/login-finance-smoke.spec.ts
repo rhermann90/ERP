@@ -31,5 +31,11 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await expect(page.getByRole("heading", { name: /SoT — erlaubte Aktionen \(Fortgeschritten\)/i })).toBeVisible({
       timeout: 10_000,
     });
+
+    await expect(page.getByLabel("entityType für allowed-actions")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByLabel("Dokument-ID für allowed-actions")).toBeVisible();
+    await page.getByRole("button", { name: /Voreinstellung: Angebotsversion/i }).click();
+    await expect(page.getByLabel("entityType für allowed-actions")).toHaveValue("OFFER_VERSION");
+    await expect(page.getByRole("button", { name: "Erlaubte Aktionen laden" })).toBeVisible();
   });
 });
