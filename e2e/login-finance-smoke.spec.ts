@@ -23,5 +23,13 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
       timeout: 10_000,
     });
     await expect(page.getByRole("heading", { name: /Batch-E-Mail \(M4 Slice 5c\)/i })).toBeVisible({ timeout: 10_000 });
+
+    await page.getByRole("tab", { name: /^Mahnwesen$/i }).click();
+    await expect(page.getByRole("heading", { name: /Mahn-Ereignis \(FIN-4\)/i })).toBeVisible({ timeout: 10_000 });
+
+    await page.getByRole("tab", { name: /^Fortgeschritten$/i }).click();
+    await expect(page.getByRole("heading", { name: /SoT — erlaubte Aktionen \(Fortgeschritten\)/i })).toBeVisible({
+      timeout: 10_000,
+    });
   });
 });
