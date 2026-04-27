@@ -46,6 +46,7 @@ Siehe Vorlage: [`.env.example`](./.env.example)
 - GitHub Actions: [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) startet **Postgres**, setzt **`PERSISTENCE_DB_TEST_URL`** (und `DATABASE_URL`), führt **`prisma migrate deploy`** aus und **`npm test`** — Persistenz-Suites laufen **ohne SKIP**. **Kein zweiter CI-Job nötig:** derselbe Job **`backend`** ist die kanonische Merge-Evidence; `npm run verify:ci:local-db` ist das **lokale Äquivalent** (siehe Runbook).
 - **Lokale CI-Parität:** `npm run verify:ci:local-db` (Compose-Postgres auf Host-Port **15432**, siehe [`docs/runbook/ci-and-persistence-tests.md`](./docs/runbook/ci-and-persistence-tests.md)).
 - Lokal und Troubleshooting: [`docs/runbook/ci-and-persistence-tests.md`](./docs/runbook/ci-and-persistence-tests.md)
+- **Playwright E2E (`npm run test:e2e`):** startet eigene API/Web-Instanzen auf **127.0.0.1:13000** / **15173** (siehe `playwright.config.ts`); parallel zu `npm run dev` nutzbar. Wiederverwendung bestehender Server nur mit `PW_TEST_REUSE_SERVERS=1`.
 
 **Repository-Prozess (Merge):** PR-Vorlage [`.github/pull_request_template.md`](./.github/pull_request_template.md); Merge-Evidence und QA-Pflicht **§5a** in [`docs/contracts/qa-fin-0-gate-readiness.md`](./docs/contracts/qa-fin-0-gate-readiness.md). Branch-Schutz (Pflicht-Statuscheck **`backend`**): [`docs/runbooks/github-branch-protection-backend.md`](./docs/runbooks/github-branch-protection-backend.md). **Aktueller Entwicklungsplan (nächste Schritte):** [`docs/plans/nächste-schritte.md`](./docs/plans/nächste-schritte.md).
 

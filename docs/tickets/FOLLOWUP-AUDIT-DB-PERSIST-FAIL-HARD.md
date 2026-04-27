@@ -107,7 +107,7 @@ Für die laufende **Finanz-Welle-3**-Planung ([`NEXT-INCREMENT-FINANCE-WAVE3.md`
 
 ### PL-Protokoll (verbindlich von PL nachzutragen)
 
-Siehe auch **PL-Inbound**-Tabelle in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) (gleiche URL/Datum-Quelle, keine Doppelpflege mit fiktiven Werten).
+**Team-Entscheid 2026-04-27:** Die **PL-Inbound**-Tabelle in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) ist **keine** zentrale Repo-Eintragsstelle mehr — „gleiche Quelle wie PL-Inbound“ entfällt für Agent-Sessions. **Ungepflegt** (bis PL in **PL-Runden** manuell einträgt) bleibt hier nur, was **ausdrücklich PL-manuell** ist (*PL-Protokoll*, *PL-Eintrag*). **Agent:** weiterhin **alle** automatisierbaren Aufgaben (Merge-Sperre beachten, **keine** erfundenen URLs, CI/Doku wie gehabt); **PL-Protokoll**-Zellen **nicht** vom Agenten ausfüllen.
 
 | Sitzungsdatum | Verlinktes Protokoll (URL) | Inhalt mindestens |
 |---------------|----------------------------|-------------------|
@@ -115,7 +115,11 @@ Siehe auch **PL-Inbound**-Tabelle in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26
 
 **Hinweis:** Zelle **„Verlinktes Protokoll“** mit echtem Link ersetzen (Wiki, Confluence, internes Docs-Repo o. ä.); kein Ersatz für die **PL-Eintrag**-Vier-Zellen-Tabelle weiter oben in diesem Ticket. **Agent:** füllt **diese** Tabelle nicht mit erfundenen URLs; PR-/Meilenstein-Pflege für Finanz-Merges liegt in [`P1-3-DOCS-MILESTONE-WAVE3.md`](./P1-3-DOCS-MILESTONE-WAVE3.md) (siehe [`AGENTS.md`](../../AGENTS.md)).
 
-**Wave3-10-Tool-Todos (Agent, 2026-04-27):** **Merge-Sperre** für PRs mit `AuditService` / Dual-Write / Transaktionsgrenze unverändert aktiv; Tabellenzeile **Sitzungsdatum / Verlinktes Protokoll** weiter `—` bis PL echte Werte setzt (gleiche Quelle wie **PL-Inbound** in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md)).
+**Wave3-10-Tool-Todos (Agent, 2026-04-27):** **Merge-Sperre** für PRs mit `AuditService` / Dual-Write / Transaktionsgrenze unverändert aktiv; Tabellenzeile **Sitzungsdatum / Verlinktes Protokoll** weiter `—` bis PL echte Werte setzt — **ohne** Kopplung an die **nicht gepflegte** PL-Inbound-Tabelle in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) (Team-Entscheid 2026-04-27).
+
+**Wave3-11-Tool-Todos (Agent, 2026-04-27):** konsistent mit **Wave3-11** in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) (*Agent-Abnahme*); **Merge-Sperre** und **keine Agent-URLs** in der *PL-Protokoll*-Tabelle unverändert.
+
+**Wave3-12-Tool-Todos (Agent, 2026-04-27):** konsistent mit **Wave3-12** in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) (*Agent-Abnahme*); **PL-Inbound** nur PL-Runden (kein Agent-Eintrag).
 
 ## Verknuepfung CI / Merge
 

@@ -8,15 +8,20 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
     await page.getByRole("button", { name: "Anmelden" }).click();
 
-    await expect(page.getByText(/Angemeldet/)).toBeVisible({ timeout: 20_000 });
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
 
     await page.getByRole("link", { name: "Finanz (Vorbereitung)" }).click();
     await expect(page.getByRole("heading", { name: /Finanz \(Vorbereitung\)/i })).toBeVisible({ timeout: 15_000 });
     await expect(page.locator("section.finance-prep")).toBeVisible({ timeout: 15_000 });
 
+    await page.getByRole("tab", { name: /Rechnung & Zahlung/i }).click();
+    await expect(page.getByRole("button", { name: "Rechnung laden" })).toBeVisible({ timeout: 10_000 });
+
     await page.getByRole("tab", { name: /Grundeinstellungen Mahnlauf/i }).click();
     await expect(page.getByRole("heading", { name: /Grundeinstellungen Mahnlauf \(SEMI, ADR-0011\)/i })).toBeVisible({
       timeout: 10_000,
     });
+    await expect(page.getByRole("heading", { name: /Batch-E-Mail \(M4 Slice 5c\)/i })).toBeVisible({ timeout: 10_000 });
   });
 });

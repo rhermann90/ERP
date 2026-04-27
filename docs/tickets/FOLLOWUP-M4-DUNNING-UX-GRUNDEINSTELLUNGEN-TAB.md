@@ -1,6 +1,7 @@
 # FOLLOWUP — M4 Mahn-UX: Tab „Grundeinstellungen“ / Routing
 
 **Status:** Backlog (kein Wave-3-Pflichtscope). **Teil erledigt (Code):** Deep-Link `#/finanz-grundeinstellungen` und Tab-Auflösung in [`apps/web/src/lib/hash-route.ts`](../../apps/web/src/lib/hash-route.ts); Schnellzugriff-Kachel „Mahn-Grundeinstellungen“ für ausgewählte Rollen in `apps/web/src/lib/role-quick-actions.ts` + `App.tsx`.  
+**Stand 2026-04-27 (Acht-Schritte-Plan / Wave3-12):** weiteres UX (z. B. vollständiger dedizierter Tab-Ort ohne Duplikat-Logik laut **Zielbild** unten) nur nach **expliziter PL-Priorität** — kein zusätzlicher Implementierungs-PR durch Agenten ohne PL-Freigabe.  
 **Herkunft:** [`M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md`](./M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md) PL-Tabelle Zeile **10** (UI-Ort: bislang Finanz-Vorbereitung; Umzug Grundeinstellungen = späteres UX-Slice).
 
 ## Zielbild

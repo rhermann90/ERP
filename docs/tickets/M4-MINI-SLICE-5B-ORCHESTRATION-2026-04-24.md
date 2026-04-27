@@ -7,9 +7,13 @@
 
 Projektleitung / Review trägt hier **Datum + Entscheid** ein (oder verweist auf Protokoll). **Protokoll 2026-04-23:** Tabelle mit **MVP-Team-Defaults** (5b-0). **Protokoll 2026-04-24 (5b-1):** Zeilen 5–7 für erste **EXECUTE**-Lieferung geschärft — siehe Entscheid-Spalte; ADR-0010 Abschnitt 5b-1 **Accepted**. **Protokoll 2026-04-26 (P1-Wave-3 Phase 0, Doku-Sync):** Zeile **5** bleibt: kein SMTP-Batch **im** Mahnlauf-`POST`; **M4 Slice 5c** als **separater** `POST …/send-emails` erfüllt die Intention „Massen-E-Mail nach separatem PL“ mit [`M4-BATCH-DUNNING-EMAIL-SPEC.md`](./M4-BATCH-DUNNING-EMAIL-SPEC.md) — **PL** bestätigt oder korrigiert schriftlich (Link ersetzen).
 
-**Agent (Wave3-10-Tool-Todos, 2026-04-27):** Formulierung *Link ersetzen* / externes Protokoll **unverändert** — nur **Projektleitung** trägt die echte Protokoll-URL und das Sitzungsdatum ein (siehe [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) *PL-Inbound*).
+**Agent (Wave3-10-Tool-Todos, 2026-04-27):** *historisch* — Ziel war *Link ersetzen* / PL-Inbound-Spiegel; **superseded** durch **Team-Entscheid 2026-04-27:** PL-Inbound in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) wird **nicht** repo-seitig befüllt. Fließtext *Link ersetzen* hier bleibt **optional** nur durch PL/Team **direkt** in diesem Ticket, ohne PL-Inbound-Tabelle.
 
-**PL-Inbound:** dieselbe Bestätigung **verlinkt** auch in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) (Tabelle *PL-Inbound*) und in [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) (*PL-Protokoll*).
+**Agent (Wave3-11-Tool-Todos, 2026-04-27):** vollständige operative Liste siehe **Wave3-11** unter *Agent-Abnahme* in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md); **PL-Inbound** dort **nicht gepflegt** (Team-Entscheid).
+
+**Agent (Wave3-12-Tool-Todos, 2026-04-27):** **Wave3-12** unter *Agent-Abnahme* in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md); **PL-Inbound** nur PL-Runden (kein Agent-Eintrag).
+
+**PL-Inbound (Team-Entscheid 2026-04-27):** Die Tabelle in PL-WAVE3 wird **nicht** vom Agenten befüllt (nur PL-Runden / außerhalb); Querverweise auf „dieselbe Bestätigung verlinkt“ in PL-Inbound entfallen. [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) (*PL-Protokoll*) bleibt **eigenständig** (PL-manuell). **Agent:** übrige automatisierbare Pflege **weiterhin** erledigen.
 
 | # | Thema | Optionen / Frage | Entscheid (PL) |
 |---|--------|------------------|----------------|

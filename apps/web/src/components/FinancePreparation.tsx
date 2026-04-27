@@ -1362,6 +1362,25 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
         </button>
         {invoiceOverview ? (
           <div style={{ marginTop: "0.75rem", fontSize: "0.85rem" }}>
+            <div className="finance-prep-metric-grid" role="group" aria-label="Kernzahlen Rechnung">
+              <div className="metric-card">
+                <p className="metric-card__label">Status</p>
+                <p className="metric-card__value">{invoiceOverview.status}</p>
+                <p className="metric-card__hint">
+                  {invoiceOverview.invoiceNumber ? `Nr. ${invoiceOverview.invoiceNumber}` : "—"}
+                </p>
+              </div>
+              <div className="metric-card">
+                <p className="metric-card__label">Brutto</p>
+                <p className="metric-card__value">{formatEurFromCents(invoiceOverview.totalGrossCents)}</p>
+                <p className="metric-card__hint">Server 8.4</p>
+              </div>
+              <div className="metric-card">
+                <p className="metric-card__label">Offen</p>
+                <p className="metric-card__value">{openCents != null ? formatEurFromCents(openCents) : "—"}</p>
+                <p className="metric-card__hint">nach Zahlungseingängen</p>
+              </div>
+            </div>
             <dl
               style={{
                 display: "grid",

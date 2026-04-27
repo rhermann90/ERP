@@ -27,11 +27,12 @@ Die Auswahl steht in der App-Shell („Darstellung“). **`localStorage`:** `erp
 
 ## Checkliste für neue UI
 
-1. Flächen und Rahmen: `var(--surface)`, `var(--bg)`, `var(--border)`.
+1. Flächen und Rahmen: `var(--surface)`, `var(--surface-elevated)`, `var(--bg)`, `var(--border)`; Karten-Schatten: `var(--shadow-card)`.
 2. Text: `var(--text)` / `var(--text-secondary)`.
 3. Formularfelder: `background: var(--input-bg)`; Fokus: bestehende `:focus-visible`-Regeln.
 4. Fehler/Erfolg: Banner-Klassen (`.error-banner`, `.success-banner`) oder dieselben CSS-Variablen wie in `index.css`.
 5. `color-mix`: nur mit Tokens (`var(--border)`), keine hellen Hex-Fallbacks.
+6. Diagramme/Serienfarben (wenn genutzt): `var(--chart-1)` … `var(--chart-6)` — nicht durch beliebige Hex ersetzen.
 
 ## Kontrast und Barrierefreiheit
 

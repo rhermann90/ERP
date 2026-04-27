@@ -20,6 +20,12 @@ Verbindliche Produkt- und Oberflächenrichtlinien für [`apps/web/`](../apps/web
 - **Form:** mittel — einheitlicher Radius (aktuell `--radius`), keine wild gemischten Stile.
 - **Kontrast:** Fließtext und Pflicht-UI **WCAG 2.2 AA** im Blick; bei größeren Erweiterungen erneut prüfen.
 
+## Externe visuelle Inspiration (Genre, kein Asset-Klon)
+
+- **Zielbild:** Analytics-orientierte SaaS-Oberflächen (klare KPI-/Karten-Hierarchie, ruhige Flächen, lesbares Raster) — **ohne** Übernahme fremder Bildwerke, Marken oder Pixel-Layouts.
+- **Abgrenzung:** Keine Screenshots, Vektoren oder Schriftdateien aus Dritt-Mockups ins Repo; keine Namensübernahme fremder Produkte. Eigene Token (`--shadow-card`, `--chart-*`, Spacing in `apps/web/src/index.css`), eigene Informationsarchitektur (Mandant, Dokumente, Finanz, Rollen).
+- **Pflege:** Bei größeren UI-Iterationen Kontrast und Touch-Ziele erneut prüfen; Moodboard nur aus **eigenen** App-Screens (siehe unten).
+
 ## Moodboard und Referenzscreens
 
 - **Kanonische visuelle Referenz** für spätere Moodboards und Design-Iterationen: **Screenshots der echten App-Shell** (Komponente [`AppShell.tsx`](../apps/web/src/components/AppShell.tsx)), nicht nur das schematische SVG.

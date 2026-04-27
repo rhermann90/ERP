@@ -50,6 +50,12 @@ Wann **nach** dem Merge auf `main` ausfüllen (noch in derselben Session oder di
 | 2 | — | — | wie Zeile 1 |
 | 3 | — | — | wie Zeile 1 |
 
+
+**Agent-Abnahme (Plan-Umsetzung, 2026-04-27):** `npm run verify:ci`, `npm run verify:ci:local-db`, `npx playwright test e2e/login-finance-smoke.spec.ts` — jeweils Exit 0 auf Workspace-HEAD `cab7567`. **Meilenstein-Tabelle:** keine neue Zeile 2/3 — Merge [#43](https://github.com/rhermann90/ERP/pull/43) betraf nur diese P1-3-Doku-Pflege (kein qualifizierender Finanz-Merge laut **Pflege (Agent)**-Kriterien). Nächste qualifizierte Merges trägt das Team wie dort beschrieben ein.
+
+**Agent (Wave3-11-Tool-Todos, 2026-04-27):** Meilenstein-Pflege unverändert laut **Pflege (Agent)**; operative CI/PL/M4/Gate-Liste kanonisch unter **Wave3-11** in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) (*Agent-Abnahme*). **PL-Inbound**-Tabelle dort: **nur PL-Runden** / kein Agent-Eintrag (Team-Entscheid 2026-04-27); **alle** übrigen automatisierbaren Agent-Pflichten **weiterhin** erledigen.
+
+**Agent (Wave3-12-Tool-Todos, 2026-04-27):** **Wave3-12** kanonisch unter *Agent-Abnahme* in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md); **PL-Inbound** nur PL-Runden (kein Agent-Eintrag).
 ## Verweise
 
 - [`P1-FINANCE-WAVE3-POST-RELEASE-PLAN.md`](./P1-FINANCE-WAVE3-POST-RELEASE-PLAN.md)
