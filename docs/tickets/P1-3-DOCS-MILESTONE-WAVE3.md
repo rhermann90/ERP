@@ -32,7 +32,7 @@ Wann **nach** dem Merge auf `main` ausfüllen (noch in derselben Session oder di
 
 ## Einträge
 
-**Stand (Agent):** Zuletzt geprüft gegen `origin/main` @ `e5f1830` (**2026-04-27** UTC). Zeile **1** = Merge [#42](https://github.com/rhermann90/ERP/pull/42) (**2026-04-26**); Zeile **2** = Merge [#44](https://github.com/rhermann90/ERP/pull/44) (**2026-04-27**); Zeile **3** = Merge [#46](https://github.com/rhermann90/ERP/pull/46) (**2026-04-27**). Qualifizierte Finanz-Merges nur mit Merge-Datum **nicht vor** **2026-04-26** (Team-Entscheid).
+**Stand (Agent):** Zuletzt geprüft gegen `origin/main` @ `cbacb7b` (**2026-04-27** UTC). Zeile **1** = Merge [#42](https://github.com/rhermann90/ERP/pull/42) (**2026-04-26**); Zeile **2** = Merge [#44](https://github.com/rhermann90/ERP/pull/44) (**2026-04-27**); Zeile **3** = Merge [#46](https://github.com/rhermann90/ERP/pull/46) (**2026-04-27**). Qualifizierte Finanz-Merges nur mit Merge-Datum **nicht vor** **2026-04-26** (Team-Entscheid).
 
 **Agent-Abnahme (Session 2026-04-26):** erneuter `git fetch`/`git log` auf `origin/main` — kein neuer qualifizierter Finanz-Merge seit letztem Stand; Meilenstein-Zeilen unverändert; Regeln **FIN4** / **Punkt 5** und **`npm run verify:ci`** vor Merge auf `main` weiter verbindlich (siehe **Pflege (Agent)**).
 
@@ -57,6 +57,8 @@ Wann **nach** dem Merge auf `main` ausfüllen (noch in derselben Session oder di
 **Agent (Wave3-11-Tool-Todos, 2026-04-27):** Meilenstein-Pflege unverändert laut **Pflege (Agent)**; operative CI/PL/M4/Gate-Liste kanonisch unter **Wave3-11** in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) (*Agent-Abnahme*). **PL-Inbound**-Tabelle dort: **nur PL-Runden** / kein Agent-Eintrag (Team-Entscheid 2026-04-27); **alle** übrigen automatisierbaren Agent-Pflichten **weiterhin** erledigen.
 
 **Agent (Wave3-12-Tool-Todos, 2026-04-27):** **Wave3-12** kanonisch unter *Agent-Abnahme* in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md); **PL-Inbound** nur PL-Runden (kein Agent-Eintrag).
+
+**Agent-Abnahme (Merge auf `main` #47, 2026-04-27 UTC):** PR [#47](https://github.com/rhermann90/ERP/pull/47) squash-gemergt (`cbacb7b`); **nur** Doku-Pflege (P1-3 **Stand**, Agent-Abnahme #46, Tempo) — **keine** neue Meilenstein-Tabellenzeile (kein qualifizierender Finanz-Merge laut **Pflege (Agent)**). Remote nach Merge auf `main`: Actions [Run 25009980914](https://github.com/rhermann90/ERP/actions/runs/25009980914) — Jobs [`backend`](https://github.com/rhermann90/ERP/actions/runs/25009980914/job/73242865635) und [`e2e-smoke`](https://github.com/rhermann90/ERP/actions/runs/25009980914/job/73243139244) grün.
 
 **Agent-Abnahme (Merge auf `main` #44, 2026-04-27 UTC):** PR [#44](https://github.com/rhermann90/ERP/pull/44) gemergt (`833785b`); Meilenstein **Zeile 2** befüllt. Remote: Actions [Run 24979895183](https://github.com/rhermann90/ERP/actions/runs/24979895183) — Jobs `backend` und `e2e-smoke` grün; §5a-pre und §5a post-merge als PR-Kommentare.
 ## Verweise
