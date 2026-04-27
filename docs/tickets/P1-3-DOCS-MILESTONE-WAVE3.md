@@ -32,7 +32,7 @@ Wann **nach** dem Merge auf `main` ausfüllen (noch in derselben Session oder di
 
 ## Einträge
 
-**Stand (Agent):** Zuletzt geprüft gegen `origin/main` @ `ca887dd` (Merge **#42** Wave3 FIN4 Batch/PWA/Theming, **2026-04-26** UTC). Für die **ersten drei** Meilenstein-Zeilen zählen nur qualifizierte Finanz-Merges mit Merge-Datum **nicht vor** Kalendertag **2026-04-26**; Zeile **1** ist mit #42 befüllt — Zeilen 2→3 bei den nächsten qualifizierten Merges.
+**Stand (Agent):** Zuletzt geprüft gegen `origin/main` @ `833785b` (**2026-04-27** UTC). Zeile **1** = Merge [#42](https://github.com/rhermann90/ERP/pull/42) (**2026-04-26**); Zeile **2** = Merge [#44](https://github.com/rhermann90/ERP/pull/44) (**2026-04-27**); Zeile **3** noch `—`. Qualifizierte Finanz-Merges nur mit Merge-Datum **nicht vor** **2026-04-26** (Team-Entscheid).
 
 **Agent-Abnahme (Session 2026-04-26):** erneuter `git fetch`/`git log` auf `origin/main` — kein neuer qualifizierter Finanz-Merge seit letztem Stand; Meilenstein-Zeilen unverändert; Regeln **FIN4** / **Punkt 5** und **`npm run verify:ci`** vor Merge auf `main` weiter verbindlich (siehe **Pflege (Agent)**).
 
@@ -47,7 +47,7 @@ Wann **nach** dem Merge auf `main` ausfüllen (noch in derselben Session oder di
 | # | Merge-Datum (UTC) | PR / Referenz | Notiz |
 |---|-------------------|----------------|-------|
 | 1 | 2026-04-26 | https://github.com/rhermann90/ERP/pull/42 | FIN4 OpenAPI 5c + `FIN4-external-client-integration.md`; PWA Finanz-Vorbereitung; PR-Punkt5/RELEASE-Verweise in PR #42 |
-| 2 | — | — | wie Zeile 1 |
+| 2 | 2026-04-27 | https://github.com/rhermann90/ERP/pull/44 | PWA `apps/web` Finanz-Vorbereitung/Theming; Wave3-Doku/Tickets; E2E 5c-Smoke; `review-checklist-finanz-pr.md` Punkt 5 |
 | 3 | — | — | wie Zeile 1 |
 
 
@@ -56,6 +56,8 @@ Wann **nach** dem Merge auf `main` ausfüllen (noch in derselben Session oder di
 **Agent (Wave3-11-Tool-Todos, 2026-04-27):** Meilenstein-Pflege unverändert laut **Pflege (Agent)**; operative CI/PL/M4/Gate-Liste kanonisch unter **Wave3-11** in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) (*Agent-Abnahme*). **PL-Inbound**-Tabelle dort: **nur PL-Runden** / kein Agent-Eintrag (Team-Entscheid 2026-04-27); **alle** übrigen automatisierbaren Agent-Pflichten **weiterhin** erledigen.
 
 **Agent (Wave3-12-Tool-Todos, 2026-04-27):** **Wave3-12** kanonisch unter *Agent-Abnahme* in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md); **PL-Inbound** nur PL-Runden (kein Agent-Eintrag).
+
+**Agent-Abnahme (Merge auf `main` #44, 2026-04-27 UTC):** PR [#44](https://github.com/rhermann90/ERP/pull/44) gemergt (`833785b`); Meilenstein **Zeile 2** befüllt. Remote: Actions [Run 24979895183](https://github.com/rhermann90/ERP/actions/runs/24979895183) — Jobs `backend` und `e2e-smoke` grün; §5a-pre und §5a post-merge als PR-Kommentare.
 ## Verweise
 
 - [`P1-FINANCE-WAVE3-POST-RELEASE-PLAN.md`](./P1-FINANCE-WAVE3-POST-RELEASE-PLAN.md)
