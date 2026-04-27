@@ -100,6 +100,9 @@ export default function App() {
   const [supplementDetail, setSupplementDetail] = useState<unknown>(null);
   const [offerVersionDetail, setOfferVersionDetail] = useState<unknown>(null);
   const [invoiceShellDetail, setInvoiceShellDetail] = useState<InvoiceOverview | null>(null);
+  /** Read-only Lesepfade zur Rechnung (Haupt-Shell); zurückgesetzt bei jedem „Detail laden“. */
+  const [invoicePaymentIntakesJson, setInvoicePaymentIntakesJson] = useState("");
+  const [invoiceDunningRemindersJson, setInvoiceDunningRemindersJson] = useState("");
 
   const [modalAction, setModalAction] = useState<string | null>(null);
   const [form, setForm] = useState<ActionFormFields>({
@@ -243,6 +246,8 @@ export default function App() {
   const fetchDetail = async () => {
     setBusy(true);
     setBanner(null);
+    setInvoicePaymentIntakesJson("");
+    setInvoiceDunningRemindersJson("");
     try {
       if (entityType === "MEASUREMENT_VERSION") {
         const raw = (await client.getMeasurementVersion(documentId.trim())) as {
@@ -304,6 +309,48 @@ export default function App() {
       setBusy(false);
     }
   };
+
+  const loadInvoicePaymentIntakesRead = useCallback(async () => {
+    if (!invoiceShellDetail) return;
+    setBusy(true);
+    setBanner(null);
+    try {
+      const r = await client.listInvoicePaymentIntakes(invoiceShellDetail.invoiceId);
+      setInvoicePaymentIntakesJson(JSON.stringify(r, null, 2));
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setBanner({
+          kind: "error",
+          text: e.envelope.message,
+          code: e.envelope.code,
+          correlationId: e.envelope.correlationId,
+        });
+      } else setBanner({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [client, invoiceShellDetail]);
+
+  const loadInvoiceDunningRemindersRead = useCallback(async () => {
+    if (!invoiceShellDetail) return;
+    setBusy(true);
+    setBanner(null);
+    try {
+      const r = await client.listInvoiceDunningReminders(invoiceShellDetail.invoiceId);
+      setInvoiceDunningRemindersJson(JSON.stringify(r, null, 2));
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setBanner({
+          kind: "error",
+          text: e.envelope.message,
+          code: e.envelope.code,
+          correlationId: e.envelope.correlationId,
+        });
+      } else setBanner({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [client, invoiceShellDetail]);
 
   const openAction = (actionId: string) => {
     if (!allowedActions?.includes(actionId)) return;
@@ -713,6 +760,41 @@ export default function App() {
             <dt className="label">Bezahlt</dt>
             <dd style={{ margin: 0 }}>{formatShellEur(invoiceShellDetail.totalPaidCents)}</dd>
           </dl>
+          <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.65rem", marginBottom: "0.35rem" }}>
+            Weitere Lesepfade (keine Schreibaktionen):{" "}
+            <code>
+              GET /invoices/{invoiceShellDetail.invoiceId}/payment-intakes
+            </code>
+            ,{" "}
+            <code>
+              GET /invoices/{invoiceShellDetail.invoiceId}/dunning-reminders
+            </code>
+            .
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            <button type="button" disabled={busy} onClick={() => void loadInvoicePaymentIntakesRead()}>
+              Zahlungseingänge (GET)
+            </button>
+            <button type="button" disabled={busy} onClick={() => void loadInvoiceDunningRemindersRead()}>
+              Mahn-Ereignisse (GET)
+            </button>
+          </div>
+          {invoicePaymentIntakesJson ? (
+            <>
+              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>Antwort payment-intakes</h3>
+              <pre className="system-block" style={{ margin: 0 }}>
+                {invoicePaymentIntakesJson}
+              </pre>
+            </>
+          ) : null}
+          {invoiceDunningRemindersJson ? (
+            <>
+              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>Antwort dunning-reminders</h3>
+              <pre className="system-block" style={{ margin: 0 }}>
+                {invoiceDunningRemindersJson}
+              </pre>
+            </>
+          ) : null}
         </section>
       ) : null}
 
