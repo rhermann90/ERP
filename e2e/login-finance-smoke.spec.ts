@@ -17,6 +17,10 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
 
     await page.getByRole("tab", { name: /Rechnung & Zahlung/i }).click();
     await expect(page.getByRole("button", { name: "Rechnung laden" })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByLabel("Rechnungs-ID für GET")).toHaveValue("44444444-4444-4444-8444-444444444444");
+
+    await page.getByRole("button", { name: "Rechnung laden" }).click();
+    await expect(page.getByRole("group", { name: "Kernzahlen Rechnung" })).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole("tab", { name: /Grundeinstellungen Mahnlauf/i }).click();
     await expect(page.getByRole("heading", { name: /Grundeinstellungen Mahnlauf \(SEMI, ADR-0011\)/i })).toBeVisible({
