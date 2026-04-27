@@ -32,7 +32,9 @@ Wann **nach** dem Merge auf `main` ausfüllen (noch in derselben Session oder di
 
 ## Einträge
 
-**Stand (Agent):** Zuletzt geprüft gegen `origin/main` @ `e5f1830` (**2026-04-27** UTC). Zeile **1** = Merge [#42](https://github.com/rhermann90/ERP/pull/42) (**2026-04-26**); Zeile **2** = Merge [#44](https://github.com/rhermann90/ERP/pull/44) (**2026-04-27**); Zeile **3** = Merge [#46](https://github.com/rhermann90/ERP/pull/46) (**2026-04-27**). Qualifizierte Finanz-Merges nur mit Merge-Datum **nicht vor** **2026-04-26** (Team-Entscheid).
+**Stand (Agent):** Zuletzt geprüft gegen `origin/main` @ `cbacb7b` (**2026-04-27** UTC). Zeile **1** = Merge [#42](https://github.com/rhermann90/ERP/pull/42) (**2026-04-26**); Zeile **2** = Merge [#44](https://github.com/rhermann90/ERP/pull/44) (**2026-04-27**); Zeile **3** = Merge [#46](https://github.com/rhermann90/ERP/pull/46) (**2026-04-27**). PR [#47](https://github.com/rhermann90/ERP/pull/47) auf `main`: Doku-Nachzug zu #46 / P1-3 — **keine** neue Meilenstein-Zeile **4** (kein zusätzlicher qualifizierender Finanz-Merge laut **Pflege (Agent)**). Qualifizierte Finanz-Merges nur mit Merge-Datum **nicht vor** **2026-04-26** (Team-Entscheid).
+
+**Agent-Abnahme (Agent-A Doku-Welle Wave3-14, 2026-04-27 UTC):** `git fetch origin main`; `origin/main` @ `cbacb7b`; Merge [#47](https://github.com/rhermann90/ERP/pull/47) nur [`P1-3-DOCS-MILESTONE-WAVE3.md`](./P1-3-DOCS-MILESTONE-WAVE3.md) + [`nächste-schritte.md`](../plans/nächste-schritte.md) (§5a-/Tempo-Evidenz zu #46); Tabelle **Zeilen 1–3** unverändert.
 
 **Agent-Abnahme (Session 2026-04-26):** erneuter `git fetch`/`git log` auf `origin/main` — kein neuer qualifizierter Finanz-Merge seit letztem Stand; Meilenstein-Zeilen unverändert; Regeln **FIN4** / **Punkt 5** und **`npm run verify:ci`** vor Merge auf `main` weiter verbindlich (siehe **Pflege (Agent)**).
 
