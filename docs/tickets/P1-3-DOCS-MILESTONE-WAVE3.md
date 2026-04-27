@@ -32,7 +32,7 @@ Wann **nach** dem Merge auf `main` ausfüllen (noch in derselben Session oder di
 
 ## Einträge
 
-**Stand (Agent):** Zuletzt geprüft gegen `origin/main` @ `833785b` (**2026-04-27** UTC). Zeile **1** = Merge [#42](https://github.com/rhermann90/ERP/pull/42) (**2026-04-26**); Zeile **2** = Merge [#44](https://github.com/rhermann90/ERP/pull/44) (**2026-04-27**); Zeile **3** noch `—`. Qualifizierte Finanz-Merges nur mit Merge-Datum **nicht vor** **2026-04-26** (Team-Entscheid).
+**Stand (Agent):** Zuletzt geprüft gegen `origin/main` @ `e5f1830` (**2026-04-27** UTC). Zeile **1** = Merge [#42](https://github.com/rhermann90/ERP/pull/42) (**2026-04-26**); Zeile **2** = Merge [#44](https://github.com/rhermann90/ERP/pull/44) (**2026-04-27**); Zeile **3** = Merge [#46](https://github.com/rhermann90/ERP/pull/46) (**2026-04-27**). Qualifizierte Finanz-Merges nur mit Merge-Datum **nicht vor** **2026-04-26** (Team-Entscheid).
 
 **Agent-Abnahme (Session 2026-04-26):** erneuter `git fetch`/`git log` auf `origin/main` — kein neuer qualifizierter Finanz-Merge seit letztem Stand; Meilenstein-Zeilen unverändert; Regeln **FIN4** / **Punkt 5** und **`npm run verify:ci`** vor Merge auf `main` weiter verbindlich (siehe **Pflege (Agent)**).
 
@@ -48,8 +48,9 @@ Wann **nach** dem Merge auf `main` ausfüllen (noch in derselben Session oder di
 |---|-------------------|----------------|-------|
 | 1 | 2026-04-26 | https://github.com/rhermann90/ERP/pull/42 | FIN4 OpenAPI 5c + `FIN4-external-client-integration.md`; PWA Finanz-Vorbereitung; PR-Punkt5/RELEASE-Verweise in PR #42 |
 | 2 | 2026-04-27 | https://github.com/rhermann90/ERP/pull/44 | PWA `apps/web` Finanz-Vorbereitung/Theming; Wave3-Doku/Tickets; E2E 5c-Smoke; `review-checklist-finanz-pr.md` Punkt 5 |
-| 3 | — | — | wie Zeile 1 |
+| 3 | 2026-04-27 | https://github.com/rhermann90/ERP/pull/46 | PWA `apps/web` Haupt-Shell: read-only GET `…/payment-intakes` + `…/dunning-reminders`; E2E Finanz-Tabs Mahnwesen/Fortgeschritten; Checkliste 5c-Punkt; `review-checklist-finanz-pr.md` Punkt 5 |
 
+**Agent-Abnahme (Merge auf `main` #46, 2026-04-27 UTC):** PR [#46](https://github.com/rhermann90/ERP/pull/46) squash-gemergt (`e5f1830`); Meilenstein **Zeile 3** befüllt. Remote nach Push auf `main`: Actions [Run 25009668232](https://github.com/rhermann90/ERP/actions/runs/25009668232) — Jobs [`backend`](https://github.com/rhermann90/ERP/actions/runs/25009668232/job/73241784596) und [`e2e-smoke`](https://github.com/rhermann90/ERP/actions/runs/25009668232/job/73242024943) grün; Merge-Commit-SHA = `e5f183084667211491a41d42d06496bb2714e84a`. §5a-pre im PR vor Merge; §5a post-merge als zusätzlicher PR-Kommentar nach grünem `main`-Lauf.
 
 **Agent-Abnahme (Plan-Umsetzung, 2026-04-27):** `npm run verify:ci`, `npm run verify:ci:local-db`, `npx playwright test e2e/login-finance-smoke.spec.ts` — jeweils Exit 0 auf Workspace-HEAD `cab7567`. **Meilenstein-Tabelle:** keine neue Zeile 2/3 — Merge [#43](https://github.com/rhermann90/ERP/pull/43) betraf nur diese P1-3-Doku-Pflege (kein qualifizierender Finanz-Merge laut **Pflege (Agent)**-Kriterien). Nächste qualifizierte Merges trägt das Team wie dort beschrieben ein.
 
