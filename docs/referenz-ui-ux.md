@@ -27,7 +27,9 @@ Eine Seite für **Orientierung**: wohin mit Fragen zu PWA-Oberfläche, Theming u
 |--------|------|
 | Präferenz lesen/schreiben, `applyThemePreference` | [`apps/web/src/lib/theme.ts`](../apps/web/src/lib/theme.ts) |
 | Auswahl „Darstellung“ in der Shell | [`apps/web/src/components/ThemePreferenceControl.tsx`](../apps/web/src/components/ThemePreferenceControl.tsx) |
+| App-Shell (max. Breite, Rail-Navigation, Prop `nav`) | [`apps/web/src/components/AppShell.tsx`](../apps/web/src/components/AppShell.tsx) |
 | CSS-Variablen (Hell / Dunkel warm / Dunkel neutral) | [`apps/web/src/index.css`](../apps/web/src/index.css) |
+| Externe Inspiration vs. Abgrenzung (kein Asset-Klon) | Abschnitt **Externe visuelle Inspiration** in [`docs/ui-ux-style-guide.md`](./ui-ux-style-guide.md) |
 | Init nach CSS-Import | [`apps/web/src/main.tsx`](../apps/web/src/main.tsx) |
 | Manifest `theme_color` (statisch) | [`apps/web/vite.config.ts`](../apps/web/vite.config.ts) |
 | HTML `theme-color` + FOUC (`/theme-boot.js`) | [`apps/web/index.html`](../apps/web/index.html), [`apps/web/public/theme-boot.js`](../apps/web/public/theme-boot.js) |

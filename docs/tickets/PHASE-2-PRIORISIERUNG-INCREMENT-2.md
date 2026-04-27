@@ -37,6 +37,10 @@ Aus `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1
 
 - Phase-2 Increment 1 (Aufmass) liefert bereits `lvPositionId`-Referenzen; Increment 2 soll **validierbare** LV-Positionen und Konsistenzregeln ermöglichen (mindestens Existenz + Tenant + LV-Version).
 
+### Entwicklungs-Vorbereitung (Shell / PWA, ohne Scope-Erweiterung)
+
+Read-only **Haupt-Shell**-Panels für weitere `entityType`-Werte (z. B. `LV_VERSION` nach ADR-Finalnamen) erst nach **stabilen öffentlichen `GET`-Routen** und Client-Methode — siehe [`docs/plans/nächste-schritte.md`](../plans/nächste-schritte.md), [`docs/CODEMAPS/overview.md`](../CODEMAPS/overview.md); strikt getrennt von Finanz-Welle-3-Schreibpfaden.
+
 ### Verweise
 
 - `docs/tickets/PHASE-2-STARTAUFTRAG.md`

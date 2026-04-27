@@ -1237,6 +1237,21 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     expect(exec.statusCode).toBe(409);
     expect((exec.json() as { code: string }).code).toBe("DUNNING_REMINDER_RUN_DISABLED");
 
+    const batchDry = await app.inject({
+      method: "POST",
+      url: "/finance/dunning-reminder-run/send-emails",
+      headers: adminHeaders(),
+      payload: {
+        stageOrdinal: 1,
+        asOfDate: "2026-04-28",
+        mode: "DRY_RUN",
+        reason: "Batch-E-Mail DRY_RUN bei OFF muss 409 liefern",
+        items: [{ invoiceId: SEED_IDS.inconsistentInvoiceId, toEmail: "ops@example.com" }],
+      },
+    });
+    expect(batchDry.statusCode).toBe(409);
+    expect((batchDry.json() as { code: string }).code).toBe("DUNNING_REMINDER_RUN_DISABLED");
+
     const cand = await app.inject({
       method: "GET",
       url: "/finance/dunning-reminder-candidates?stageOrdinal=1&asOfDate=2026-04-28",

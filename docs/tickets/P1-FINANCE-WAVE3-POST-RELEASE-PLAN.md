@@ -57,3 +57,7 @@ Vor produktivem Rechnungs-/Mahn-Go (inkl. Massen-E-Mail 5c): [`Checklisten/compl
 **Team-Nachweis (nach Workshop StB/DSB/PL):** Ergebnis, Datum und Verweis (internes Protokoll/Wiki — **keine** erfundenen URLs im Repo) dort dokumentieren, wo das Team Arbeitsnachweise führt; die Checkliste selbst bleibt die fachliche Vorlage ([`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) Abschnitt *Team-Dokumentation*).
 
 **Wave3-10-Tool-Todos (Agent, 2026-04-27):** Workshop mit **StB / DSB / PL** und Durcharbeiten der Checkliste **nicht** durch Agent-Session ersetzbar; Repo bleibt bei Verweisen und *Team-Dokumentation*-Abschnitt der Checkliste; Ergebnis ausschließlich im Team-Wiki/Protokoll nachhalten.
+
+**Wave3-11-Tool-Todos (Agent, 2026-04-27):** Mandanten-/Produktiv-Go und Workshop-Pflicht unverändert; vollständige Wave3-11-Operativliste siehe [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) (*Agent-Abnahme*). **PL-Inbound**-Tabelle dort: **nur PL-Runden** / kein Agent-Eintrag (Team-Entscheid 2026-04-27); **alle** übrigen automatisierbaren Agent-Pflichten **weiterhin** erledigen.
+
+**Wave3-12-Tool-Todos (Agent, 2026-04-27):** **Wave3-12** kanonisch unter *Agent-Abnahme* in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md); **PL-Inbound** nur PL-Runden (kein Agent-Eintrag).

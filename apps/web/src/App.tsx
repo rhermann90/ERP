@@ -25,7 +25,8 @@ import {
 import type { QuickPreset } from "./lib/role-quick-actions.js";
 import { decodeTokenPayload, roleForQuickNav } from "./lib/token-payload.js";
 import { ApiError } from "./lib/api-error.js";
-import { createApiClient, resolveApiBaseUrl } from "./lib/api-client.js";
+import { createApiClient, resolveApiBaseUrl, type InvoiceOverview } from "./lib/api-client.js";
+import { formatSkontoDisplay } from "./components/finance/finance-prep-helpers.js";
 import {
   clearDocumentScopedKeys,
   clearPersistedSession,
@@ -98,6 +99,7 @@ export default function App() {
   } | null>(null);
   const [supplementDetail, setSupplementDetail] = useState<unknown>(null);
   const [offerVersionDetail, setOfferVersionDetail] = useState<unknown>(null);
+  const [invoiceShellDetail, setInvoiceShellDetail] = useState<InvoiceOverview | null>(null);
 
   const [modalAction, setModalAction] = useState<string | null>(null);
   const [form, setForm] = useState<ActionFormFields>({
@@ -139,6 +141,9 @@ export default function App() {
     [apiBase, token, tenantId],
   );
 
+  const formatShellEur = (cents: number | undefined) =>
+    cents == null ? "—" : (cents / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+
   const tokenTenant = token ? decodeTokenPayload(token).tenantId : null;
   const tokenRole = token ? decodeTokenPayload(token).role : null;
   const quickNavRole = roleForQuickNav(tokenRole);
@@ -169,6 +174,7 @@ export default function App() {
       setMeasurementDetail(null);
       setSupplementDetail(null);
       setOfferVersionDetail(null);
+      setInvoiceShellDetail(null);
       setBanner(null);
       const p = loadDocPrefs(tenantId);
       setDocumentId(p.documentId);
@@ -247,11 +253,13 @@ export default function App() {
         setForm((f) => ({ ...f, measurementId: raw.measurementId }));
         setSupplementDetail(null);
         setOfferVersionDetail(null);
+        setInvoiceShellDetail(null);
       } else if (entityType === "SUPPLEMENT_VERSION") {
         const raw = await client.getSupplementVersion(documentId.trim());
         setSupplementDetail(raw);
         setMeasurementDetail(null);
         setOfferVersionDetail(null);
+        setInvoiceShellDetail(null);
         setForm((f) => ({
           ...f,
           offerId: SEED.offerId,
@@ -261,15 +269,23 @@ export default function App() {
         setOfferVersionDetail(raw);
         setMeasurementDetail(null);
         setSupplementDetail(null);
+        setInvoiceShellDetail(null);
         setForm((f) => ({
           ...f,
           offerId: (raw as { offerId: string }).offerId,
           lvVersionId: (raw as { lvVersionId: string }).lvVersionId,
         }));
+      } else if (entityType === "INVOICE") {
+        const raw = await client.getInvoice(documentId.trim());
+        setInvoiceShellDetail(raw);
+        setMeasurementDetail(null);
+        setSupplementDetail(null);
+        setOfferVersionDetail(null);
       } else {
         setMeasurementDetail(null);
         setSupplementDetail(null);
         setOfferVersionDetail(null);
+        setInvoiceShellDetail(null);
         setBanner({
           kind: "ok",
           text: "Für diesen entityType liefert das Backend kein GET-Detail mit Textfeldern; Kontext (offerId, lvVersionId) manuell setzen.",
@@ -454,18 +470,16 @@ export default function App() {
           ? undefined
           : "Offline (Browser): nur App-Shell und statische Assets (Workbox). API und Schreibaktionen (Buchung, Mahnung, Zahlung, …) erfordern Netz und Backend — keine Offline-Schreibsimulation."
       }
+      nav={
+        <nav className="shell-nav" aria-label="Hauptnavigation">
+          <a href="#/">Shell / Dokument</a>
+          <a href={FINANCE_PREP_HASH}>Finanz (Vorbereitung)</a>
+          <a href={FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH}>Finanz (Grundeinstellungen Mahnlauf)</a>
+          <a href="#/login">Anmeldung</a>
+          <a href="#/password-reset">Passwort vergessen</a>
+        </nav>
+      }
     >
-      <nav className="shell-nav" aria-label="Hauptnavigation">
-        <a href="#/">Shell / Dokument</a>
-        {" · "}
-        <a href={FINANCE_PREP_HASH}>Finanz (Vorbereitung)</a>
-        {" · "}
-        <a href={FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH}>Finanz (Grundeinstellungen Mahnlauf)</a>
-        {" · "}
-        <a href="#/login">Anmeldung</a>
-        {" · "}
-        <a href="#/password-reset">Passwort vergessen</a>
-      </nav>
       {!showFinancePrep && !showLogin && !showPasswordReset ? (
         <RoleQuickNav
           effectiveRole={quickNavRole}
@@ -509,6 +523,9 @@ export default function App() {
           defaultTenantId={viteDefaultTenant}
           onSuccess={(r) => {
             setToken(r.accessToken);
+            // Align prevTenant before tenantId so the tenant-change effect does not treat
+            // login as an external tenant switch and clear token/banner (same batch).
+            setPrevTenant(r.tenantId);
             setTenantId(r.tenantId);
             setSessionMode("session");
             persistSession(r.accessToken, r.tenantId, "session");
@@ -598,7 +615,7 @@ export default function App() {
         </div>
         <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", margin: "0.5rem 0 0" }}>
           Seed-Beispiele: Angebotsversion <code>{SEED.offerVersionId}</code>, LV-Version <code>{SEED.lvVersionId}</code>, Aufmass-Version{" "}
-          <code>{SEED.measurementVersionId}</code>
+          <code>{SEED.measurementVersionId}</code>, Rechnung <code>{SEED.invoiceId}</code> (entityType <code>INVOICE</code>)
         </p>
         <div className="actions-row">
           <button type="button" className="btn" disabled={busy} onClick={() => void fetchAllowed()}>
@@ -669,6 +686,33 @@ export default function App() {
               {(offerVersionDetail as { editingText: string }).editingText}
             </div>
           </div>
+        </section>
+      ) : null}
+
+      {invoiceShellDetail ? (
+        <section className="panel" data-testid="invoice-shell-detail">
+          <h2>Rechnung (GET-Detail, read-only)</h2>
+          <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
+            <code>GET /invoices/{invoiceShellDetail.invoiceId}</code> — nur Anzeige; Schreibpfade bleiben über SoT/Aktionen.
+          </p>
+          <dl className="field-grid two" style={{ margin: 0 }}>
+            <dt className="label">Status</dt>
+            <dd style={{ margin: 0 }}>
+              <code>{invoiceShellDetail.status}</code>
+            </dd>
+            <dt className="label">Rechnungsnr.</dt>
+            <dd style={{ margin: 0 }}>{invoiceShellDetail.invoiceNumber ?? "—"}</dd>
+            <dt className="label">Skonto (B2-1a)</dt>
+            <dd style={{ margin: 0 }}>{formatSkontoDisplay(invoiceShellDetail.skontoBps)}</dd>
+            <dt className="label">LV-Netto (nach 8.4)</dt>
+            <dd style={{ margin: 0 }}>{formatShellEur(invoiceShellDetail.lvNetCents)}</dd>
+            <dt className="label">USt / Brutto</dt>
+            <dd style={{ margin: 0 }}>
+              {formatShellEur(invoiceShellDetail.vatCents)} / {formatShellEur(invoiceShellDetail.totalGrossCents)}
+            </dd>
+            <dt className="label">Bezahlt</dt>
+            <dd style={{ margin: 0 }}>{formatShellEur(invoiceShellDetail.totalPaidCents)}</dd>
+          </dl>
         </section>
       ) : null}
 

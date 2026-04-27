@@ -28,7 +28,7 @@ Dieses Dokument wird nach jedem abgeschlossenen Entwicklungsschritt aktualisiert
 
 ### Offene Punkte
 
-- **Playwright-E2E** „Login → Finanz“ optional nach Schritt 4, wenn Traceability-Pfade stabil dokumentiert sind.
+- **Playwright-E2E** „Login → Finanz“: merge-pflichtig (siehe Schritt 4); Traceability-Pfade in Finanz-Vorbereitung sind umgesetzt — weiteres E2E optional nach Bedarf.
 
 ---
 
@@ -62,8 +62,8 @@ Dieses Dokument wird nach jedem abgeschlossenen Entwicklungsschritt aktualisiert
 
 ### Noch offen (für Schritt 4)
 
-- **Playwright-Rauchtest** „Login → Finanz“ (`e2e-smoke`): seit **2026-04-25** in GitHub Ruleset **merge-pflichtig** neben **`backend`** (Repo `rhermann90/ERP`, Ruleset „branch protection“). Nachweis und Team-Vorlage: [`docs/runbooks/github-branch-protection-backend.md`](../runbooks/github-branch-protection-backend.md). Lokal vor PR: `npx playwright test e2e/login-finance-smoke.spec.ts`.
-- Optional **Lesepfade** in der **Haupt-Shell** weiter ausbauen (z. B. weitere `GET`-Details wie `GET /offer-versions/...`).
+- **Playwright-Rauchtest** „Login → Finanz“ (`e2e-smoke`): seit **2026-04-25** in GitHub Ruleset **merge-pflichtig** neben **`backend`** (Repo `rhermann90/ERP`, Ruleset „branch protection“). Nachweis und Team-Vorlage: [`docs/runbooks/github-branch-protection-backend.md`](../runbooks/github-branch-protection-backend.md). Lokal vor PR: `npm run test:e2e` bzw. `npx playwright test e2e/login-finance-smoke.spec.ts` — Playwright startet API/PWA auf **13000** / **15173** (kein Konflikt mit `npm run dev` auf 3000/5173); Wiederverwendung fremder Prozesse nur mit `PW_TEST_REUSE_SERVERS=1`, wenn dieselben Ports die E2E-Instanzen sind.
+- **Lesepfade Haupt-Shell:** `GET /invoices/{id}` für **INVOICE** ergänzt (read-only, „Detail (GET)“); weiterhin optional: weitere Typen (z. B. LV-Version), sobald API klar ist.
 
 ### Merge-Evidenz `main` (operativ, 2026-04-25)
 
@@ -81,6 +81,7 @@ Dieses Dokument wird nach jedem abgeschlossenen Entwicklungsschritt aktualisiert
 
 ## Erledigt im Branch (Wave3 Option A — FIN-4 SEMI / ADR-0011)
 
+- **M4 Slice 5c (Massen-E-Mail):** Backend/OpenAPI/PWA im Repo — `POST /finance/dunning-reminder-run/send-emails` (DRY_RUN/EXECUTE, max. 25 Zeilen, 5a-Pipeline pro Zeile); Spec [`M4-BATCH-DUNNING-EMAIL-SPEC.md`](../tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md). **Produktiv-Go** weiter nur mit PL + [`compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) (keine Agent-Compliance-Erklärung).
 - **PWA:** Haupt-Tabs in `#/finanz-vorbereitung` (Rechnung, **Grundeinstellungen Mahnlauf**, Mahnwesen, Fortgeschritten); Tab **Grundeinstellungen** mit `FinanceDunningGrundeinstellungenPanel` — Mandanten-Automation **OFF/SEMI**, SEMI-Kontext (IANA-Zeitzone, DE-Bundesland, Kalender/Werktage, Kanal), Kandidaten-GET, Batch **DRY_RUN/EXECUTE**.
 - **Backend:** Migration `dunning_remove_auto_and_semi_context` (AUTO→SEMI, neue Spalten), Cron-Pfad entfernt, Kandidaten/Fristlogik mit Mandantenzeit ([ADR-0011](../adr/0011-fin4-semi-dunning-context.md)).
 - **Qualität:** `npm run verify:ci` und `npm run verify:ci:local-db` (Compose **15432**); `npx playwright test e2e/login-finance-smoke.spec.ts` lokal grün.
@@ -94,7 +95,7 @@ Dieses Dokument wird nach jedem abgeschlossenen Entwicklungsschritt aktualisiert
 ### Nach Merge (optional Schritt 4 — Shell)
 
 - **PL/UI:** nur bei Bedarf (Copy, Massen-E-Mail nach PL); Tab-IA bleibt ein Hash `#/finanz-vorbereitung`.
-- **Lesepfade Haupt-Shell:** read-only `GET` ergänzen (z. B. Angebotsversion), sobald API und Rolle klar sind — siehe „Noch offen“ oben; `ApiClient` und Shell-Routing in [`apps/web/src/App.tsx`](../../apps/web/src/App.tsx) erweitern, **ohne** Finanz-Schreibpfade zu mischen.
+- **Lesepfade Haupt-Shell:** `INVOICE` read-only über `getInvoice` in [`apps/web/src/App.tsx`](../../apps/web/src/App.tsx); weitere `GET` nur bei klarer API, **ohne** Finanz-Schreibpfade zu mischen.
 
 ### PL-Entscheid PWA Finanz-Vorbereitung (2026-04-25)
 
@@ -105,6 +106,28 @@ Dieses Dokument wird nach jedem abgeschlossenen Entwicklungsschritt aktualisiert
 
 **Kürzlich abgesichert (PWA 2026-04-26):** Finanz-Vorbereitung — `FinancePreparation.test.tsx`: erfolgreicher Mandanten-Automation-PATCH inkl. Zeitzone/Kalender-Werktage/Kanal/Bundesland; lokale Fehlerpfade ohne API-Call bei zu kurzem Grund oder einstelligem Bundesland. **`generated/prisma`:** nicht versionieren (Root-`.gitignore`); Runbook-Hinweis unter „PR-Checkliste (Persistenz / Schema)“ in [`ci-and-persistence-tests.md`](../runbook/ci-and-persistence-tests.md). **e2e-smoke** ist seit **2026-04-25** als zweiter Pflicht-Statuscheck aktiv ([`github-branch-protection-backend.md`](../runbooks/github-branch-protection-backend.md)).
 
+### Tempo / Sichtbarkeit (Plan „Nächste Schritte Tempo“, 2026-04-27)
+
+- **Kanonische Agent-Tool-Liste (Stand Repo):** **Wave3-12-Tool-Todos** unter *Agent-Abnahme* in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](../tickets/PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) — Merge/CI, Nach-Merge-Doku, Fachstrang Option A, Parallellspur, gesperrte Gates; fachlicher Kontext [`NEXT-INCREMENT-FINANCE-WAVE3.md`](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md).
+- **Kleine PRs:** thematisch trennen; je PR `npm run verify:ci`, bei Persistenz/OpenAPI-/Finanz-Schema-Touch zusätzlich `npm run verify:ci:local-db` (Host **15432**) — siehe Punkte 1–2 unter **Nächster Schritt (Empfehlung)** oben.
+- **Nach jedem Merge auf `main`:** hier **eine kurze Zeile** ergänzen (*Erledigt + Datum + PR# oder Thema*) **oder** das passende Ticket nachziehen ([`NEXT-INCREMENT-FINANCE-WAVE3.md`](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md), [`P1-3-DOCS-MILESTONE-WAVE3.md`](../tickets/P1-3-DOCS-MILESTONE-WAVE3.md) bei qualifiziertem Finanz-Merge) — sichtbare Fertigstellung ohne zusätzliches Feature.
+- **GitHub-Evidenz am PR-Head:** Jobs **`backend`** und **`e2e-smoke`** grün; §5a [`qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md), Review [`review-checklist-finanz-pr.md`](../contracts/review-checklist-finanz-pr.md).
+- **Agent-Abnahme (Tool, 2026-04-27 — Acht-Schritte-Plan):** `npm run verify:ci` Exit **0**; `npm run verify:ci:local-db` Exit **0** (Postgres **127.0.0.1:15432**); `npx playwright test e2e/login-finance-smoke.spec.ts` Exit **0** — lokale Parität zur GitHub-PR-Head-Evidenz `backend` / `e2e-smoke`; §5a und Finanz-Review weiterhin manuell am PR ([`qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md), [`review-checklist-finanz-pr.md`](../contracts/review-checklist-finanz-pr.md)).
+- **P1-3 / Merge-Sichtbarkeit:** Tabellenzeile in [`P1-3-DOCS-MILESTONE-WAVE3.md`](../tickets/P1-3-DOCS-MILESTONE-WAVE3.md) **nur** bei **qualifiziertem** Finanz-Merge auf `main` mit **echter** GitHub-PR-URL + UTC — keine Platzhalter-URLs durch Agenten. Ohne solches Merge-Ereignis genügt diese Agent-Nachweiszeile.
+
+### PL-/Team-Touchpoint (ca. 15 Min, Option A)
+
+- **Ziel:** Tempo durch **Entscheidung**, nicht durch parallele Groß-PRs.
+- **Agenda-Vorschlag (copy-paste):** (1) **M4 Slice 5c** (Massen-E-Mail) ist im Repo umgesetzt — **Mandanten-Produktiv** ja/nein und SMTP/Idempotenz-Betrieb klären; (2) vor Live-Schaltung **5c** die Checkliste [`compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) mit **StB / DSB / PL**; (3) weiteres Mahn-UX nur nach expliziter PL-Priorität — [`FOLLOWUP-M4-DUNNING-UX-GRUNDEINSTELLUNGEN-TAB.md`](../tickets/FOLLOWUP-M4-DUNNING-UX-GRUNDEINSTELLUNGEN-TAB.md).
+- **Traktanden:** M4-Rest / **Massen-E-Mail (5c)** produktiv ja/nein; optional UX — [`FOLLOWUP-M4-DUNNING-UX-GRUNDEINSTELLUNGEN-TAB.md`](../tickets/FOLLOWUP-M4-DUNNING-UX-GRUNDEINSTELLUNGEN-TAB.md); Abgleich [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](../tickets/PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md); Mandanten-Go mit [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) vor Live-Schaltung.
+- **PL-Inbound:** **Team-Entscheid 2026-04-27** — nur **PL-manuell** / PL-Runden bleibt ohne Agent-Eintrag in der Tabelle in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](../tickets/PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md); Nachweise außerhalb dieser Zellen. **Agent:** alles andere **weiterhin** erledigen (`verify:ci`, P1-3 bei qual. Merge, E2E, Doku-Nachzug — siehe [`AGENTS.md`](../../AGENTS.md)); **keine** erfundenen URLs.
+
+### Parallele Spur (optional, ohne Finanz-Gate B/C/D/B5/Audit-Verhalten)
+
+- **Playwright:** weitere Journeys (z. B. Traceability/SoT in `#/finanz-vorbereitung`); Ausgangspunkt [`e2e/login-finance-smoke.spec.ts`](../../e2e/login-finance-smoke.spec.ts), Ports **13000** / **15173** (siehe Schritt 4 oben).
+- **Haupt-Shell read-only:** weiteres `entityType` nur bei stabiler `GET`-Route + `ApiClient` — vorher [`docs/api-contract.yaml`](../api-contract.yaml); Umsetzung strikt getrennt von Finanz-Schreibpfaden in [`apps/web/src/App.tsx`](../../apps/web/src/App.tsx).
+- **Phase 2 (LV §9):** eigener strategischer Strang — [`PHASE-2-PRIORISIERUNG-INCREMENT-2.md`](../tickets/PHASE-2-PRIORISIERUNG-INCREMENT-2.md); **nicht** mit Finanz-Welle 3 mischen.
+
 ## Danach in Aussicht
 
 - Produktionsnahe Mandanten-Policies (Kalkulation/Disposition exakt zuordnen) und erweiterte Rollen, falls das Backend mehr als fünf API-Rollen erhält.
@@ -114,4 +137,4 @@ Dieses Dokument wird nach jedem abgeschlossenen Entwicklungsschritt aktualisiert
 - **B5 formales Mahn-PDF:** PWA später nur Anzeige/Download/Link — [`docs/tickets/B5-FORMAL-DUNNING-PDF.md`](../tickets/B5-FORMAL-DUNNING-PDF.md); Domänen-Anker `src/domain/dunning-formal-notice-spec.ts`.
 - **Audit fail-hard / GoBD-Querschnitt:** [`docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](../tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) — nur mit PL-Eintrag, nicht mit Mahn-UI mischen.
 - **Skonto-UI:** optional nach API-First / PL — Non-Goal-Hinweis in [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md).
-- **Haupt-Shell:** weitere read-only `GET`-Details (z. B. `GET /offer-versions/…`) — siehe offenen Punkt oben in Schritt 4.
+- **Haupt-Shell:** Rechnung read-only (`GET /invoices/…`); optional weitere Typen wie LV-Version, sobald GET verfügbar.

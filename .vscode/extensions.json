@@ -1,5 +1,9 @@
 {
-    "recommendations": [
-        "ms-ceintl.vscode-language-pack-de"
-    ]
+  "recommendations": [
+    "ms-azuretools.vscode-docker",
+    "ms-ceintl.vscode-language-pack-de",
+    "ms-playwright.playwright",
+    "Prisma.prisma",
+    "redhat.vscode-yaml"
+  ]
 }

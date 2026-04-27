@@ -1,6 +1,6 @@
 # AGENTS — KI- und Agenten-Einstieg (ERP)
 
-Kurzbriefing für automatisierte oder assistierte Arbeit am Repository. Verbindliche Domänen- und Lieferregeln: [`.cursor/rules/erp-multi-agent.mdc`](./.cursor/rules/erp-multi-agent.mdc). Ausführlicher Betrieb und Links: [`README.md`](./README.md).
+Kurzbriefing für automatisierte oder assistierte Arbeit am Repository. Verbindliche Domänen- und Lieferregeln: [`.cursor/rules/erp-multi-agent.mdc`](./.cursor/rules/erp-multi-agent.mdc). Ausführlicher Betrieb und Links: [`README.md`](./README.md). **Cursor Plan-Modus:** Jede Plan-Antwort mit **TodoWrite**-Tool-Todos ausarbeiten (Details in der Multi-Agent-Regel).
 
 ## 1. Lesereihenfolge (Kontext schichten)
 
@@ -15,7 +15,7 @@ Tickets und Gates (z. B. FIN-2, QA §5a) stehen in `docs/tickets/` und `docs/con
 
 **P1-4 (B5 / Audit-Code):** Kein Implementierungs-PR für formelles Mahn-PDF (**B5**) oder Audit-**Verhaltens**-Änderungen (z. B. Option A) ohne dokumentierte Gates — [`docs/tickets/B5-SPEC-DELIVERY-BOUNDARY-WAVE3.md`](./docs/tickets/B5-SPEC-DELIVERY-BOUNDARY-WAVE3.md) (*Implementierungs-Gate*) und [`docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) (*PL-Eintrag* / *PL-Protokoll*).
 
-**Agent nach finanz-relevantem Merge auf `main`:** Nächste freie Zeile in [`docs/tickets/P1-3-DOCS-MILESTONE-WAVE3.md`](./docs/tickets/P1-3-DOCS-MILESTONE-WAVE3.md) ausfüllen (Merge-Datum UTC, PR-URL) — siehe Abschnitt **„Pflege (Agent)“** dort. **PL-Sitzungsprotokoll** (Tabelle unter „PL-Protokoll“) in [`docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md): weiterhin **nur Projektleitung**, keine erfundenen Links durch den Agenten.
+**Agent nach finanz-relevantem Merge auf `main`:** Nächste freie Zeile in [`docs/tickets/P1-3-DOCS-MILESTONE-WAVE3.md`](./docs/tickets/P1-3-DOCS-MILESTONE-WAVE3.md) ausfüllen (Merge-Datum UTC, PR-URL) — siehe Abschnitt **„Pflege (Agent)“** dort. **PL-Sitzungsprotokoll** (Tabelle unter „PL-Protokoll“) in [`docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md): weiterhin **nur Projektleitung**, keine erfundenen Links durch den Agenten. **PL-Inbound** (Tabelle in [`docs/tickets/PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./docs/tickets/PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md)): **Team-Entscheid 2026-04-27** — **nur** was **ausschließlich in PL-Runden manuell** gehört, bleibt dort **ohne** Agent-Eintrag; der Agent **pflegt diese Markdown-Zellen nicht** und **erfindet** keine URLs. **Unverändert verbindlich** für den Agenten: `verify:ci` (und bei Bedarf `verify:ci:local-db`), grüne Merge-Checks wie dokumentiert, P1-3 bei qualifiziertem Merge, übrige Ticket-/Codemap-Pflege, die **ohne** PL-Protokoll-Fiktion möglich ist.
 
 ## 2. Repo-Layout (Kurz)
 
@@ -41,6 +41,8 @@ Tickets und Gates (z. B. FIN-2, QA §5a) stehen in `docs/tickets/` und `docs/con
 | Web-Unit-Tests | `npm run test -w apps/web` |
 | OpenAPI-Validierung | `npm run validate:api-contract-yaml` |
 
+**Editor:** VS Code / Cursor können Workspace-Empfehlungen aus [`.vscode/extensions.json`](./.vscode/extensions.json) installieren (Prisma, YAML, Playwright, Docker, deutsches Sprachpaket). **ESLint / Prettier / Biome:** zugehörige Editor-Extensions erst ergänzen, wenn das Team die passenden npm-DevDependencies und Konfiguration im Repo eingeführt hat — sonst leere oder irreführende Hinweise im Editor.
+
 ## 4. Codemap
 
 Die pfadbezogene Orientierung liegt zentral unter **[`docs/CODEMAPS/`](./docs/CODEMAPS/)** ([`overview.md`](./docs/CODEMAPS/overview.md)). Bei neuen Features dort die betroffene Sektion um eine Zeile ergänzen (kein Ersatz für ADR oder OpenAPI).
@@ -59,4 +61,6 @@ Die pfadbezogene Orientierung liegt zentral unter **[`docs/CODEMAPS/`](./docs/CO
 
 ## 6. Ausgabeformat
 
-Wo die Projektregel „Every output must include: result, rationale, risks, open questions“ fordert, in Antworten an Menschen oder Review-Kommentaren kurz alle vier Punkte abdecken.
+Wo die Projektregel „Every output must include: result, rationale, risks, open questions“ fordert, in Antworten an Menschen oder Review-Kommentaren kurz alle vier Punkte abdecken; Auswirkungen auf Compliance, Datenkonsistenz, Wartbarkeit und PWA analog zur Regel benennen.
+
+Bei **rein mechanischen Änderungen ohne** Domänen-, API-, Persistenz-, Auth- oder Finanz-/Steuer-Bezug (z. B. Tippfehler in Rand-Kommentaren, reine Agenten-Doku): die vier Punkte und die Auswirkungsdimensionen **kurz**; fehlende Risiken oder fehlende fachliche Auswirkungen **explizit** (z. B. „keine“) nennen. Sobald Geschäftslogik, Mandantengrenzen, Verträge oder produktive Finanz-UI berührt sind, volle Abdeckung ohne Ausnahme.
