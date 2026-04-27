@@ -37,5 +37,8 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
 
     await page.getByRole("button", { name: "Erlaubte Aktionen laden" }).click();
     await expect(page.getByText("Rohantwort allowed-actions (JSON)", { exact: true })).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole("button", { name: "Audit-Ereignisse laden (letzte 15)" }).click();
+    await expect(page.getByText("Rohantwort GET /audit-events (JSON)", { exact: true })).toBeVisible({ timeout: 15_000 });
   });
 });
