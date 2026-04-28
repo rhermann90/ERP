@@ -59,7 +59,7 @@ UI/UX-Leitfaden und Darstellungsmodi: [`docs/ui-ux-style-guide.md`](../ui-ux-sty
 
 | Pfad | Rolle |
 |------|--------|
-| `src/main.tsx`, `src/App.tsx` | Einstieg, Routing-Oberfläche; Shell **read-only** bei `entityType=INVOICE`: `GET /invoices/{id}` („Detail“), `GET …/payment-intakes`, `GET …/dunning-reminders` |
+| `src/main.tsx`, `src/App.tsx` | Einstieg, Routing-Oberfläche; Shell **read-only** bei `entityType=INVOICE`: `GET /invoices/{id}` („Detail“ / GET), `GET …/payment-intakes`, `GET …/dunning-reminders` (Listen; `ApiClient`) |
 | `src/lib/api-client.ts`, `api-error.ts` | API-Aufrufe und Fehler |
 | `src/lib/tenant-session.ts`, `token-payload.ts` | Mandanten-Session |
 | `src/lib/action-executor.ts`, `role-quick-actions.ts`, `v13-domain-role-mapping.ts` | Aktionen / Rollen |
