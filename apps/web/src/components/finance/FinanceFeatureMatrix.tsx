@@ -37,7 +37,7 @@ export function FinanceFeatureMatrix() {
     },
     {
       area: "FIN-4 Mahn-Kandidaten / Automation (SEMI)",
-      inUi: "Tab Grundeinstellungen: GET/PATCH automation, GET candidates, Dry-Run/EXECUTE; Deep-Link `#/finanz-vorbereitung?tab=…` / `#/finanz-grundeinstellungen`",
+      inUi: "Tab Grundeinstellungen: GET/PATCH automation, GET candidates, Dry-Run/EXECUTE; Deep-Link kanonisch `#/finanz-grundeinstellungen`, sonst `#/finanz-vorbereitung?tab=…`",
       einordnung: "nicht Zielprodukt (M4)",
       hinweis: "ADR-0011 B3 (stageDeadlineIso, eligibilityContext); kein Cron/AUTO; bei Server-OFF sind Mahnlauf-Dry-Run/EXECUTE und Batch-E-Mail (5c) in der PWA deaktiviert (Variante 1a); keine Offline-Schreibsimulation.",
     },

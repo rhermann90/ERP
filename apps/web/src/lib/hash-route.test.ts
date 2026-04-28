@@ -1,20 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { financePrepHashWithTab, normalizeFinancePrepHashToCanon } from "./hash-route.js";
+import {
+  FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH,
+  financePrepHashWithTab,
+  normalizeFinancePrepHashToCanon,
+} from "./hash-route.js";
 
-describe("normalizeFinancePrepHashToCanon", () => {
-  it("ersetzt Alias #/finanz-grundeinstellungen durch kanonischen Tab-Hash", () => {
-    window.history.replaceState(null, "", "/");
-    window.location.hash = "#/finanz-grundeinstellungen";
-    normalizeFinancePrepHashToCanon();
-    expect(window.location.hash).toBe(financePrepHashWithTab("grundeinstellungen"));
+describe("financePrepHashWithTab", () => {
+  it("nutzt dedizierten Pfad für Grundeinstellungen", () => {
+    expect(financePrepHashWithTab("grundeinstellungen")).toBe(FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH);
   });
 
-  it("lässt bereits kanonischen Grundeinstellungen-Hash unverändert", () => {
+  it("nutzt vorbereitung-Query für andere Tabs", () => {
+    expect(financePrepHashWithTab("rechnung")).toBe("#/finanz-vorbereitung?tab=rechnung");
+  });
+});
+
+describe("normalizeFinancePrepHashToCanon", () => {
+  it("vereinheitlicht ?tab=grundeinstellungen auf dedizierten Pfad", () => {
     window.history.replaceState(null, "", "/");
-    const canon = financePrepHashWithTab("grundeinstellungen");
-    window.location.hash = canon;
+    window.location.hash = "#/finanz-vorbereitung?tab=grundeinstellungen";
     normalizeFinancePrepHashToCanon();
-    expect(window.location.hash).toBe(canon);
+    expect(window.location.hash).toBe(FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH);
+  });
+
+  it("lässt dedizierten Grundeinstellungen-Pfad unverändert", () => {
+    window.history.replaceState(null, "", "/");
+    window.location.hash = FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH;
+    normalizeFinancePrepHashToCanon();
+    expect(window.location.hash).toBe(FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH);
   });
 
   it("greift nicht bei anderen Finanz-Vorbereitung-Pfaden ein", () => {

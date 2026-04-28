@@ -64,7 +64,7 @@ UI/UX-Leitfaden und Darstellungsmodi: [`docs/ui-ux-style-guide.md`](../ui-ux-sty
 | `src/lib/tenant-session.ts`, `token-payload.ts` | Mandanten-Session |
 | `src/lib/action-executor.ts`, `role-quick-actions.ts`, `v13-domain-role-mapping.ts` | Aktionen / Rollen |
 | `src/components/*.tsx` | UI (Shell, Login, Dokument-Texte, …) |
-| `src/lib/hash-route.ts`, `normalizeFinancePrepHashToCanon` in `App.tsx` | Finanz-Hash-Routing: Kanon `#/finanz-vorbereitung?tab=…`, Alias `#/finanz-grundeinstellungen` → einmalige Normalisierung per `replaceState`; `FINANCE_PREP_*` Konstanten |
+| `src/lib/hash-route.ts`, `normalizeFinancePrepHashToCanon` in `App.tsx` | Finanz-Hash-Routing: Tab „Grundeinstellungen“ kanonisch `#/finanz-grundeinstellungen`; andere Tabs `#/finanz-vorbereitung?tab=…`; `?tab=grundeinstellungen` per `replaceState` vereinheitlicht; `FINANCE_PREP_*` Konstanten |
 | `src/components/FinancePreparation.tsx`, `src/components/finance/FinancePreparation*Panel.tsx` | Finanz-Vorbereitung: Tabs inkl. Grundeinstellungen Mahnlauf; OFF/SEMI; OFF-1a (Batch-Buttons bei Server-OFF); SEMI-Kontext (ADR-0010 / ADR-0011) |
 | `vite.config.ts` | Build/Dev |
 
