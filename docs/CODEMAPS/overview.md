@@ -77,7 +77,7 @@ UI/UX-Leitfaden und Darstellungsmodi: [`docs/ui-ux-style-guide.md`](../ui-ux-sty
 ## Tests
 
 - Backend: `vitest` am Root (`npm test`).
-- Web: `npm run test -w apps/web`; E2E: `npm run test:e2e` (Playwright).
+- Web: `npm run test -w apps/web`; E2E: `npm run test:e2e` (Playwright); Finanz-Rauchtest-Journey [`e2e/login-finance-smoke.spec.ts`](../../e2e/login-finance-smoke.spec.ts) (Tabs Rechnung, Grundeinstellungen/Mahn, Mahnwesen, Fortgeschritten — UI-/Lesepfade gemäß bestehenden Buttons).
 
 ## Wartung dieser Datei
 
