@@ -24,7 +24,7 @@ const finance: QuickPreset = {
   id: "finance-prep",
   label: "Finanz-Vorbereitung",
   subtitle:
-    "Kanon #/finanz-vorbereitung?tab=… — Alias #/finanz-grundeinstellungen wird beim Laden auf ?tab=grundeinstellungen normalisiert",
+    "Tabs: #/finanz-vorbereitung?tab=… — Tab Grundeinstellungen kanonisch #/finanz-grundeinstellungen (ohne ?tab=-Duplikat)",
 };
 
 /** Direkt Tab „Grundeinstellungen Mahnlauf“ (Automation, Kandidaten, Mahnlauf). */
@@ -32,7 +32,7 @@ const financeGrundeinstellungen: QuickPreset = {
   kind: "finance",
   id: "finance-grundeinstellungen",
   label: "Mahn-Grundeinstellungen",
-  subtitle: "Shortcut #/finanz-grundeinstellungen → Kanon ?tab=grundeinstellungen beim ersten Paint",
+  subtitle: "Deep-Link #/finanz-grundeinstellungen (Mahn-Grundeinstellungen)",
 };
 
 const doc = (

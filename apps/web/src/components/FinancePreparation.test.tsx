@@ -778,6 +778,7 @@ describe("hash-route — Finanz-Vorbereitung (Deep-Link)", () => {
   });
 
   it("financePrepHashWithTab", () => {
+    expect(financePrepHashWithTab("grundeinstellungen")).toBe("#/finanz-grundeinstellungen");
     expect(financePrepHashWithTab("fortgeschritten")).toBe("#/finanz-vorbereitung?tab=fortgeschritten");
   });
 

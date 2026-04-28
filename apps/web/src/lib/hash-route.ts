@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 /** Hash-Route zur read-only Finanz-Vorbereitungsseite (ohne react-router). */
 export const FINANCE_PREP_HASH = "#/finanz-vorbereitung";
 
-/** Alias: öffnet Finanz-Vorbereitung direkt im Tab „Grundeinstellungen Mahnlauf“. */
+/** Kanonischer Deep-Link zum Tab „Grundeinstellungen Mahnlauf“ (ohne `?tab=`-Duplikat). */
 export const FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH = "#/finanz-grundeinstellungen";
 
 export const LOGIN_HASH = "#/login";
@@ -45,8 +45,9 @@ export function resolveFinancePrepInitialMainTab(path: string, query: URLSearchP
   return "rechnung";
 }
 
-/** Kanonische Hash-Form inkl. Tab-Query (Lesezeichen / Tab-Wechsel in der PWA). */
+/** Kanonische Hash-Form (Lesezeichen / Tab-Wechsel). Tab „Grundeinstellungen“ = dedizierter Pfad. */
 export function financePrepHashWithTab(tab: FinancePrepMainTab): string {
+  if (tab === "grundeinstellungen") return FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH;
   return `#/finanz-vorbereitung?tab=${tab}`;
 }
 
@@ -61,19 +62,23 @@ export function applyFinancePrepTabToLocationHash(tab: FinancePrepMainTab): void
 }
 
 /**
- * Kanonischer Lesezeichen-Pfad für Finanz-Vorbereitung inkl. Tab „Grundeinstellungen“:
- * `#/finanz-vorbereitung?tab=grundeinstellungen`. Alias `#/finanz-grundeinstellungen` wird
- * einmalig per replaceState umgestellt (kein doppelter Ladezustand in der PWA).
+ * Ein kanonischer Eintrag für „Grundeinstellungen Mahnlauf“: `#/finanz-grundeinstellungen`.
+ * Lesezeichen `#/finanz-vorbereitung?tab=grundeinstellungen` wird einmalig per replaceState
+ * dorthin vereinheitlicht (kein paralleles `?tab=` für dieselbe Ansicht).
  */
 export function normalizeFinancePrepHashToCanon(): void {
   const path = normalizeHash();
-  if (path !== "/finanz-grundeinstellungen") return;
-  const next = financePrepHashWithTab("grundeinstellungen");
-  if (window.location.hash !== next) {
-    const url = `${window.location.pathname}${window.location.search}${next}`;
-    history.replaceState(null, "", url);
-    window.dispatchEvent(new Event("hashchange"));
+  const q = readHashQuery();
+  if (path === "/finanz-vorbereitung" && q.get("tab")?.trim().toLowerCase() === "grundeinstellungen") {
+    const next = FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH;
+    if (window.location.hash !== next) {
+      const url = `${window.location.pathname}${window.location.search}${next}`;
+      history.replaceState(null, "", url);
+      window.dispatchEvent(new Event("hashchange"));
+    }
+    return;
   }
+  if (path === "/finanz-grundeinstellungen") return;
 }
 
 export function useHashRoute(): string {
