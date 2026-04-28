@@ -81,7 +81,7 @@ Bei Eskalation, nach relevantem **Merge-PR-Review**, oder auf **PL-Anforderung**
 
 Siehe: [`qa-fin-2-start-gate-stub-matrix.md`](./qa-fin-2-start-gate-stub-matrix.md).
 
-**FIN-0 HTTP-Stubs (Happy / Edge / Negative):** [`qa-fin-0-stub-test-matrix.md`](./qa-fin-0-stub-test-matrix.md) — Aufrufe und erwartete Codes laut [`finance-fin0-openapi-mapping.md`](./finance-fin0-openapi-mapping.md); Tests verlinkt nach [`test/finance-fin0-stubs.test.ts`](../../test/finance-fin0-stubs.test.ts) (keine Duplikation der Assertions).
+**FIN-0 HTTP-Stubs (Happy / Edge / Negative):** [`qa-fin-0-stub-test-matrix.md`](./qa-fin-0-stub-test-matrix.md) — Aufrufe und erwartete Codes laut [`finance-fin0-openapi-mapping.md`](./finance-fin0-openapi-mapping.md); Tests verlinkt nach [`test/finance-fin0-stubs.test.ts`](../../test/finance-fin0-stubs.test.ts) (keine Duplikation der Assertions). *Hinweis in der Matrix:* dieselbe Testdatei deckt auch **produktive FIN-2/FIN-3**-Routen ab (historischer Dokumentname „Stub“).
 
 ---
 
@@ -113,12 +113,13 @@ Für einen geplanten **reinen Doku-PR** (Ziel: nur Dateien unter [`docs/tickets/
 
 ## 4) OpenAPI (FIN-0) ↔ `error-codes.json` / Contracts
 
-**Geprüft:** `docs/api-contract.yaml` (Pfade `/finance/payment-terms/versions`, `/invoices`, `/invoices/{invoiceId}`, `/finance/payments/intake`) dokumentieren in `responses` ausschließlich bestehende Domain-Codes bzw. Auth:  
-`TRACEABILITY_LINK_MISSING`, `TRACEABILITY_FIELD_MISMATCH`, `EXPORT_PREFLIGHT_FAILED`, `DOCUMENT_NOT_FOUND`, `VALIDATION_FAILED`, `UNAUTHORIZED`, `AUTH_ROLE_FORBIDDEN`, `TENANT_SCOPE_VIOLATION`.
+**Geprüft:** `docs/api-contract.yaml` (Pfade `/finance/payment-terms/versions`, `/invoices`, `/invoices/{invoiceId}`, `/finance/payments/intake`, **`GET /invoices/{invoiceId}/payment-intakes`**) — Stichprobe `responses` gegen bestehende Domain-Codes bzw. Auth; für die genannten Pfade u. a.:  
+`TRACEABILITY_LINK_MISSING`, `TRACEABILITY_FIELD_MISMATCH`, `EXPORT_PREFLIGHT_FAILED`, `DOCUMENT_NOT_FOUND`, `VALIDATION_FAILED`, `UNAUTHORIZED`, `AUTH_ROLE_FORBIDDEN`, `TENANT_SCOPE_VIOLATION`.  
+**FIN-3 (Intake + Lesepfad):** zusätzlich die in OpenAPI/Mapping genannten Zahlungs-Domain-Codes (z. B. `PAYMENT_EXCEEDS_OPEN_AMOUNT`, `PAYMENT_INTAKE_IDEMPOTENCY_MISMATCH`, `PAYMENT_INVOICE_NOT_PAYABLE`) — vollständiger Abgleich über [`finance-fin0-openapi-mapping.md`](./finance-fin0-openapi-mapping.md) und [`error-codes.json`](./error-codes.json).
 
 **Abgleich:** `docs/contracts/error-codes.json` listet diese Codes in `domainErrorCodesEmitted` bzw. `nonDomainErrorCodesEmitted`; `qaP0MappingHints` enthält Eintrag **`finance-fin0-stub`** mit Verweis auf `docs/contracts/finance-fin0-openapi-mapping.md`.
 
-**Ergebnis (Stichprobe):** **Keine Widersprüche** festgestellt; **keine neuen Phantom-Codes** in den beschriebenen FIN-0-Response-Zeilen (FIN-0-Scope laut Mapping-Dokument).
+**Ergebnis (Stichprobe):** **Keine Widersprüche** festgestellt; **keine neuen Phantom-Codes** in den beschriebenen Response-Zeilen (Scope laut Mapping-Dokument).
 
 **G8 — Pflicht je Contract-PR:** Bei **jedem** PR, der `docs/api-contract.yaml` und/oder `docs/contracts/error-codes.json` und/oder `docs/contracts/finance-fin0-openapi-mapping.md` ändert, den Abgleich **erneut** stichprobenartig ausführen; neue `code`-Werte ohne Eintrag in `error-codes.json` + Mapping → **Merge blockieren**.
 

@@ -10,6 +10,7 @@ Kurzbriefing für automatisierte oder assistierte Arbeit am Repository. Verbindl
 4. **Technische Verträge** — [`docs/api-contract.yaml`](./docs/api-contract.yaml), [`docs/contracts/`](./docs/contracts/) (inkl. `error-codes.json`), relevante [`docs/adr/`](./docs/adr/).
 5. **PWA / UI-UX** (bei Arbeit unter `apps/web/`) — Link-Hub [`docs/referenz-ui-ux.md`](./docs/referenz-ui-ux.md); [`docs/ui-ux-style-guide.md`](./docs/ui-ux-style-guide.md), [`docs/web-theming.md`](./docs/web-theming.md); Cursor-Rule **erp-web-ui** (`apps/web/**`).
 6. **Produktiv-Go Finanz (fachlich, nicht nur CI)** — [`Checklisten/compliance-rechnung-finanz.md`](./Checklisten/compliance-rechnung-finanz.md) vor Mandanten-Go mit StB/DSB/PL abarbeiten.
+7. **Arbeitsweise (Code/Doku, ohne Gate-Relax)** — [`docs/plans/workflow-code-first-ohne-qualitaetsverlust.md`](./docs/plans/workflow-code-first-ohne-qualitaetsverlust.md) (Kurzverweis auch unter [„Arbeitsweise“ in `docs/plans/nächste-schritte.md`](./docs/plans/nächste-schritte.md)).
 
 Tickets und Gates (z. B. FIN-2, QA §5a) stehen in `docs/tickets/` und `docs/contracts/`; bei merge-kritischen Themen README und PR-Vorlage beachten. **QA/Review vor Merge:** Querschnitt in [`docs/runbook/ci-and-persistence-tests.md`](./docs/runbook/ci-and-persistence-tests.md) (Abschnitt „QA und Review vor Merge auf `main`“).
 

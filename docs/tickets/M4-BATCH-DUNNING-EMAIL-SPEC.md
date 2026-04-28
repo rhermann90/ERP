@@ -21,11 +21,16 @@ Nach `POST /finance/dunning-reminder-run` (5b-1, Mahnereignisse) bzw. parallel: 
 | Reihenfolge | Deterministisch: Reihenfolge des Request-Arrays; Abbruch einzelner SMTP-Schritte stoppt nicht die Rueckgabe — Antwort enthaelt **pro Zeile** Outcome (`SENT` \| `REPLAY` \| `FAILED`). |
 | Idempotenz | Pro Nachricht wie 5a (`dunning_email_sends`); kein globaler Batch-Key. |
 | Teilfehler | Kein transaktioneller Rollback bereits gesendeter Mails; Client wertet `results[]` aus. |
-| Rate-Limit | Server: **max. 25** Empfaengerzeilen pro Request (Konstante im Code); kein stiller Versand ueber Limit hinaus — **400** mit Domain-Code. |
+| Rate-Limit | Server: **max. 25** Empfaengerzeilen pro Request — technische Quelle und Pflegehinweis: **Implementationsanker** (Abschnitt unten); kein stiller Versand ueber Limit hinaus — **400** mit Domain-Code. |
 | Bestaetigung | API: `confirmBatchSend: true` bei `EXECUTE`; PWA: zusaetzlicher Bestaetigungsdialog vor Aufruf. |
+
+## Implementationsanker (Pflege bei Refactors)
+
+**Batch-Rate-Limit:** Kanonische Konstante **`DUNNING_BATCH_EMAIL_MAX_ITEMS`** (derzeit **25**) in [`src/services/dunning-reminder-batch-email-service.ts`](../../src/services/dunning-reminder-batch-email-service.ts). Bei **Wertaenderung**, **Umbenennung** oder **Verschiebung** des Moduls: zuerst **diese Spec** (Tabelle **fachliche Regeln** / Zeile Rate-Limit und dieser Abschnitt) aktualisieren. Die Checkliste [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) verweist **ohne** eigenen Dateipfad auf diese Datei — Drift-Pflege nur hier und in Code/Kommentar am Symbol, nicht parallel in der Checkliste.
 
 ## Compliance / QA
 
+- **PL-Session vor Mandanten-Go:** [`docs/runbooks/m4-slice-5c-pl-mandanten-go.md`](../runbooks/m4-slice-5c-pl-mandanten-go.md) (Agenda-Verweis + Checklistenanker).
 - [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) §0 — kein stiller Massenversand.
 - [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) vor Produktiv-Go mit StB/DSB/PL.
 - ADR: Ergaenzung in [ADR-0010](../adr/0010-fin4-m4-dunning-email-and-templates.md) (Abschnitt 5c).

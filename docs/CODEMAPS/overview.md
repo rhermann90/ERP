@@ -7,6 +7,7 @@ Kurzüberblick für Navigation in `src/` (Fastify-Backend) und `apps/web` (PWA).
 | Bereich | Pfad | Rolle |
 |--------|------|--------|
 | **Produktiv-Go Finanz (fachlich)** | [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) | UStG/GoBD/E-Rechnung/DSGVO — Abnahme neben Code/CI |
+| **M4 Slice 5c — PL vor Mandanten-Go** | [`docs/runbooks/m4-slice-5c-pl-mandanten-go.md`](../runbooks/m4-slice-5c-pl-mandanten-go.md) | Massen-E-Mail: Agenda-Anker, Compliance/Spec-Links (kein Ersatz für StB/DSB/PL) |
 | HTTP-Server-Start | `src/index.ts` | Prozessstart, App bauen |
 | App-Zusammenbau | `src/api/app.ts` | Fastify-Plugins, Routen-Mount, Repository-Modus |
 | **FIN-4 / M4 Vorlagen + Footer** | `GET`/`PATCH` `/finance/dunning-reminder-templates`…, `GET`/`PATCH` `/finance/dunning-email-footer`, `src/services/dunning-reminder-template-service.ts`, `dunning-email-footer-service.ts`, `dunning-template-persistence.ts`, `dunning-email-footer-persistence.ts` | ADR-0010 (M4) |

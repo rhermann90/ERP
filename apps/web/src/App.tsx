@@ -771,7 +771,7 @@ export default function App() {
             </code>
             .
           </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+          <div data-testid="shell-invoice-readonly-subreads" style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
             <button type="button" disabled={busy} onClick={() => void loadInvoicePaymentIntakesRead()}>
               Zahlungseingänge (GET)
             </button>

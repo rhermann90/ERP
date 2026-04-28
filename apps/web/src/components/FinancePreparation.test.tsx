@@ -726,8 +726,8 @@ describe("FinancePreparation", () => {
     });
     const dry = screen.getByRole("button", { name: /Vorschau \(Dry-Run\)/i }) as HTMLButtonElement;
     const exec = screen.getByRole("button", { name: /Ausführen \(EXECUTE\)/i }) as HTMLButtonElement;
-    const batchDry = screen.getByRole("button", { name: /Batch-E-Mail Dry-Run/i }) as HTMLButtonElement;
-    const batchExec = screen.getByRole("button", { name: /Batch-E-Mail EXECUTE/i }) as HTMLButtonElement;
+    const batchDry = screen.getByTestId("finance-dunning-batch-email-dry-run") as HTMLButtonElement;
+    const batchExec = screen.getByTestId("finance-dunning-batch-email-execute") as HTMLButtonElement;
     expect(dry.disabled).toBe(true);
     expect(exec.disabled).toBe(true);
     expect(batchDry.disabled).toBe(true);
@@ -748,15 +748,15 @@ describe("FinancePreparation", () => {
     });
     fireEvent.click(screen.getByRole("tab", { name: /Grundeinstellungen Mahnlauf/i }));
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Batch-E-Mail Dry-Run/i })).not.toBeNull();
+      expect(screen.getByTestId("finance-dunning-batch-email-dry-run")).not.toBeNull();
     });
-    fireEvent.change(screen.getByRole("textbox", { name: /Batch-E-Mail items JSON/i }), {
+    fireEvent.change(screen.getByTestId("finance-dunning-batch-email-items-json"), {
       target: {
         value: '[{"invoiceId":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","toEmail":"kunde@example.com"}]',
       },
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /Batch-E-Mail Dry-Run/i }));
+      fireEvent.click(screen.getByTestId("finance-dunning-batch-email-dry-run"));
     });
     await waitFor(() => {
       expect(postDunningReminderBatchSendEmails).toHaveBeenCalled();
