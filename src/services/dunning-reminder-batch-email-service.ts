@@ -4,7 +4,10 @@ import type { DunningReminderCandidatesService } from "./dunning-reminder-candid
 import type { DunningReminderEmailService } from "./dunning-reminder-email-service.js";
 import type { DunningTenantAutomationService } from "./dunning-tenant-automation-service.js";
 
-/** Max. Empfaengerzeilen pro Request (Spec M4-BATCH-DUNNING-EMAIL-SPEC). */
+/**
+ * Max. Empfaengerzeilen pro Request.
+ * Kanonische Doku: `docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md` — Abschnitt **Implementationsanker** (bei Aenderung Spec-Zeile Rate-Limit dort mitpflegen).
+ */
 export const DUNNING_BATCH_EMAIL_MAX_ITEMS = 25;
 
 export type DunningBatchEmailItemInput = {

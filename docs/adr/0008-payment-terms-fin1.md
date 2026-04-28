@@ -19,5 +19,5 @@ Spezifikation v1.3 **8.5** verlangt einen Konditionskopf pro Projekt und **appen
 ## Konsequenzen
 
 - Rechnungsentwurf (**FIN-2**) kann optional eine `paymentTermsVersionId` referenzieren; die Version muss zum **Projekt** des Angebots passen (siehe `InvoiceService.createDraft`).
-- Zahlungseingang (**FIN-3**) und produktive Buchung außerhalb des FIN-2-Slices bleiben **fail-closed** wo noch nicht implementiert (`POST /finance/payments/intake` Stub).
+- Zahlungseingang (**FIN-3**): Der **Intake-Slice** (`POST /finance/payments/intake`, Lesepfad, Idempotenz, Zahlungsstatus) ist in **ADR-0007** beschrieben und im Repo **umgesetzt** (kein Stub mehr); siehe `docs/contracts/finance-fin0-openapi-mapping.md`. Umfang **jenseits** dieses Slices (z. B. volle **8.8–8.9**, Bankfile, PSP) bleibt **fail-closed** / separates Inkrement mit eigenem Gate.
 

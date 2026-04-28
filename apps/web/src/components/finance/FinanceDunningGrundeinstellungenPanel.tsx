@@ -367,7 +367,12 @@ export function FinanceDunningGrundeinstellungenPanel({
             </p>
           </>
         ) : null}
-        <h3 style={{ fontSize: "0.95rem", margin: "0.85rem 0 0.35rem" }}>Batch-E-Mail (M4 Slice 5c)</h3>
+        <h3
+          data-testid="finance-dunning-batch-email-section"
+          style={{ fontSize: "0.95rem", margin: "0.85rem 0 0.35rem" }}
+        >
+          Batch-E-Mail (M4 Slice 5c)
+        </h3>
         <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginTop: 0, marginBottom: "0.45rem" }}>
           <code>POST /finance/dunning-reminder-run/send-emails</code> — pro Zeile wie Slice <strong>5a</strong> mit explizitem <code>toEmail</code> und eigenem <code>idempotencyKey</code> bei <code>EXECUTE</code>. Spec:{" "}
           <a href={repoDocHref("docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md")}>M4-BATCH-DUNNING-EMAIL-SPEC</a>. Bei <strong>OFF</strong> gesperrt wie Mahnlauf.
@@ -375,6 +380,7 @@ export function FinanceDunningGrundeinstellungenPanel({
         <label style={{ display: "block", marginBottom: "0.45rem", fontSize: "0.78rem" }}>
           items[] (JSON, max. 25)
           <textarea
+            data-testid="finance-dunning-batch-email-items-json"
             value={dunningBatchEmailItemsJson}
             onChange={(e) => setDunningBatchEmailItemsJson(e.target.value)}
             aria-label="Batch-E-Mail items JSON"
@@ -387,11 +393,17 @@ export function FinanceDunningGrundeinstellungenPanel({
           <button type="button" disabled={busy || !candidatesData?.candidates?.length} onClick={onPrefillBatchEmailItemsFromCandidates}>
             Items aus Kandidaten (Platzhalter-E-Mail)
           </button>
-          <button type="button" disabled={busy || batchMahnlaufDisabled} onClick={onDunningBatchEmailDryRun}>
+          <button
+            type="button"
+            data-testid="finance-dunning-batch-email-dry-run"
+            disabled={busy || batchMahnlaufDisabled}
+            onClick={onDunningBatchEmailDryRun}
+          >
             Batch-E-Mail Dry-Run
           </button>
           <button
             type="button"
+            data-testid="finance-dunning-batch-email-execute"
             disabled={busy || batchMahnlaufDisabled || !canRecordDunningReminder}
             onClick={onDunningBatchEmailExecute}
           >
@@ -399,7 +411,9 @@ export function FinanceDunningGrundeinstellungenPanel({
           </button>
         </div>
         {dunningBatchEmailResultJson.trim() ? (
-          <FinanceCollapsibleJson summary="Letzter Batch-E-Mail-Lauf (send-emails)" json={dunningBatchEmailResultJson} />
+          <div data-testid="finance-dunning-batch-email-result">
+            <FinanceCollapsibleJson summary="Letzter Batch-E-Mail-Lauf (send-emails)" json={dunningBatchEmailResultJson} />
+          </div>
         ) : null}
 
       </div>

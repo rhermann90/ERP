@@ -6,6 +6,12 @@ Dieses Dokument wird nach jedem abgeschlossenen Entwicklungsschritt aktualisiert
 
 ---
 
+## Arbeitsweise
+
+Um **Code und Tests** gegenüber ausufernder Doku zu priorisieren — bei gleichbleibender Einhaltung der Repo- und Go-Live-Erwartungen — siehe [workflow-code-first-ohne-qualitaetsverlust.md](./workflow-code-first-ohne-qualitaetsverlust.md).
+
+---
+
 ## Schritt 1 — Technische Basis / CI-Parität (abgeschlossen, Risiken gemindert)
 
 ### Ergebnis
@@ -92,6 +98,7 @@ Dieses Dokument wird nach jedem abgeschlossenen Entwicklungsschritt aktualisiert
 1. **PR-Hygiene:** Thematisch getrennte PRs; je PR `npm run verify:ci`, bei Persistenz `npm run verify:ci:local-db` (Compose-Host **15432**) — siehe [`docs/runbook/ci-and-persistence-tests.md`](../runbook/ci-and-persistence-tests.md). Legacy-WIP-Branch `feat/wip-recovery-from-stash-2026-04-21`: **Wave3-13** — Abgleich `origin/main..origin/feat/wip-recovery-from-stash-2026-04-21` ergab **keine** Commits außerhalb von `main`; Branch kann im Remote verworfen oder lokal archiviert werden (kein Split nötig). `main` ist Integrationslinie.
 2. **Merge / Remote-Evidenz:** PR mit grünem GitHub-Job **`backend`** und **`e2e-smoke`** zum PR-Head (§5a [`qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md)); Review [`review-checklist-finanz-pr.md`](../contracts/review-checklist-finanz-pr.md). **`generated/prisma`** nicht committen.
 3. **Nächstes PL-Inkrement nach Merge:** weiter laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) — **Default-Fachstrang: Option A** (M4 / §8.10); **nicht** parallel **8.4(2–6)** oder **Pfad C** ohne Gate; Backlog siehe unten **Danach in Aussicht**.
+4. **Plan „Nächste Entwicklungsschritte“ (Repo / Agent):** Vor Merge lokal **`npm run verify:ci`** und **`npx playwright test e2e/login-finance-smoke.spec.ts`**; am PR-Head GitHub **`backend`** + **`e2e-smoke`**. **PL 5c / Mandanten-Go Massen-E-Mail** nur nach Agenda [`m4-slice-5c-pl-mandanten-go.md`](../runbooks/m4-slice-5c-pl-mandanten-go.md) und Checkliste [`compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) — **kein** Repo-Ersatz für StB/DSB/PL (siehe **PL-/Team-Touchpoint** unten). **Optional:** weitere E2E oder Shell-**GET** nur mit klarer OpenAPI in [`api-contract.yaml`](../api-contract.yaml), **eigener PR**, strikt getrennt von Finanz-Schreibpfaden — **Parallele Spur** unten und [`workflow-code-first-ohne-qualitaetsverlust.md`](./workflow-code-first-ohne-qualitaetsverlust.md).
 
 ### Nach Merge (optional Schritt 4 — Shell)
 
@@ -124,6 +131,9 @@ Dieses Dokument wird nach jedem abgeschlossenen Entwicklungsschritt aktualisiert
 - **Gemergt 2026-04-27 (UTC):** PR [#55](https://github.com/rhermann90/ERP/pull/55) auf `main` (`194b33c`) — E2E Finanz-Smoke Tab **Fortgeschritten** (SoT-Preset **Angebotsversion**, **allowed-actions**); Actions [Run 25013895457](https://github.com/rhermann90/ERP/actions/runs/25013895457) grün (`backend`, `e2e-smoke`); **keine** neue P1-3-Meilenstein-Zeile (**kein** qualifizierender Finanz-Merge).
 - **Doku-Nachzug 2026-04-27 (UTC, `main` @ `bc391b2`):** P1-3 **Stand (Agent)** + Nachzug-**Agent-Abnahme** + Tempo an HEAD nach Merge-Kette **#51–#53** ([#53](https://github.com/rhermann90/ERP/pull/53) zuletzt); Actions [Run 25013116340](https://github.com/rhermann90/ERP/actions/runs/25013116340) grün (`backend`, `e2e-smoke`); **keine** neue P1-3-Meilenstein-Zeile **4**.
 - **Stand / Tempo 2026-04-28 (UTC):** `origin/main` @ [`ef6c16a`](https://github.com/rhermann90/ERP/commit/ef6c16ad2d7179c96e37c3bc9ceea45611fb167e) — Folgemerges [#48](https://github.com/rhermann90/ERP/pull/48) (Wave3-13-Doku), [#50](https://github.com/rhermann90/ERP/pull/50) (E2E Finanz-Smoke erweitert), [#61](https://github.com/rhermann90/ERP/pull/61) (Dependabot dev-deps), zuletzt [#49](https://github.com/rhermann90/ERP/pull/49) (Doku parallel-agent-a); Agent-Session: `npm run verify:ci`, `npm run verify:ci:local-db`, `npx playwright test e2e/login-finance-smoke.spec.ts` Exit **0**; **keine** neue P1-3-Meilenstein-Zeile (**kein** qualifizierender Finanz-Merge).
+- **Agent-Abnahme (Plan „Nächste Schritte Finanz“, 2026-04-28 UTC):** `git fetch origin main`; `origin/main` @ [`c4d551e`](https://github.com/rhermann90/ERP/commit/c4d551e20ba2efa59335abf5d2fd7eca0c7b2319); `npm run verify:ci`, `npm run verify:ci:local-db`, `npx playwright test e2e/login-finance-smoke.spec.ts` — jeweils Exit **0**; PR-Head-Grün (`backend`, `e2e-smoke`) am offenen Branch wie üblich per GitHub prüfen; **keine** neue P1-3-Meilenstein-Zeile (**kein** qualifizierender Finanz-Merge in dieser Agent-Session).
+- **Agent-Abnahme (Plan „Nächste Entwicklungsschritte“, 2026-04-28 UTC):** Arbeitskopie `main` @ [`c4d551e`](https://github.com/rhermann90/ERP/commit/c4d551e20ba2efa59335abf5d2fd7eca0c7b2319); `npm run verify:ci` Exit **0**; `npx playwright test e2e/login-finance-smoke.spec.ts` Exit **0**; unter **Nächster Schritt** Punkt **4** ergänzt (Verify/e2e-smoke, PL-5c-Anker, optionale Coding-Spur); PR-Head-Grün (`backend`, `e2e-smoke`) wie üblich in GitHub prüfen; **kein** Mandanten-Go-Bescheid durch Agent; **keine** neue P1-3-Meilenstein-Zeile.
+- **Agent-Abnahme (Wave3/Option-A-Plan, 2026-04-28 UTC):** `origin/main` — GitHub Actions [Run 25074795490](https://github.com/rhermann90/ERP/actions/runs/25074795490): Jobs **backend** und **e2e-smoke** **success**; lokale Arbeitskopie @ [`c4d551e`](https://github.com/rhermann90/ERP/commit/c4d551e20ba2efa59335abf5d2fd7eca0c7b2319): `npm run verify:ci`, `npm run verify:ci:local-db`, `npx playwright test e2e/login-finance-smoke.spec.ts` — jeweils Exit **0**; **keine** neue P1-3-Meilenstein-Zeile (**kein** qualifizierender Finanz-Merge).
 
 - **GitHub-Evidenz am PR-Head:** Jobs **`backend`** und **`e2e-smoke`** grün; §5a [`qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md), Review [`review-checklist-finanz-pr.md`](../contracts/review-checklist-finanz-pr.md).
 - **Agent-Abnahme (Tool, 2026-04-27 — Acht-Schritte-Plan):** `npm run verify:ci` Exit **0**; `npm run verify:ci:local-db` Exit **0** (Postgres **127.0.0.1:15432**); `npx playwright test e2e/login-finance-smoke.spec.ts` Exit **0** — lokale Parität zur GitHub-PR-Head-Evidenz `backend` / `e2e-smoke`; §5a und Finanz-Review weiterhin manuell am PR ([`qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md), [`review-checklist-finanz-pr.md`](../contracts/review-checklist-finanz-pr.md)).
@@ -132,6 +142,7 @@ Dieses Dokument wird nach jedem abgeschlossenen Entwicklungsschritt aktualisiert
 
 ### PL-/Team-Touchpoint (ca. 15 Min, Option A)
 
+- **Repo-Anker (Agenda + Checklistenlinks):** [`docs/runbooks/m4-slice-5c-pl-mandanten-go.md`](../runbooks/m4-slice-5c-pl-mandanten-go.md).
 - **Agent (2026-04-28):** [`compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) enthält den Punkt **FIN-4 / Massen-E-Mail (M4 Slice 5c)**; Agenda-Vorschlag unten bleibt kanonisch — **Mandanten-Produktiv-Go** für 5c weiterhin **PL + StB/DSB** (kein Repo-Ersatz).
 - **Ziel:** Tempo durch **Entscheidung**, nicht durch parallele Groß-PRs.
 - **Agenda-Vorschlag (copy-paste):** (1) **M4 Slice 5c** (Massen-E-Mail) ist im Repo umgesetzt — **Mandanten-Produktiv** ja/nein und SMTP/Idempotenz-Betrieb klären; (2) vor Live-Schaltung **5c** die Checkliste [`compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) mit **StB / DSB / PL**; (3) weiteres Mahn-UX nur nach expliziter PL-Priorität — [`FOLLOWUP-M4-DUNNING-UX-GRUNDEINSTELLUNGEN-TAB.md`](../tickets/FOLLOWUP-M4-DUNNING-UX-GRUNDEINSTELLUNGEN-TAB.md).

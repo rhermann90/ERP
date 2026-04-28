@@ -26,7 +26,18 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await expect(page.getByRole("heading", { name: /Grundeinstellungen Mahnlauf \(SEMI, ADR-0011\)/i })).toBeVisible({
       timeout: 10_000,
     });
-    await expect(page.getByRole("heading", { name: /Batch-E-Mail \(M4 Slice 5c\)/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("finance-dunning-batch-email-section")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("finance-dunning-batch-email-dry-run")).toBeVisible({ timeout: 10_000 });
+
+    await page.getByLabel("asOfDate fuer Mahnlauf und Kandidaten").fill("2099-12-31");
+    await page.getByRole("button", { name: "Kandidaten laden (GET)" }).click();
+    await expect(page.getByText("Rohantwort GET /finance/dunning-reminder-candidates", { exact: true })).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.getByRole("button", { name: "Items aus Kandidaten (Platzhalter-E-Mail)" }).click();
+    await page.getByTestId("finance-dunning-batch-email-dry-run").click();
+    await expect(page.getByTestId("finance-dunning-batch-email-result")).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('[data-testid="finance-dunning-batch-email-result"]')).toContainText("DRY_RUN");
 
     await page.getByRole("tab", { name: /^Mahnwesen$/i }).click();
     await expect(page.getByRole("heading", { name: /Mahn-Ereignis \(FIN-4\)/i })).toBeVisible({ timeout: 10_000 });

@@ -1,7 +1,7 @@
 # ERP — Systembeschreibung (konsolidiert)
 
 **Version:** 2.0 konsolidiert  
-**Stand:** 2026-04-14  
+**Stand:** 2026-04-28  
 **Status:** Verbindliche fachliche und planerische Gesamtquelle für dieses Repository.
 
 ## Teil 0 — Zweck, Geltung und Lesereihenfolge
@@ -107,7 +107,7 @@ Die Reihenfolge maximiert **Traceability** und minimiert **Rework**. FIN-x bezie
 | 10 | **Kunde / Projekt / Stammdaten** | Vollständige CRM-/Projektstammdaten gemäß Teil I §3–5 | Ergänzt technische Slices. |
 | 11 | **Rollen fein** | Feingranulare `actionIds` / SoD (**11**, **8.x**) | Nachdem alle Schreibpfade existieren. |
 
-### Repo-Snapshot (Synchronisation Stand 2026-04-14)
+### Repo-Snapshot (Synchronisation Stand 2026-04-28)
 
 Abgleich der **Reihenfolge** oben mit Tickets/ADR/QA im Repository (nur Orientierung; verbindlich bleibt die fachliche Tabelle).
 
@@ -116,16 +116,16 @@ Abgleich der **Reihenfolge** oben mit Tickets/ADR/QA im Repository (nur Orientie
 | 1 | Phase 2 / LV–Aufmass | **Inc 1 (Aufmass):** abgeschlossen — `docs/adr/0004-measurement-lifecycle-phase2-inc1.md`, QA `docs/contracts/qa-persistence-increment-1.md`. **Inc 2 (LV §9):** ADR **ACCEPTED** — `docs/adr/0005-lv-hierarchy-phase2-inc2.md`; Umsetzung Domäne/API (`src/services/lv-service.ts`, `src/api/app.ts`), Prisma-Modell, Seed/Traceability. Tests: `test/app.test.ts` (SoT/Text-Invarianten), `test/persistence.integration.test.ts` (Seed §9/Aufmass, Negativfall **cross-tenant LV-FK** für Strukturknoten). **Hinweis:** Spalte „erfüllt“ im **`FIN-2-START-GATE`** (G1–G10) trägt weiterhin nur die **Projektleitung** nach formeller Abnahme ein — `docs/tickets/FIN-2-START-GATE.md`. |
 | 2 | Angebot / Nachtrag / Status | **TICKET-002** Iteration 1 geschlossen — `docs/tickets/TICKET-002-nachtrag-lifecycle-v12.md`, `docs/adr/0002-nachtrag-lifecycle.md`. API-/Tenant-Szenarien u. a. in `test/app.test.ts`; SoT erlaubte Aktionen über `AuthorizationService`. |
 | 3 | FIN-0 bis FIN-1 | **FIN-0:** Verträge/Stubs/QA — `docs/api-contract.yaml`, `docs/adr/0007-finance-persistence-and-invoice-boundaries.md`, `docs/contracts/qa-fin-0-gate-readiness.md` (§3 Regression/CI, §5a/§5b Merge-Evidence), `test/finance-fin0-stubs.test.ts`; Koordination Sprint: `docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md`. **FIN-1** (Zahlungsbedingungen persistiert/versioniert): im Lieferplan als nächster Architekturstrang nach Vertrags-Fundament; Umsetzungsstand im Repo fortlaufend mit OpenAPI/ADR abgleichen. |
-| 4 | FIN-2 | Implementierung **out of scope** bis Gate G1–G10 alle *ja* — `docs/tickets/FIN-2-START-GATE.md` (Nachweis-Pfade **§8**; Spalte „erfüllt“ = PL). |
-| 5 | FIN-3 | Noch nicht begonnen (Domäne Teil I §8.7–8.9). |
-| 6 | FIN-4 | Noch nicht begonnen (Mahnwesen). |
+| 4 | FIN-2 | **FIN-2-Start-Gate** G1–G10 **ja** inkl. Freigabezeile (2026-04-21) — `docs/tickets/FIN-2-START-GATE.md`. **Umgesetzter Kernslice (M2/Wave3):** Rechnungsentwurf, Lesen, **`BOOK_INVOICE`** / `POST /invoices/{invoiceId}/book` (**ENTWURF → GEBUCHT_VERSENDET**), **8.4(1)** + USt/Brutto, optional **B2-1a** `skontoBps`, Traceability fail-closed, Persistenz/Audit — ADR-0007 **Status**, `src/services/invoice-service.ts`, `docs/contracts/finance-fin0-openapi-mapping.md`, Tests u. a. `test/finance-fin0-stubs.test.ts` / `test/persistence.integration.test.ts`. **Bewusst nicht** dieser Slice: vollständiger **8.4(2–6)**-Motor, Zwischenstatus **GEPRUEFT/FREIGEGEBEN** (Pfad C, eigenes Gate), belastbarer End-to-End **LV→Rechnung** — siehe ADR-0007 **Non-Goals** / **§8**, [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md), Zeile **FIN-2** in [`docs/PHASENARBEITSPLAN-MVP-V1.3-FINANZ.md`](docs/PHASENARBEITSPLAN-MVP-V1.3-FINANZ.md). |
+| 5 | FIN-3 | **M3 Intake-Slice (Teil I §8.7):** `POST /finance/payments/intake` + `Idempotency-Key`, `GET /invoices/{id}/payment-intakes`, Persistenz `payment_intakes`, SoT **`RECORD_PAYMENT_INTAKE`**, Status **TEILBEZAHLT** / **BEZAHLT**; Überzahlung als Domainfehler **`PAYMENT_EXCEEDS_OPEN_AMOUNT`**; Audit bei Zahlungsmutationen — `src/services/payment-intake-service.ts`, `docs/contracts/finance-fin0-openapi-mapping.md`, Tests u. a. `test/finance-fin0-stubs.test.ts` / `test/persistence.integration.test.ts`. **Nicht** Anspruch dieses Slices: vollständige **8.8–8.9** (z. B. Mehrfachbelege pro Bankumsatz), **Bankfile**, **PSP** / Chargebacks — siehe **`docs/adr/0007-finance-persistence-and-invoice-boundaries.md`**. |
+| 6 | FIN-4 | **Wave 3 (FIN-4 / M4):** verbindlicher Code-/Contract-Umfang abgeschlossen — ADR-0009 (Konfig), ADR-0010 (Vorlagen/Footer/E-Mail/Mahnlauf), ADR-0011 (SEMI), Batch 5c (`docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md`); Abgleich `docs/tickets/P1-FINANCE-WAVE3-POST-RELEASE-PLAN.md`, `docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`. **Mandanten-/Produktiv-Go** weiterhin über `Checklisten/compliance-rechnung-finanz.md` (StB/DSB/PL). §8.10-Folgeslices (Option A), B5-PDF, 8.4(2–6), Pfad C, Audit-Verhalten = eigene Gates/Backlog, nicht Wave-3-Pflichtrest. |
 | 7 | FIN-5 | Noch nicht begonnen (Steuer-Sonderfälle MVP). |
 | 8 | FIN-6 / Härtung | Teilweise vorbereitend (Logging/CORS/FIN-0-Stubs); vollständige §15-Abnahme offen. |
 | 9 | Exporte voll | Skeleton/Export-Service laut Codepfad; XRechnung/GAEB/DATEV vollständig offen. |
 | 10 | Kunde / Projekt / Stammdaten | Kernentitäten fachlich in Teil I §3–5; technische UI/Stammdaten-Verwaltung überwiegend **noch nicht** als eigenständiger CRM-Strang abgeschlossen — Traceability-Tests in `test/persistence.integration.test.ts` / `test/app.test.ts` als aktueller Nachweis für angebundene Ketten. |
 | 11 | Rollen fein | Grobe Rollen in Auth/Tests; Feingranularität **11** / SoD nach Abschluss der Schreibpfade. |
 
-**Koordination aktueller Sprint:** `docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md` (Priorität FIN-0 stabil, Phase-2-Isolation, kein FIN-2-Business vor Gate).
+**Koordination / Sprint-Kontext:** `docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md` (historischer Sprint-Fokus). **FIN-2:** Start-Gate erfüllt; Kernbuchung nach Gate im Repo — weitere FIN-2-Erweiterungen (8.4(2–6), Pfad C, LV→Rechnung-E2E) nur nach PL laut [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md).
 
 **Parallele Pflege:** Offene Risiken und Annahmen fortlaufend in **Teil I §16** pflegen; ADRs bei Architekturentscheidungen.
 

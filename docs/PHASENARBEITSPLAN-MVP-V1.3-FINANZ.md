@@ -69,7 +69,7 @@
 | **FIN-0** | M0 | ADR + OpenAPI + Test-/Gate-Strategie | Verträge, ADRs 0007–0009 (+ **0010** M4 E-Mail/Vorlagen), Stub-Matrix, Gate-Readiness | Phantom-Codes, Drift OpenAPI ↔ Implementierung | Bei jedem API-Change: G8-Bündel + Matrix; §5a-Evidenz im PR |
 | **FIN-1** | M1 | Versionierte Konditionen, append-only | `payment_terms_*` in Postgres, APIs; PWA-Demo angebunden; **M1-DoD:** Persistenz-`it` „FIN-1 M1: zwei Zahlungsbedingungs-Versionen …“ in [`test/persistence.integration.test.ts`](../test/persistence.integration.test.ts) (zwei Versionen, Rechnung auf **v1**, Buchung behält **v1**) | Rest optional: UX/Copy in Finanz-Vorbereitung zu PT; §8.5 | Nach PL: nächster Strang laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) (Default **A**); kein Mix mit 8.4(2–6)/Pfad C ohne Gate |
 | **FIN-2** | M2 | Gebuchte Rechnung, 8.4-Kette, E2E aus LV-Kette | Entwurf, Buchung `BOOK_INVOICE`, 8.4(1)+USt/Brutto, **B2-1a** `skontoBps` (Wave3 Pfad A laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md)); PWA Shell + Finanz-Vorbereitung (SoT, Skonto optional API-first) | **8.4(2–6)**-Motor; Pfad GEPRUEFT/FREIGEGEBEN (**Pfad C**, eigenes Gate); belastbarer **LV→Rechnung**-E2E | PL: nach Wave3 **nicht** parallel 8.4-Tiefe + Pfad C mischen; nächste Priorität **FIN-4 Mini-Slice (Phase 3)** *oder* bewusst 8.4(2–6) / Konvergenz — siehe Wave3-Non-Goals |
-| **FIN-3** | M3 | Zahlung, Status, Idempotenz 8.7 | Intake POST, Liste GET, SoT, Status TEILBEZAHLT/BEZAHLT; PWA SoT-gekoppelt | Überzahlung / Regeln explizit; Bankfile out of scope, Modell dennoch konsistent | Domainfälle + Tests; Audit bei Zahlungsmutationen |
+| **FIN-3** | M3 | Zahlung, Status, Idempotenz 8.7 | Intake POST, Liste GET, SoT, Status TEILBEZAHLT/BEZAHLT; PWA SoT-gekoppelt | **Bankfile** und vollständige **8.8–8.9** bewusst out of scope (ADR-0007); Intake: Überzahlung als Domainfehler **`PAYMENT_EXCEEDS_OPEN_AMOUNT`**, Audit + zentrale Domainfälle in Tests | Backlog 8.8–8.9 / PSP gesondert; optional Review Randfälle (z. B. Replay/Parallelität) |
 | **FIN-4** | M4 | Mahnwesen 8.10 inkl. Konfig, Vorlagen, E-Mail | Slice: `dunning_reminders`, `dunning_tenant_stage_config`, `dunning_tenant_stage_templates`, GET/POST Mahn, **`GET|PUT|PATCH|DELETE`** Konfig-Stufen (9× inkl. Soft-Delete), **Audit+Tx** bei Schreiben, SoT **RECORD_DUNNING_REMINDER**, **ADR-0009** (Kern); **`GET|PUT /finance/dunning-reminder-config`** + Stufen-PATCH/DELETE; M4 **Vorlagen** `GET` + `PATCH` Text; M4 **E-Mail-Footer-Stammdaten** `GET|PATCH` [`/finance/dunning-email-footer`](./tickets/M4-MINI-SLICE-3-EMAIL-FOOTER-2026-04-23.md); Vorschau/Stub/SMTP — **ADR-0010** | **M4** (Mahnlauf-Orchestrierung Slice 5b, Rendering, System-Rechtshinweis im Footer) | **Nächster Schritt:** PL laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) — Default M4 weiter; kein Mix mit 8.4(2–6) oder Pfad C |
 | **FIN-5** | M5 | Steuer-Sonderfall 8.16 oder Fail-Closed | In §1 nicht als erledigt geführt | Entscheidung + ADR/Flag | Ein Sonderfall produktiv **oder** Fail-Closed dokumentieren |
 | **FIN-6** | M6 | Härtung 8.14, 12, 15; PWA-Regeln | Audit fail-hard, README zu 8.14/PWA | Feldklassifikation §8.14; Gesamt-QA §15 | [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) mit PL; Compliance-Vorbereitung |
@@ -188,8 +188,8 @@
 
 **DoD:**
 
-- [ ] Buchung nur mit erlaubter SoT und korrektem Status
-- [ ] Offene 8.4-Lücken im Ticket/ADR sichtbar (kein stiller Partial-Go)
+- [x] Buchung nur mit erlaubter SoT und korrektem Status — **`BOOK_INVOICE`** nur bei Rechnungsstatus **ENTWURF**; `POST /invoices/{invoiceId}/book` **ENTWURF → GEBUCHT_VERSENDET** nach `TraceabilityService.assertInvoiceTraceability`; Rollen ADMIN / GESCHAEFTSFUEHRUNG / BUCHHALTUNG; Nachweise: ADR-0007 **Status**, [`action-contracts.json`](./contracts/action-contracts.json), [`finance-fin0-openapi-mapping.md`](./contracts/finance-fin0-openapi-mapping.md), Tests u. a. [`test/finance-fin0-stubs.test.ts`](../test/finance-fin0-stubs.test.ts) und Persistenz-Suite.
+- [x] Offene 8.4-Lücken im Ticket/ADR sichtbar (kein stiller Partial-Go) — explizit in **ADR-0007** (**Non-Goals**, **Status** Kopf: B2-1a vs. vollständiger **8.4(2–6)**-Motor), **§8 Rechnungsstatus** (GEPRUEFT/FREIGEGEBEN „Variante B / später“), [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) (Optionen **B**/**C**, Non-Goals); **Lücke / Risiko** in der Tabelle §1 (Zeile **FIN-2**): belastbarer **LV→Rechnung**-E2E.
 
 ---
 
@@ -205,11 +205,11 @@
 
 **QA:** E1; Stichprobe Idempotenz + Fehlercodes.
 
-**Review:** E2; SoT und Mapping.
+**Review:** E2; SoT und Mapping. **Parallelität / Idempotenz:** DB-Unique `(tenant_id, idempotency_key)` und Replay-Pfad nach Prisma-Unique-Kollision im Intake-Service sind implementiert und über Tests abgedeckt; weitergehende Last-/Parallelitäts-Suites = optionales Folge-Inkrement (nicht MVP-Pflichtrest).
 
 **DoD:**
 
-- [ ] Statuswechsel und Überzahlungs-Policy dokumentiert oder als Domainfehler abgebildet
+- [x] Statuswechsel und Überzahlungs-Policy dokumentiert oder als Domainfehler abgebildet — **Umsetzung:** Überzahlung = Domainfehler `PAYMENT_EXCEEDS_OPEN_AMOUNT` (`docs/contracts/error-codes.json`, Mapping `docs/contracts/finance-fin0-openapi-mapping.md`); Status **TEILBEZAHLT** / **BEZAHLT** nach Intake; Audit bei Zahlungsmutationen (`STATUS_CHANGED` mit Zahlungs- und Statusfeldern).
 
 ---
 

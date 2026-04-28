@@ -6,6 +6,8 @@
 
 **Tenant-Isolation:** Stichprobe **Cross-Tenant-Header** in derselben Testdatei (`TENANT_SCOPE_VIOLATION`); Postgres-Tenant-Lecks in [`test/persistence.integration.test.ts`](../../test/persistence.integration.test.ts).
 
+**Hinweis Dateiname:** „FIN-0 … Stub“ ist historisch. **`POST /finance/payments/intake`** und **`GET /invoices/{invoiceId}/payment-intakes`** sind **FIN-3** produktiv ([`finance-fin0-openapi-mapping.md`](./finance-fin0-openapi-mapping.md), ADR-0007). **`POST`/`GET /invoices`** sind **FIN-2** produktiv — die Matrix listet weiterhin Edge/Negative über dieselbe Testdatei.
+
 ---
 
 ## Routenüberblick
@@ -13,9 +15,10 @@
 | Route | Methode | OpenAPI `operationId` | Implementierung |
 | --- | --- | --- | --- |
 | `/finance/payment-terms/versions` | POST | `finPaymentTermsVersionCreate` | **FIN-1** — [`src/api/finance-payment-terms-routes.ts`](../../src/api/finance-payment-terms-routes.ts) |
-| `/invoices` | POST | `finInvoiceDraftCreate` | FIN-0 Stub (fail-closed) |
-| `/invoices/{invoiceId}` | GET | `finInvoiceGet` | FIN-0 Stub |
-| `/finance/payments/intake` | POST | `finPaymentIntakeCreate` | FIN-0 Stub (fail-closed) |
+| `/invoices` | POST | `finInvoiceDraftCreate` | **FIN-2** — [`src/api/finance-invoice-routes.ts`](../../src/api/finance-invoice-routes.ts), [`src/services/invoice-service.ts`](../../src/services/invoice-service.ts) |
+| `/invoices/{invoiceId}` | GET | `finInvoiceGet` | **FIN-2** — [`src/api/finance-invoice-routes.ts`](../../src/api/finance-invoice-routes.ts), [`src/services/invoice-service.ts`](../../src/services/invoice-service.ts) |
+| `/finance/payments/intake` | POST | `finPaymentIntakeCreate` | **FIN-3** — [`src/api/finance-payment-intake-routes.ts`](../../src/api/finance-payment-intake-routes.ts), [`src/services/payment-intake-service.ts`](../../src/services/payment-intake-service.ts), [`src/persistence/payment-intake-persistence.ts`](../../src/persistence/payment-intake-persistence.ts) |
+| `/invoices/{invoiceId}/payment-intakes` | GET | `finInvoicePaymentIntakesList` | **FIN-3** — [`src/api/finance-invoice-routes.ts`](../../src/api/finance-invoice-routes.ts), [`src/services/invoice-service.ts`](../../src/services/invoice-service.ts) |
 | `/invoices/{invoiceId}/dunning-reminders` | GET | `finInvoiceDunningRemindersList` | FIN-4 — [`src/api/finance-invoice-routes.ts`](../../src/api/finance-invoice-routes.ts) |
 | `/invoices/{invoiceId}/dunning-reminders` | POST | `finInvoiceDunningReminderCreate` | FIN-4 Schreibpfad — [`src/services/dunning-reminder-service.ts`](../../src/services/dunning-reminder-service.ts) |
 | `/invoices/{invoiceId}/dunning-reminders/email-preview` | POST | `finInvoiceDunningReminderEmailPreview` | M4 Slice 4 — [`src/services/dunning-reminder-email-service.ts`](../../src/services/dunning-reminder-email-service.ts) |
@@ -57,6 +60,15 @@ Reihenfolge = Reihenfolge der `it(…)`-Blöcke.
 | GET /invoices/:id rejects tenant header mismatch with 403 | Negative | GET `/invoices/{id}` | `403` / `TENANT_SCOPE_VIOLATION` |
 | POST /invoices returns 400 VALIDATION_FAILED when reason too short | Edge | POST `/invoices` | `400` / `VALIDATION_FAILED` |
 | rejects invalid Bearer with 401 UNAUTHORIZED (POST /finance/payment-terms/versions) | Negative | POST `/finance/payment-terms/versions` | `401` / `UNAUTHORIZED` |
+| GET /invoices/:invoiceId/payment-intakes returns empty list before payments (FIN-3 read) | Happy | GET `/invoices/{invoiceId}/payment-intakes` | `200` + `{ "data": [] }` |
+| GET /invoices/:invoiceId/payment-intakes lists row after intake (no idempotency key in body) | Happy | GET `/invoices/{invoiceId}/payment-intakes` | `200`, Einträge ohne `idempotencyKey` in der Antwort |
+| GET /invoices/:invoiceId/payment-intakes returns 404 for unknown invoice | Negative | GET `/invoices/{invoiceId}/payment-intakes` | `404` / `DOCUMENT_NOT_FOUND` |
+| POST /finance/payments/intake records full payment for seed invoice (FIN-3) | Happy | POST `/finance/payments/intake` | `201`, `invoiceStatus` **BEZAHLT** wenn Vollzahlung |
+| POST /finance/payments/intake is idempotent (200 replay) | Happy | POST `/finance/payments/intake` | zweiter Aufruf gleicher Key+Body → `200`, gleicher JSON-Body wie erstes `201` |
+| POST /finance/payments/intake returns PAYMENT_INTAKE_IDEMPOTENCY_MISMATCH when key reused with different amount | Edge | POST `/finance/payments/intake` | `400` / `PAYMENT_INTAKE_IDEMPOTENCY_MISMATCH` |
+| POST /finance/payments/intake returns PAYMENT_EXCEEDS_OPEN_AMOUNT when overpaying | Negative | POST `/finance/payments/intake` | `400` / `PAYMENT_EXCEEDS_OPEN_AMOUNT` |
+
+*Die FIN-3-`it`-Blöcke stehen im Quellfile von `finance-fin0-stubs.test.ts` **nach** den Mahn-Tests; die Tabelle listet sie am Tabellenende gebündelt.*
 
 ---
 
@@ -65,9 +77,10 @@ Reihenfolge = Reihenfolge der `it(…)`-Blöcke.
 | Route | Erwartung | Hinweis |
 | --- | --- | --- |
 | POST `/finance/payment-terms/versions` | `201` + Payload | **FIN-1** umgesetzt (`payment_terms_*`, ADR-0008) |
-| POST `/invoices` | `201` + `invoiceId` nach FIN-2/Gate | bis dahin Stub fail-closed |
-| GET `/invoices/{invoiceId}` | `200` nach FIN-2 | bis dahin Stub |
-| POST `/finance/payments/intake` | `201` nach FIN-3/Gate | bis dahin Stub |
+| POST `/invoices` | `201` + `invoiceId` bei gültiger Traceability | **FIN-2**; ohne Kette `422` / `TRACEABILITY_LINK_MISSING` (Edge unten) |
+| GET `/invoices/{invoiceId}` | `200` Rechnungskopf | **FIN-2** |
+| POST `/finance/payments/intake` | `201` bzw. Replay `200` (Idempotenz), Zahlungsstatus **TEILBEZAHLT**/**BEZAHLT** | **FIN-3**; Persistenz-Stichproben in [`test/persistence.integration.test.ts`](../../test/persistence.integration.test.ts) |
+| GET `/invoices/{invoiceId}/payment-intakes` | `200` + Liste (ohne Idempotency-Key-Felder in Zeilen) | **FIN-3**; Leserecht wie Rechnung |
 | GET `/invoices/{invoiceId}/dunning-reminders` | `200` + `{ "data": [] }` (oder persistierte Zeilen) | FIN-4; Postgres-Stichprobe in [`test/persistence.integration.test.ts`](../../test/persistence.integration.test.ts) |
 | POST `/invoices/{invoiceId}/dunning-reminders/email-preview` | `200` + `data.fullPlainText` | M4 Slice 4; Stubs + Persistenz-`it` |
 | POST `/invoices/{invoiceId}/dunning-reminders/send-email-stub` | `200` + `outcome: NOT_SENT_NO_SMTP` nach Footer-Setup; sonst `400` `DUNNING_EMAIL_FOOTER_NOT_READY` | M4 Slice 4; Stubs + Persistenz-`it` |
@@ -79,7 +92,7 @@ Reihenfolge = Reihenfolge der `it(…)`-Blöcke.
 
 ---
 
-## Edge (Stub / Validierung / Idempotenz)
+## Edge (Validierung / Idempotenz / Traceability)
 
 | Route | Fall | HTTP | `code` (Domain) |
 | --- | --- | --- | --- |
@@ -99,7 +112,9 @@ Reihenfolge = Reihenfolge der `it(…)`-Blöcke.
 | POST `/finance/payment-terms/versions` | Ungültiger Bearer | `401` | `UNAUTHORIZED` | ja |
 | POST `/invoices` | `x-tenant-id` ≠ Tenant im Token | `403` | `TENANT_SCOPE_VIOLATION` | ja |
 | POST `/finance/payments/intake` | `x-tenant-id` ≠ Tenant im Token | `403` | `TENANT_SCOPE_VIOLATION` | ja |
+| POST `/finance/payments/intake` | Betrag über offenem Saldo (Überzahlung) | `400` | `PAYMENT_EXCEEDS_OPEN_AMOUNT` | ja |
 | GET `/invoices/{invoiceId}` | Beliebige UUID, kein Dokument | `404` | `DOCUMENT_NOT_FOUND` | ja |
+| GET `/invoices/{invoiceId}/payment-intakes` | unbekannte `invoiceId` | `404` | `DOCUMENT_NOT_FOUND` | ja |
 | GET `/invoices/{invoiceId}` | `x-tenant-id` ≠ Tenant im Token | `403` | `TENANT_SCOPE_VIOLATION` | ja |
 | GET `/invoices/{invoiceId}/dunning-reminders` | gültige Rechnung, kein fremder Mandant | `200` | — | Persistenz-`it` (Tenant + leere Liste) |
 | POST `/invoices/{invoiceId}/dunning-reminders` | Rechnung **ENTWURF** (nicht mahnbereit) | `400` | `DUNNING_INVOICE_NOT_ELIGIBLE` | ja |
