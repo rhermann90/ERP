@@ -52,6 +52,7 @@ Wann **nach** dem Merge auf `main` ausfüllen (noch in derselben Session oder di
 
 **Agent-Abnahme (Agent-A Doku-Welle Wave3-14, 2026-04-27 UTC):** `git fetch origin main`; Abgleich vor Merge #51: `origin/main` @ `cbacb7b`; Merge [#47](https://github.com/rhermann90/ERP/pull/47) nur [`P1-3-DOCS-MILESTONE-WAVE3.md`](./P1-3-DOCS-MILESTONE-WAVE3.md) + [`nächste-schritte.md`](../plans/nächste-schritte.md) (§5a-/Tempo-Evidenz zu #46); Tabelle **Zeilen 1–3** unverändert.
 
+
 **Agent-Abnahme (Session 2026-04-26):** erneuter `git fetch`/`git log` auf `origin/main` — kein neuer qualifizierter Finanz-Merge seit letztem Stand; Meilenstein-Zeilen unverändert; Regeln **FIN4** / **Punkt 5** und **`npm run verify:ci`** vor Merge auf `main` weiter verbindlich (siehe **Pflege (Agent)**).
 
 **Agent-Abnahme (Session-Folge 2026-04-26):** erneuter Abgleich `origin/main` (HEAD unverändert @ `7eddd03`); keine neuen Merges; Zeilen 1–3 weiter `—`; in derselben Session **`npm run verify:ci`** erneut ausgeführt (grün).
