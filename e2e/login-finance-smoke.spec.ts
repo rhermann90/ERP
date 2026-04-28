@@ -36,6 +36,9 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
       timeout: 10_000,
     });
 
+    await expect(page.getByLabel("entityType für allowed-actions")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByLabel("Dokument-ID für allowed-actions")).toBeVisible();
+
     await page.getByRole("button", { name: "Voreinstellung: Angebotsversion" }).click();
     await expect(page.getByLabel("entityType für allowed-actions")).toHaveValue("OFFER_VERSION");
 
