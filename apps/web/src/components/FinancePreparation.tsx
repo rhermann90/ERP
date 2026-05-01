@@ -93,8 +93,8 @@ const DOC_LINKS: { label: string; repoPath: string }[] = [
     repoPath: "docs/contracts/qa-fin-0-stub-test-matrix.md",
   },
   {
-    label: "MVP-Phasen (FIN-0 … FIN-6)",
-    repoPath: "docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md",
+    label: "MVP Finanz — Phasen und Arbeitsablauf (FIN-0 … FIN-6)",
+    repoPath: "docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md",
   },
   {
     label: "PL / System — Sprint-Snapshot (Koordination)",

@@ -1,6 +1,6 @@
 /**
  * Kurzübersicht: welche Finanz-Funktionen diese Vorbereitungsseite gegen das Backend ausführt.
- * Einordnung konsistent mit docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md (Kurz-Iststand) und
+ * Einordnung konsistent mit docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md Teil 1 (Kurz-Iststand) und
  * docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md (Non-Goals: kein vollständiger 8.4(2–6), kein M4-Mix).
  */
 export function FinanceFeatureMatrix() {

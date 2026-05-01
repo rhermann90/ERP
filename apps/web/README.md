@@ -77,7 +77,7 @@ npm run test     # Frontend-Unit-Tests (SoT, Session, Envelope, Text-Rendering)
 
 ## MVP Finanz (v1.3) — Frontend-Stand (Ist)
 
-Gelesen: [`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`](../docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md), [`docs/tickets/FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md). **Koordination / Gates:** [`docs/contracts/qa-fin-0-gate-readiness.md`](../docs/contracts/qa-fin-0-gate-readiness.md), [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](../docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md).
+Gelesen: [`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](../docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md), [`docs/tickets/FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md). **Koordination / Gates:** [`docs/contracts/qa-fin-0-gate-readiness.md`](../docs/contracts/qa-fin-0-gate-readiness.md), [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](../docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md).
 
 **Haupt-Shell (`#/`):** Dokument-ID + `entityType`, dann **„Allowed Actions laden“**. Schreibaktionen nur, wenn die gewählte `actionId` in der zuletzt geladenen Liste steht — Ausführung über **`executeActionWithSotGuard`** (u. a. **BOOK_INVOICE** → Buchung, **EXPORT_INVOICE**, Angebots-/Aufmass-/LV-Aktionen). Keine parallele „versteckte“ Buchung ohne SoT.
 
