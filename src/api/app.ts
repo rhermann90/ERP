@@ -337,10 +337,10 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     dunningTenantAutomationService,
     dunningReminderEmailService,
   );
-  const measurementService = new MeasurementService(repos, audit, lvRef, lvMeasurementPersistence);
-  const lvService = new LvService(repos, audit, lvMeasurementPersistence);
-  const exportService = new ExportService(repos, audit);
   const authorizationService = new AuthorizationService(repos);
+  const measurementService = new MeasurementService(repos, audit, lvRef, lvMeasurementPersistence);
+  const lvService = new LvService(repos, audit, lvMeasurementPersistence, authorizationService);
+  const exportService = new ExportService(repos, audit);
 
   registerPasswordResetRoutes(app, { getPrisma: () => prisma, audit });
 
@@ -373,6 +373,16 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
         reason: body.reason,
       });
       return reply.status(201).send(result);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.get("/lv/versions/:lvVersionId", async (request, reply) => {
+    try {
+      const params = request.params as { lvVersionId: string };
+      const result = lvService.getVersionSnapshotForHttpHeaders(request.headers, params.lvVersionId);
+      return reply.status(200).send(result);
     } catch (error) {
       return handleHttpError(error, request, reply);
     }

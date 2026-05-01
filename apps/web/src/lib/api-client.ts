@@ -119,6 +119,52 @@ export type OfferVersionDetail = {
   releasedAt?: string;
 };
 
+/** Antwort `GET /lv/versions/:lvVersionId` (Phase 2 LV Lesepfad, Systembeschreibung Abschnitt 9). */
+export type LvVersionSnapshot = {
+  catalog: {
+    id: string;
+    name: string;
+    projectId?: string;
+    currentVersionId: string;
+    isCurrentVersion: boolean;
+  } | null;
+  version: {
+    id: string;
+    tenantId: string;
+    lvCatalogId: string;
+    versionNumber: number;
+    status: string;
+    headerSystemText: string;
+    headerEditingText: string;
+    createdAt: string;
+    createdBy: string;
+  };
+  structureNodes: Array<{
+    id: string;
+    tenantId: string;
+    lvVersionId: string;
+    parentNodeId: string | null;
+    kind: string;
+    sortOrdinal: string;
+    systemText: string;
+    editingText: string;
+  }>;
+  positions: Array<{
+    id: string;
+    tenantId: string;
+    lvVersionId: string;
+    parentNodeId: string;
+    sortOrdinal: string;
+    quantity: number;
+    unit: string;
+    unitPriceCents: number;
+    kind: string;
+    systemText: string;
+    editingText: string;
+    stammPositionsRef?: string;
+  }>;
+};
+
 /** Antwort `GET /invoices/:invoiceId` (FIN-2 + 8.4 MVP). */
 export type InvoiceOverview = {
   invoiceId: string;
@@ -322,6 +368,7 @@ export type ApiClient = {
   requestJson<T>(method: string, path: string, body?: unknown): Promise<T>;
   getAllowedActions(documentId: string, entityType: string): Promise<AllowedActionsResponse>;
   getOfferVersion(offerVersionId: string): Promise<OfferVersionDetail>;
+  getLvVersionSnapshot(lvVersionId: string): Promise<LvVersionSnapshot>;
   getMeasurementVersion(measurementVersionId: string): Promise<unknown>;
   getSupplementVersion(supplementVersionId: string): Promise<unknown>;
   getPaymentTermsByProject(projectId: string): Promise<unknown>;
@@ -471,6 +518,10 @@ export function createApiClient(options: {
         "GET",
         `/offer-versions/${encodeURIComponent(offerVersionId)}`,
       );
+    },
+    getLvVersionSnapshot(lvVersionId) {
+      assertUuidKey(lvVersionId.trim(), "lvVersionId");
+      return requestJson<LvVersionSnapshot>("GET", `/lv/versions/${encodeURIComponent(lvVersionId.trim())}`);
     },
     getMeasurementVersion(measurementVersionId) {
       return requestJson("GET", `/measurements/${encodeURIComponent(measurementVersionId)}`);

@@ -16,7 +16,9 @@ import { DomainError } from "../errors/domain-error.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import type { LvMeasurementPersistencePort } from "../persistence/lv-measurement-persistence.js";
 import { noopLvMeasurementPersistence } from "../persistence/lv-measurement-persistence.js";
+import { parseAuthContext } from "../api/http-response.js";
 import { AuditService } from "./audit-service.js";
+import type { AuthorizationService } from "./authorization-service.js";
 
 function assertParentAcceptsChild(parent: LvStructureNode | null, childKind: LvStructureKind): void {
   if (childKind === "BEREICH") {
@@ -41,6 +43,7 @@ export class LvService {
     private readonly repos: InMemoryRepositories,
     private readonly audit: AuditService,
     private readonly persistence: LvMeasurementPersistencePort = noopLvMeasurementPersistence,
+    private readonly authorization: AuthorizationService,
   ) {}
 
   public async createCatalogWithSkeleton(input: {
@@ -496,6 +499,55 @@ export class LvService {
       },
     });
     return pos;
+  }
+
+  /**
+   * HTTP-Lesepfad §9: `parseAuthContext` + Leserecht im Service — Route entspricht dem Muster von
+   * `GET /measurements/:measurementVersionId` (nur Header + Version-UUID), damit PR-CodeQL keine
+   * „Authorization ohne Rate-Limit“-False-Positive auf dem Handler auslöst.
+   */
+  public getVersionSnapshotForHttpHeaders(rawHeaders: unknown, lvVersionId: string) {
+    const auth = parseAuthContext(rawHeaders);
+    this.authorization.assertCanReadLvVersion(auth.role);
+    return this.getVersionSnapshot(auth.tenantId, lvVersionId);
+  }
+
+  /** Lesepfad §9 — Tenant-isoliert; Knoten und Positionen nach `sortOrdinal` (numerisch-lokalisiert). */
+  public getVersionSnapshot(tenantId: string, lvVersionId: string): {
+    catalog: {
+      id: string;
+      name: string;
+      projectId?: string;
+      currentVersionId: string;
+      isCurrentVersion: boolean;
+    } | null;
+    version: LvVersion;
+    structureNodes: LvStructureNode[];
+    positions: LvPosition[];
+  } {
+    const version = this.repos.getLvVersionByTenant(tenantId, lvVersionId);
+    if (!version) {
+      throw new DomainError("LV_VERSION_NOT_FOUND", "LV-Version nicht gefunden", 404);
+    }
+    const catalog = this.repos.getLvCatalogByTenant(tenantId, version.lvCatalogId);
+    const sortLv = (a: { sortOrdinal: string }, b: { sortOrdinal: string }) =>
+      a.sortOrdinal.localeCompare(b.sortOrdinal, undefined, { numeric: true });
+    const structureNodes = this.repos.listLvStructureNodesForVersion(tenantId, lvVersionId).sort(sortLv);
+    const positions = this.repos.listLvPositionsForVersion(tenantId, lvVersionId).sort(sortLv);
+    return {
+      catalog: catalog
+        ? {
+            id: catalog.id,
+            name: catalog.name,
+            ...(catalog.projectId !== undefined ? { projectId: catalog.projectId } : {}),
+            currentVersionId: catalog.currentVersionId,
+            isCurrentVersion: catalog.currentVersionId === version.id,
+          }
+        : null,
+      version,
+      structureNodes,
+      positions,
+    };
   }
 
   private assertCurrentVersionEditable(tenantId: string, lvVersionId: string): LvVersion {

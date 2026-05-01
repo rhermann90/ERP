@@ -10,6 +10,8 @@ import {
   MeasurementVersion,
   Offer,
   OfferVersion,
+  SupplementOffer,
+  SupplementVersion,
 } from "../domain/types.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 
@@ -28,6 +30,9 @@ export const SEED_IDS = {
   lvBereichId: "ee101010-1010-4101-81ee-101010101010",
   lvTitelId: "ee202020-2020-4202-82ee-202020202020",
   lvUntertitelId: "ee303030-3030-4303-83ee-303030303030",
+  /** Nachtrag zu Seed-Angebot — für Shell GET `SUPPLEMENT_VERSION` / E2E. */
+  supplementOfferId: "90909090-9090-4090-8090-909090909090",
+  supplementVersionId: "91919191-9191-4191-8191-919191919191",
   /** Persistente Login-Benutzer (Postgres-Seed), konsistent mit Dev-Token-Skript. */
   seedAdminUserId: "77777777-7777-4777-8777-777777777777",
   seedViewerUserId: "88888888-8888-4888-8888-888888888888",
@@ -183,6 +188,26 @@ export function seedDemoData(repos: InMemoryRepositories): void {
     totalGrossCents: 5950,
     skontoBps: 0,
   };
+  const supplementOffer: SupplementOffer = {
+    id: SEED_IDS.supplementOfferId,
+    tenantId: SEED_IDS.tenantId,
+    offerId: SEED_IDS.offerId,
+    baseOfferVersionId: SEED_IDS.offerVersionId,
+    createdAt: new Date(),
+    createdBy: randomUUID(),
+  };
+  const supplementVersion: SupplementVersion = {
+    id: SEED_IDS.supplementVersionId,
+    tenantId: SEED_IDS.tenantId,
+    supplementOfferId: SEED_IDS.supplementOfferId,
+    versionNumber: 1,
+    status: "ENTWURF",
+    lvVersionId: SEED_IDS.lvVersionId,
+    systemText: "Nachtrag Seed Systemtext",
+    editingText: "Nachtrag Seed Bearbeitungstext",
+    createdAt: new Date(),
+    createdBy: randomUUID(),
+  };
   const inconsistentInvoice: Invoice = {
     id: SEED_IDS.inconsistentInvoiceId,
     tenantId: SEED_IDS.tenantId,
@@ -213,6 +238,8 @@ export function seedDemoData(repos: InMemoryRepositories): void {
   repos.measurements.set(measurement.id, measurement);
   repos.measurementVersions.set(measurementVersion.id, measurementVersion);
   repos.measurementPositions.set(measurementPosition.id, measurementPosition);
+  repos.putSupplementOffer(supplementOffer);
+  repos.putSupplementVersion(supplementVersion);
   repos.invoices.set(invoice.id, invoice);
   repos.invoices.set(draftInvoice.id, draftInvoice);
   repos.invoices.set(inconsistentInvoice.id, inconsistentInvoice);

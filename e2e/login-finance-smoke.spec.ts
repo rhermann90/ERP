@@ -1,6 +1,128 @@
 import { expect, test } from "@playwright/test";
 
+/** Abgleich mit `apps/web/src/lib/demo-seed-ids.ts` / Backend-Seed (E2E-Tenant). */
+const SEED_LV_VERSION_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001";
+const SEED_OFFER_VERSION_ID = "33333333-3333-4333-8333-333333333333";
+const SEED_INVOICE_ID = "44444444-4444-4444-8444-444444444444";
+const SEED_MEASUREMENT_VERSION_ID = "cccccccc-cccc-4ccc-8ccc-cccccccc0001";
+const SEED_SUPPLEMENT_VERSION_ID = "91919191-9191-4191-8191-919191919191";
+/** Eltern-Aufmass zur Seed-Version — UI zeigt `measurementId`, nicht die Versions-UUID (`src/composition/seed.ts`). */
+const SEED_MEASUREMENT_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb001";
+
 test.describe("Login → Finanz (Vorbereitung)", () => {
+  test("Haupt-Shell: LV_VERSION GET-Detail (Snapshot)", async ({ page }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+
+    const docPanel = page.getByTestId("shell-document-panel");
+    await docPanel.getByTestId("shell-document-entity-type").selectOption("LV_VERSION");
+    await docPanel.getByTestId("shell-document-id").fill(SEED_LV_VERSION_ID);
+    await docPanel.getByTestId("shell-document-detail-get").click();
+
+    await expect(page.getByTestId("lv-shell-detail")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("lv-shell-detail")).toContainText("structureNodes");
+    await expect(page.getByTestId("lv-shell-detail")).toContainText(SEED_LV_VERSION_ID);
+  });
+
+  test("Haupt-Shell: OFFER_VERSION GET-Detail", async ({ page }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+
+    const docPanel = page.getByTestId("shell-document-panel");
+    await docPanel.getByTestId("shell-document-entity-type").selectOption("OFFER_VERSION");
+    await docPanel.getByTestId("shell-document-id").fill(SEED_OFFER_VERSION_ID);
+    await docPanel.getByTestId("shell-document-detail-get").click();
+
+    await expect(page.getByTestId("offer-shell-detail")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("offer-version-system-text")).toBeVisible();
+    await expect(page.getByTestId("offer-shell-detail")).toContainText("ENTWURF");
+    await expect(page.getByTestId("offer-shell-detail")).toContainText("22222222-2222-4222-8222-222222222222");
+    await expect(page.getByTestId("offer-shell-detail")).toContainText(SEED_LV_VERSION_ID);
+  });
+
+  test("Haupt-Shell: INVOICE GET-Detail und Lesepfade payment-intakes / dunning-reminders", async ({ page }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+
+    const docPanel = page.getByTestId("shell-document-panel");
+    await docPanel.getByTestId("shell-document-entity-type").selectOption("INVOICE");
+    await docPanel.getByTestId("shell-document-id").fill(SEED_INVOICE_ID);
+    await docPanel.getByTestId("shell-document-detail-get").click();
+
+    const invoiceDetail = page.getByTestId("invoice-shell-detail");
+    await expect(invoiceDetail).toBeVisible({ timeout: 15_000 });
+    await expect(invoiceDetail).toContainText(SEED_INVOICE_ID);
+
+    const subreads = page.getByTestId("shell-invoice-readonly-subreads");
+    await subreads.getByRole("button", { name: "Zahlungseingänge (GET)" }).click();
+    await expect(page.getByRole("heading", { name: "Antwort payment-intakes" })).toBeVisible({ timeout: 15_000 });
+
+    await subreads.getByRole("button", { name: "Mahn-Ereignisse (GET)" }).click();
+    await expect(page.getByRole("heading", { name: "Antwort dunning-reminders" })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("Haupt-Shell: MEASUREMENT_VERSION GET-Detail", async ({ page }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+
+    const docPanel = page.getByTestId("shell-document-panel");
+    await docPanel.getByTestId("shell-document-entity-type").selectOption("MEASUREMENT_VERSION");
+    await docPanel.getByTestId("shell-document-id").fill(SEED_MEASUREMENT_VERSION_ID);
+    await docPanel.getByTestId("shell-document-detail-get").click();
+
+    const measurementPanel = page.getByTestId("measurement-shell-detail");
+    await expect(measurementPanel).toBeVisible({ timeout: 15_000 });
+    await expect(measurementPanel).toContainText(SEED_MEASUREMENT_ID);
+    await expect(measurementPanel.getByTestId("system-text-block")).toBeVisible();
+    await expect(measurementPanel.getByTestId("editing-text-block")).toBeVisible();
+  });
+
+  test("Haupt-Shell: SUPPLEMENT_VERSION GET-Detail", async ({ page }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+
+    const docPanel = page.getByTestId("shell-document-panel");
+    await docPanel.getByTestId("shell-document-entity-type").selectOption("SUPPLEMENT_VERSION");
+    await docPanel.getByTestId("shell-document-id").fill(SEED_SUPPLEMENT_VERSION_ID);
+    await docPanel.getByTestId("shell-document-detail-get").click();
+
+    const supplementPanel = page.getByTestId("supplement-shell-detail");
+    await expect(supplementPanel).toBeVisible({ timeout: 15_000 });
+    await expect(supplementPanel).toContainText("ENTWURF");
+    await expect(supplementPanel).toContainText(SEED_SUPPLEMENT_VERSION_ID);
+    await expect(supplementPanel).toContainText("33333333-3333-4333-8333-333333333333");
+  });
+
   test("Anmeldung und Finanz-Seite erreichbar", async ({ page }) => {
     await page.goto("/#/login");
 

@@ -194,6 +194,11 @@ export class AuthorizationService {
     }
   }
 
+  /** LV §9 Lesepfad — gleiche Mandanten-Rollen wie Rechnung lesen (Traceability / Shell). */
+  public assertCanReadLvVersion(role: UserRole): void {
+    this.assertCanReadInvoice(role);
+  }
+
   /** FIN-3: Zahlungseingang buchen. */
   public assertCanRecordPaymentIntake(role: UserRole): void {
     if (!PAYMENT_INTAKE_ROLES.has(role)) {
