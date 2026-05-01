@@ -394,6 +394,9 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
   });
 
   it("FIN-1 M1: zwei Zahlungsbedingungs-Versionen; Rechnung bleibt auf alter Version (Postgres); Buchung ändert PT-Referenz nicht", async () => {
+    // Demo-Seed (`seedDemoData`) legt für dasselbe Projekt bereits PT v1 an — neue POSTs sind v2/v3.
+    const seedPtV1Id = SEED_IDS.paymentTermsVersionId;
+
     const pt1 = await app.inject({
       method: "POST",
       url: "/finance/payment-terms/versions",
@@ -411,8 +414,8 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
       paymentTermsHeadId: string;
       versionNumber: number;
     };
-    expect(pt1Body.versionNumber).toBe(1);
-    const v1Id = pt1Body.paymentTermsVersionId;
+    expect(pt1Body.versionNumber).toBe(2);
+    const invoicePinsToPtId = pt1Body.paymentTermsVersionId;
     const headId = pt1Body.paymentTermsHeadId;
 
     const inv = await app.inject({
@@ -423,8 +426,8 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
         lvVersionId: SEED_IDS.lvVersionId,
         offerVersionId: SEED_IDS.offerVersionId,
         invoiceCurrencyCode: "EUR",
-        paymentTermsVersionId: v1Id,
-        reason: "Persistenz FIN-1 M1 Rechnungsentwurf mit PT v1",
+        paymentTermsVersionId: invoicePinsToPtId,
+        reason: "Persistenz FIN-1 M1 Rechnungsentwurf mit gewählter PT-Version",
       },
     });
     expect(inv.statusCode).toBe(201);
@@ -442,22 +445,23 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
       },
     });
     expect(pt2.statusCode).toBe(201);
-    const v2Id = (pt2.json() as { paymentTermsVersionId: string }).paymentTermsVersionId;
-    expect((pt2.json() as { versionNumber: number }).versionNumber).toBe(2);
-    expect(v2Id).not.toBe(v1Id);
+    const newestPtId = (pt2.json() as { paymentTermsVersionId: string }).paymentTermsVersionId;
+    expect((pt2.json() as { versionNumber: number }).versionNumber).toBe(3);
+    expect(newestPtId).not.toBe(invoicePinsToPtId);
 
     const versions = await prisma.paymentTermsVersion.findMany({
       where: { tenantId: SEED_IDS.tenantId, headId },
       orderBy: { versionNumber: "asc" },
     });
-    expect(versions).toHaveLength(2);
-    expect(versions[0]?.id).toBe(v1Id);
-    expect(versions[1]?.id).toBe(v2Id);
+    expect(versions).toHaveLength(3);
+    expect(versions[0]?.id).toBe(seedPtV1Id);
+    expect(versions[1]?.id).toBe(invoicePinsToPtId);
+    expect(versions[2]?.id).toBe(newestPtId);
 
     const row = await prisma.invoice.findUnique({
       where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: invoiceId } },
     });
-    expect(row?.paymentTermsVersionId).toBe(v1Id);
+    expect(row?.paymentTermsVersionId).toBe(invoicePinsToPtId);
     expect(row?.status).toBe("ENTWURF");
     expect(row?.lvNetCents).toBe(125000);
     expect(row?.totalGrossCents).toBe(148750);
@@ -468,20 +472,20 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
       headers: adminHeaders(),
     });
     expect(getRes.statusCode).toBe(200);
-    expect((getRes.json() as { paymentTermsVersionId?: string }).paymentTermsVersionId).toBe(v1Id);
+    expect((getRes.json() as { paymentTermsVersionId?: string }).paymentTermsVersionId).toBe(invoicePinsToPtId);
 
     const book = await app.inject({
       method: "POST",
       url: `/invoices/${invoiceId}/book`,
       headers: adminHeaders(),
-      payload: { reason: "Persistenz FIN-1 M1 Buchung fixiert Zahlungsbedingungs-Version v1" },
+      payload: { reason: "Persistenz FIN-1 M1 Buchung fixiert gewählte Zahlungsbedingungs-Version" },
     });
     expect(book.statusCode).toBe(200);
     const afterBook = await prisma.invoice.findUnique({
       where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: invoiceId } },
     });
     expect(afterBook?.status).toBe("GEBUCHT_VERSENDET");
-    expect(afterBook?.paymentTermsVersionId).toBe(v1Id);
+    expect(afterBook?.paymentTermsVersionId).toBe(invoicePinsToPtId);
   });
 
   it("POST /invoices/{draftId}/book: Entwurf gebucht, Zeile in Postgres inkl. Rechnungsnummer", async () => {
