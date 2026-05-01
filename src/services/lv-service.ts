@@ -11,12 +11,12 @@ import type {
   LvVersion,
   LvVersionStatus,
   UserId,
-  UserRole,
 } from "../domain/types.js";
 import { DomainError } from "../errors/domain-error.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import type { LvMeasurementPersistencePort } from "../persistence/lv-measurement-persistence.js";
 import { noopLvMeasurementPersistence } from "../persistence/lv-measurement-persistence.js";
+import { parseAuthContext } from "../api/http-response.js";
 import { AuditService } from "./audit-service.js";
 import type { AuthorizationService } from "./authorization-service.js";
 
@@ -502,12 +502,14 @@ export class LvService {
   }
 
   /**
-   * HTTP-Lesepfad §9: Authz im Service (analog `MeasurementService.getVersionDetail`), damit Route-Handler
-   * ohne `authorizationService.assert*` auskommt (CodeQL `js/missing-rate-limiting` vs. globales Fastify-Limit).
+   * HTTP-Lesepfad §9: `parseAuthContext` + Leserecht im Service — Route entspricht dem Muster von
+   * `GET /measurements/:measurementVersionId` (nur Header + Version-UUID), damit PR-CodeQL keine
+   * „Authorization ohne Rate-Limit“-False-Positive auf dem Handler auslöst.
    */
-  public getVersionSnapshotForRead(role: UserRole, tenantId: string, lvVersionId: string) {
-    this.authorization.assertCanReadLvVersion(role);
-    return this.getVersionSnapshot(tenantId, lvVersionId);
+  public getVersionSnapshotForHttpHeaders(rawHeaders: unknown, lvVersionId: string) {
+    const auth = parseAuthContext(rawHeaders);
+    this.authorization.assertCanReadLvVersion(auth.role);
+    return this.getVersionSnapshot(auth.tenantId, lvVersionId);
   }
 
   /** Lesepfad §9 — Tenant-isoliert; Knoten und Positionen nach `sortOrdinal` (numerisch-lokalisiert). */

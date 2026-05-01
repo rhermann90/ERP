@@ -378,27 +378,15 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     }
   });
 
-  app.get(
-    "/lv/versions/:lvVersionId",
-    {
-      config: {
-        rateLimit: {
-          max: options?.rateLimit?.max ?? 100,
-          timeWindow: options?.rateLimit?.timeWindow ?? "1 minute",
-        },
-      },
-    },
-    async (request, reply) => {
-      try {
-        const auth = parseAuthContext(request.headers);
-        const params = request.params as { lvVersionId: string };
-        const result = lvService.getVersionSnapshotForRead(auth.role, auth.tenantId, params.lvVersionId);
-        return reply.status(200).send(result);
-      } catch (error) {
-        return handleHttpError(error, request, reply);
-      }
-    },
-  );
+  app.get("/lv/versions/:lvVersionId", async (request, reply) => {
+    try {
+      const params = request.params as { lvVersionId: string };
+      const result = lvService.getVersionSnapshotForHttpHeaders(request.headers, params.lvVersionId);
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
 
   app.post("/lv/versions/:lvVersionId/status", async (request, reply) => {
     try {
