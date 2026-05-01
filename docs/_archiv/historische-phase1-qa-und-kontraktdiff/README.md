@@ -6,8 +6,7 @@
 
 - [`docs/contracts/decision-log-phase1-frontend.md`](../../contracts/decision-log-phase1-frontend.md) — Fehler-Envelope / SoT-Regeln für Frontend und API; wird weiter von `apps/web`, `api-contract.yaml` und `error-codes.json` referenziert.
 - Aktuelle Systembeschreibung: [`docs/ERP-Systembeschreibung.md`](../../ERP-Systembeschreibung.md)
-- Finanz-MVP-Phasen: [`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`](../../ENTWICKLUNGSPHASEN-MVP-V1.3.md)
-- Operativer Ablauf: [`docs/PHASENARBEITSPLAN-MVP-V1.3-FINANZ.md`](../../PHASENARBEITSPLAN-MVP-V1.3-FINANZ.md)
+- MVP Finanz (Phasen + Arbeitsablauf): [`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](../../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md)
 
 **Inhalt dieses Ordners**
 

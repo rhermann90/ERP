@@ -1,6 +1,6 @@
 # AGENTS — KI- und Agenten-Einstieg (ERP)
 
-Kurzbriefing für automatisierte oder assistierte Arbeit am Repository. Verbindliche Domänen- und Lieferregeln: [`.cursor/rules/erp-multi-agent.mdc`](./.cursor/rules/erp-multi-agent.mdc). Ausführlicher Betrieb und Links: [`README.md`](./README.md). **Cursor Plan-Modus:** Jede Plan-Antwort mit **TodoWrite**-Tool-Todos ausarbeiten (Details in der Multi-Agent-Regel).
+Kurzbriefing für automatisierte oder assistierte Arbeit am Repository. **Kernregeln (immer):** [`.cursor/rules/erp-multi-agent.mdc`](./.cursor/rules/erp-multi-agent.mdc). **Liefer-, Merge-, Review- und Ausgabeformat** bei Arbeit unter `src/`, `apps/web/`, `prisma/`, `README.md`, `Checklisten/`, `docs/contracts/`, `docs/api-contract.yaml`, `docs/adr/`, `docs/tickets/`, `docs/CODEMAPS/`: [`.cursor/rules/erp-delivery-review.mdc`](./.cursor/rules/erp-delivery-review.mdc). Ausführlicher Betrieb und Links: [`README.md`](./README.md). **Cursor Plan-Modus / TodoWrite vs. CreatePlan:** in der Multi-Agent-Regel festgelegt.
 
 ## 1. Lesereihenfolge (Kontext schichten)
 
@@ -29,6 +29,7 @@ Tickets und Gates (z. B. FIN-2, QA §5a) stehen in `docs/tickets/` und `docs/con
 | `docs/` | Systembeschreibung, ADRs, OpenAPI, Verträge, Runbooks, **CODEMAPS** |
 | `Checklisten/` | Abnahme-Checklisten (Compliance/Produktiv-Go), **ohne** Ersatz für StB/DSB |
 | `.github/` | CI (`backend`-Job), PR-Vorlage, Workflows |
+| `.cursor/rules/` | Cursor-Projektregeln (committen). **`/.cursor/settings.json`** ist in **`.gitignore`** — nur lokale Editor-/Plugin-Overrides, keine Team-Norm. |
 
 ## 3. Häufige Befehle
 
@@ -52,7 +53,8 @@ Die pfadbezogene Orientierung liegt zentral unter **[`docs/CODEMAPS/`](./docs/CO
 
 | Baustein | Rolle |
 |---------|--------|
-| **`.cursor/rules/erp-multi-agent.mdc`** | Immer geladen: Domänen-Invarianten, Qualitäts- und Merge-Erwartungen, Verweis auf kanonische Systembeschreibung und diese Datei. |
+| **`.cursor/rules/erp-multi-agent.mdc`** | Immer geladen: Domänen-Invarianten, Plan-Modus (TodoWrite + CreatePlan), Verweis auf Lieferregeln und kanonische Systembeschreibung. |
+| **`.cursor/rules/erp-delivery-review.mdc`** | Bei relevanten Pfaden: Merge-/Compliance-Erwartungen, Antwortschema, Review-Regeln (siehe Dateikopf `globs`). |
 | **`AGENTS.md`** | Session-Bootstrap: Schichtung, Befehle, Link zur Codemap — bewusst kurz, um Tokens zu sparen. |
 | **`docs/CODEMAPS/overview.md`** | Strukturorientierung im Code; wird bei neuen vertikalen Slices oder größeren Verschiebungen aktualisiert. |
 | **`docs/ERP-Systembeschreibung.md`** | Fachliche Wahrheit; bei Konflikt gewinnt Fachlogik gegen Implementierungsbequemlichkeit. |
@@ -62,6 +64,4 @@ Die pfadbezogene Orientierung liegt zentral unter **[`docs/CODEMAPS/`](./docs/CO
 
 ## 6. Ausgabeformat
 
-Wo die Projektregel „Every output must include: result, rationale, risks, open questions“ fordert, in Antworten an Menschen oder Review-Kommentaren kurz alle vier Punkte abdecken; Auswirkungen auf Compliance, Datenkonsistenz, Wartbarkeit und PWA analog zur Regel benennen.
-
-Bei **rein mechanischen Änderungen ohne** Domänen-, API-, Persistenz-, Auth- oder Finanz-/Steuer-Bezug (z. B. Tippfehler in Rand-Kommentaren, reine Agenten-Doku): die vier Punkte und die Auswirkungsdimensionen **kurz**; fehlende Risiken oder fehlende fachliche Auswirkungen **explizit** (z. B. „keine“) nennen. Sobald Geschäftslogik, Mandantengrenzen, Verträge oder produktive Finanz-UI berührt sind, volle Abdeckung ohne Ausnahme.
+Vollständiges Schema, Ausnahmen für mechanische Änderungen und Review-Erwartungen: [`.cursor/rules/erp-delivery-review.mdc`](./.cursor/rules/erp-delivery-review.mdc) (wenn deine Änderungen die dortigen `globs` treffen; sonst Kurzform laut [`.cursor/rules/erp-multi-agent.mdc`](./.cursor/rules/erp-multi-agent.mdc)).

@@ -5,7 +5,7 @@
 
 ## Phase-Ziel
 
-Verifizieren, dass NO_GO-Blocker aus **Security** (signing secret / unsicherer Default-Start), **Persistenz** (kein stiller Bearer in `localStorage`) und **Frontend-SoT** (`allowedActions`-Gating, Mandantenwechsel) für eine PWA-Releaseentscheidung geschlossen sind — im Einklang mit `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md` und Multi-Agent-Core-Rules (Mandantentrennung, keine Domänenvereinfachung).
+Verifizieren, dass NO_GO-Blocker aus **Security** (signing secret / unsicherer Default-Start), **Persistenz** (kein stiller Bearer in `localStorage`) und **Frontend-SoT** (`allowedActions`-Gating, Mandantenwechsel) für eine PWA-Releaseentscheidung geschlossen sind — im Einklang mit `docs/ERP-Systembeschreibung.md` und Multi-Agent-Core-Rules (Mandantentrennung, keine Domänenvereinfachung).
 
 ## Ausführung (Evidenz)
 

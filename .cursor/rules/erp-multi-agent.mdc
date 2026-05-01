@@ -5,7 +5,7 @@ alwaysApply: true
 
 # ERP Multi-Agent Core Rules
 
-Authoritative domain source is [`docs/ERP-Systembeschreibung.md`](../../docs/ERP-Systembeschreibung.md) (konsolidiert v2.0; Abschnitte 1–17 entsprechen der historischen v1.3-Struktur). Archivierte Einzelstände: `docs/_archiv/systembeschreibung-und-phasen-legacy/`. Repository-Orientierung für Agenten: [`AGENTS.md`](../../AGENTS.md). PWA/UI-Link-Hub: [`docs/referenz-ui-ux.md`](../../docs/referenz-ui-ux.md).
+Authoritative domain source is [`docs/ERP-Systembeschreibung.md`](../../docs/ERP-Systembeschreibung.md) (konsolidiert v2.0; Abschnitte 1–17 entsprechen der historischen v1.3-Struktur). Archivierte Einzelstände: `docs/_archiv/systembeschreibung-und-phasen-legacy/`. Repository-Orientierung für Agenten: [`AGENTS.md`](../../AGENTS.md).
 
 Non-negotiable rules:
 - Do not simplify domain logic.
@@ -15,20 +15,10 @@ Non-negotiable rules:
 - Never mix immutable system text with editable business text.
 - When uncertain, state assumptions explicitly and request clarification.
 
-Delivery rules:
-- Work in phases with explicit quality gates.
-- Before merging to `main` / `master`: green GitHub Actions job **`backend`** (see `.github/workflows/ci.yml`); follow `.github/pull_request_template.md` and QA §5a in `docs/contracts/qa-fin-0-gate-readiness.md`. Branch protection: `docs/runbooks/github-branch-protection-backend.md`.
-- For production go-live on invoicing / tax / e-invoice topics: use the non-code checklist [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) with tax counsel / DPO / PL — it does not replace legal advice or the README’s separate release GO for GoBD/compliance.
-- Do not commit secrets (env files with credentials, private SSH keys, tokens); canonical Git remote is the team repo `rhermann90/ERP` (see root `README.md`).
-- Every output must include: result, rationale, risks, open questions.
-- Explain impact on legal compliance, data consistency, maintainability, and PWA readiness.
-- For purely mechanical, non-domain edits (e.g. spelling in unrelated comments, agent-doc link fixes): keep result and rationale concise; for risks, compliance, data consistency, maintainability, and PWA readiness, state explicitly when none apply (a short phrase or “none” per dimension is enough). For anything touching domain logic, API contracts, persistence, auth, or finance/tax UI, use the full format without exception.
-- Prefer scalable, modular, and testable solutions over quick hacks.
+**Liefer-, Merge-, Review- und Ausgabeformat (vollständig):** gelten bei Arbeit unter den Pfaden der Regel [`erp-delivery-review.mdc`](./erp-delivery-review.mdc) (`src/`, `apps/web/`, `prisma/`, `README.md`, `Checklisten/`, `docs/contracts/`, `docs/api-contract.yaml`, `docs/adr/`, `docs/tickets/`, `docs/CODEMAPS/`). Für Aufgaben **außerhalb** dieser Pfade: weiterhin **result**, **rationale**, **risks**, **open questions** inhaltlich abdecken; Auswirkungsdimensionen (Compliance, Datenkonsistenz, Wartbarkeit, PWA) nur kurz oder „keine“, soweit nicht fachlich relevant.
+
+**PWA/UI** unter `apps/web/**`: zusätzlich Cursor-Regel [`erp-web-ui.mdc`](./erp-web-ui.mdc); Link-Hub [`docs/referenz-ui-ux.md`](../../docs/referenz-ui-ux.md).
 
 Cursor Plan mode (IDE):
-- Whenever the session is in **Plan mode** (collaborative planning), **every** assistant turn that lays out or updates a plan must use the **TodoWrite** tool: concrete, executable items with stable `id` values, sensible `status` (`pending`, `in_progress`, `completed`, `cancelled` as appropriate). Prose or markdown-only checklists do **not** replace tool todos when the todo tool is available; narrative text supplements the todo list.
-
-Review rules:
-- Treat missing tests for critical paths as incomplete.
-- Flag legal/financial risks early.
-- Stop phase progression on unresolved critical findings.
+- Whenever the session is in **Plan mode**, **every** turn that lays out or updates a plan must use the **TodoWrite** tool with concrete todos (stable `id`, sensible `status`) when that tool is available; prose checklists do not replace it.
+- When the IDE requires a **CreatePlan** artifact for the same turn, produce **both**: the CreatePlan output **and** TodoWrite todos aligned with that plan (same scope). CreatePlan alone does not satisfy the TodoWrite requirement and vice versa.

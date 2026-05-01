@@ -1,6 +1,6 @@
 # UI — Abbild fachlicher Rollen (v1.3 §11.1) auf API-Rollen (`UserRole`)
 
-**Quelle:** [`ERP Systembeschreibung v1.3.md`](../../ERP%20Systembeschreibung%20v1.3.md) §11.1 *Rollenbeispiele* und §11.2 *Aktionsrechte je Status*.  
+**Quelle:** [`docs/ERP-Systembeschreibung.md`](../ERP-Systembeschreibung.md) §11.1 *Rollenbeispiele* und §11.2 *Aktionsrechte je Status*.  
 **Technische Wahrheit:** Das Backend kennt nur die fünf `UserRole`-Werte aus [`src/domain/types.ts`](../../src/domain/types.ts); fachliche Titel wie *Disposition* oder *Bauleitung* sind **Mandanten-/Prozessrollen** und werden in der MVP-PWA **nicht** separat authentisiert.
 
 ## 1) MVP-Zuordnung (1:n, empfohlen für UI-Texte und Schulung)

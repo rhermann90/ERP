@@ -1,6 +1,6 @@
 # QA P0 Matrix - Phase 1 Final
 
-Quelle: `../systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`, `../../contracts/module-contracts.json`, `../../contracts/action-contracts.json`, `../../contracts/error-codes.json`, `../../api-contract.yaml`, `./decision-table-phase1.md`, `../../contracts/decision-log-phase1-frontend.md`
+Quelle: `../../ERP-Systembeschreibung.md` (konsolidiert; vgl. Archiv `../systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`), `../../contracts/module-contracts.json`, `../../contracts/action-contracts.json`, `../../contracts/error-codes.json`, `../../api-contract.yaml`, `./decision-table-phase1.md`, `../../contracts/decision-log-phase1-frontend.md`
 
 **Testdatei:** `test/app.test.ts` — Spalte *Test* verweist auf die Zeile der `it("...")`-Deklaration (Stand: letzter QA-Lauf).
 

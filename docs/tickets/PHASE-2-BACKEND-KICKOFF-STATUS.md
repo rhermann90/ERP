@@ -1,7 +1,7 @@
 # Phase 2 Backend Kickoff Status (Agent 1)
 
 ## Scope-Check (verbindliche Quellen gelesen)
-- `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`
+- `docs/ERP-Systembeschreibung.md`
 - `docs/tickets/PHASE-2-STARTAUFTRAG.md`
 - `docs/tickets/TICKET-002-nachtrag-lifecycle-v12.md` (CLOSED, Final Closure vorhanden)
 - `docs/adr/0002-nachtrag-lifecycle.md` (ACCEPTED, Iteration-1-Schnitt abgeschlossen)

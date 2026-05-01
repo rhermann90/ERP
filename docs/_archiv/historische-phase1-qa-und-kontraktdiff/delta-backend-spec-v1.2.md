@@ -46,7 +46,7 @@
 - **`exportPreflightDetailTokens`** in `error-codes.json`: u. a. `LV_VERSION_MISSING` unter Parent `EXPORT_PREFLIGHT_FAILED` (kein eigener top-level `code`).
 - **PATCH strict (Zod):** **umgesetzt** — `PATCH /lv/nodes/.../editing-text` und `PATCH /lv/positions/...`: unbekannte Body-Keys → `VALIDATION_FAILED` /400; `systemText` im Body weiterhin → `LV_SYSTEM_TEXT_IMMUTABLE` /409 (`assertSystemTextNotInUpdatePayload` vor `parse`; ADR-0005 D7).
 
-# Delta: Backend / Tests / Contracts vs. `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`
+# Delta: Backend / Tests / Contracts vs. `docs/ERP-Systembeschreibung.md`
 
 Stand: 2026-04-14 (aktualisiert nach Phase-2-Increment-2 LV §9). Ziel: fachliche und technische Lücken nach Fortschreibung der Systembeschreibung schließen.
 
