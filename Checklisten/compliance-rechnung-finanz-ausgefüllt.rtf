@@ -1,0 +1,444 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2869
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 # Begleitblatt: Rechnung, Finanz und Datenschutz (ERP \'96 Mandantenrechnung)\
+\
+Dokument f\'fcr: Projektleitung, Steuerberatung, Datenschutzbeauftragte, ggf. externer Rechtsrat  \
+Version / Stand: 01.05.2026 \'96 Scope: nur Mandanten-Endkundenrechnungen (Begleitblatt ersetzt keine Rechts-/Steuerberatung; keine GoBD-/HGB-/DSGVO-Zertifizierung durch Software oder Repo).\
+\
+---\
+\
+## Wichtig vorab\
+\
+Kein Rechts- oder Steuerberatungsdokument und kein Beh\'f6rdenformular. Es strukturiert die Fragen vor produktivem Einsatz von Mandantenrechnungen. Gr\'fcne CI-/Techniktests im Repository sind nicht automatisch ein fachliches Mandanten-Go \'96 Abstimmung mit StB/DSB/PL schriftlich.\
+\
+### Produktumfang (ein finanzrelevanter Belegpfad)\
+\
+- Nur Rechnungen, Zahlungseing\'e4nge und Mahnungen des Mandanten gegen\'fcber seinen Endkunden (Kette LV/Aufma\'df/Angebot/Rechnung).\
+- Keine Modellierung einer Software-/Plattformabrechnung an den Mandanten im ERP (siehe Teil B.9, ADR 0012).\
+\
+### Rechtlicher Rahmen (Orientierung)\
+\
+Themenfelder: UStG, HGB, GoBD-Idee, DSGVO, allgemeine StGB-Risikohinweise am Dokumentende \'96 konkrete Auslegung mit StB, DSB, ggf. Rechtsrat.\
+\
+Die Software ersetzt keine Pr\'fcfung durch Steuerberatung oder Datenschutz.\
+\
+---\
+\
+## Kurzlexikon\
+\
+| Begriff | Bedeutung |\
+|--------|----------|\
+| PL | Projektleitung |\
+| StB | Steuerberatung |\
+| DSB | Datenschutzbeauftragte/r |\
+| Rechtsrat | Externe Rechtsberatung (Anwalt), falls eingebunden |\
+| Mandant | Unternehmen, das das ERP nutzt |\
+| Externer Zahlungsnachweis | Beleg au\'dferhalb des ERP (z. B. Bank, Zahlungsdienst f\'fcr Endkunden des Mandanten); nicht gleichbedeutend mit nicht modellierter Plattformabrechnung |\
+\
+---\
+\
+## Freigabetabelle (pro Pr\'fcfungspunkt; nur genannte Rollen ausf\'fcllen)\
+\
+| Rolle | Datum (TT.MM.JJJJ) | K\'fcrzel / Signatur |\
+|------|------|--------|\
+| PL | | |\
+| StB | | |\
+| DSB | | |\
+| Rechtsrat (falls genutzt) | | |\
+\
+Hinweis: Maschinelle Repo-Nachweise nur, wenn die Rolle wirklich freigegeben hat und intern belegt ist.\
+\
+---\
+\
+# Teil A \'97 Vorhaben und Produktiv-Start\
+\
+## A.1 Zielbild\
+\
+- Abbildung von:\
+  - B2B (prim\'e4r)\
+  - optional B2C / B2G\
+\
+- Zielm\'e4rkte:\
+  - Deutschland\
+  - \'d6sterreich\
+  - Schweiz (Drittland)\
+\
+Hinweis:  \
+Keine automatische Gleichbehandlung von EU und Drittland (steuerlich relevant). Ausf\'fcllen: PL (Koordination), StB (Steuer-Einordnung), im Datenschutzteil DSB (z. B. B2C-Transparenz).\
+\
+---\
+\
+## A.2 Belegmodell\
+\
+Einheitliche Belegkette (Traceability fail-closed vor Buchung laut Repo/ADR 0007):\
+\
+LV \uc0\u8594  Aufma\'df \u8594  Angebot \u8594  Rechnung \u8594  Zahlung\
+\
+Diese Struktur unterst\'fctzt Nachvollziehbarkeit und Vollst\'e4ndigkeit \'96 ordnungsrechtliche Bewertung mit StB (z. B. HGB/GoBD-Idee). Verweise: docs/ERP-Systembeschreibung Abschnitt 8, docs/adr/0007.\
+\
+---\
+\
+## A.3 Datenschutz (DSGVO)\
+\
+Verarbeitungszwecke: Rechnungsstellung, Buchf\'fchrung, Zahlungszuordnung, ggf. Mahn-E-Mail/Export je Produktstand.\
+\
+Grunds\'e4tze: Zweckbindung (Art. 5 DSGVO), Datenminimierung, Mandantenisolation.\
+\
+Verzeichnis der Verarbeitungst\'e4tigkeiten (Art. 30): intern beim Betreiber, nicht als Volltext dieses Repo. Ausf\'fcllen: DSB und StB wo Schnittmenge.\
+\
+---\
+\
+## A.4 Systemabgrenzung\
+\
+Das ERP ist f\'fchrend f\'fcr Rechnungsdaten und Buchungsgrundlagen im modellierten Pfad. Ob ein externer Zahlungsnachweis (Bank, PSP des Mandanten f\'fcr dessen Kunden) ma\'dfgeblich ist: organisatorisch-steuerlich mit StB; Auftragsverarbeitung/Drittparteien mit DSB.\
+\
+---\
+\
+## A.5 Rollen\
+\
+- PL: organisatorische Verantwortung\
+- StB: steuerliche Freigabe\
+- DSB: Datenschutzpr\'fcfung\
+\
+Namen und Erreichbarkeit: internes Verzeichnis, nicht ins \'f6ffentliche Repo. Ausf\'fcllen: PL (Matrix intern).\
+\
+---\
+\
+## A.6 Produktiv-Go\
+\
+Software-Merge oder Release ist nicht dasselbe wie fachliches Produktiv-Go f\'fcr einen Pilotmandanten (Datum, Version, Geltungsbereich schriftlich intern). Ausf\'fcllen: PL nach Einbindung von StB/DSB wie vereinbart.\
+\
+---\
+\
+## A.7 Stammdaten-Kontext (Land, Gesch\'e4ftsmodell)\
+\
+Mandantenstammdaten steuern Steuerdarstellung und Texte; falsche Stammdaten k\'f6nnen falsche Ausgaben erzeugen. Abstimmung mit StB und DSB je nach Aspekt. Ausf\'fcllen: PL best\'e4tigt Abstimmung; StB/DSB wie beteiligt.\
+\
+---\
+\
+## A.8 Rollenmatrix und Eskalation\
+\
+Organisatorische Pflicht vor Go-Live (kein Eskalations-Button in der Software). Ausf\'fcllen: PL.\
+\
+---\
+\
+## A.9 Vorlage Produktiv-Go Finanz/Rechnung\
+\
+Interne Vorlage/Titel/Version abstimmen; keine erfundenen URLs im Repo. Ausf\'fcllen: PL; StB/DSB wenn mitunterzeichnet.\
+\
+---\
+\
+# Teil B \'97 Rechnungen und Umsatzsteuer\
+\
+## B.1 Pflichtangaben (\'a7 14 UStG)\
+\
+Felder f\'fcr Kopf, Rechnungsnummer, Daten und Steuerausweis sind im Datenmodell und UI/API vorgesehen (Systembeschreibung 8.2, 8.11); Mustertexte und Vollst\'e4ndigkeit je Mandant von StB best\'e4tigen. Ausf\'fcllen: StB.\
+\
+---\
+\
+## B.2 Steuers\'e4tze\
+\
+Ber\'fccksichtigte F\'e4lle (Konfiguration/Sonderlogik): Regelbesteuerung, Kleinunternehmer (\'a7 19 UStG), Reverse Charge (\'a7 13b UStG). Keine stillen Standardannahmen f\'fcr den Piloten; Ausf\'fcllen: StB.\
+\
+---\
+\
+## B.3 Berechnung\
+\
+Serverseitige Berechnung und Rundung nach dokumentierter Reihenfolge (Systembeschreibung 8.4, 8.12); Clients sollen Betr\'e4ge nicht neu rechnen. Technisch im Repo umgesetzt f\'fcr den FIN-2-Slice; ordnungsrechtliche Einordnung und Pr\'fcfertauglichkeit: StB. Keine Behauptung der Erf\'fcllung einzelner StGB-Tatbest\'e4nde durch die Software allein.\
+\
+---\
+\
+## B.4 W\'e4hrung\
+\
+Produkt auf EUR ausgelegt (8.16); Fremdw\'e4hrungen nur mit Konzept/Freigabe. Ausf\'fcllen: StB.\
+\
+---\
+\
+## B.5 Korrekturbelege\
+\
+Konzept: gebuchte Daten nicht still l\'f6schen; Korrektur/Storno/Gutschrift laut Systembeschreibung/Roadmap. Ist-Stand Repo: Status STORNIERT existiert im Typenum; kein vollst\'e4ndiger Storno-/Gutschrift-Workflow als eigenes Produktinkrement nachweisbar \'96 Pilot-Umfang und Ausgleichsbelege mit StB kl\'e4ren. Gebucht: ENTWURF \uc0\u8594  GEBUCHT_VERSENDET mit Rechnungsnummer (FIN-2 MVP). Ausf\'fcllen: StB.\
+\
+---\
+\
+## B.6 Leistungsbeschreibung\
+\
+Texte/Positionen aus LV-/Angebotskette; Trennung Systemtext vs. Bearbeitungstext (Systembeschreibung 9). Ausf\'fcllen: StB bei Zweifel.\
+\
+---\
+\
+## B.7 Grenz\'fcberschreitende Leistungen\
+\
+Leistungsort, Kundenart, Land; FIN-5/Roadmap teils \'96 Pilot-Scope mit StB kl\'e4ren. Ausf\'fcllen: StB, ggf. PL (Risiko).\
+\
+---\
+\
+## B.8 DACH\
+\
+DE/AT vs. CH (Drittland): keine automatische DACH-Einheitslogik; Konfiguration zum Mandanten. Ausf\'fcllen: StB.\
+\
+---\
+\
+## B.9 Au\'dferhalb Produktumfang: Plattform- oder Betreiberabrechnung\
+\
+Die Software modelliert keine Rechnung/Abrechnung der Software- oder Plattformleistung an den Mandanten (ADR 0012). Mandanten-Go dieses Blatts betrifft nur Mandanten-Endkundenrechnungen im ERP. Gesonderte Betreiberprozesse: unternehmensintern au\'dferhalb dieser Codebasis. Ausf\'fcllen: PL (organisatorische Best\'e4tigung der Scope-Trennung).\
+\
+---\
+\
+## B.10 Mandantenrechnungen: steuerliche Matrix je Leistungsart\
+\
+Defaults d\'fcrfen Leistungsarten (z. B. Bau/Werk vs. andere) nicht verwechseln (Systembeschreibung 8.16). Rechnungen sollen eindeutig und nachvollziehbar sein; Traceability fail-closed vor Buchung. Ausf\'fcllen: StB.\
+\
+---\
+\
+## B.11 Umsatzsteuer-Identifikationsnummer\
+\
+Validierung/Stammdaten soweit implementiert; kein stiller Fallback bei unklarer Auslands-B2B-Lage. Ausf\'fcllen: StB.\
+\
+---\
+\
+# Teil C \'97 Buchf\'fchrung und Aufbewahrung\
+\
+## C.1 Belegkette\
+\
+L\'fcckenlose Dokumentation im ERP-Pfad:\
+\
+LV \uc0\u8594  Aufma\'df \u8594  Angebot \u8594  Rechnung \u8594  Zahlung\
+\
+(Hinweis: Aufma\'df ist Pfadbestandteil wie in A.2 und Datenmodell Rechnung.) Handels-/steuerliche Bewertung mit StB. Ausf\'fcllen: StB; PL best\'e4tigt operative Einhaltung dokumentierter Tests wo zutreffend.\
+\
+---\
+\
+## C.2 Mahn-E-Mail: Impressums- und Pflichtangaben im Footer\
+\
+API/Stammdaten f\'fcr Footer und Compliance-Hinweise (FIN-4/M4); keine automatische Garantie f\'fcr alle Rechtsformen \'96 Abgleich mit Mandanten-Rechtsform (Rechtsrat/StB). Ausf\'fcllen: StB und PL; Rechtsrat wenn extern gekl\'e4rt.\
+\
+---\
+\
+## C.3 Stammdaten Handelsregister und USt-IdNr.\
+\
+Vollst\'e4ndigkeit vor Versand pr\'fcfbar halten. Ausf\'fcllen: StB, PL.\
+\
+---\
+\
+## C.4 Mahntexte und System-Footer inhaltlich\
+\
+Platzhalter/Vorlagen (Systembeschreibung 8.10); inhaltliche Freigabe. Ausf\'fcllen: StB, PL (ggf. getrennt).\
+\
+---\
+\
+## C.5 Massen-E-Mail Mahnwesen (technischer Versand)\
+\
+Repo: Batch-Mahn-E-Mail mit Dry-Run/EXECUTE, Mandanten-runMode, Best\'e4tigung \'96 kein stiller Massenversand im Pilot ohne menschliche Freigabe (docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md, docs/runbooks/m4-slice-5c-pl-mandanten-go.md). Ausf\'fcllen: StB, DSB und PL gemeinsam.\
+\
+---\
+\
+## C.6 Unver\'e4nderbarkeit gebuchter Rechnung\
+\
+Buchung setzt gebuchten Zustand; \'c4nderungen nur \'fcber definierte Folgevorg\'e4nge (ADR 0007, Konzept Systembeschreibung). Ausf\'fcllen: StB.\
+\
+---\
+\
+## C.7 Rechnungsnummern\
+\
+Fortlaufend mandantenbezogen; L\'fccken nur mit dokumentierter Ursache. Ausf\'fcllen: StB.\
+\
+---\
+\
+## C.8 Aufbewahrung PDF/XML und Auffindbarkeit\
+\
+Architektur/Hosting/Betrieb nicht allein aus Code ableitbar; Speicherorte und personenbezogene Inhalte mit DSB/IT; genaue Aufbewahrungsfrist mit StB. Ausf\'fcllen: StB, PL (Betrieb), DSB wenn personenbezogene Inhalte.\
+\
+---\
+\
+## C.9 GoBD-Idee\
+\
+Audit-Ereignisse und Nachvollziehbarkeit sind Teil des Konzepts (Systembeschreibung 12, Finanz 8). GoBD sind verwaltungsrechtliche Grunds\'e4tze, keine Software-Zertifizierung. Ausf\'fcllen: StB, PL.\
+\
+---\
+\
+# Teil D \'97 E-Rechnung\
+\
+## D.1 Anwendungsfall und Zeitrahmen\
+\
+Export-/Profilf\'e4higkeit vom Produktstand abh\'e4ngig; mit Roadmap/FIN-6 und StB abstimmen (z. B. \'a7 14a UStG, \'dcbergangsregeln). Ausf\'fcllen: StB, PL.\
+\
+---\
+\
+## D.2 Deutschland vs. \'d6sterreich/Schweiz \'96 Profile\
+\
+Kein ein Profil f\'fcr alle ohne Pr\'fcfung. Ausf\'fcllen: StB, PL.\
+\
+---\
+\
+## D.3 Pflichtfelder vs. Stammdaten im ERP\
+\
+Datenmodell kann Pflichtfelder tragen \'96 Matrix mit StB. Ausf\'fcllen: StB, PL.\
+\
+---\
+\
+## D.4 Steuerliche Aussage Export vs. Rechnung\
+\
+Im Repo: Exportformat INVOICE \uc0\u8594  XRECHNUNG in der Export-Service-Matrix; Preflight/Fehlercodes bei fehlenden Pflichten. Semantische Gleichheit mit Papier/PDF und steuerliche Mustertexte mit StB verbinden. Ausf\'fcllen: StB, PL.\
+\
+---\
+\
+## D.5 Signatur und \'dcbermittlung\
+\
+Nur wenn im Betrieb eingeschaltet \'96 Verfahren dokumentieren. Ausf\'fcllen: StB, PL, Rechtsrat wenn rechtlich unklar.\
+\
+---\
+\
+## D.6 Qualit\'e4tssicherung (Tests/Validator)\
+\
+CI/testbar wo umgesetzt \'96 kein Ersatz f\'fcr steuerliche Mustertextfreigabe. Ausf\'fcllen: StB, PL.\
+\
+---\
+\
+# Teil E \'97 DSGVO\
+\
+## E.1 Verzeichnis von Verarbeitungst\'e4tigkeiten\
+\
+Zu Rechnung, Zahlung, E-Mail, Export \'96 VVT intern; Datenminimierung Systembeschreibung 8.14. Ausf\'fcllen: DSB; StB wo Schnittmenge.\
+\
+---\
+\
+## E.2 Zweckbindung und Datenminimierung\
+\
+Rollenrechte und Audit-Konzept im Produkt. Ausf\'fcllen: DSB.\
+\
+---\
+\
+## E.3 Hosting und Zugriff aus dem Ausland\
+\
+EU-Hosting als Teamannahme \'96 vor Abnahme technisch pr\'fcfen (Rechenzentrum, Admin-Zugriffe). Kapitel V DSGVO bei Drittland\'fcbermittlung mit DSB. Ausf\'fcllen: DSB, PL (IT-Nachweis intern).\
+\
+---\
+\
+## E.4 Aufbewahrung vs. L\'f6schung\
+\
+Mit Aufbewahrungspflichten vereinbar halten (Systembeschreibung 8.14, 13). Ausf\'fcllen: StB, DSB.\
+\
+---\
+\
+## E.5 Betroffenenrechte\
+\
+Welche Exporte m\'f6glich sind: Produktstand mit DSB/PL abstimmen. Ausf\'fcllen: DSB, PL.\
+\
+---\
+\
+## E.6 Unterauftragsverarbeiter\
+\
+Hosting, E-Mail, Archiv: internes Verzeichnis/Vertr\'e4ge. Ausf\'fcllen: DSB, PL.\
+\
+---\
+\
+## E.7 Technische und organisatorische Ma\'dfnahmen\
+\
+Verschl\'fcsselung, Zugriffskontrolle, Backups: Betrieb dokumentieren. Ausf\'fcllen: DSB, PL.\
+\
+---\
+\
+## E.8 Integrit\'e4t und Manipulationsschutz\
+\
+Technisch: serverseitige Buchhaltungslogik, Audit bei zentralen Schritten, Traceability fail-closed vor Buchung \'96 das ist keine automatische strafrechtliche Konformit\'e4tsbescheinigung; Einordnung durch StB/Rechtsrat bei Bedarf.\
+\
+---\
+\
+## E.9 Drittland Schweiz / \'dcbermittlung\
+\
+Schweiz gesondert; Vertr\'e4ge/TIA mit DSB. Ausf\'fcllen: StB, DSB.\
+\
+---\
+\
+## E.10 Konflikt L\'f6schung vs. Aufbewahrungspflicht\
+\
+F\'fcr Rechnungs-, Zahlungs- und Mahndaten nachvollziehbar dokumentieren; Abgleich steuerliche Fristen. Ausf\'fcllen: StB, DSB.\
+\
+---\
+\
+# Teil F \'97 Mahnwesen\
+\
+## F.1 Organisation: Wer darf im Pilot mahnen und versenden?\
+\
+Rollenmodell in der Anwendung mit internem Reglement verbinden. Ausf\'fcllen: PL.\
+\
+---\
+\
+## F.2 SMTP-/Mail-Dienst und Empf\'e4nger\
+\
+Batch-Spezifikation und Felder toEmail; DSB muss Provider und Zweck kennen. Ausf\'fcllen: DSB, PL.\
+\
+---\
+\
+## F.3 Kein stiller Massenversand im Pilot\
+\
+Produktkonzept: Best\'e4tigung/Dry-Run vor EXECUTE, Mandanten-runMode \'96 siehe M4-Spec und qa-fin-0-Gate. Ausf\'fcllen: StB, DSB, PL gemeinsam wenn Pilot so vereinbart.\
+\
+---\
+\
+# Teil G \'97 Abschluss\
+\
+## G.1 Alle Punkte A\'96F gekl\'e4rt oder bewusst ausgeschlossen\
+\
+Dokumentation intern nachvollziehbar (Tickets/ADR). Ausf\'fcllen: PL.\
+\
+---\
+\
+## G.2 Steuerliche Gesamtfreigabe Pilot\
+\
+Ausf\'fcllen: StB.\
+\
+---\
+\
+## G.3 Datenschutz-Kurzpr\'fcfung ERP-Umfang\
+\
+Ausf\'fcllen: DSB.\
+\
+---\
+\
+## G.4 Pilotmandant, Umfang, Monitoring\
+\
+Ausf\'fcllen: PL; StB/DSB nach Bedarf.\
+\
+---\
+\
+## G.5 Technisches Release vs. fachliches Go\
+\
+Technisches Release ist nicht automatisch fachliches Go-Live. Ausf\'fcllen: PL.\
+\
+---\
+\
+## G.6 FIN-/Roadmap-Ziele Pilot\
+\
+FIN-2-Umfang im Repo: u. a. ENTWURF \uc0\u8594  GEBUCHT_VERSENDET ohne verpflichtende Zwischenstatus GEPRUEFT/FREIGEGEBEN im MVP; erweiterter 8.4-Motor und weitere Gates siehe Systembeschreibung FIN-2-Zeile und NEXT-INCREMENT. Ausf\'fcllen: PL; StB wo steuerliche Lieferungen betroffen.\
+\
+---\
+\
+## Technische Vertiefung (optional, Repo-Pfade)\
+\
+- docs/ERP-Systembeschreibung.md \'96 Abschnitte 8 (Finanz), 9 (LV), 11 (Rollen), 12 (Audit).\
+- docs/adr/0007-finance-persistence-and-invoice-boundaries.md\
+- docs/adr/0012-finance-scope-tenant-customer-invoices-only.md\
+- docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md\
+- docs/runbooks/m4-slice-5c-pl-mandanten-go.md\
+\
+---\
+\
+# Rechtlicher Hinweis (allgemeine Orientierung, kein Produktnachweis)\
+\
+Fehlerhafte oder manipulierte Buchf\'fchrung kann strafrechtliche Konsequenzen haben, insbesondere:\
+\
+- Betrug (\'a7 263 StGB)\
+- Datenver\'e4nderung (\'a7 269 StGB)\
+- Buchf\'fchrungsdelikte (\'a7 283 StGB)\
+\
+Zus\'e4tzlich bestehen Anforderungen aus HGB, DSGVO und GoBD-Idee.\
+\
+Dieses Dokument dient der Vorbereitung der Compliance und ersetzt keine fachliche Pr\'fcfung.\
+\
+---}

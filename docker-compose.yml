@@ -13,7 +13,8 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: erp-postgres
+    # Eindeutiger Name (kein Konflikt mit älterem `erp-postgres`); „ERP 2.0“ → erp-2-0-postgres
+    container_name: erp-2-0-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: erp

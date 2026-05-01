@@ -8,6 +8,8 @@ const SEED_MEASUREMENT_VERSION_ID = "cccccccc-cccc-4ccc-8ccc-cccccccc0001";
 const SEED_SUPPLEMENT_VERSION_ID = "91919191-9191-4191-8191-919191919191";
 /** Eltern-Aufmass zur Seed-Version — UI zeigt `measurementId`, nicht die Versions-UUID (`src/composition/seed.ts`). */
 const SEED_MEASUREMENT_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb001";
+/** Seed-Projekt der gebuchten Demo-Rechnung (`src/composition/seed.ts` SEED_IDS.projectId). */
+const SEED_PROJECT_ID = "10101010-1010-4010-8010-101010101010";
 
 test.describe("Login → Finanz (Vorbereitung)", () => {
   test("Haupt-Shell: LV_VERSION GET-Detail (Snapshot)", async ({ page }) => {
@@ -77,6 +79,22 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
 
     await subreads.getByRole("button", { name: "Mahn-Ereignisse (GET)" }).click();
     await expect(page.getByRole("heading", { name: "Antwort dunning-reminders" })).toBeVisible({ timeout: 15_000 });
+
+    await subreads
+      .getByRole("button", { name: /Zahlungsbedingungen zum Projekt der Rechnung laden \(GET\)/ })
+      .click();
+    await expect(page.getByRole("heading", { name: "Antwort GET /finance/payment-terms (Projekt)" })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("shell-invoice-payment-terms-json")).toContainText(SEED_PROJECT_ID);
+
+    await subreads
+      .getByRole("button", { name: /Erlaubte Aktionen für diese Rechnung laden \(GET\)/ })
+      .click();
+    await expect(page.getByRole("heading", { name: "Antwort allowed-actions (INVOICE)" })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("shell-invoice-allowed-actions-json")).toContainText("allowedActions");
   });
 
   test("Haupt-Shell: MEASUREMENT_VERSION GET-Detail", async ({ page }) => {
@@ -121,6 +139,28 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await expect(supplementPanel).toContainText("ENTWURF");
     await expect(supplementPanel).toContainText(SEED_SUPPLEMENT_VERSION_ID);
     await expect(supplementPanel).toContainText("33333333-3333-4333-8333-333333333333");
+  });
+
+  test("Finanz: Deep-Link #/finanz-grundeinstellungen zeigt Mahn-Grundeinstellungen (Option A / M4 IA)", async ({
+    page,
+  }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+
+    await page.goto("/#/finanz-grundeinstellungen");
+
+    await expect(page.getByRole("heading", { name: "Finanz (Vorbereitung) — Mahn-Grundeinstellungen" })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByRole("heading", { name: /Grundeinstellungen Mahnlauf \(SEMI, ADR-0011\)/i })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page).toHaveURL(/finanz-grundeinstellungen/);
   });
 
   test("Anmeldung und Finanz-Seite erreichbar", async ({ page }) => {

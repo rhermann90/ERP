@@ -104,6 +104,8 @@ export default function App() {
   /** Read-only Lesepfade zur Rechnung (Haupt-Shell); zurückgesetzt bei jedem „Detail laden“. */
   const [invoicePaymentIntakesJson, setInvoicePaymentIntakesJson] = useState("");
   const [invoiceDunningRemindersJson, setInvoiceDunningRemindersJson] = useState("");
+  const [invoicePaymentTermsJson, setInvoicePaymentTermsJson] = useState("");
+  const [invoiceAllowedActionsShellJson, setInvoiceAllowedActionsShellJson] = useState("");
 
   const [modalAction, setModalAction] = useState<string | null>(null);
   const [form, setForm] = useState<ActionFormFields>({
@@ -250,6 +252,8 @@ export default function App() {
     setBanner(null);
     setInvoicePaymentIntakesJson("");
     setInvoiceDunningRemindersJson("");
+    setInvoicePaymentTermsJson("");
+    setInvoiceAllowedActionsShellJson("");
     try {
       if (entityType === "MEASUREMENT_VERSION") {
         const raw = (await client.getMeasurementVersion(documentId.trim())) as {
@@ -352,6 +356,48 @@ export default function App() {
     try {
       const r = await client.listInvoiceDunningReminders(invoiceShellDetail.invoiceId);
       setInvoiceDunningRemindersJson(JSON.stringify(r, null, 2));
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setBanner({
+          kind: "error",
+          text: e.envelope.message,
+          code: e.envelope.code,
+          correlationId: e.envelope.correlationId,
+        });
+      } else setBanner({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [client, invoiceShellDetail]);
+
+  const loadInvoicePaymentTermsForShell = useCallback(async () => {
+    if (!invoiceShellDetail) return;
+    setBusy(true);
+    setBanner(null);
+    try {
+      const r = await client.getPaymentTermsByProject(invoiceShellDetail.projectId);
+      setInvoicePaymentTermsJson(JSON.stringify(r, null, 2));
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setBanner({
+          kind: "error",
+          text: e.envelope.message,
+          code: e.envelope.code,
+          correlationId: e.envelope.correlationId,
+        });
+      } else setBanner({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [client, invoiceShellDetail]);
+
+  const loadInvoiceAllowedActionsForShell = useCallback(async () => {
+    if (!invoiceShellDetail) return;
+    setBusy(true);
+    setBanner(null);
+    try {
+      const r = await client.getAllowedActions(invoiceShellDetail.invoiceId, "INVOICE");
+      setInvoiceAllowedActionsShellJson(JSON.stringify(r, null, 2));
     } catch (e) {
       if (e instanceof ApiError) {
         setBanner({
@@ -810,7 +856,9 @@ export default function App() {
             <code>
               GET /invoices/{invoiceShellDetail.invoiceId}/dunning-reminders
             </code>
-            .
+            , <code>GET /finance/payment-terms</code> (<code>projectId</code> aus dieser Rechnung:{" "}
+            <code>{invoiceShellDetail.projectId}</code>),{" "}
+            <code>GET /documents/…/allowed-actions</code> (<code>INVOICE</code>).
           </p>
           <div data-testid="shell-invoice-readonly-subreads" style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
             <button type="button" disabled={busy} onClick={() => void loadInvoicePaymentIntakesRead()}>
@@ -818,6 +866,22 @@ export default function App() {
             </button>
             <button type="button" disabled={busy} onClick={() => void loadInvoiceDunningRemindersRead()}>
               Mahn-Ereignisse (GET)
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              aria-label="Zahlungsbedingungen zum Projekt der Rechnung laden (GET)"
+              onClick={() => void loadInvoicePaymentTermsForShell()}
+            >
+              Zahlungsbedingungen Projekt (GET)
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              aria-label="Erlaubte Aktionen für diese Rechnung laden (GET)"
+              onClick={() => void loadInvoiceAllowedActionsForShell()}
+            >
+              Erlaubte Aktionen Rechnung (GET)
             </button>
           </div>
           {invoicePaymentIntakesJson ? (
@@ -833,6 +897,26 @@ export default function App() {
               <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>Antwort dunning-reminders</h3>
               <pre className="system-block" style={{ margin: 0 }}>
                 {invoiceDunningRemindersJson}
+              </pre>
+            </>
+          ) : null}
+          {invoicePaymentTermsJson ? (
+            <>
+              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
+                Antwort GET /finance/payment-terms (Projekt)
+              </h3>
+              <pre className="system-block" style={{ margin: 0 }} data-testid="shell-invoice-payment-terms-json">
+                {invoicePaymentTermsJson}
+              </pre>
+            </>
+          ) : null}
+          {invoiceAllowedActionsShellJson ? (
+            <>
+              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
+                Antwort allowed-actions (INVOICE)
+              </h3>
+              <pre className="system-block" style={{ margin: 0 }} data-testid="shell-invoice-allowed-actions-json">
+                {invoiceAllowedActionsShellJson}
               </pre>
             </>
           ) : null}

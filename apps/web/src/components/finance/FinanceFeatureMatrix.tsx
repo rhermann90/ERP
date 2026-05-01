@@ -42,6 +42,12 @@ export function FinanceFeatureMatrix() {
       hinweis: "ADR-0011 B3 (stageDeadlineIso, eligibilityContext); kein Cron/AUTO; bei Server-OFF sind Mahnlauf-Dry-Run/EXECUTE und Batch-E-Mail (5c) in der PWA deaktiviert (Variante 1a); keine Offline-Schreibsimulation.",
     },
     {
+      area: "M4 Massen-E-Mail (Slice 5c)",
+      inUi: "Tab Grundeinstellungen: POST …/dunning-reminder-run/send-emails (DRY_RUN/EXECUTE, max. 25 Zeilen; EXECUTE mit Bestätigung)",
+      einordnung: "nicht Zielprodukt (M4)",
+      hinweis: "Spec M4-BATCH-DUNNING-EMAIL-SPEC; 5a-Pipeline pro Zeile; Mandanten-Go nur mit Compliance/Runbook; bei OFF wie Mahnlauf (409 / UI deaktiviert).",
+    },
+    {
       area: "SoT / andere Entitäten",
       inUi: "allowed-actions für gewählte entityType",
       einordnung: "Demo",

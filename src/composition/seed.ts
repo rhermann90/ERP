@@ -10,6 +10,8 @@ import {
   MeasurementVersion,
   Offer,
   OfferVersion,
+  PaymentTermsHead,
+  PaymentTermsVersion,
   SupplementOffer,
   SupplementVersion,
 } from "../domain/types.js";
@@ -39,6 +41,9 @@ export const SEED_IDS = {
   /** Stabil für Demos/API-Tests (FIN-1/FIN-2 an Projekt gebunden). */
   projectId: "10101010-1010-4010-8010-101010101010",
   customerId: "20202020-2020-4020-8020-202020202020",
+  /** FIN-1 Konditionskopf für `projectId` (Memory-/E2E-Shell `GET /finance/payment-terms`). */
+  paymentTermsHeadId: "50505050-5050-4050-8050-505050505050",
+  paymentTermsVersionId: "51515151-5151-4151-8151-515151515151",
 } as const;
 
 export function seedDemoData(repos: InMemoryRepositories): void {
@@ -227,8 +232,28 @@ export function seedDemoData(repos: InMemoryRepositories): void {
     skontoBps: 0,
   };
 
+  const paymentTermsHead: PaymentTermsHead = {
+    id: SEED_IDS.paymentTermsHeadId,
+    tenantId: SEED_IDS.tenantId,
+    projectId: offer.projectId,
+    customerId: offer.customerId,
+    createdAt: new Date(),
+    createdBy: SEED_IDS.seedAdminUserId,
+  };
+  const paymentTermsVersion: PaymentTermsVersion = {
+    id: SEED_IDS.paymentTermsVersionId,
+    tenantId: SEED_IDS.tenantId,
+    headId: paymentTermsHead.id,
+    versionNumber: 1,
+    termsLabel: "Seed — 14 Tage netto",
+    createdAt: new Date(),
+    createdBy: SEED_IDS.seedAdminUserId,
+  };
+
   repos.putOffer(offer);
   repos.putOfferVersion(version);
+  repos.putPaymentTermsHead(paymentTermsHead);
+  repos.putPaymentTermsVersion(paymentTermsVersion);
   repos.lvCatalogs.set(lvCatalog.id, lvCatalog);
   repos.lvVersions.set(lvVersion.id, lvVersion);
   repos.lvStructureNodes.set(lvBereich.id, lvBereich);

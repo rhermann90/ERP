@@ -7,7 +7,7 @@ Accepted. **Ergänzung 2026-04-22:** Erste **FIN-2-Buchung** implementiert (`POS
 ## Kontext
 
 `docs/ERP-Systembeschreibung.md` definiert das Finanz-Submodul (u. a. **8.1** Traceability, **8.2** Rechnung, **8.4** Berechnungskette, **8.5** Zahlungsbedingungen inkl. versionierter Konditionen, **8.7–8.9** Zahlungseingang/Zuordnung/Status, **8.10** Mahnwesen, **8.12** Rundungslogik, **8.16** EUR/Steuer-Sonderfälle).  
-Parallel existieren **ADR-0004** (Aufmass), **ADR-0005** (LV §9), **ADR-0006** (Offer/OfferVersion-Persistenz) und Audit-Persistenz für einen vertikalen Schnitt.
+Parallel existieren **ADR-0004** (Aufmass), **ADR-0005** (LV §9), **ADR-0006** (Offer/OfferVersion-Persistenz) und Audit-Persistenz für einen vertikalen Schnitt. **Produkt-Scope Finanz** (nur Rechnungs-/Zahlungskette **Mandant → Endkunde**, keine Plattformabrechnung an den Mandanten): **ADR-0012**.
 
 **FIN-2-Start-Gate** (`docs/tickets/FIN-2-START-GATE.md`) verlangt u. a. **G4** (dieses ADR), **G5** (verbindliche `lvVersionId` für 8.4(1)), **G1–G3** (persistierte LV/Aufmass/Traceability-Kette) **vor** Beginn der **Implementierung** von FIN-2.
 
