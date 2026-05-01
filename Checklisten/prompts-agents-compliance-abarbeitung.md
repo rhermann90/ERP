@@ -1,6 +1,6 @@
 # Prompts: Checkliste `compliance-rechnung-finanz.md` abarbeiten
 
-**Zieldatei (einziges Arbeitsdokument):** [`compliance-rechnung-finanz.md`](./compliance-rechnung-finanz.md)  
+**Zieldatei (einziges Arbeitsdokument):** [`compliance-rechnung-finanz.md`](./compliance-rechnung-finanz.md) — darin **§8 Agent-Vorbereitung** (Repo-Mapping, Kommunikationspfad; **kein** StB/DSB-Ersatz).
 **Kürzel:** **StB** = Steuerberater · **DSB** = Datenschutzbeauftragte/r · **PL** = Projektleitung (Orchestrator/in)
 
 ---
