@@ -16,8 +16,8 @@ Legende: **C** = Contract (OpenAPI / `action-contracts` / `error-codes` Abgleich
 | **G7** | CI grün inkl. Persistenz | **I** (Regression `npm test` + CI Postgres) | **I** (identisch; kein zusätzlicher E2E-Pflicht bis MVP) |
 | **G8** | OpenAPI ↔ Contracts, keine Phantom-Codes | **C** | **C** + **I** (Stub-Responses gegen `error-codes.json`, siehe `finance-fin0-openapi-mapping.md`) |
 | **G9** | In-Memory vs. Postgres Strategie §16 | **M** + **C** (ADR-0007 Fortschreibung) | **M** + **I** (Audit-/Rechnungs-Persistenzpfade) |
-| **G10** | PL-Freigabezeile | **M** | **M** |
+| **G10** | Freigabezeile (Team/Maintainer) | **M** | **M** |
 
 **Hinweis:** Zeilen **G6**, **G9**, **G10** sind **nicht vollständig automatisierbar**; sie bleiben bewusst **M**-Anteil, ergänzt durch verlinkte Artefakte (QA-Report, ADR, Gate-Tabelle).
 
-**Drift → Projektleitung:** Liegt ein Repo-Artefakt vor (z. B. ADR unter `docs/adr/`), die kanonische Tabelle in `docs/tickets/FIN-2-START-GATE.md` zeigt in **erfüllt** aber weiterhin **nein** ohne Eintrag unter **Nachweis**, ist die Checkliste nicht nachgezogen — **PL** bitte Spalten pflegen. Diese Matrix ersetzt **keine** Gate-Zeile und befreit nicht von G1–G10.
+**Drift → Team:** Liegt ein Repo-Artefakt vor (z. B. ADR unter `docs/adr/`), die kanonische Tabelle in `docs/tickets/FIN-2-START-GATE.md` zeigt in **erfüllt** aber weiterhin **nein** ohne Eintrag unter **Nachweis**, ist die Checkliste nicht nachgezogen — **Maintainer:in** bitte Spalten pflegen. Diese Matrix ersetzt **keine** Gate-Zeile und befreit nicht von G1–G10.

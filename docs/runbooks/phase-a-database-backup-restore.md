@@ -42,13 +42,13 @@ Link zu Monitoring/Alarm-Check (optional): <…>
 
 **Surrogat ohne Staging-DB (nur Entwicklung):** Lokale CI-Parität mit Postgres — `DATABASE_URL` und `PERSISTENCE_DB_TEST_URL` setzen, dann `npm run verify:ci:with-migrate` (siehe `package.json`). Das **ersetzt** keine echte Restore-Übung gegen ein Backup; es dient nur als technischer Smoke vor/nach Schema-Änderungen.
 
-### Stand Projektleitung / Betrieb (Nachweis)
+### Stand Team / Betrieb (Nachweis)
 
 | Feld | Stand |
 |------|--------|
 | **Restore-Übung Staging (Phase A4)** | **Ausstehend.** Aus diesem Workspace keine Ausführung gegen euer Staging/Backup möglich (keine `DATABASE_URL` für Staging, kein Cloud-Provider-Zugriff). |
 | **Nächster Schritt** | Übung nach **„Übungsnachweis“** oben im Tracker dokumentieren; optional Verweis hier oder in `docs/tickets/FIN-2-START-GATE.md` Bemerkung (Abschnitt 4) ergänzen, sobald erledigt. |
-| **RTO/RPO** | Weiterhin von Projektleitung/Betrieb in dieses Dokument oder Ticket eintragen. |
+| **RTO/RPO** | Weiterhin von Team/Betrieb in dieses Dokument oder Ticket eintragen. |
 
 **Wie der Agent (oder ein externes Tool) Zugang bekommen könnte — nur falls ihr Automatisierung wollt:** GitHub **Environments** mit Secret `STAGING_DATABASE_URL` (read-only für Smoke) + Workflow, der nur manuell (`workflow_dispatch`) einen Restore-Check ausführt; oder Zugriff auf euren Postgres-Provider über **IAM** / VPN — das ist eine Organisationsentscheidung, nicht Pflicht für die manuelle Übung.
 

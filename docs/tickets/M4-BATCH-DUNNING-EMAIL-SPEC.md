@@ -1,6 +1,6 @@
 # M4 — Batch-Mahn-E-Mail (Slice 5c): Spec und Compliance-Bezug
 
-**Status:** Spec fuer Umsetzung abgestimmt mit Entwicklungsplan „Finanz Welle 3 Folge“. **Kein** Ersatz fuer StB/DSB/PL vor Produktiv-Versand.
+**Status:** Spec fuer Umsetzung abgestimmt mit Entwicklungsplan „Finanz Welle 3 Folge“. **Kein** Ersatz fuer StB/DSB/Release-Verantwortliche vor Produktiv-Versand.
 
 ## Ziel
 
@@ -30,11 +30,11 @@ Nach `POST /finance/dunning-reminder-run` (5b-1, Mahnereignisse) bzw. parallel: 
 
 ## Compliance / QA
 
-- **PL-Session vor Mandanten-Go:** [`docs/runbooks/m4-slice-5c-pl-mandanten-go.md`](../runbooks/m4-slice-5c-pl-mandanten-go.md) (Agenda-Verweis + Checklistenanker).
+- **Release-/Go-Session vor Mandanten-Go:** [`docs/runbooks/m4-slice-5c-pl-mandanten-go.md`](../runbooks/m4-slice-5c-pl-mandanten-go.md) *(Pfadname historisch)* — Agenda-Verweis + Checklistenanker.
 - [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) §0 — kein stiller Massenversand.
-- [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) vor Produktiv-Go mit StB/DSB/PL.
+- [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) vor Produktiv-Go mit StB/DSB/Release-Verantwortliche.
 - ADR: Ergaenzung in [ADR-0010](../adr/0010-fin4-m4-dunning-email-and-templates.md) (Abschnitt 5c).
 
-## PL
+## Koordination / Protokoll
 
-Formales Protokoll: siehe [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) / Folge-PL-Eintrag nach Massen-E-Mail-Freigabe.
+Formales Protokoll: siehe [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) *(Pfad historisch)* / Folge-Eintrag nach Massen-E-Mail-Freigabe (Maintainer/Team).

@@ -9,7 +9,7 @@ Ausbau der **Geschäftslogik und API** über den bisherigen vertikalen Slice (An
 
 ## In Scope (Phase 2 — Start)
 
-- Erweiterung der **API- und Domänenschicht** für weitere Kerndokumente und Prozesse aus v1.2, priorisiert nach Projektleitung (z. B. LV-Hierarchie, Aufmass-Lebenszyklus, weiterführende Rechnungslogik-Schnitte), jeweils mit:
+- Erweiterung der **API- und Domänenschicht** für weitere Kerndokumente und Prozesse aus v1.2, priorisiert nach Team-Roadmap (z. B. LV-Hierarchie, Aufmass-Lebenszyklus, weiterführende Rechnungslogik-Schnitte), jeweils mit:
   - strikter **Mandantentrennung**
   - **Versionierung** / nicht-destruktive Änderungen
   - **Audit** bei kritischen Übergängen

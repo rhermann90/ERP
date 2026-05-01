@@ -1,0 +1,24 @@
+{
+  "$schema": "./compliance-signoffs.schema.json",
+  "signoffs": [
+    {
+      "lineId": "chk-b01",
+      "suffix": "StB",
+      "isoDate": "2026-06-15",
+      "evidenceRef": "EXAMPLE-TICKET-ONLY",
+      "approvalId": "example-tool-ref-opaque"
+    },
+    {
+      "lineId": "chk-a01",
+      "suffix": "StB",
+      "isoDate": "2026-06-20",
+      "evidenceRef": "EXAMPLE-STB-PROTOCOL"
+    },
+    {
+      "lineId": "chk-a01",
+      "suffix": "PL+DSB",
+      "isoDate": "2026-06-21",
+      "evidenceRef": "EXAMPLE-PLDSB-SESSION"
+    }
+  ]
+}

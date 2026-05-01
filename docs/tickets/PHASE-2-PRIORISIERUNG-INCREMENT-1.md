@@ -34,7 +34,7 @@
 6. Tests: P0 Tenant, SoT, Audit, Negative; Regression bestehender Suite **grün**.
 7. `docs/api-contract.yaml`, ADR-Ergänzung bei Policy-Entscheidungen, Contract-Sync durch Frontend-Agent.
 
-### Nächste Increments (Vorschlag, nicht verbindlich bis erneute PL-Entscheidung)
+### Nächste Increments (Vorschlag, nicht verbindlich bis erneute Team-Entscheidung)
 
 2. **LV-Hierarchie / Positionsmodell** (§9) — Vorbereitung für editorische Tiefe  
 3. **Rechnungserweiterung** — nur in abgegrenztem Schnitt, ohne §8-Vollausbau  

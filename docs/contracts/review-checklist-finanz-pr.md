@@ -17,16 +17,16 @@
 
 ## Misch-PR und QA-Gate
 
-- **§5b:** PRs, die **Doku +** `src/` **oder** `prisma/` **ohne** klare Trennung mischen — Regeln in [`qa-fin-0-gate-readiness.md`](./qa-fin-0-gate-readiness.md) **§5b** beachten (PL/QA vor Merge).
+- **§5b:** PRs, die **Doku +** `src/` **oder** `prisma/` **ohne** klare Trennung mischen — Regeln in [`qa-fin-0-gate-readiness.md`](./qa-fin-0-gate-readiness.md) **§5b** beachten (Team/QA vor Merge).
 
 ## GoBD / Audit (Querschnitt, nicht jedes kleine PR)
 
-- Transaktionsgrenze Audit vs. DB-Persistenz: Ticket [`../tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](../tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) vor größeren GoBD-relevanten Releases mit PL terminieren.
+- Transaktionsgrenze Audit vs. DB-Persistenz: Ticket [`../tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](../tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) bei größeren GoBD-relevanten Releases **mit einbeziehen** — **Empfehlung**, kein Zwang auf ausgefülltes Gate in der Entwicklungsphase.
 
 ## Freigabe — FIN-4 Mahn-Mandanten-Automation (OFF / SEMI, PWA)
 
-1. **PL-Gate:** Weitere M4-UI-/Mail-Slices **nur** nach Abgleich mit [`M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md`](../tickets/M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md) bzw. [`NEXT-INCREMENT-FINANCE-WAVE3.md`](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) — **kein** Parallelstart zu **8.4(2–6)** oder **Pfad C** (Rechnungs-Zwischenstatus) in derselben Lieferung.
-2. **PL/Ticket:** Modi **OFF** und **SEMI** sowie SEMI-Kontext dokumentiert ([`M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md`](../tickets/M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md), [ADR-0011](../adr/0011-fin4-semi-dunning-context.md)); kein Hintergrund-Cron, kein Mandantenmodus **AUTO** im Produkt.
+1. **Wave3-/Prioritäts-Gate:** Weitere M4-UI-/Mail-Slices **nur** nach Abgleich mit [`M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md`](../tickets/M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md) bzw. [`NEXT-INCREMENT-FINANCE-WAVE3.md`](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) — **kein** Parallelstart zu **8.4(2–6)** oder **Pfad C** (Rechnungs-Zwischenstatus) in derselben Lieferung.
+2. **Ticket-/ADR-Abgleich:** Modi **OFF** und **SEMI** sowie SEMI-Kontext dokumentiert ([`M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md`](../tickets/M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md), [ADR-0011](../adr/0011-fin4-semi-dunning-context.md)); kein Hintergrund-Cron, kein Mandantenmodus **AUTO** im Produkt.
 3. **QA Review:** Idempotenz (`Idempotency-Key`, Mahnlauf-Intents), Audit in DB-Transaktion wo vorgesehen (ADR-0009/0010/0011); Persistenz-Tests bei neuen Tabellen.
 4. **CI:** `npm run verify:ci`; bei Persistenz/Migrationen `verify:ci:local-db` / CI-Postgres wie [`../runbook/ci-and-persistence-tests.md`](../runbook/ci-and-persistence-tests.md).
 5. **Betrieb:** Cron-/AUTO-Mahnlauf ist dauerhaft entfernt; Infra-Checkliste und Sign-off: [`../runbooks/dunning-cron-and-monitoring-inventory.md`](../runbooks/dunning-cron-and-monitoring-inventory.md), [`../runbooks/dunning-production-infra-signoff.md`](../runbooks/dunning-production-infra-signoff.md) — ADR-0011.

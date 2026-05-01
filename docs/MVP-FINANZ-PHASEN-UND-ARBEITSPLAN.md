@@ -2,7 +2,7 @@
 
 **Stand:** 2026-05-01 — Zusammenführung der vormals getrennten Dokumente *Entwicklungsphasen MVP* und *Phasenarbeitsplan MVP Finanz*; Kurz-Iststand und technischer Index mit [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) (Stand 2026-04-27) sowie [`README.md`](../README.md) (Persistenz) abgeglichen.
 
-**Zielgruppe:** Projektleitung, Entwicklung, Code Review, QA
+**Zielgruppe:** Produkt/Release-Verantwortliche, Entwicklung, Code Review, QA
 
 **Verbindliche Domänenquelle:** [`docs/ERP-Systembeschreibung.md`](./ERP-Systembeschreibung.md) (vgl. [`.cursor/rules/erp-multi-agent.mdc`](../.cursor/rules/erp-multi-agent.mdc))
 
@@ -19,7 +19,7 @@
 | Bereich | Stand (hochlevel) |
 |--------|-------------------|
 | **Persistenz** | Postgres + Prisma u. a. für **Offer** / **OfferVersion**, **AuditEvent** (ADR-0006), **invoices**, **payment_intakes**, **dunning_reminders**, **dunning_tenant_stage_config**, **dunning_tenant_stage_templates**, **dunning_tenant_email_footer**, **dunning_email_sends** (FIN-4 M4), **payment_terms_heads** / **payment_terms_versions** (FIN-1); Arbeits-Cache weiterhin **In-Memory** im Prozess mit Write-Through — siehe [`README.md`](../README.md) Abschnitt „Hinweis zur Persistenz“. |
-| **Kerndomäne (Code)** | Angebot, Nachtrag/Supplement, LV-/Aufmass-/Export-/Traceability-Services; **Rechnung** (Entwurf, Buchung, SoT **BOOK_INVOICE**) und **Zahlungseingang** (Intake, Idempotenz, Status TEILBEZAHLT/BEZAHLT); **8.4:** Schritt 1 + USt/Brutto (7–8); **B2-1a:** optionaler Skonto-Anteil (`skontoBps`); Schritte 3–6 weiterhin in `netCentsAfterStep84_6Mvp` (ADR-0007) — **kein** vollständiger 8.4(2–6)-Motor; **FIN-4:** Mahn-Ereignisse, Mandanten-Stufen-Konfig (**GET|PUT|PATCH|DELETE**, Soft-Delete, Audit in Transaktion, ADR-0009), Vorlagen/Footer, Mahnlauf **5b-0/5b-1**, **`GET|PATCH /finance/dunning-reminder-automation`** (**OFF**/**SEMI**, ADR-0011; kein Cron), **`POST /finance/dunning-reminder-run`** fail-closed bei **OFF** (409 `DUNNING_REMINDER_RUN_DISABLED`). Verbleibend z. B. Massen-E-Mail / UX nach PL — [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md). |
+| **Kerndomäne (Code)** | Angebot, Nachtrag/Supplement, LV-/Aufmass-/Export-/Traceability-Services; **Rechnung** (Entwurf, Buchung, SoT **BOOK_INVOICE**) und **Zahlungseingang** (Intake, Idempotenz, Status TEILBEZAHLT/BEZAHLT); **8.4:** Schritt 1 + USt/Brutto (7–8); **B2-1a:** optionaler Skonto-Anteil (`skontoBps`); Schritte 3–6 weiterhin in `netCentsAfterStep84_6Mvp` (ADR-0007) — **kein** vollständiger 8.4(2–6)-Motor; **FIN-4:** Mahn-Ereignisse, Mandanten-Stufen-Konfig (**GET|PUT|PATCH|DELETE**, Soft-Delete, Audit in Transaktion, ADR-0009), Vorlagen/Footer, Mahnlauf **5b-0/5b-1**, **`GET|PATCH /finance/dunning-reminder-automation`** (**OFF**/**SEMI**, ADR-0011; kein Cron), **`POST /finance/dunning-reminder-run`** fail-closed bei **OFF** (409 `DUNNING_REMINDER_RUN_DISABLED`). Verbleibend z. B. Massen-E-Mail / UX nach Team-Priorität — [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md). |
 | **PWA** | `apps/web`: Shell, `allowedActions`-gekoppelte Schreibpfade (inkl. **BOOK_INVOICE**), Tenant-Session; Finanz-Vorbereitung (FIN-3 Intake, FIN-4 Mahn/Konfig/Vorlagen/Footer, Batch-Vorschau/Ausführung); Deep-Link `#/finanz-vorbereitung`, Alias `#/finanz-grundeinstellungen`; bei Mandant **OFF** blockiert die Shell **Dry-Run**/**EXECUTE**, nicht **GET** Kandidaten; strukturierte Server-Fehleranzeige (**OFF-1a**). |
 | **Spezifikation** | Finanz-Submodell **§8** inkl. Mahnwesen **8.10**, EUR/Steuer **8.16**, Quality Gate **15** in der konsolidierten Systembeschreibung. |
 
@@ -214,7 +214,7 @@
 
 ---
 
-1. **Vorbedingung** (Abschnitt B) prüfen — ohne PL-/System-Rahmen keine größeren Architektur-/Finanz-Merges laut [`qa-fin-0-gate-readiness.md`](./contracts/qa-fin-0-gate-readiness.md).
+1. **Vorbedingung** (Abschnitt B) prüfen — ohne dokumentierten Sprint-Kontext keine größeren Architektur-/Finanz-Merges laut [`qa-fin-0-gate-readiness.md`](./contracts/qa-fin-0-gate-readiness.md).
 2. **Master-Tabelle** (Abschnitt D) aktualisieren, wenn sich der Ist-Stand ändert.
 3. Pro **Kapitel FIN-x** (Abschnitt F): nummerierte **Arbeitsschritte** ausführen → **QA** (Vorlage Abschnitt E1) → **Review** (Vorlage E2) → **Evidenz** eintragen → Checkboxen **DoD** setzen.
 4. **Kein Mandanten-Go** aus dieser Datei ableiten — fachliche Abnahme: [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md).
@@ -231,17 +231,17 @@
 
 ---
 
-### B — Globale Vorbedingung: PL / System — zuerst
+### B — Globale Vorbedingung: Sprint-Kontext / System — zuerst
 
 **Verbindlich** für Merge-Evidence und Architektur-PRs: [`docs/contracts/qa-fin-0-gate-readiness.md`](./contracts/qa-fin-0-gate-readiness.md) §0.
 
-**Checkliste (vor größerer Finanz-Lieferung — mit PL / Review explizit abhaken):**
+**Checkliste (vor größerer Finanz-Lieferung — mit Team / Review explizit abhaken):**
 
-- [ ] Aktueller **PL-/System-Snapshot** liegt vor (z. B. [`PL-SYSTEM-ZUERST-2026-04-14.md`](./tickets/PL-SYSTEM-ZUERST-2026-04-14.md); Vorlage: [`PL-SYSTEM-ZUERST-VORLAGE.md`](./tickets/PL-SYSTEM-ZUERST-VORLAGE.md)).
+- [ ] Aktueller **Sprint-/Prioritäts-Snapshot** liegt vor (z. B. [`PL-SYSTEM-ZUERST-2026-04-14.md`](./tickets/PL-SYSTEM-ZUERST-2026-04-14.md) *(Pfad historisch)*; Vorlage: [`PL-SYSTEM-ZUERST-VORLAGE.md`](./tickets/PL-SYSTEM-ZUERST-VORLAGE.md)).
 - [ ] **Nächstes technisches Inkrement** ist benannt (z. B. [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) oder Nachfolger).
 - [ ] Multi-Agent-Regeln bekannt: [`.cursor/rules/erp-multi-agent.mdc`](../.cursor/rules/erp-multi-agent.mdc).
 
-**Technischer Index-Sync (2026-05-01, kein Ersatz für PL-Abhaken oben):** Abgleich mit **Teil 1** und [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md): **Pfad A / B2-1a** umgesetzt; **FIN-4** Konfig/Vorlagen/Footer/Mahnlauf **5b-0/5b-1**, Automation **OFF/SEMI** (ADR-0011), **`POST /finance/dunning-reminder-run`** bei **OFF** → 409; PWA **OFF-1a** / Deep-Link Grundeinstellungen umgesetzt. **Nächster Default:** M4-Rest nach PL (u. a. Massen-E-Mail); keine Parallele zu **8.4(2–6)** oder **Pfad C** ohne Gate.
+**Technischer Index-Sync (2026-05-01, kein Ersatz für manuelle Checklisten oben):** Abgleich mit **Teil 1** und [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md): **Pfad A / B2-1a** umgesetzt; **FIN-4** Konfig/Vorlagen/Footer/Mahnlauf **5b-0/5b-1**, Automation **OFF/SEMI** (ADR-0011), **`POST /finance/dunning-reminder-run`** bei **OFF** → 409; PWA **OFF-1a** / Deep-Link Grundeinstellungen umgesetzt. **Nächster Default:** M4-Rest nach Team-Priorität (u. a. Massen-E-Mail); keine Parallele zu **8.4(2–6)** oder **Pfad C** ohne Gate.
 
 ---
 
@@ -261,12 +261,12 @@
 | Phase | Meilenstein | DoD-Kern (Kurz) | Ist (Repo, hochlevel) | Lücke / Risiko | Nächster sinnvoller Schritt |
 |-------|-------------|-----------------|------------------------|----------------|----------------------------|
 | **FIN-0** | M0 | ADR + OpenAPI + Test-/Gate-Strategie | Verträge, ADRs 0007–0009 (+ **0010** M4 E-Mail/Vorlagen, **0011** SEMI), Stub-Matrix, Gate-Readiness | Phantom-Codes, Drift OpenAPI ↔ Implementierung | Bei jedem API-Change: G8-Bündel + Matrix; §5a-Evidenz im PR |
-| **FIN-1** | M1 | Versionierte Konditionen, append-only | `payment_terms_*` in Postgres, APIs; PWA-Demo angebunden; **M1-DoD:** Persistenz-`it` „FIN-1 M1: zwei Zahlungsbedingungs-Versionen …“ in [`test/persistence.integration.test.ts`](../test/persistence.integration.test.ts) (zwei Versionen, Rechnung auf **v1**, Buchung behält **v1**) | Rest optional: UX/Copy in Finanz-Vorbereitung zu PT; §8.5 | Nach PL: nächster Strang laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) (Default **A**); kein Mix mit 8.4(2–6)/Pfad C ohne Gate |
-| **FIN-2** | M2 | Gebuchte Rechnung, 8.4-Kette, E2E aus LV-Kette | Entwurf, Buchung `BOOK_INVOICE`, 8.4(1)+USt/Brutto, **B2-1a** `skontoBps` (Wave3 Pfad A laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md)); PWA Shell + Finanz-Vorbereitung (SoT, Skonto optional API-first) | **8.4(2–6)**-Motor; Pfad GEPRUEFT/FREIGEGEBEN (**Pfad C**, eigenes Gate); belastbarer **LV→Rechnung**-E2E | PL: nach Wave3 **nicht** parallel 8.4-Tiefe + Pfad C mischen; nächste Priorität **M4-Rest** *oder* bewusst 8.4(2–6) / Konvergenz — siehe Wave3-Non-Goals |
+| **FIN-1** | M1 | Versionierte Konditionen, append-only | `payment_terms_*` in Postgres, APIs; PWA-Demo angebunden; **M1-DoD:** Persistenz-`it` „FIN-1 M1: zwei Zahlungsbedingungs-Versionen …“ in [`test/persistence.integration.test.ts`](../test/persistence.integration.test.ts) (zwei Versionen, Rechnung auf **v1**, Buchung behält **v1**) | Rest optional: UX/Copy in Finanz-Vorbereitung zu PT; §8.5 | Nach Ticket-Priorität: nächster Strang laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) (Default **A**); kein Mix mit 8.4(2–6)/Pfad C ohne Gate |
+| **FIN-2** | M2 | Gebuchte Rechnung, 8.4-Kette, E2E aus LV-Kette | Entwurf, Buchung `BOOK_INVOICE`, 8.4(1)+USt/Brutto, **B2-1a** `skontoBps` (Wave3 Pfad A laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md)); PWA Shell + Finanz-Vorbereitung (SoT, Skonto optional API-first) | **8.4(2–6)**-Motor; Pfad GEPRUEFT/FREIGEGEBEN (**Pfad C**, eigenes Gate); belastbarer **LV→Rechnung**-E2E | Nach Wave3 **nicht** parallel 8.4-Tiefe + Pfad C mischen; nächste Priorität **M4-Rest** *oder* bewusst 8.4(2–6) / Konvergenz — siehe Wave3-Non-Goals |
 | **FIN-3** | M3 | Zahlung, Status, Idempotenz 8.7 | Intake POST, Liste GET, SoT, Status TEILBEZAHLT/BEZAHLT; PWA SoT-gekoppelt | **Bankfile** und vollständige **8.8–8.9** bewusst out of scope (ADR-0007); Intake: Überzahlung als Domainfehler **`PAYMENT_EXCEEDS_OPEN_AMOUNT`**, Audit + zentrale Domainfälle in Tests | Backlog 8.8–8.9 / PSP gesondert; optional Review Randfälle (z. B. Replay/Parallelität) |
-| **FIN-4** | M4 | Mahnwesen 8.10 inkl. Konfig, Vorlagen, E-Mail | `dunning_reminders`, Konfig inkl. Soft-Delete, Vorlagen/Footer, Mahnlauf **5b**, Automation **OFF/SEMI**, Run-API — ADR-0009/0010/0011 | Rest **M4** (z. B. Massen-E-Mail) nach PL | **Nächster Schritt:** PL laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) — Default **A**; kein Mix mit 8.4(2–6) oder Pfad C |
+| **FIN-4** | M4 | Mahnwesen 8.10 inkl. Konfig, Vorlagen, E-Mail | `dunning_reminders`, Konfig inkl. Soft-Delete, Vorlagen/Footer, Mahnlauf **5b**, Automation **OFF/SEMI**, Run-API — ADR-0009/0010/0011 | Rest **M4** (z. B. Massen-E-Mail) nach Ticket-Priorität | **Nächster Schritt:** laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) — Default **A**; kein Mix mit 8.4(2–6) oder Pfad C |
 | **FIN-5** | M5 | Steuer-Sonderfall 8.16 oder Fail-Closed | In Teil 1 nicht als erledigt geführt | Entscheidung + ADR/Flag | Ein Sonderfall produktiv **oder** Fail-Closed dokumentieren |
-| **FIN-6** | M6 | Härtung 8.14, 12, 15; PWA-Regeln | Audit fail-hard, README zu 8.14/PWA | Feldklassifikation §8.14; Gesamt-QA §15 | [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) mit PL; Compliance-Vorbereitung |
+| **FIN-6** | M6 | Härtung 8.14, 12, 15; PWA-Regeln | Audit fail-hard, README zu 8.14/PWA | Feldklassifikation §8.14; Gesamt-QA §15 | [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md); Compliance-Vorbereitung |
 
 ### D1 — Merge-Evidenz GitHub Actions
 
@@ -308,7 +308,7 @@
 1. [`docs/contracts/review-checklist-finanz-pr.md`](./contracts/review-checklist-finanz-pr.md) — insb. SoT, `action-contracts.json`, PWA-Executor / API-Client.
 2. [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](./tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md) — 8-Punkte-Checkliste, **blocking**-Zeilen, Merge-Kommentar bei Approve.
 3. Bei Rechnung / 8.4 / Buchung: relevante **G1–G10** aus [`FIN-2-START-GATE.md`](./tickets/FIN-2-START-GATE.md) benennen und abhaken (G4/G6/G9/G10 haben manuellen Anteil).
-4. Bei Eskalation: **Rückmeldung an Projektleitung** exakt nach Schema in [`qa-fin-0-gate-readiness.md`](./contracts/qa-fin-0-gate-readiness.md).
+4. Bei Eskalation: **Rückmeldung ans Team / Review** exakt nach Schema in [`qa-fin-0-gate-readiness.md`](./contracts/qa-fin-0-gate-readiness.md).
 
 **Review-Evidenz:**
 
@@ -368,12 +368,12 @@
 
 **Ziel:** Gebuchte Rechnung unveränderlich; Endbetrag aus definierter 8.4-Kette; E2E aus LV/Aufmass-Kette (langfristig).
 
-**Arbeitsschritte (priorisiert mit PL):**
+**Arbeitsschritte (nach Team-Priorität):**
 
 1. Domäne / Service / API für Entwurf, Lesen, Buchung — ADR [`0007-finance-persistence-and-invoice-boundaries.md`](./adr/0007-finance-persistence-and-invoice-boundaries.md).
 2. SoT `BOOK_INVOICE` — [`action-contracts.json`](./contracts/action-contracts.json), Authorization-Service, PWA-Executor.
 3. 8.4: aktuell Schritt 1 + USt/Brutto; **Erweiterungen 8.4(2–6)** nur in klar abgegrenzten Inkrementen (siehe [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) Non-Goals).
-4. **Pfad C** (GEPRUEFT / FREIGEGEBEN): nicht mit anderen Wellen mischen — eigenes ADR/PL-Gate.
+4. **Pfad C** (GEPRUEFT / FREIGEGEBEN): nicht mit anderen Wellen mischen — eigenes ADR/Architektur-Gate.
 5. Konvergenz LV→Rechnung: **Teil 5** — Adapter/ADR dokumentieren.
 
 **QA:** E1; FIN-2-Gate relevante Gx; Persistenz-Tests für Rechnung/Buchung.
@@ -409,7 +409,7 @@
 
 #### FIN-4 — Mahnwesen (M4)
 
-**Ziel:** Vollständiges Mahnwesen laut §8.10 — Kern umgesetzt; Rest nach PL/Wave3.
+**Ziel:** Vollständiges Mahnwesen laut §8.10 — Kern umgesetzt; Rest nach Ticket-Priorität/Wave3.
 
 **Arbeitsschritte:**
 
@@ -423,7 +423,7 @@
 
 **DoD:**
 
-- [ ] Rest-Lücken (z. B. Massen-E-Mail, Footer-Rechtshinweis) in Doku/Tickets explizit — siehe Wave3 und PL-Records.
+- [ ] Rest-Lücken (z. B. Massen-E-Mail, Footer-Rechtshinweis) in Doku/Tickets explizit — siehe Wave3 und Prioritäts-/Branch-Doku.
 
 ---
 
@@ -452,9 +452,9 @@
 
 **Arbeitsschritte:**
 
-1. Audit-/Persistenz-Querschnitt: [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) mit PL.
+1. Audit-/Persistenz-Querschnitt: [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md).
 2. Feldklassifikation / Log-Redaction für Zahlungsdaten (§8.14).
-3. Gesamt-QA gegen Quality Gate §15 (mit PL/Reviewer definieren).
+3. Gesamt-QA gegen Quality Gate §15 (mit Team/Reviewer definieren).
 
 **QA:** E1 inkl. `verify:ci:local-db` vor Release-Kandidaten.
 
@@ -490,7 +490,7 @@
 ### G — Release-, Compliance- und Mandanten-Go (außerhalb reiner Software-QA)
 
 1. **Software:** grüne CI-Evidenz auf `main` (§5a), Review ohne blocking (E2).
-2. **Fachlich / Mandant:** [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) mit StB/DSB/PL — **zusätzlich** zu CI, kein Ersatz für separates Release-GO ([`README.md`](../README.md)).
+2. **Fachlich / Mandant:** [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) mit StB/DSB/Release-Verantwortliche — **zusätzlich** zu CI, kein Ersatz für separates Release-GO ([`README.md`](../README.md)).
 
 **Abschluss-Checkbox:**
 
@@ -518,7 +518,7 @@
 
 **Technisch:** Umsetzung und Priorisierung **Finanz Welle 3** — [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md); Vorherige Welle: [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE2.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE2.md); Gate-Stand: [`docs/tickets/FIN-2-START-GATE.md`](./tickets/FIN-2-START-GATE.md); PR-Review: [`docs/contracts/review-checklist-finanz-pr.md`](./contracts/review-checklist-finanz-pr.md); Audit-/GoBD-Abstimmung: [`docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md).
 
-**Fachlich vor Mandanten-Go:** [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) mit StB/DSB/PL — **zusätzlich** zu Software- und CI-Abnahme ([`README.md`](../README.md)).
+**Fachlich vor Mandanten-Go:** [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) mit StB/DSB/Release-Verantwortliche — **zusätzlich** zu Software- und CI-Abnahme ([`README.md`](../README.md)).
 
-**Koordination / Gates:** [`docs/contracts/qa-fin-0-gate-readiness.md`](./contracts/qa-fin-0-gate-readiness.md) (Merge-Evidence §5a/§5b, **Rückmeldung an Projektleitung**), [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](./tickets/PL-SYSTEM-ZUERST-VORLAGE.md), [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](./tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md); **Rückmeldung für die nächste Arbeitsplanung** verbindlich nur vom **Code Reviewer** (wortgleiches **blocking** wie im GitHub-Review). Team-Clone mit kanonischem Remote `rhermann90/ERP`; Multi-Agent-Regeln [`.cursor/rules/erp-multi-agent.mdc`](../.cursor/rules/erp-multi-agent.mdc).
+**Koordination / Gates:** [`docs/contracts/qa-fin-0-gate-readiness.md`](./contracts/qa-fin-0-gate-readiness.md) (Merge-Evidence §5a/§5b, **Rückmeldung ans Team / Review**), [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](./tickets/PL-SYSTEM-ZUERST-VORLAGE.md) *(Dateiname historisch)*, [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](./tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md); **Rückmeldung für die nächste Arbeitsplanung** verbindlich nur vom **Code Reviewer** (wortgleiches **blocking** wie im GitHub-Review). Team-Clone mit kanonischem Remote `rhermann90/ERP`; Multi-Agent-Regeln [`.cursor/rules/erp-multi-agent.mdc`](../.cursor/rules/erp-multi-agent.mdc).
 

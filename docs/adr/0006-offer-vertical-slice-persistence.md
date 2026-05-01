@@ -4,7 +4,7 @@
 
 ## Status
 
-Accepted (Implementierung im Repo; weitere Entitäten folgen kontrolliert, jeweils nach PL-Priorität / Ticket).
+Accepted (Implementierung im Repo; weitere Entitäten folgen kontrolliert, jeweils nach Ticket-Priorität).
 
 ## Kontext
 

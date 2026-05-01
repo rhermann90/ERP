@@ -12,10 +12,10 @@
 ## Nicht-Ziele (explizit aus diesem Inkrement)
 
 - **Kein** produktiver Mahnlauf, Vorlagen-Engine, E-Mail-Footer oder Massenversand (**8.10** Vollbild bleibt FIN-4 M4).
-- **Kein** Pfad C (Zwischenstatus GEPRUEFT/FREIGEGEBEN) ohne separates ADR/PL-Gate.
+- **Kein** Pfad C (Zwischenstatus GEPRUEFT/FREIGEGEBEN) ohne separates ADR/Architektur-Gate.
 - **Kein** vollständiges **8.4 B2-1**-Paket (Nachlass/Skonto/Einbehalt) im selben PR wie FIN-4-Schreibpfad — **G8** / §5b: getrennte PRs bevorzugt.
 
-## Alternative (nächster Sprint danach oder parallel nach PL-Veto)
+## Alternative (nächster Sprint danach oder parallel nach Team-Veto)
 
 **Pfad A — 8.4 „B2-1“:** genau **eine** Teilregel aus Spez 8.4(2–6) + ADR-0007-Update; Domäne `invoice-calculation` / Service.
 

@@ -6,7 +6,8 @@ Kurzüberblick für Navigation in `src/` (Fastify-Backend) und `apps/web` (PWA).
 
 | Bereich | Pfad | Rolle |
 |--------|------|--------|
-| **Produktiv-Go Finanz (fachlich)** | [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) | UStG/GoBD/E-Rechnung/DSGVO — Abnahme neben Code/CI |
+| **Produktiv-Go Finanz (fachlich)** | [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) | Druckbares Begleitblatt — UStG/GoBD/E-Rechnung/DSGVO neben Code/CI; Finanz-Scope nur **Mandant→Endkunde** ([`docs/adr/0012-finance-scope-tenant-customer-invoices-only.md`](../adr/0012-finance-scope-tenant-customer-invoices-only.md)) |
+| **Compliance Ledger (Hybrid-Freigabe)** | [`Checklisten/compliance-rechnung-finanz.ledger.md`](../../Checklisten/compliance-rechnung-finanz.ledger.md), [`Checklisten/compliance-rechnung-finanz-filled.md`](../../Checklisten/compliance-rechnung-finanz-filled.md) (Anlage, gleiche Marker), [`Checklisten/compliance-signoffs.schema.md`](../../Checklisten/compliance-signoffs.schema.md), [`Checklisten/compliance-freigabe-runbook.md`](../../Checklisten/compliance-freigabe-runbook.md), `scripts/validate-compliance-signoffs.mjs`, `scripts/apply-compliance-signoffs.mjs` | **54** stabile `chk-*` `lineId`; `npm run validate:compliance-signoffs`; Apply schreibt Ledger **und** Ausgefüllt-Anlage |
 | **M4 Slice 5c — PL vor Mandanten-Go** | [`docs/runbooks/m4-slice-5c-pl-mandanten-go.md`](../runbooks/m4-slice-5c-pl-mandanten-go.md) | Massen-E-Mail: Agenda-Anker, Compliance/Spec-Links (kein Ersatz für StB/DSB/PL) |
 | HTTP-Server-Start | `src/index.ts` | Prozessstart, App bauen |
 | App-Zusammenbau | `src/api/app.ts` | Fastify-Plugins, Routen-Mount, Repository-Modus |

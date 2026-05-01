@@ -43,7 +43,7 @@
 - Seed-Daten müssen konsistente `Measurement`-Entitäten für bestehende Rechnungs-Tests enthalten.
 - Frontend-Contracts (`action-contracts.json` etc.) sind durch Frontend-Agent nachzuziehen.
 
-## Projektleitung — Entscheidungen (2026-04-14)
+## Team-Entscheidungen (2026-04-14, historisch)
 
 ### D6 — Leseschnitt GET Measurement (DSGVO / Außendienst)
 

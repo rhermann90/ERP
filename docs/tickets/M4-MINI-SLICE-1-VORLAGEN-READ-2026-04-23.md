@@ -1,9 +1,9 @@
 # M4 — Mini-Slice 1: Mahn-Vorlagen Lesepfad (read-only, ohne Versand)
 
 **Status:** Erledigt (Repo, 2026-04-23) — Merge-Reife mit `verify:ci` + `verify:ci:local-db`; Folge: [`M4-MINI-SLICE-2-PLACEHOLDERS-PATCH-2026-04-23.md`](./M4-MINI-SLICE-2-PLACEHOLDERS-PATCH-2026-04-23.md)  
-**Rahmen:** [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) §0 (PL / System — zuerst) — technische Umsetzung erfolgt im Team-Clone; **PL-Freigabe** für Priorität **Vorlagen-Read** vor **E-Mail-Stammdaten** bzw. **erweitertes Mahnprotokoll** ist dokumentiert als **Default für diesen Slice** (nachfolgende PL-Vetos ersetzen dieses Ticket explizit).
+**Rahmen:** [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) §0 (Sprint-Kontext / System — zuerst) — technische Umsetzung erfolgt im Team-Clone; **Team-Entscheid** für Priorität **Vorlagen-Read** vor **E-Mail-Stammdaten** bzw. **erweitertes Mahnprotokoll** ist dokumentiert als **Default für diesen Slice** (nachfolgende Team-Vetos ersetzen dieses Ticket explizit).
 
-## PL-Entscheid — gewählter erster M4-Mini-Slice
+## Team-Entscheid — gewählter erster M4-Mini-Slice
 
 | Option | Entscheid |
 |--------|-----------|

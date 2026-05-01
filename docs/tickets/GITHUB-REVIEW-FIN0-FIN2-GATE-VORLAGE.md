@@ -1,12 +1,12 @@
 # GitHub-Review-Vorlage — FIN-0 / FIN-2-Gate (Copy-Paste)
 
-**Zweck:** Einheitliches Review für PRs mit Architektur-, Vertrags-, Tenant- oder auditrelevanten Änderungen. **Ohne** erfüllte Vorbedingung **„PL / System — zuerst“** (aktueller Sprint-Snapshot, z. B. [`PL-SYSTEM-ZUERST-2026-04-14.md`](./PL-SYSTEM-ZUERST-2026-04-14.md); Index/Vorlage [`PL-SYSTEM-ZUERST-VORLAGE.md`](./PL-SYSTEM-ZUERST-VORLAGE.md)) kein **Approve** für PRs mit System-/Architektur-/Audit-Verhaltens-Relevanz; stattdessen **Rückmeldung an PL** nach [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md).
+**Zweck:** Einheitliches Review für PRs mit Architektur-, Vertrags-, Tenant- oder auditrelevanten Änderungen. **Ohne** dokumentierten **Sprint-Kontext („System zuerst“)** (aktueller Snapshot, z. B. [`PL-SYSTEM-ZUERST-2026-04-14.md`](./PL-SYSTEM-ZUERST-2026-04-14.md) *(Pfad historisch)*; Index [`PL-SYSTEM-ZUERST-VORLAGE.md`](./PL-SYSTEM-ZUERST-VORLAGE.md)) kein **Approve** für PRs mit System-/Architektur-/Audit-Verhaltens-Relevanz; stattdessen **Rückmeldung ans Team** nach [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md).
 
 ---
 
-## Vorbedingung — PL / System — zuerst
+## Vorbedingung — Sprint-Kontext („System zuerst“)
 
-- [ ] Vom **Projektleiter** freigegebener Block **„PL / System — zuerst“** liegt vor (Datum/Link/Anhang). Kanonischer Volltext im Sprint-Snapshot (Beispiel): [`PL-SYSTEM-ZUERST-2026-04-14.md`](./PL-SYSTEM-ZUERST-2026-04-14.md); Vorlage neue Zyklen: [`PL-SYSTEM-ZUERST-VORLAGE.md`](./PL-SYSTEM-ZUERST-VORLAGE.md). **Ohne diesen Block:** kein **Approve** für PRs mit System-/Architektur-/Audit-Verhaltens-Relevanz; stattdessen **Rückmeldung an PL** (Schema in `qa-fin-0-gate-readiness.md`).
+- [ ] Der dokumentierte Sprint-/Prioritäts-Snapshot liegt vor (Datum/Link/Anhang). Kanonischer Volltext im Snapshot (Beispiel): [`PL-SYSTEM-ZUERST-2026-04-14.md`](./PL-SYSTEM-ZUERST-2026-04-14.md); Vorlage neue Zyklen: [`PL-SYSTEM-ZUERST-VORLAGE.md`](./PL-SYSTEM-ZUERST-VORLAGE.md). **Ohne diesen Block:** kein **Approve** für PRs mit System-/Architektur-/Audit-Verhaltens-Relevanz; stattdessen **Rückmeldung ans Team** (Schema in `qa-fin-0-gate-readiness.md`).
 
 ---
 
@@ -21,9 +21,9 @@ Vor **Approve** eines Merge-PRs auf `main`: im PR einen **vollständigen** QA-Ke
 **Preview:** Links anklicken.
 
 - [FIN-2-START-GATE](FIN-2-START-GATE.md)
-- [FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD](FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) → **„PL-Eintrag“** (vier Zellen)
+- [FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD](FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) → **„Audit-Gate-Eintrag“** (vier Zellen)
 
-**GitHub-Kommentar / Review-Text:** Im PR-Kommentar sind **Repo-relative** Markdown-Links wie `(docs/…)` oft **nicht** klickbar. Für Reviewer und PL **volle** `https://github.com/<ORG>/<REPO>/blob/<branch-oder-SHA>/…`-URLs verwenden — oder Pfade als **Klartext** ohne kaputten Link.
+**GitHub-Kommentar / Review-Text:** Im PR-Kommentar sind **Repo-relative** Markdown-Links wie `(docs/…)` oft **nicht** klickbar. Für Reviewer und Team **volle** `https://github.com/<ORG>/<REPO>/blob/<branch-oder-SHA>/…`-URLs verwenden — oder Pfade als **Klartext** ohne kaputten Link.
 
 ### 8-Punkte-Checkliste
 
@@ -40,7 +40,7 @@ Vor **Approve** eines Merge-PRs auf `main`: im PR einen **vollständigen** QA-Ke
 
 | Prüfpunkt | ☐ |
 | --- | --- |
-| **PL-Eintrag:** vier Felder **ohne** `—` | ☐ |
+| **Audit-Gate-Eintrag:** vier Felder **ohne** `—` | ☐ |
 | **Option + SLA:** Ticket = **PR Zeile 1** = Code | ☐ |
 | **A–C:** Tests zur vereinbarten Fehlersemantik (simulierter DB-/Audit-Fehler; **DomainError 4xx** wo vereinbart; **kein undiszipliniertes 2xx**) | ☐ |
 | **D:** nur wie im ausgefüllten SLA/Ticket | ☐ |
@@ -68,7 +68,7 @@ Vor **Approve** eines Merge-PRs auf `main`: im PR einen **vollständigen** QA-Ke
 
 ### PR-Entscheidung
 
-- [ ] **Approve** — nur bei **kein blocking** und erfüllter Vorbedingung **PL / System — zuerst** (soweit zutreffend)
+- [ ] **Approve** — nur bei **kein blocking** und erfüllter Vorbedingung **Sprint-Kontext** (soweit zutreffend)
 - [ ] **Changes requested** / **blocking**
 
 **Merge-Kommentar (bei Approve, Pflicht):**  
@@ -76,7 +76,7 @@ FIN-2-Implementierung (Domäne, produktive API, 8.4) erst nach Schließen von G1
 
 ### blocking-Schnellliste (in PR-Review übernehmen)
 
-- PL-Eintrag-Tabelle noch `—` → **blocking**
+- Audit-Gate-Eintrag-Tabelle noch `—` → **blocking**, **nur** wenn der PR **`AuditService` / Dual-Write / Transaktionsgrenze für Audit** bewusst ändert; bei reinen Doku-/Feature-PRs ohne Audit-Touch: **kein** blocking allein wegen leerer Tabelle (Entwicklungsphase; [AGENTS.md](../../AGENTS.md) Punkt 6)
 - Option/SLA: Ticket ↔ PR Zeile 1 ↔ Code widersprüchlich → **blocking**
 - A–C ohne Tests zur vereinbarten Fehlersemantik → **blocking**
 - Gemischter PR: Unrelated nicht konkret benannt oder Scope untragbar → **blocking** oder changes requested + Aufteilung
@@ -86,8 +86,8 @@ FIN-2-Implementierung (Domäne, produktive API, 8.4) erst nach Schließen von G1
 
 ---
 
-## Rückmeldung an Projektleitung (Review → PL, kopieren)
+## Rückmeldung ans Team (Review → Maintainer, kopieren)
 
-Schema und Pflichtzeilen: [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) — Abschnitt **„Rückmeldung an Projektleitung (Format)“**.
+Schema und Pflichtzeilen: [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) — Abschnitt **„Rückmeldung ans Team / Review (Format)“**.
 
-**Hinweis:** Im Abschnitt **blocking** der PL-Rückmeldung dieselben **konkreten** Zeilen wie im GitHub-Review verwenden (kein Verweis „siehe PR“ ohne Inhalt), damit die PL ohne Kontext entscheiden kann.
+**Hinweis:** Im Abschnitt **blocking** der Team-Rückmeldung dieselben **konkreten** Zeilen wie im GitHub-Review verwenden (kein Verweis „siehe PR“ ohne Inhalt), damit entschieden werden kann ohne PR-Kontext zu raten.
