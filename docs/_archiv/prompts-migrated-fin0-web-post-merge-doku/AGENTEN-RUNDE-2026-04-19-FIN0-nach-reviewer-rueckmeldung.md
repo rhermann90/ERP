@@ -40,7 +40,7 @@ Inhalt unten **1:1** in den GitHub-Kommentar/Review einfügen — `<NUMMER>` dur
 ```markdown
 ## Senior Code Review — FIN-0 / FIN-2-Gate
 **Workspace:** `<absoluter Pfad zum Team-Clone — mit .git und origin>` · **Remote:** `git@github.com:rhermann90/ERP.git` · **Playbook:** https://github.com/rhermann90/ERP/blob/main/prompts/README.md
-**PL / System — zuerst:** https://github.com/rhermann90/ERP/blob/main/docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md · https://github.com/rhermann90/ERP/blob/main/docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md · **Diese Runde:** https://github.com/rhermann90/ERP/blob/main/prompts/AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md · **Vorlage:** https://github.com/rhermann90/ERP/blob/main/docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md · **§5a/§5b:** https://github.com/rhermann90/ERP/blob/main/docs/contracts/qa-fin-0-gate-readiness.md · **Szenarien:** https://github.com/rhermann90/ERP/blob/main/prompts/AGENTEN-PROMPT-LEITFADEN.md · **Domäne:** https://github.com/rhermann90/ERP/blob/main/ERP%20Systembeschreibung%20v1.3.md · **Regeln:** https://github.com/rhermann90/ERP/blob/main/.cursor/rules/erp-multi-agent.mdc
+**PL / System — zuerst:** https://github.com/rhermann90/ERP/blob/main/docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md · https://github.com/rhermann90/ERP/blob/main/docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md · **Diese Runde:** https://github.com/rhermann90/ERP/blob/main/prompts/AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md · **Vorlage:** https://github.com/rhermann90/ERP/blob/main/docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md · **§5a/§5b:** https://github.com/rhermann90/ERP/blob/main/docs/contracts/qa-fin-0-gate-readiness.md · **Szenarien:** https://github.com/rhermann90/ERP/blob/main/prompts/AGENTEN-PROMPT-LEITFADEN.md · **Domäne:** https://github.com/rhermann90/ERP/blob/main/docs/ERP-Systembeschreibung.md · **Regeln:** https://github.com/rhermann90/ERP/blob/main/.cursor/rules/erp-multi-agent.mdc
 **FIN-2:** nein bis https://github.com/rhermann90/ERP/blob/main/docs/tickets/FIN-2-START-GATE.md (G1–G10) · **Audit-Laufzeit:** nur mit PL-Eintrag https://github.com/rhermann90/ERP/blob/main/docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md
 **PR:** https://github.com/rhermann90/ERP/pull/<NUMMER>
 ### 1) Files changed
@@ -175,7 +175,7 @@ PL / System — zuerst:
 - Sprint: docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md | Index: docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md
 - Diese Runde: prompts/AGENTEN-RUNDE-2026-04-19-FIN0-nach-reviewer-rueckmeldung.md — Eingang: Code-Review „Rückmeldung an Projektleitung“ (blocking: kein blocking; Evidence Run/SHA wie in dieser Datei oben; weiter FIN-0).
 - Sinngemäße technische Aufgabenliste: weiterhin prompts/AGENTEN-RUNDE-2026-04-18-FIN0-nach-merge-pr1.md (Backend/Frontend/QA/Review §1–4), sofern noch kein neuer PR aus jener Runde gemerged ist — sonst nur noch offene Review-Follow-ups aus GitHub.
-- Domäne: ERP Systembeschreibung v1.3.md | .cursor/rules/erp-multi-agent.mdc
+- Domäne: docs/ERP-Systembeschreibung.md | .cursor/rules/erp-multi-agent.mdc
 - FIN-2 produktiv / 8.4-Motor: nein — erst docs/tickets/FIN-2-START-GATE.md G1–G10
 - AuditService / Dual-Write / Transaktionsgrenze Audit: keine Änderung ohne vollständigen PL-Eintrag in docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md
 

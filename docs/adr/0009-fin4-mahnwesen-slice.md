@@ -14,7 +14,7 @@ Accepted (Stub-Inkrement 2026-04-22). **Ergänzung Slice 2 (Schreibpfad, 2026-04
 
 1. **Persistenz-Anker:** Tabelle **`dunning_reminders`** (`tenant_id`, `id`, `invoice_id`, `stage_ordinal`, optional `note`, `created_at`) mit zusammengesetztem FK `(tenant_id, invoice_id) → invoices(tenant_id, id)` — mandanten-isoliert, keine stillen Nebenbuchungen in der **8.4**-Kette.
 2. **API (Lesepfad):** `GET /invoices/{invoiceId}/dunning-reminders` — **gleiche Leserolle** wie `GET /invoices/{invoiceId}` (`assertCanReadInvoice`). Antwort `{ data: DunningReminderReadRow[] }`, chronologisch sortiert. Bis zur Befüllung durch echte Mahnläufe typischerweise **leere Liste**.
-3. **Non-Goals in diesem Inkrement:** Mahnstufen-Konfiguration, automatische Läufe, E-Mail-Versand, Gebührenbuchung, Mehrsprachigkeit — siehe `docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md` FIN-4 / M4.
+3. **Non-Goals in diesem Inkrement:** Mahnstufen-Konfiguration, automatische Läufe, E-Mail-Versand, Gebührenbuchung, Mehrsprachigkeit — siehe `docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md` Teil 4 FIN-4 / M4.
 4. **Abhängigkeit:** Offene Beträge und Zahlungsstatus bleiben **FIN-2/FIN-3**; Mahnobjekt referenziert nur die Rechnung als fachlichen Anker.
 
 ### Slice 2 — Schreibpfad (manuelles Mahn-Ereignis)

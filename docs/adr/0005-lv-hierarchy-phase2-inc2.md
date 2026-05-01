@@ -4,7 +4,7 @@
 
 ## Kontext
 
-`docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md` §9 verlangt die Hierarchie **Bereich → Titel → Untertitel → Position**, Positionsattribute inkl. Typ (Normal/Alternativ/Eventual), sowie die **verbindliche Texttrennung**: **Systemtext** unveränderlich (export-/buchhaltungsrelevant), **Bearbeitungstext** in erlaubten Fenstern editierbar.
+`docs/ERP-Systembeschreibung.md` §9 verlangt die Hierarchie **Bereich → Titel → Untertitel → Position**, Positionsattribute inkl. Typ (Normal/Alternativ/Eventual), sowie die **verbindliche Texttrennung**: **Systemtext** unveränderlich (export-/buchhaltungsrelevant), **Bearbeitungstext** in erlaubten Fenstern editierbar.
 
 Phase-2-Increment-1 referenziert `lvVersionId` / `lvPositionId` (Aufmass, Angebot, Traceability) ohne validierbare LV-Entitäten.
 
