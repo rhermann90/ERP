@@ -1,6 +1,6 @@
 # QA P0 – Angebotsversion v1.2 (VERSENDET / ANGENOMMEN)
 
-Referenz: `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`, `docs/contracts/module-contracts.json`, `src/domain/offer-create-version-policy.ts`.  
+Referenz: `docs/ERP-Systembeschreibung.md`, `docs/contracts/module-contracts.json`, `src/domain/offer-create-version-policy.ts`.  
 Automatisierte Evidenz: `test/app.test.ts` (Abschnitte zu Versand, Annahme, Nachtrag).
 
 ## P0-1 VERSENDET – keine In-Place-Änderung, nur neue Version

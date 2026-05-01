@@ -2,7 +2,7 @@
 
 ## Scope und Evidenz
 - Verbindliche Inputs:
-  - `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`
+  - `docs/ERP-Systembeschreibung.md`
   - `docs/tickets/TICKET-002-nachtrag-lifecycle-v12.md`
   - `docs/adr/0002-nachtrag-lifecycle.md`
   - `docs/contracts/qa-p0-ticket-002-nachtrag-lifecycle.md`
