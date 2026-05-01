@@ -11,7 +11,7 @@ type Props = {
  */
 export function DocumentTextPanels({ status, measurementId, systemText, editingText }: Props) {
   return (
-    <section className="panel">
+    <section className="panel" data-testid="measurement-shell-detail">
       <h2>Aufmass · Systemtext vs. Bearbeitungstext</h2>
       <p style={{ fontSize: "0.85rem", marginTop: 0 }}>
         Status: <code>{status}</code> · measurementId: <code>{measurementId}</code>

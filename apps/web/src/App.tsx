@@ -25,7 +25,7 @@ import {
 import type { QuickPreset } from "./lib/role-quick-actions.js";
 import { decodeTokenPayload, roleForQuickNav } from "./lib/token-payload.js";
 import { ApiError } from "./lib/api-error.js";
-import { createApiClient, resolveApiBaseUrl, type InvoiceOverview } from "./lib/api-client.js";
+import { createApiClient, resolveApiBaseUrl, type InvoiceOverview, type LvVersionSnapshot } from "./lib/api-client.js";
 import { formatSkontoDisplay } from "./components/finance/finance-prep-helpers.js";
 import {
   clearDocumentScopedKeys,
@@ -100,6 +100,7 @@ export default function App() {
   const [supplementDetail, setSupplementDetail] = useState<unknown>(null);
   const [offerVersionDetail, setOfferVersionDetail] = useState<unknown>(null);
   const [invoiceShellDetail, setInvoiceShellDetail] = useState<InvoiceOverview | null>(null);
+  const [lvShellDetail, setLvShellDetail] = useState<LvVersionSnapshot | null>(null);
   /** Read-only Lesepfade zur Rechnung (Haupt-Shell); zurückgesetzt bei jedem „Detail laden“. */
   const [invoicePaymentIntakesJson, setInvoicePaymentIntakesJson] = useState("");
   const [invoiceDunningRemindersJson, setInvoiceDunningRemindersJson] = useState("");
@@ -178,6 +179,7 @@ export default function App() {
       setSupplementDetail(null);
       setOfferVersionDetail(null);
       setInvoiceShellDetail(null);
+      setLvShellDetail(null);
       setBanner(null);
       const p = loadDocPrefs(tenantId);
       setDocumentId(p.documentId);
@@ -259,12 +261,14 @@ export default function App() {
         setSupplementDetail(null);
         setOfferVersionDetail(null);
         setInvoiceShellDetail(null);
+        setLvShellDetail(null);
       } else if (entityType === "SUPPLEMENT_VERSION") {
         const raw = await client.getSupplementVersion(documentId.trim());
         setSupplementDetail(raw);
         setMeasurementDetail(null);
         setOfferVersionDetail(null);
         setInvoiceShellDetail(null);
+        setLvShellDetail(null);
         setForm((f) => ({
           ...f,
           offerId: SEED.offerId,
@@ -275,6 +279,7 @@ export default function App() {
         setMeasurementDetail(null);
         setSupplementDetail(null);
         setInvoiceShellDetail(null);
+        setLvShellDetail(null);
         setForm((f) => ({
           ...f,
           offerId: (raw as { offerId: string }).offerId,
@@ -286,11 +291,20 @@ export default function App() {
         setMeasurementDetail(null);
         setSupplementDetail(null);
         setOfferVersionDetail(null);
+        setLvShellDetail(null);
+      } else if (entityType === "LV_VERSION") {
+        const raw = await client.getLvVersionSnapshot(documentId.trim());
+        setLvShellDetail(raw);
+        setMeasurementDetail(null);
+        setSupplementDetail(null);
+        setOfferVersionDetail(null);
+        setInvoiceShellDetail(null);
       } else {
         setMeasurementDetail(null);
         setSupplementDetail(null);
         setOfferVersionDetail(null);
         setInvoiceShellDetail(null);
+        setLvShellDetail(null);
         setBanner({
           kind: "ok",
           text: "Für diesen entityType liefert das Backend kein GET-Detail mit Textfeldern; Kontext (offerId, lvVersionId) manuell setzen.",
@@ -642,12 +656,16 @@ export default function App() {
         ) : null}
       </section>
 
-      <section className="panel">
+      <section className="panel" data-testid="shell-document-panel">
         <h2>Dokument (allowed-actions)</h2>
         <div className="field-grid two">
           <label className="field">
             <span>entityType</span>
-            <select value={entityType} onChange={(e) => setEntityType(e.target.value as EntityType)}>
+            <select
+              data-testid="shell-document-entity-type"
+              value={entityType}
+              onChange={(e) => setEntityType(e.target.value as EntityType)}
+            >
               {ENTITY_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -657,7 +675,12 @@ export default function App() {
           </label>
           <label className="field">
             <span>Dokument-ID (UUID)</span>
-            <input type="text" value={documentId} onChange={(e) => setDocumentId(e.target.value)} />
+            <input
+              data-testid="shell-document-id"
+              type="text"
+              value={documentId}
+              onChange={(e) => setDocumentId(e.target.value)}
+            />
           </label>
         </div>
         <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", margin: "0.5rem 0 0" }}>
@@ -668,7 +691,13 @@ export default function App() {
           <button type="button" className="btn" disabled={busy} onClick={() => void fetchAllowed()}>
             Allowed Actions laden
           </button>
-          <button type="button" className="btn secondary" disabled={busy} onClick={() => void fetchDetail()}>
+          <button
+            type="button"
+            className="btn secondary"
+            data-testid="shell-document-detail-get"
+            disabled={busy}
+            onClick={() => void fetchDetail()}
+          >
             Detail (GET, falls vorhanden)
           </button>
         </div>
@@ -704,10 +733,10 @@ export default function App() {
       ) : null}
 
       {supplementDetail ? (
-        <section className="panel">
+        <section className="panel" data-testid="supplement-shell-detail">
           <h2>Nachtrag (GET-Detail)</h2>
           <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: 0 }}>
-            Backend liefert hier keinen System-/Bearbeitungstext; nur Metadaten. Texteerscheinen, sobald GET erweitert wird.
+            <code>GET /supplements/:supplementVersionId</code> — aktuell Metadaten (Status, Bezüge); System-/Bearbeitungstexte können später ergänzt werden.
           </p>
           <pre className="system-block" style={{ margin: 0 }}>
             {JSON.stringify(supplementDetail, null, 2)}
@@ -716,7 +745,7 @@ export default function App() {
       ) : null}
 
       {offerVersionDetail ? (
-        <section className="panel">
+        <section className="panel" data-testid="offer-shell-detail">
           <h2>Angebotsversion (GET-Detail)</h2>
           <p style={{ fontSize: "0.85rem", marginTop: 0 }}>
             Status: <code>{(offerVersionDetail as { status: string }).status}</code> · offerId:{" "}
@@ -733,6 +762,18 @@ export default function App() {
               {(offerVersionDetail as { editingText: string }).editingText}
             </div>
           </div>
+        </section>
+      ) : null}
+
+      {lvShellDetail ? (
+        <section className="panel" data-testid="lv-shell-detail">
+          <h2>LV-Version (GET-Detail, read-only)</h2>
+          <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
+            <code>GET /lv/versions/{lvShellDetail.version.id}</code> — LV-Hierarchie und Positionen (Systembeschreibung Abschnitt 9); nur Anzeige.
+          </p>
+          <pre className="system-block" style={{ margin: 0 }}>
+            {JSON.stringify(lvShellDetail, null, 2)}
+          </pre>
         </section>
       ) : null}
 
