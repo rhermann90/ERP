@@ -21,6 +21,8 @@ id_ed25519.pub
 *.pem
 
 # OS / IDE
+# Cursor: lokale UI-/Plugin-Overrides (keine Team-Norm)
+.cursor/settings.json
 .DS_Store
 Thumbs.db
 ~$*
