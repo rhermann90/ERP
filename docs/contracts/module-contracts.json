@@ -18,6 +18,7 @@
       "GET /measurements/{measurementVersionId}",
       "POST /lv/catalogs",
       "POST /lv/catalogs/{lvCatalogId}/version",
+      "GET /lv/versions/{lvVersionId}",
       "POST /lv/versions/{lvVersionId}/status",
       "POST /lv/versions/{lvVersionId}/nodes",
       "PATCH /lv/nodes/{nodeId}/editing-text",

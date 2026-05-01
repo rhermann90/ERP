@@ -2,7 +2,7 @@
 
 **Zweck:** Release-Kommunikation und **laufzeitfähiger** Abgleich mit dem OpenAPI-Artefakt, ohne Domänenlogik zu duplizieren.
 
-## Keine fachliche Semantik (StB / PL / Compliance)
+## Keine fachliche Semantik (StB / Release / Compliance)
 
 **`info.version`**, **`x-erp-openapi-contract-version`** und die OpenAPI-Schemas beschreiben ausschließlich das **HTTP-/Datenkontrakt-Paket** (Felder, Typen, Fehlercodes). Sie belegen **nicht**:
 
@@ -10,7 +10,7 @@
 - Abnahme nach [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md),
 - eine formelle Mahnung / PDF (siehe [`docs/tickets/B5-FORMAL-DUNNING-PDF.md`](../tickets/B5-FORMAL-DUNNING-PDF.md)).
 
-Fachliche und go-live-relevante Entscheidungen bleiben bei **StB / DSB / PL** und den verlinkten Checklisten; technischer Contract-Abgleich ersetzt das nicht. Fachlicher Kontext Mahn-Kontext und Fristlogik: [`docs/adr/0011-fin4-semi-dunning-context.md`](../adr/0011-fin4-semi-dunning-context.md).
+Fachliche und go-live-relevante Entscheidungen bleiben bei **StB / DSB / Release-Verantwortlichen** und den verlinkten Checklisten; technischer Contract-Abgleich ersetzt das nicht. Fachlicher Kontext Mahn-Kontext und Fristlogik: [`docs/adr/0011-fin4-semi-dunning-context.md`](../adr/0011-fin4-semi-dunning-context.md).
 
 ## Contract-Version
 
@@ -39,6 +39,10 @@ Server-zu-Server: Header direkt lesen. **Browser + CORS:** nur sichtbar, wenn di
 - **`asOfDate`** (Default „heute“): **Mandanten-IANA-Zeitzone** (wie ADR-0011), nicht UTC — siehe OpenAPI-Beschreibungen.
 
 Vollständige Schemas: `docs/api-contract.yaml`. Mapping: `docs/contracts/finance-fin0-openapi-mapping.md`.
+
+## Neu ab `1.27.0` (Phase 2 — LV §9 Lesepfad)
+
+- **`GET /lv/versions/{lvVersionId}`:** Snapshot mit Katalogkurzinfo (nullable), Version, `structureNodes[]`, `positions[]` — nicht Teil der FIN-4-Pfade; `info.version`-Bump für Integratoren mit gebündeltem OpenAPI.
 
 ## Neu ab `1.26.0` (M4 Slice 5c — Batch-E-Mail)
 

@@ -21,107 +21,27 @@ import {
   RECORD_DUNNING_REMINDER_ACTION_ID,
   RECORD_PAYMENT_INTAKE_ACTION_ID,
 } from "../lib/finance-sot.js";
-import { FinanceCollapsibleJson } from "./finance/FinanceCollapsibleJson.js";
 import { FinanceFeatureMatrix } from "./finance/FinanceFeatureMatrix.js";
 import { FinanceDunningGrundeinstellungenPanel } from "./finance/FinanceDunningGrundeinstellungenPanel.js";
-import { FinancePrepPanel } from "./finance/FinancePrepPanel.js";
 import { FinancePreparationDunningPanel } from "./finance/FinancePreparationDunningPanel.js";
 import { FinancePreparationPaymentPanel } from "./finance/FinancePreparationPaymentPanel.js";
 import { FinanceStructuredApiError } from "./finance/FinanceStructuredApiError.js";
 import type { FinNotice } from "./finance/finance-prep-types.js";
+import {
+  DEMO_CUSTOMER_ID,
+  DEMO_INVOICE_ID,
+  DEMO_PROJECT_ID,
+  DOC_LINKS,
+  formatEurFromCents,
+  openAmountCents,
+  type SotEntityType,
+} from "./finance/finance-preparation-meta.js";
+import { FinancePrepStepAudit } from "./finance/preparation/FinancePrepStepAudit.js";
+import { FinancePrepStepDraft } from "./finance/preparation/FinancePrepStepDraft.js";
+import { FinancePrepStepInvoice } from "./finance/preparation/FinancePrepStepInvoice.js";
+import { FinancePrepStepSot } from "./finance/preparation/FinancePrepStepSot.js";
+import { FinancePrepStepTerms } from "./finance/preparation/FinancePrepStepTerms.js";
 import { formatSkontoDisplay, isUuidShape } from "./finance/finance-prep-helpers.js";
-
-const SOT_ENTITY_TYPES = [
-  "INVOICE",
-  "OFFER_VERSION",
-  "SUPPLEMENT_VERSION",
-  "MEASUREMENT_VERSION",
-  "LV_VERSION",
-  "LV_STRUCTURE_NODE",
-  "LV_POSITION",
-] as const;
-
-type SotEntityType = (typeof SOT_ENTITY_TYPES)[number];
-
-const DOC_LINKS: { label: string; repoPath: string }[] = [
-  {
-    label: "ADR 0007 — Finance-Persistenz und Rechnungsgrenzen",
-    repoPath: "docs/adr/0007-finance-persistence-and-invoice-boundaries.md",
-  },
-  {
-    label: "ADR 0008 — Zahlungsbedingungen (FIN-1)",
-    repoPath: "docs/adr/0008-payment-terms-fin1.md",
-  },
-  {
-    label: "ADR 0009 — Mahnwesen (FIN-4 Slice)",
-    repoPath: "docs/adr/0009-fin4-mahnwesen-slice.md",
-  },
-  {
-    label: "ADR 0010 — FIN-4 / M4: Vorlagen, Footer und E-Mail",
-    repoPath: "docs/adr/0010-fin4-m4-dunning-email-and-templates.md",
-  },
-  {
-    label: "ADR 0011 — FIN-4: SEMI-Mahnkontext (Zeitzone, Fristlogik, Kanal)",
-    repoPath: "docs/adr/0011-fin4-semi-dunning-context.md",
-  },
-  {
-    label: "M4 Mini-Slice 1 — Vorlagen-Read",
-    repoPath: "docs/tickets/M4-MINI-SLICE-1-VORLAGEN-READ-2026-04-23.md",
-  },
-  {
-    label: "M4 Mini-Slice 4 — E-Mail-Vorschau + Versand-Stub",
-    repoPath: "docs/tickets/M4-MINI-SLICE-4-EMAIL-PREVIEW-SEND-STUB-2026-04-24.md",
-  },
-  {
-    label: "M4 Mini-Slice 5a — Mahn-E-Mail (SMTP)",
-    repoPath: "docs/tickets/M4-MINI-SLICE-5-REAL-SMTP-2026-04-24.md",
-  },
-  {
-    label: "M4 Mini-Slice 5b — Mahnlauf-Orchestrierung (PL)",
-    repoPath: "docs/tickets/M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md",
-  },
-  {
-    label: "FIN-2-Start-Gate (G1–G10)",
-    repoPath: "docs/tickets/FIN-2-START-GATE.md",
-  },
-  {
-    label: "OpenAPI-Mapping FIN-0 (fail-closed)",
-    repoPath: "docs/contracts/finance-fin0-openapi-mapping.md",
-  },
-  {
-    label: "Stub-Testmatrix FIN-0 (QA)",
-    repoPath: "docs/contracts/qa-fin-0-stub-test-matrix.md",
-  },
-  {
-    label: "MVP Finanz — Phasen und Arbeitsablauf (FIN-0 … FIN-6)",
-    repoPath: "docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md",
-  },
-  {
-    label: "PL / System — Sprint-Snapshot (Koordination)",
-    repoPath: "docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md",
-  },
-  {
-    label: "UI — v1.3-Fachrollen → API-Rollen (Mapping)",
-    repoPath: "docs/contracts/ui-role-mapping-v1-3.md",
-  },
-];
-
-/** Seed-Projekt aus Backend `SEED_IDS.projectId` (Demos). */
-const DEMO_PROJECT_ID = "10101010-1010-4010-8010-101010101010";
-const DEMO_CUSTOMER_ID = "20202020-2020-4020-8020-202020202020";
-/** Seed-Rechnung `SEED_IDS.invoiceId` (gebucht, mit 8.4-Beträgen). */
-const DEMO_INVOICE_ID = "44444444-4444-4444-8444-444444444444";
-
-function formatEurFromCents(cents: number | undefined): string {
-  if (cents === undefined) return "—";
-  return `${(cents / 100).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR`;
-}
-
-function openAmountCents(overview: InvoiceOverview | null): number | null {
-  if (!overview || overview.totalGrossCents === undefined) return null;
-  const paid = overview.totalPaidCents ?? 0;
-  return Math.max(0, overview.totalGrossCents - paid);
-}
 
 export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; initialMainTab?: FinancePrepMainTab }) {
   const [projectId, setProjectId] = useState(DEMO_PROJECT_ID);
@@ -1275,309 +1195,51 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
           aria-labelledby="finance-prep-tab-rechnung"
           hidden={financePrepMainTab !== "rechnung"}
         >
-        <FinancePrepPanel step={1} title="Zahlungsbedingungen (FIN-1)">
-        <label style={{ display: "block", marginBottom: "0.5rem" }}>
-          <span className="visually-hidden">Projekt-ID</span>
-          <input
-            type="text"
-            value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            aria-label="Projekt-ID (UUID)"
-            style={{ width: "100%", fontFamily: "monospace", fontSize: "0.85rem" }}
-          />
-        </label>
-        <label style={{ display: "block", marginBottom: "0.5rem" }}>
-          Bezeichnung neuer Version
-          <input
-            type="text"
-            value={termsLabel}
-            onChange={(e) => setTermsLabel(e.target.value)}
-            style={{ width: "100%", marginTop: "0.25rem" }}
-          />
-        </label>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.75rem" }}>
-          <button type="button" onClick={() => void loadPaymentTerms()} disabled={busy}>
-            GET Konditionen laden
-          </button>
-          <button type="button" onClick={() => void createPaymentTermsVersion()} disabled={busy}>
-            POST neue Version
-          </button>
-        </div>
-        <FinanceCollapsibleJson summary="Rohantwort API (GET/POST Konditionen)" json={listJson} />
-        </FinancePrepPanel>
+        <FinancePrepStepTerms
+          busy={busy}
+          projectId={projectId}
+          setProjectId={setProjectId}
+          termsLabel={termsLabel}
+          setTermsLabel={setTermsLabel}
+          listJson={listJson}
+          onLoadPaymentTerms={loadPaymentTerms}
+          onCreatePaymentTermsVersion={createPaymentTermsVersion}
+        />
 
-        <FinancePrepPanel step={2} title="Rechnungsentwurf (FIN-2)">
-        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
-          Erzeugt einen Entwurf mit Seed-LV/Angebot, sofern Traceability im Backend erfüllt ist. Optional: Skonto in Basispunkten (B2-1a), z. B.{" "}
-          <strong>200</strong> = 2 % Abzug auf das LV-Netto nach Schritt 1 vor USt.
-        </p>
-        <label style={{ display: "block", marginBottom: "0.5rem" }}>
-          Skonto (Basispunkte, 0–10_000)
-          <input
-            type="text"
-            inputMode="numeric"
-            value={draftSkontoBps}
-            onChange={(e) => setDraftSkontoBps(e.target.value)}
-            aria-label="Skonto in Basispunkten für neuen Rechnungsentwurf"
-            style={{ width: "100%", fontFamily: "monospace", fontSize: "0.85rem", marginTop: "0.25rem" }}
-          />
-        </label>
-        <button type="button" onClick={() => void createInvoiceDraft()} disabled={busy}>
-          Rechnungsentwurf anlegen
-        </button>
-        {draftSummary ? (
-          <p style={{ fontSize: "0.82rem", marginTop: "0.5rem", marginBottom: 0 }} role="status">
-            {draftSummary}
-          </p>
-        ) : null}
-        <FinanceCollapsibleJson summary="Rohantwort API (POST /invoices)" json={draftJson} />
-        </FinancePrepPanel>
+        <FinancePrepStepDraft
+          busy={busy}
+          draftSkontoBps={draftSkontoBps}
+          setDraftSkontoBps={setDraftSkontoBps}
+          draftSummary={draftSummary}
+          draftJson={draftJson}
+          onCreateInvoiceDraft={createInvoiceDraft}
+        />
 
-        <FinancePrepPanel step={3} title="Rechnung laden, Beträge & Buchung">
-        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
-          Live-Prüfung <code>GET /invoices/:invoiceId</code> — Netto/USt/Brutto wie vom Server berechnet (8.4 MVP).
-        </p>
-        <label style={{ display: "block", marginBottom: "0.5rem" }}>
-          Rechnungs-ID (UUID)
-          <input
-            type="text"
-            value={invoiceIdRead}
-            onChange={(e) => {
-              setInvoiceIdRead(e.target.value);
-              setInvoiceAllowedActions(null);
-              setPaymentIntakes(null);
-              setDunningReminders(null);
-            }}
-            aria-label="Rechnungs-ID für GET"
-            style={{ width: "100%", fontFamily: "monospace", fontSize: "0.85rem", marginTop: "0.25rem" }}
-          />
-        </label>
-        <button
-          type="button"
-          onClick={() => void loadInvoice()}
-          disabled={busy || !invoiceIdLooksValid}
-          title={!invoiceIdLooksValid ? "Bitte eine gültige UUID in das Feld eintragen." : undefined}
-        >
-          Rechnung laden
-        </button>
-        {invoiceOverview ? (
-          <div style={{ marginTop: "0.75rem", fontSize: "0.85rem" }}>
-            <div className="finance-prep-metric-grid" role="group" aria-label="Kernzahlen Rechnung">
-              <div className="metric-card">
-                <p className="metric-card__label">Status</p>
-                <p className="metric-card__value">{invoiceOverview.status}</p>
-                <p className="metric-card__hint">
-                  {invoiceOverview.invoiceNumber ? `Nr. ${invoiceOverview.invoiceNumber}` : "—"}
-                </p>
-              </div>
-              <div className="metric-card">
-                <p className="metric-card__label">Brutto</p>
-                <p className="metric-card__value">{formatEurFromCents(invoiceOverview.totalGrossCents)}</p>
-                <p className="metric-card__hint">Server 8.4</p>
-              </div>
-              <div className="metric-card">
-                <p className="metric-card__label">Offen</p>
-                <p className="metric-card__value">{openCents != null ? formatEurFromCents(openCents) : "—"}</p>
-                <p className="metric-card__hint">nach Zahlungseingängen</p>
-              </div>
-            </div>
-            <dl
-              style={{
-                display: "grid",
-                gridTemplateColumns: "auto 1fr",
-                gap: "0.25rem 1rem",
-                margin: 0,
-                maxWidth: "28rem",
-              }}
-            >
-              <dt style={{ color: "var(--text-secondary)" }}>Status</dt>
-              <dd style={{ margin: 0 }}>{invoiceOverview.status}</dd>
-              <dt style={{ color: "var(--text-secondary)" }}>Rechnungsnr.</dt>
-              <dd style={{ margin: 0 }}>{invoiceOverview.invoiceNumber ?? "—"}</dd>
-              <dt style={{ color: "var(--text-secondary)" }}>LV-Netto (8.4/1)</dt>
-              <dd style={{ margin: 0 }}>{formatEurFromCents(invoiceOverview.lvNetCents)}</dd>
-              <dt style={{ color: "var(--text-secondary)" }}>Skonto (8.4/2, BP)</dt>
-              <dd style={{ margin: 0 }}>{formatSkontoDisplay(invoiceOverview.skontoBps)}</dd>
-              <dt style={{ color: "var(--text-secondary)" }}>USt</dt>
-              <dd style={{ margin: 0 }}>
-                {invoiceOverview.vatCents !== undefined && invoiceOverview.vatRateBps !== undefined
-                  ? `${formatEurFromCents(invoiceOverview.vatCents)} (${invoiceOverview.vatRateBps / 100} %)`
-                  : "—"}
-              </dd>
-              <dt style={{ color: "var(--text-secondary)" }}>Brutto</dt>
-              <dd style={{ margin: 0 }}>{formatEurFromCents(invoiceOverview.totalGrossCents)}</dd>
-              <dt style={{ color: "var(--text-secondary)" }}>Bereits gezahlt</dt>
-              <dd style={{ margin: 0 }}>{formatEurFromCents(invoiceOverview.totalPaidCents)}</dd>
-              {openCents != null ? (
-                <>
-                  <dt style={{ color: "var(--text-secondary)" }}>Offen (Cent)</dt>
-                  <dd style={{ margin: 0 }}>{openCents}</dd>
-                </>
-              ) : null}
-              <dt style={{ color: "var(--text-secondary)" }}>Skonto (Entwurf)</dt>
-              <dd style={{ margin: 0 }}>
-                {invoiceOverview.status === "ENTWURF" ? (
-                  <span>
-                    Wert auch in Schritt 2;{" "}
-                    <button type="button" disabled={busy} onClick={() => void submitEntwurfSkontoRecalc()}>
-                      Skonto mit POST /invoices neu berechnen
-                    </button>
-                  </span>
-                ) : (
-                  <span style={{ color: "var(--text-secondary)" }}>nur bei ENTWURF</span>
-                )}
-              </dd>
-              <dt style={{ color: "var(--text-secondary)" }}>SoT Zahlung</dt>
-              <dd style={{ margin: 0 }}>
-                {invoiceAllowedActions == null ? (
-                  <span style={{ color: "var(--text-secondary)" }}>— (nach „GET Rechnung laden“)</span>
-                ) : canRecordPaymentIntake ? (
-                  <code>{RECORD_PAYMENT_INTAKE_ACTION_ID}</code>
-                ) : (
-                  <span style={{ color: "var(--text-secondary)" }}>nicht erlaubt (Status/Rolle)</span>
-                )}
-              </dd>
-              <dt style={{ color: "var(--text-secondary)" }}>SoT Mahnung</dt>
-              <dd style={{ margin: 0 }}>
-                {invoiceAllowedActions == null ? (
-                  <span style={{ color: "var(--text-secondary)" }}>— (nach „GET Rechnung laden“)</span>
-                ) : canRecordDunningReminder ? (
-                  <code>{RECORD_DUNNING_REMINDER_ACTION_ID}</code>
-                ) : (
-                  <span style={{ color: "var(--text-secondary)" }}>nicht erlaubt (Status/Rolle)</span>
-                )}
-              </dd>
-              <dt style={{ color: "var(--text-secondary)" }}>SoT Buchung</dt>
-              <dd style={{ margin: 0 }}>
-                {invoiceAllowedActions == null ? (
-                  <span style={{ color: "var(--text-secondary)" }}>— (nach „Rechnung laden“)</span>
-                ) : canBookInvoice ? (
-                  <code>{BOOK_INVOICE_ACTION_ID}</code>
-                ) : (
-                  <span style={{ color: "var(--text-secondary)" }}>nicht erlaubt (nicht ENTWURF oder Rolle)</span>
-                )}
-              </dd>
-            </dl>
-            {invoiceOverview.status === "ENTWURF" ? (
-              <div style={{ marginTop: "0.65rem", paddingTop: "0.65rem", borderTop: "1px dashed color-mix(in srgb, var(--border) 80%, transparent)" }}>
-                <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", margin: "0 0 0.35rem" }}>
-                  Rechnung aus Entwurf verbuchen (entspricht Haupt-Shell, hier direkter POST nach SoT-Prüfung).
-                </p>
-                <label style={{ display: "block", marginBottom: "0.5rem" }}>
-                  Buchungsdatum optional (UTC yyyy-mm-dd)
-                  <input
-                    type="text"
-                    value={issueDateBook}
-                    onChange={(e) => setIssueDateBook(e.target.value)}
-                    placeholder="2026-04-22"
-                    aria-label="Optionales Buchungsdatum ISO yyyy-mm-dd"
-                    style={{ width: "100%", fontFamily: "monospace", fontSize: "0.85rem", marginTop: "0.25rem" }}
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={() => void bookInvoice()}
-                  disabled={busy || !canBookInvoice || !invoiceIdLooksValid}
-                  title={
-                    !invoiceIdLooksValid
-                      ? "Gültige Rechnungs-ID erforderlich."
-                      : !canBookInvoice
-                        ? `SoT ${BOOK_INVOICE_ACTION_ID} fehlt — Rechnung laden (ENTWURF).`
-                        : "POST /invoices/{id}/book"
-                  }
-                >
-                  Rechnung buchen
-                </button>
-                {bookPanelError?.kind === "api" ? (
-                  <FinanceStructuredApiError envelope={bookPanelError.error.envelope} status={bookPanelError.error.status} />
-                ) : null}
-                {bookPanelError?.kind === "text" ? (
-                  <p role="alert" style={{ color: "var(--danger)", fontSize: "0.85rem", marginTop: "0.5rem" }}>
-                    {bookPanelError.text}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-            {paymentIntakes != null ? (
-              <div style={{ marginTop: "0.75rem" }}>
-                <h4 style={{ fontSize: "0.9rem", margin: "0 0 0.35rem" }}>Zahlungseingänge</h4>
-                <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", margin: "0 0 0.35rem" }}>
-                  <code>GET /invoices/…/payment-intakes</code> — ohne Idempotency-Key; gleiche Leserolle wie Rechnung.
-                </p>
-                {paymentIntakes.length === 0 ? (
-                  <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", margin: 0 }}>Keine Buchungen.</p>
-                ) : (
-                  <div style={{ overflow: "auto", maxWidth: "36rem" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem" }}>
-                      <caption className="visually-hidden">Gebuchte Zahlungseingänge zu dieser Rechnung</caption>
-                      <thead>
-                        <tr>
-                          <th style={{ textAlign: "left", borderBottom: "1px solid var(--border)", padding: "0.2rem 0.4rem" }}>
-                            Zeit (UTC)
-                          </th>
-                          <th style={{ textAlign: "right", borderBottom: "1px solid var(--border)", padding: "0.2rem 0.4rem" }}>
-                            Cent
-                          </th>
-                          <th style={{ textAlign: "left", borderBottom: "1px solid var(--border)", padding: "0.2rem 0.4rem" }}>
-                            Referenz
-                          </th>
-                          <th style={{ textAlign: "left", borderBottom: "1px solid var(--border)", padding: "0.2rem 0.4rem" }}>
-                            ID
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {paymentIntakes.map((row, idx) => (
-                          <tr
-                            key={row.paymentIntakeId}
-                            style={{
-                              background: idx % 2 === 1 ? "color-mix(in srgb, var(--panel-2) 55%, transparent)" : undefined,
-                            }}
-                          >
-                            <td style={{ padding: "0.25rem 0.4rem", fontFamily: "monospace" }}>{row.createdAt}</td>
-                            <td style={{ padding: "0.25rem 0.4rem", textAlign: "right", fontFamily: "monospace" }}>{row.amountCents}</td>
-                            <td style={{ padding: "0.25rem 0.4rem" }}>{row.externalReference}</td>
-                            <td style={{ padding: "0.25rem 0.4rem", fontFamily: "monospace", fontSize: "0.7rem" }}>
-                              {row.paymentIntakeId}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            ) : null}
-            {dunningReminders != null ? (
-              <div style={{ marginTop: "0.75rem" }}>
-                <h4 style={{ fontSize: "0.9rem", margin: "0 0 0.35rem" }}>Mahn-Ereignisse (FIN-4)</h4>
-                <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", margin: "0 0 0.35rem" }}>
-                  <code>GET /invoices/…/dunning-reminders</code> — Lesepfad; Schreibpfad{" "}
-                  <code>POST /invoices/…/dunning-reminders</code> mit SoT <code>{RECORD_DUNNING_REMINDER_ACTION_ID}</code>; siehe{" "}
-                  <a href={repoDocHref("docs/adr/0009-fin4-mahnwesen-slice.md")}>ADR-0009</a>
-                  {" · "}
-                  <a href={repoDocHref("docs/adr/0010-fin4-m4-dunning-email-and-templates.md")}>ADR-0010</a> (M4 E-Mail/Vorlagen)
-                  {" · "}
-                  <a href={repoDocHref("docs/adr/0011-fin4-semi-dunning-context.md")}>ADR-0011</a> (SEMI-Kontext).
-                </p>
-                {dunningReminders.length === 0 ? (
-                  <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", margin: 0 }}>Keine Mahn-Ereignisse.</p>
-                ) : (
-                  <ul style={{ margin: 0, paddingLeft: "1.1rem", fontSize: "0.82rem" }}>
-                    {dunningReminders.map((r) => (
-                      <li key={r.dunningReminderId}>
-                        Stufe {r.stageOrdinal} · {r.createdAt}
-                        {r.note ? ` — ${r.note}` : ""}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ) : null}
-            <FinanceCollapsibleJson summary="Rohdaten GET /invoices (JSON)" json={invoiceOverview ? JSON.stringify(invoiceOverview, null, 2) : ""} />
-          </div>
-        ) : null}
-        </FinancePrepPanel>
+        <FinancePrepStepInvoice
+          busy={busy}
+          invoiceIdRead={invoiceIdRead}
+          onInvoiceIdInputChange={(value: string) => {
+            setInvoiceIdRead(value);
+            setInvoiceAllowedActions(null);
+            setPaymentIntakes(null);
+            setDunningReminders(null);
+          }}
+          invoiceIdLooksValid={invoiceIdLooksValid}
+          onLoadInvoice={loadInvoice}
+          invoiceOverview={invoiceOverview}
+          openCents={openCents}
+          invoiceAllowedActions={invoiceAllowedActions}
+          canRecordPaymentIntake={canRecordPaymentIntake}
+          canRecordDunningReminder={canRecordDunningReminder}
+          canBookInvoice={canBookInvoice}
+          paymentIntakes={paymentIntakes}
+          dunningReminders={dunningReminders}
+          issueDateBook={issueDateBook}
+          setIssueDateBook={setIssueDateBook}
+          bookPanelError={bookPanelError}
+          onBookInvoice={bookInvoice}
+          onSubmitEntwurfSkontoRecalc={submitEntwurfSkontoRecalc}
+        />
 
         <FinancePreparationPaymentPanel
           busy={busy}
@@ -1727,113 +1389,19 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
           aria-labelledby="finance-prep-tab-fortgeschritten"
           hidden={financePrepMainTab !== "fortgeschritten"}
         >
-        <FinancePrepPanel step={4} title="SoT — erlaubte Aktionen (Fortgeschritten)">
-        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
-          <code>GET /documents/:id/allowed-actions</code> — gleiche Quelle wie die Dokument-Shell; <code>id</code> ist die UUID der gewählten Entität (nicht immer die Rechnungs-ID).
-        </p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.5rem" }}>
-          <button
-            type="button"
-            onClick={() => {
-              setSotEntityType("OFFER_VERSION");
-              setSotDocumentId(DEMO_SEED_IDS.offerVersionId);
-            }}
-            disabled={busy}
-          >
-            Voreinstellung: Angebotsversion
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSotEntityType("MEASUREMENT_VERSION");
-              setSotDocumentId(DEMO_SEED_IDS.measurementVersionId);
-            }}
-            disabled={busy}
-          >
-            Voreinstellung: Aufmaßversion
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSotEntityType("LV_VERSION");
-              setSotDocumentId(DEMO_SEED_IDS.lvVersionId);
-            }}
-            disabled={busy}
-          >
-            Voreinstellung: LV-Version
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSotEntityType("LV_STRUCTURE_NODE");
-              setSotDocumentId(DEMO_SEED_IDS.lvBereichId);
-            }}
-            disabled={busy}
-          >
-            Voreinstellung: LV-Bereich
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSotEntityType("LV_POSITION");
-              setSotDocumentId(DEMO_SEED_IDS.lvPositionId);
-            }}
-            disabled={busy}
-          >
-            Voreinstellung: LV-Position
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSotEntityType("INVOICE");
-              setSotDocumentId(invoiceIdRead.trim());
-            }}
-            disabled={busy}
-          >
-            Rechnungs-ID aus Feld übernehmen
-          </button>
-        </div>
-        <label style={{ display: "block", marginBottom: "0.5rem" }}>
-          entityType
-          <select
-            value={sotEntityType}
-            onChange={(e) => setSotEntityType(e.target.value as SotEntityType)}
-            aria-label="entityType für allowed-actions"
-            style={{ display: "block", width: "100%", marginTop: "0.25rem", maxWidth: "28rem" }}
-          >
-            {SOT_ENTITY_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label style={{ display: "block", marginBottom: "0.5rem" }}>
-          Dokument-ID (UUID)
-          <input
-            type="text"
-            value={sotDocumentId}
-            onChange={(e) => setSotDocumentId(e.target.value)}
-            aria-label="Dokument-ID für allowed-actions"
-            style={{ width: "100%", fontFamily: "monospace", fontSize: "0.85rem", marginTop: "0.25rem" }}
-          />
-        </label>
-        <button type="button" onClick={() => void loadSotAllowedActions()} disabled={busy}>
-          Erlaubte Aktionen laden
-        </button>
-        <FinanceCollapsibleJson summary="Rohantwort allowed-actions (JSON)" json={sotJson} />
-        </FinancePrepPanel>
+        <FinancePrepStepSot
+          busy={busy}
+          invoiceIdRead={invoiceIdRead}
+          sotEntityType={sotEntityType}
+          setSotEntityType={setSotEntityType}
+          sotDocumentId={sotDocumentId}
+          setSotDocumentId={setSotDocumentId}
+          sotJson={sotJson}
+          onLoadSotAllowedActions={loadSotAllowedActions}
+        />
 
-        <FinancePrepPanel step={7} title="Audit — Nachvollziehbarkeit">
-        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
-          <code>GET /audit-events</code> — Leserecht nur für <strong>ADMIN</strong>, <strong>BUCHHALTUNG</strong>, <strong>GESCHAEFTSFUEHRUNG</strong> (sonst 403{" "}
-          <code>FORBIDDEN_AUDIT_READ</code>).
-        </p>
-        <button type="button" onClick={() => void loadAuditEvents()} disabled={busy}>
-          Audit-Ereignisse laden (letzte 15)
-        </button>
-        <FinanceCollapsibleJson summary="Rohantwort GET /audit-events (JSON)" json={auditJson} />
-        </FinancePrepPanel>
+        <FinancePrepStepAudit busy={busy} auditJson={auditJson} onLoadAuditEvents={loadAuditEvents} />
+
         </div>
 
         {notice?.kind === "api" ? (
