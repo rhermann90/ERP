@@ -1823,5 +1823,61 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       });
       expect(patch.statusCode).toBe(403);
     });
+
+    it("P2-LV-GET-01 GET /lv/versions/:id returns seed snapshot with sorted nodes and positions", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: `/lv/versions/${SEED_IDS.lvVersionId}`,
+        headers,
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as {
+        catalog: { id: string; isCurrentVersion: boolean };
+        version: { id: string; lvCatalogId: string; status: string };
+        structureNodes: { sortOrdinal: string }[];
+        positions: { id: string; sortOrdinal: string }[];
+      };
+      expect(body.version.id).toBe(SEED_IDS.lvVersionId);
+      expect(body.catalog?.id).toBe(SEED_IDS.lvCatalogId);
+      expect(body.catalog?.isCurrentVersion).toBe(true);
+      expect(body.structureNodes.length).toBeGreaterThan(0);
+      expect(body.positions.some((p) => p.id === SEED_IDS.lvPositionSeedA)).toBe(true);
+      const nodeOrdinals = body.structureNodes.map((n) => n.sortOrdinal);
+      expect([...nodeOrdinals].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))).toEqual(nodeOrdinals);
+      const posOrdinals = body.positions.map((p) => p.sortOrdinal);
+      expect([...posOrdinals].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))).toEqual(posOrdinals);
+    });
+
+    it("P2-LV-GET-02 GET LV version is tenant-isolated (404)", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: `/lv/versions/${SEED_IDS.lvVersionId}`,
+        headers: buildHeaders("ADMIN", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"),
+      });
+      expect(res.statusCode).toBe(404);
+      expect(res.json().code).toBe("LV_VERSION_NOT_FOUND");
+    });
+
+    it("P2-LV-GET-03 VIEWER may read LV version snapshot", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: `/lv/versions/${SEED_IDS.lvVersionId}`,
+        headers: buildHeaders("VIEWER"),
+      });
+      expect(res.statusCode).toBe(200);
+      expect((res.json() as { version: { id: string } }).version.id).toBe(SEED_IDS.lvVersionId);
+    });
+
+    it("P2-LV-GET-04 GET LV version rejects invalid Bearer (401)", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: `/lv/versions/${SEED_IDS.lvVersionId}`,
+        headers: {
+          authorization: "Bearer v1.invalid.invalid",
+          "x-tenant-id": SEED_IDS.tenantId,
+        },
+      });
+      expect(res.statusCode).toBe(401);
+    });
   });
 });

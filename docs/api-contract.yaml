@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-1/2/3/4 Finance)
-  version: 1.26.0-fin4-batch-dunning-email-5c
+  version: 1.27.0-phase2-lv-version-get
   description: |
     **PWA / Browser-Anbindung**
     - **CORS**: Umgebungsvariable `CORS_ORIGINS` — kommagetrennte, exakte Origins (z. B. `https://app.example.com,http://localhost:5173`). Leer oder unset: keine `Access-Control-*`-Header (gleiche Origin oder Server-zu-Server).
@@ -264,6 +264,158 @@ components:
         reason:
           type: string
           minLength: 5
+    LvVersionResource:
+      type: object
+      description: LV-Version Kopf §9 (Lesepfad).
+      required:
+        - id
+        - tenantId
+        - lvCatalogId
+        - versionNumber
+        - status
+        - headerSystemText
+        - headerEditingText
+        - createdAt
+        - createdBy
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        lvCatalogId:
+          type: string
+          format: uuid
+        versionNumber:
+          type: integer
+        status:
+          type: string
+          enum: [ENTWURF, FREIGEGEBEN, ARCHIVIERT]
+        headerSystemText:
+          type: string
+        headerEditingText:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+          format: uuid
+    LvStructureNodeResource:
+      type: object
+      required:
+        - id
+        - tenantId
+        - lvVersionId
+        - parentNodeId
+        - kind
+        - sortOrdinal
+        - systemText
+        - editingText
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        lvVersionId:
+          type: string
+          format: uuid
+        parentNodeId:
+          type: string
+          format: uuid
+          nullable: true
+        kind:
+          type: string
+          enum: [BEREICH, TITEL, UNTERTITEL]
+        sortOrdinal:
+          type: string
+        systemText:
+          type: string
+        editingText:
+          type: string
+    LvPositionResource:
+      type: object
+      required:
+        - id
+        - tenantId
+        - lvVersionId
+        - parentNodeId
+        - sortOrdinal
+        - quantity
+        - unit
+        - unitPriceCents
+        - kind
+        - systemText
+        - editingText
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        lvVersionId:
+          type: string
+          format: uuid
+        parentNodeId:
+          type: string
+          format: uuid
+        sortOrdinal:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        unitPriceCents:
+          type: integer
+        kind:
+          type: string
+          enum: [NORMAL, ALTERNATIV, EVENTUAL]
+        systemText:
+          type: string
+        editingText:
+          type: string
+        stammPositionsRef:
+          type: string
+          format: uuid
+    LvCatalogSnapshotSummary:
+      type: object
+      required: [id, name, currentVersionId, isCurrentVersion]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        projectId:
+          type: string
+          format: uuid
+        currentVersionId:
+          type: string
+          format: uuid
+        isCurrentVersion:
+          type: boolean
+    LvVersionSnapshot:
+      type: object
+      required: [catalog, version, structureNodes, positions]
+      properties:
+        catalog:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/LvCatalogSnapshotSummary'
+        version:
+          $ref: '#/components/schemas/LvVersionResource'
+        structureNodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/LvStructureNodeResource'
+        positions:
+          type: array
+          items:
+            $ref: '#/components/schemas/LvPositionResource'
     CreatePaymentTermsVersionRequest:
       type: object
       description: |
@@ -1874,6 +2026,34 @@ paths:
           description: LV_CATALOG_NOT_FOUND
         '403':
           description: AUTH_ROLE_FORBIDDEN
+  /lv/versions/{lvVersionId}:
+    get:
+      description: |
+        Liest LV-Version §9 inkl. optionaler Katalog-Kurzinfo, Strukturknoten und Positionen (mandantenisoliert).
+        Listen sind nach `sortOrdinal` sortiert (numerisch-lokalisiert). Leserechte wie `GET /invoices/{id}`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: lvVersionId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: LvVersionSnapshot (Datumswerte als ISO-8601-Strings)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LvVersionSnapshot'
+        '404':
+          description: LV_VERSION_NOT_FOUND
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: Authentifizierung fehlgeschlagen
   /lv/versions/{lvVersionId}/status:
     post:
       description: LV-Version Status ENTWURF→FREIGEGEBEN→ARCHIVIERT (nur aktuelle Version).

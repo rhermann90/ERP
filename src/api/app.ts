@@ -378,6 +378,18 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     }
   });
 
+  app.get("/lv/versions/:lvVersionId", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      authorizationService.assertCanReadLvVersion(auth.role);
+      const params = request.params as { lvVersionId: string };
+      const result = lvService.getVersionSnapshot(auth.tenantId, params.lvVersionId);
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
   app.post("/lv/versions/:lvVersionId/status", async (request, reply) => {
     try {
       const auth = parseAuthContext(request.headers);

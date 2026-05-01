@@ -7,6 +7,7 @@ function makeClient(): ApiClient {
     requestJson: vi.fn().mockResolvedValue({ ok: true }),
     getAllowedActions: vi.fn(),
     getOfferVersion: vi.fn(),
+    getLvVersionSnapshot: vi.fn(),
     getMeasurementVersion: vi.fn(),
     getSupplementVersion: vi.fn(),
     getPaymentTermsByProject: vi.fn(),

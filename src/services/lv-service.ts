@@ -498,6 +498,44 @@ export class LvService {
     return pos;
   }
 
+  /** Lesepfad §9 — Tenant-isoliert; Knoten und Positionen nach `sortOrdinal` (numerisch-lokalisiert). */
+  public getVersionSnapshot(tenantId: string, lvVersionId: string): {
+    catalog: {
+      id: string;
+      name: string;
+      projectId?: string;
+      currentVersionId: string;
+      isCurrentVersion: boolean;
+    } | null;
+    version: LvVersion;
+    structureNodes: LvStructureNode[];
+    positions: LvPosition[];
+  } {
+    const version = this.repos.getLvVersionByTenant(tenantId, lvVersionId);
+    if (!version) {
+      throw new DomainError("LV_VERSION_NOT_FOUND", "LV-Version nicht gefunden", 404);
+    }
+    const catalog = this.repos.getLvCatalogByTenant(tenantId, version.lvCatalogId);
+    const sortLv = (a: { sortOrdinal: string }, b: { sortOrdinal: string }) =>
+      a.sortOrdinal.localeCompare(b.sortOrdinal, undefined, { numeric: true });
+    const structureNodes = this.repos.listLvStructureNodesForVersion(tenantId, lvVersionId).sort(sortLv);
+    const positions = this.repos.listLvPositionsForVersion(tenantId, lvVersionId).sort(sortLv);
+    return {
+      catalog: catalog
+        ? {
+            id: catalog.id,
+            name: catalog.name,
+            ...(catalog.projectId !== undefined ? { projectId: catalog.projectId } : {}),
+            currentVersionId: catalog.currentVersionId,
+            isCurrentVersion: catalog.currentVersionId === version.id,
+          }
+        : null,
+      version,
+      structureNodes,
+      positions,
+    };
+  }
+
   private assertCurrentVersionEditable(tenantId: string, lvVersionId: string): LvVersion {
     const version = this.repos.getLvVersionByTenant(tenantId, lvVersionId);
     if (!version) {
