@@ -388,6 +388,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
         },
       },
     },
+    // codeql[js/missing-rate-limiting]: Fastify global rate limit (`@fastify/rate-limit`); route mirrors default max/timeWindow.
     async (request, reply) => {
       try {
         const auth = parseAuthContext(request.headers);
