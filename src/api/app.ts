@@ -337,10 +337,10 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     dunningTenantAutomationService,
     dunningReminderEmailService,
   );
-  const measurementService = new MeasurementService(repos, audit, lvRef, lvMeasurementPersistence);
-  const lvService = new LvService(repos, audit, lvMeasurementPersistence);
-  const exportService = new ExportService(repos, audit);
   const authorizationService = new AuthorizationService(repos);
+  const measurementService = new MeasurementService(repos, audit, lvRef, lvMeasurementPersistence);
+  const lvService = new LvService(repos, audit, lvMeasurementPersistence, authorizationService);
+  const exportService = new ExportService(repos, audit);
 
   registerPasswordResetRoutes(app, { getPrisma: () => prisma, audit });
 
@@ -388,13 +388,11 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
         },
       },
     },
-    // codeql[js/missing-rate-limiting]: Fastify global rate limit (`@fastify/rate-limit`); route mirrors default max/timeWindow.
     async (request, reply) => {
       try {
         const auth = parseAuthContext(request.headers);
-        authorizationService.assertCanReadLvVersion(auth.role);
         const params = request.params as { lvVersionId: string };
-        const result = lvService.getVersionSnapshot(auth.tenantId, params.lvVersionId);
+        const result = lvService.getVersionSnapshotForRead(auth.role, auth.tenantId, params.lvVersionId);
         return reply.status(200).send(result);
       } catch (error) {
         return handleHttpError(error, request, reply);

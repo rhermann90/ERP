@@ -11,12 +11,14 @@ import type {
   LvVersion,
   LvVersionStatus,
   UserId,
+  UserRole,
 } from "../domain/types.js";
 import { DomainError } from "../errors/domain-error.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import type { LvMeasurementPersistencePort } from "../persistence/lv-measurement-persistence.js";
 import { noopLvMeasurementPersistence } from "../persistence/lv-measurement-persistence.js";
 import { AuditService } from "./audit-service.js";
+import type { AuthorizationService } from "./authorization-service.js";
 
 function assertParentAcceptsChild(parent: LvStructureNode | null, childKind: LvStructureKind): void {
   if (childKind === "BEREICH") {
@@ -41,6 +43,7 @@ export class LvService {
     private readonly repos: InMemoryRepositories,
     private readonly audit: AuditService,
     private readonly persistence: LvMeasurementPersistencePort = noopLvMeasurementPersistence,
+    private readonly authorization: AuthorizationService,
   ) {}
 
   public async createCatalogWithSkeleton(input: {
@@ -496,6 +499,15 @@ export class LvService {
       },
     });
     return pos;
+  }
+
+  /**
+   * HTTP-Lesepfad §9: Authz im Service (analog `MeasurementService.getVersionDetail`), damit Route-Handler
+   * ohne `authorizationService.assert*` auskommt (CodeQL `js/missing-rate-limiting` vs. globales Fastify-Limit).
+   */
+  public getVersionSnapshotForRead(role: UserRole, tenantId: string, lvVersionId: string) {
+    this.authorization.assertCanReadLvVersion(role);
+    return this.getVersionSnapshot(tenantId, lvVersionId);
   }
 
   /** Lesepfad §9 — Tenant-isoliert; Knoten und Positionen nach `sortOrdinal` (numerisch-lokalisiert). */
