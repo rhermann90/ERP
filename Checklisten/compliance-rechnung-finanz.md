@@ -29,7 +29,7 @@
 
 **Kurznotiz (DSB → §5, intern):** Für das **VVT** vor §5-Abnahme klären: (1) **MoR/Payment-Provider** — Verantwortlichkeit (AV vs. eigenverantwortlich), Weisungsrecht, **Subprozessor**-Kette; (2) **zwei Datenströme** (Plattform-/MoR-Abrechnung vs. Mandanten-Endkundenrechnung) jeweils mit **Zweckbindung**, Speicherdauer-Andockpunkt und Trennung von Marketing/Analyse; (3) **AV-Verträge** und aktuelle **Subprozessor**-Liste inkl. Hosting, SMTP/Massmail (Querverweis §2 5c / §5); (4) **Drittland** (z. B. CH-Kontext, ggf. US-Tooling) — **TIA/SCC** oder gleichwertiger Nachweis je Empfänger, nicht nur Checkbox.
 
-**§0 — Agenten-Abgleich (Repo-Snapshot PL, 2026-04-29):** Kein Ersatz für Unterschrift StB/DSB. Aus den letzten **StB-** und **DSB-Sessions** (Chat/Protokoll) hier der **Bearbeitungsstand** je Kernzeile — Checkboxen nur setzen, wenn die Rolle im Repo abnickt.
+**§0 — Agenten-Abgleich (Repo-Snapshot PL, 2026-05-01):** Kein Ersatz für Unterschrift StB/DSB. Aus den letzten **StB-** und **DSB-Sessions** (Chat/Protokoll) hier der **Bearbeitungsstand** je Kernzeile — Checkboxen nur setzen, wenn die Rolle im Repo abnickt. Detailliertes **technisches Mapping** und Kommunikationspfad für Agenten-Sessions: **§8** unten.
 
 | §0-Kernzeile | StB (Session) | DSB (Session) | Checkbox im Repo |
 |--------------|----------------|---------------|------------------|
@@ -130,6 +130,78 @@
 - [ ] **Steuerberater-Freigabe** für Rechnungslayout inkl. Sonderfälle, **DACH**/Mischmodelle, **MoR**-Abgrenzung und E-Rechnung-Sample(s).
 - [ ] **DSB-Stellungnahme** zu Zahlungs- und Rechnungsdaten inkl. **MoR-/Payment-Provider** und **DACH**-Datenflüsse (mindestens Kurzcheck).
 - [ ] **Pilotmandant** mit begrenztem Umfang und Monitoring-Plan.
+
+---
+
+## 8) Agent-Vorbereitung und Rollenkommunikation (Repo — **kein** StB/DSB-Ersatz)
+
+**Stand:** 2026-05-01 · **Agent/Orchestrierung** (Markdown-Pflege; **keine** fachlichen Kürzel **StB**, **DSB**, **StB+DSB**, **StB+DSB+PL** durch Agenten).
+
+**Lesart:** Dieser Abschnitt dient **PL** zur Koordination mehrerer Agenten-Sessions und zur **technischen** Einordnung (OpenAPI, ADR, Tests, Runbooks). Er **ersetzt keine** Abhakungen in §0–§7 und **ändert** keine bestehenden **`[x]` … `· StB`**-Zeilen (Änderungsschutz).
+
+### Kommunikationspfad (Empfehlung)
+
+1. **PL-Session:** Dispatch-Reihenfolge und Prefixe aus [`prompts-agents-compliance-abarbeitung.md`](./prompts-agents-compliance-abarbeitung.md) (**Prefix — StB**, **Prefix — DSB**, Prompt **E** / **F**).
+2. **Technik-/Repo-Session:** Pro offener Zeile in §1–§6 unten stehende **Repo-Verweise** prüfen; Lücken als **offene Fragen** an PL → **StB** / **DSB** eskalieren (kein `[x]` setzen).
+3. **Abschluss formal:** Nur **Menschen** setzen Datum/Kürzel auf den **Listenzeilen** in §0–§7 gemäß Abhaken-Konvention im Kopf dieser Datei.
+
+### Mapping — §0 (Scope & Rollen)
+
+| Listenpunkt (§0) | Formal abhakbar durch | Agent-/Repo-Vorbereitung (ohne `[x]`) |
+|------------------|----------------------|----------------------------------------|
+| Zielklarheit | **StB**; DS-Anteil **PL+DSB** | Kontextannahmen Z.7–8 gegen [`docs/ERP-Systembeschreibung.md`](../docs/ERP-Systembeschreibung.md), [`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](../docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md); Pilot-Protokoll vorbereiten. |
+| Zwei Belegpfade — DSGVO | **StB+DSB** | VVT-Andockpunkte: README/ADR zu Mandantenisolation; **kein** VVT-Volltext ins Repo. |
+| MoR vs. ERP | **StB** + **StB+DSB** (DS-Teil) | [`docs/adr/0007-finance-persistence-and-invoice-boundaries.md`](../docs/adr/0007-finance-persistence-and-invoice-boundaries.md); MoR nur in Kontextannahmen — Buchungs-Soll-Ist **intern** mit StB. |
+| Release-GO | **PL** (nach Mitwirkung StB/DSB) | Vorlage „Produktiv-Go Finanz/Rechnung“ intern; **kein** `[x]` bis dokumentiert. |
+| PL: Kontextannahmen / Rollenmatrix / Pilot-Dokument | **PL** | Rollenmatrix und Pilot-Dok **intern** benennen; Agent liefert **keine** Namen ins Repo. |
+| **Bereits `[x]`** | siehe Listenzeilen | Zwei Belegpfade Steuer · **StB**; Verantwortlichkeiten · **PL**; Review-Zyklus §0 · **PL** — unverändert lassen. |
+
+### Mapping — §1 UStG
+
+| Thema | Formal | Repo-Technik / Hinweis |
+|-------|--------|-------------------------|
+| Pflichtangaben, Steuersätze, Brutto/Netto, Korrektur, Leistungsbeschreibung, Grenzfälle, DACH, SaaS-Mix, LV-Rechnungen, UID | überwiegend **StB**; Scope-Risiko **PL** wo in Zeile genannt | Spez **8.16** / **8.12** [`docs/ERP-Systembeschreibung.md`](../docs/ERP-Systembeschreibung.md); Roadmap **FIN-5** [`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](../docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md); EUR [`docs/adr/0007-finance-persistence-and-invoice-boundaries.md`](../docs/adr/0007-finance-persistence-and-invoice-boundaries.md); Domain-Rechnung `src/domain/invoice-calculation.ts` — **kein** Ersatz für Mustertext/StB. |
+
+### Mapping — §2 HGB/AO
+
+| Thema | Formal | Repo-Technik / Hinweis |
+|-------|--------|-------------------------|
+| Belegkette / Traceability | **StB**/fachl. + techn. Nachweis | Tests/Gates siehe [`docs/contracts/qa-fin-0-gate-readiness.md`](../docs/contracts/qa-fin-0-gate-readiness.md); Traceability-Pfade Web FIN-Vorbereitung. |
+| FIN-4 Footer, Mahntexte, Handelsregister | **StB**/PL fachlich | [`docs/api-contract.yaml`](../docs/api-contract.yaml), ADR FIN-4/M4; **keine** alleinige Produktfreigabe durch Code. |
+| **Massen-E-Mail 5c** | **StB+DSB+PL** gemeinsam | [`docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md`](../docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md), [`docs/runbooks/m4-slice-5c-pl-mandanten-go.md`](../docs/runbooks/m4-slice-5c-pl-mandanten-go.md). |
+| Unveränderbarkeit, Nummernkreis, Aufbewahrung, AO/HGB/GoBD-Querschnitt | **StB** + org. **PL** | Persistenz [`docs/adr/0007-finance-persistence-and-invoice-boundaries.md`](../docs/adr/0007-finance-persistence-and-invoice-boundaries.md); Archiv/Ort **nicht** nur aus Repo ableitbar. |
+
+### Mapping — §3 GoBD
+
+| Thema | Formal | Repo-Technik / Hinweis |
+|-------|--------|-------------------------|
+| Audit, Protokolle, Zeitzone, Rollen, Verfahrensdoku | **StB**/Org + IT | Audit-Events API; Rollen [`docs/contracts/ui-role-mapping-v1-3.md`](../docs/contracts/ui-role-mapping-v1-3.md); **GoBD-Konformitätsbewertung** nur **`· StB`** nach menschlicher Freigabe. |
+
+### Mapping — §4 E-Rechnung
+
+| Thema | Formal | Repo-Technik / Hinweis |
+|-------|--------|-------------------------|
+| Alle Punkte | **StB** + Produkt **PL** | MVP/Umfang im Repo prüfen — **FIN-6**/Export-Skeleton laut Roadmap; **keine** implizite Go-Live-Freigabe durch vorhandene Stubs. |
+
+### Mapping — §5 DSGVO
+
+| Thema | Formal | Repo-Technik / Hinweis |
+|-------|--------|-------------------------|
+| VVT, Zweckbindung, Hosting-Region, Löschung, Auskunft, AVV, TOM, Spannungsfelder | **DSB** mit **StB** wo Schnittmenge | Prompt **C** (Hosting) in [`prompts-agents-compliance-abarbeitung.md`](./prompts-agents-compliance-abarbeitung.md); 5c ↔ §5 Querschnitt in Spez; **operative** EU-/Zugriffs-Nachweise **intern**. |
+
+### Mapping — §6 Software-Repo
+
+| Thema | Formal | Repo-Technik / Hinweis |
+|-------|--------|-------------------------|
+| FIN-Phasen / §15-Abnahme | **PL** + fachl. Gates | [`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](../docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md), [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](../docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md); CI grün ersetzt **kein** Mandanten-Go (Kopf dieser Datei). |
+| Follow-ups | **PL** | [`docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](../docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md), [`docs/tickets/FOLLOWUP-M4-DUNNING-UX-GRUNDEINSTELLUNGEN-TAB.md`](../docs/tickets/FOLLOWUP-M4-DUNNING-UX-GRUNDEINSTELLUNGEN-TAB.md). |
+
+### Mapping — §7 Abschluss
+
+| Kriterium | Formal | Hinweis |
+|-----------|--------|---------|
+| Alle §0–§6 belegt oder Scope-Verzicht | **PL** | Erst wenn vorstehende Sessions durchgeführt und **intern** dokumentiert. |
+| StB-/DSB-Freigaben / Pilot | **StB**, **DSB**, **PL** | **Keine** Agenten-Kürzel. |
 
 ---
 
