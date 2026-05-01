@@ -1,7 +1,7 @@
 # ERP — Systembeschreibung (konsolidiert)
 
 **Version:** 2.0 konsolidiert  
-**Stand:** 2026-04-28  
+**Stand:** 2026-05-01  
 **Status:** Verbindliche fachliche und planerische Gesamtquelle für dieses Repository.
 
 ## Teil 0 — Zweck, Geltung und Lesereihenfolge
@@ -12,6 +12,14 @@ Dieses Dokument **ersetzt** die zuvor verteilten Einzeldateien im Wurzelverzeich
 2. **Teil II — Technischer Systemkontext (Kurz):** Implementierungsrealität und Verweise auf Artefakte (kein Ersatz für ADR/OpenAPI).
 3. **Teil III — Phase A (technische Härtung):** Verbindliche Checkliste vor dem nächsten Produktiv- oder Groß-Release.
 4. **Teil IV — Fachlicher Lieferplan:** Reihenfolge der Umsetzung bis zur vollständigen Abdeckung der Domäne; FIN-x und Phase-2-Strang integriert.
+
+### Reihenfolge im Dateiinhalt und Leseempfehlung
+
+**Im Markdown-File stehen die Teile in dieser Reihenfolge:** Teil **II** (technischer Kontext) → Teil **III** (Phase A) → Teil **IV** (Lieferplan) → Teil **I** (fachliche Domäne, Abschnitte **1–17**). Die Aufzählung oben beschreibt die **inhaltliche** Rolle, nicht die Dateireihenfolge.
+
+**Leseempfehlung:** Für **normative Fachlogik** zuerst **Teil I** (ab Überschrift „Teil I — Fachliche Domäne“). Für **Repository-Ist**, CI und Release-Härtung **Teil II** und **III**; für **Roadmap/FIN-x** **Teil IV**. Umsetzungsdetail und aktuelle Wellen: [`README.md`](../README.md) (Persistenz), [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md).
+
+**Schreibkonvention Teil I:** Abschnitte **1–17** folgen historisch der Transkription ohne Unicode-Umlaute (`ae`, `oe`, `ue`). Das ist bewusst **kein** inhaltliches Defizit gegenüber dem übrigen Repo; eine flächige Umlaut-Harmonisierung wäre ein separates, editorisches Inkrement (hoher Diff, geringer fachlicher Mehrwert).
 
 **Nicht** Bestandteil dieser Systembeschreibung: Zeilenweise Code-Dokumentation — maßgeblich bleiben `src/`, `prisma/`, `docs/api-contract.yaml`, `docs/contracts/error-codes.json`, ADRs unter `docs/adr/`.
 
@@ -44,6 +52,18 @@ Dieses Dokument **ersetzt** die zuvor verteilten Einzeldateien im Wurzelverzeich
 ## Teil III — Phase A: Technische Härtung (Checkliste)
 
 Ziel: **Reproduzierbarkeit**, **weniger Konfigurationsfehler**, **tragfähiger Betrieb**, **minimiertes Secret-/Compliance-Risiko**. Eine Phase-A-Maßnahme gilt als **abgeschlossen**, wenn das genannte **Gate** erfüllt ist.
+
+**Ist-Zustand im Repo (Orientierung, keine Entschuldigung für ausstehende Betriebsnachweise):**
+
+| Maßnahme | Ist im Repo / CI | Hinweis zum Gate jenseits CI |
+|----------|------------------|------------------------------|
+| **A1** | **Erfüllt** | Job `backend` in `.github/workflows/ci.yml`: Schritt „Build web“ (`npm run build:web`). |
+| **A2** | **CI erfüllt** | `npm run audit:prod` und `npm audit --audit-level=high` im Workflow; **operativ:** Register/Owner/Fristen laut Runbook fortlaufend pflegen. |
+| **A3** | **Teilweise** | `.env.example`, Runbooks vorhanden — **Staging-Reproduzierbarkeit** ist Mandanten-/Betriebsnachweis. |
+| **A4** | **Teilweise** | Runbook vorhanden — **dokumentierter Restore** in Staging bleibt Betriebsnachweis. |
+| **A5** | **Teilweise** | Korrelation/Logging implementiert — **Incident-Drill-Protokoll** bleibt organisatorisch. |
+| **A6** | **Teilweise** | Rate-Limits/CORS/Listen-Bindung im Code dokumentiert — **Security-Checkliste** Prod bleibt abzuhaken. |
+| **A7** | **CI erfüllt** | Persistenz-Suite mit Postgres in CI; **Lücken** weiterhin über P0-Matrix priorisieren. |
 
 ### A1 — CI vollständig für die ausgelieferte Oberfläche
 
@@ -93,6 +113,8 @@ Ziel: **Reproduzierbarkeit**, **weniger Konfigurationsfehler**, **tragfähiger B
 
 Die Reihenfolge maximiert **Traceability** und minimiert **Rework**. FIN-x bezieht sich auf Teil I **§8**; Phase-2-Strang auf **LV §9 / Aufmass** (Teil I §5.4, §9).
 
+**Koordination der Umsetzung:** [`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](./MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md) (Phasen, Meilensteine, QA-Ablauf). **PWA / UI-Link-Hub:** [`docs/referenz-ui-ux.md`](./referenz-ui-ux.md).
+
 | # | Strang | Inhalt | Begründung |
 |---|--------|--------|------------|
 | 1 | **Phase 2 / LV–Aufmass** | Persistente LV-Hierarchie, Aufmass-Lebenszyklus, Anbindung an Angebotsversionen | Liefert Mengen-/Positionswahrheit für spätere Rechnung (**8.4** Schritt 1). |
@@ -107,16 +129,16 @@ Die Reihenfolge maximiert **Traceability** und minimiert **Rework**. FIN-x bezie
 | 10 | **Kunde / Projekt / Stammdaten** | Vollständige CRM-/Projektstammdaten gemäß Teil I §3–5 | Ergänzt technische Slices. |
 | 11 | **Rollen fein** | Feingranulare `actionIds` / SoD (**11**, **8.x**) | Nachdem alle Schreibpfade existieren. |
 
-### Repo-Snapshot (Synchronisation Stand 2026-04-28)
+### Repo-Snapshot (Synchronisation Stand 2026-05-01)
 
-Abgleich der **Reihenfolge** oben mit Tickets/ADR/QA im Repository (nur Orientierung; verbindlich bleibt die fachliche Tabelle).
+Abgleich der **Reihenfolge** oben mit Tickets/ADR/QA im Repository (**verkürzt**). **Verbindlicher Implementierungs-Iststand** (Persistenz, FIN-Inkremente, Wellen): [`README.md`](../README.md) Abschnitt „Hinweis zur Persistenz“ und [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) — dort pflegen, um Drift zu vermeiden. Die folgende Tabelle bleibt als **Orientierung** zur fachlichen Reihenfolge.
 
 | # | Strang | Repo-Nachweise und Kurzstatus |
 |---|--------|--------------------------------|
 | 1 | Phase 2 / LV–Aufmass | **Inc 1 (Aufmass):** abgeschlossen — `docs/adr/0004-measurement-lifecycle-phase2-inc1.md`, QA `docs/contracts/qa-persistence-increment-1.md`. **Inc 2 (LV §9):** ADR **ACCEPTED** — `docs/adr/0005-lv-hierarchy-phase2-inc2.md`; Umsetzung Domäne/API (`src/services/lv-service.ts`, `src/api/app.ts`), Prisma-Modell, Seed/Traceability. Tests: `test/app.test.ts` (SoT/Text-Invarianten), `test/persistence.integration.test.ts` (Seed §9/Aufmass, Negativfall **cross-tenant LV-FK** für Strukturknoten). **Hinweis:** Spalte „erfüllt“ im **`FIN-2-START-GATE`** (G1–G10) trägt weiterhin nur die **Projektleitung** nach formeller Abnahme ein — `docs/tickets/FIN-2-START-GATE.md`. |
 | 2 | Angebot / Nachtrag / Status | **TICKET-002** Iteration 1 geschlossen — `docs/tickets/TICKET-002-nachtrag-lifecycle-v12.md`, `docs/adr/0002-nachtrag-lifecycle.md`. API-/Tenant-Szenarien u. a. in `test/app.test.ts`; SoT erlaubte Aktionen über `AuthorizationService`. |
-| 3 | FIN-0 bis FIN-1 | **FIN-0:** Verträge/Stubs/QA — `docs/api-contract.yaml`, `docs/adr/0007-finance-persistence-and-invoice-boundaries.md`, `docs/contracts/qa-fin-0-gate-readiness.md` (§3 Regression/CI, §5a/§5b Merge-Evidence), `test/finance-fin0-stubs.test.ts`; Koordination Sprint: `docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md`. **FIN-1** (Zahlungsbedingungen persistiert/versioniert): im Lieferplan als nächster Architekturstrang nach Vertrags-Fundament; Umsetzungsstand im Repo fortlaufend mit OpenAPI/ADR abgleichen. |
-| 4 | FIN-2 | **FIN-2-Start-Gate** G1–G10 **ja** inkl. Freigabezeile (2026-04-21) — `docs/tickets/FIN-2-START-GATE.md`. **Umgesetzter Kernslice (M2/Wave3):** Rechnungsentwurf, Lesen, **`BOOK_INVOICE`** / `POST /invoices/{invoiceId}/book` (**ENTWURF → GEBUCHT_VERSENDET**), **8.4(1)** + USt/Brutto, optional **B2-1a** `skontoBps`, Traceability fail-closed, Persistenz/Audit — ADR-0007 **Status**, `src/services/invoice-service.ts`, `docs/contracts/finance-fin0-openapi-mapping.md`, Tests u. a. `test/finance-fin0-stubs.test.ts` / `test/persistence.integration.test.ts`. **Bewusst nicht** dieser Slice: vollständiger **8.4(2–6)**-Motor, Zwischenstatus **GEPRUEFT/FREIGEGEBEN** (Pfad C, eigenes Gate), belastbarer End-to-End **LV→Rechnung** — siehe ADR-0007 **Non-Goals** / **§8**, [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md), Zeile **FIN-2** in [`docs/PHASENARBEITSPLAN-MVP-V1.3-FINANZ.md`](docs/PHASENARBEITSPLAN-MVP-V1.3-FINANZ.md). |
+| 3 | FIN-0 bis FIN-1 | **FIN-0:** Verträge/Stubs/QA — `docs/api-contract.yaml`, `docs/adr/0007-finance-persistence-and-invoice-boundaries.md`, `docs/contracts/qa-fin-0-gate-readiness.md` (§3 Regression/CI, §5a/§5b Merge-Evidence), `test/finance-fin0-stubs.test.ts`; Koordination Sprint: `docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md`. **FIN-1** (Zahlungsbedingungen persistiert/versioniert): **`payment_terms_heads`** / **`payment_terms_versions`** in Postgres, ADR-0008, OpenAPI/Contracts — siehe [`README.md`](../README.md) „Hinweis zur Persistenz“ und Persistenz-/Finanz-Tests (`test/persistence.integration.test.ts`, `test/finance-fin0-stubs.test.ts`); Feintuning und Abnahme weiter mit MVP-/Gate-Dokumenten abgleichen. |
+| 4 | FIN-2 | **FIN-2-Start-Gate** G1–G10 **ja** inkl. Freigabezeile (2026-04-21) — `docs/tickets/FIN-2-START-GATE.md`. **Umgesetzter Kernslice (M2/Wave3):** Rechnungsentwurf, Lesen, **`BOOK_INVOICE`** / `POST /invoices/{invoiceId}/book` (**ENTWURF → GEBUCHT_VERSENDET**), **8.4(1)** + USt/Brutto, optional **B2-1a** `skontoBps`, Traceability fail-closed, Persistenz/Audit — ADR-0007 **Status**, `src/services/invoice-service.ts`, `docs/contracts/finance-fin0-openapi-mapping.md`, Tests u. a. `test/finance-fin0-stubs.test.ts` / `test/persistence.integration.test.ts`. **Bewusst nicht** dieser Slice: vollständiger **8.4(2–6)**-Motor, Zwischenstatus **GEPRUEFT/FREIGEGEBEN** (Pfad C, eigenes Gate), belastbarer End-to-End **LV→Rechnung** — siehe ADR-0007 **Non-Goals** / **§8**, [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md), Zeile **FIN-2** in [`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md) (Teil 7 Abschnitt D). |
 | 5 | FIN-3 | **M3 Intake-Slice (Teil I §8.7):** `POST /finance/payments/intake` + `Idempotency-Key`, `GET /invoices/{id}/payment-intakes`, Persistenz `payment_intakes`, SoT **`RECORD_PAYMENT_INTAKE`**, Status **TEILBEZAHLT** / **BEZAHLT**; Überzahlung als Domainfehler **`PAYMENT_EXCEEDS_OPEN_AMOUNT`**; Audit bei Zahlungsmutationen — `src/services/payment-intake-service.ts`, `docs/contracts/finance-fin0-openapi-mapping.md`, Tests u. a. `test/finance-fin0-stubs.test.ts` / `test/persistence.integration.test.ts`. **Nicht** Anspruch dieses Slices: vollständige **8.8–8.9** (z. B. Mehrfachbelege pro Bankumsatz), **Bankfile**, **PSP** / Chargebacks — siehe **`docs/adr/0007-finance-persistence-and-invoice-boundaries.md`**. |
 | 6 | FIN-4 | **Wave 3 (FIN-4 / M4):** verbindlicher Code-/Contract-Umfang abgeschlossen — ADR-0009 (Konfig), ADR-0010 (Vorlagen/Footer/E-Mail/Mahnlauf), ADR-0011 (SEMI), Batch 5c (`docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md`); Abgleich `docs/tickets/P1-FINANCE-WAVE3-POST-RELEASE-PLAN.md`, `docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`. **Mandanten-/Produktiv-Go** weiterhin über `Checklisten/compliance-rechnung-finanz.md` (StB/DSB/PL). §8.10-Folgeslices (Option A), B5-PDF, 8.4(2–6), Pfad C, Audit-Verhalten = eigene Gates/Backlog, nicht Wave-3-Pflichtrest. |
 | 7 | FIN-5 | Noch nicht begonnen (Steuer-Sonderfälle MVP). |
@@ -321,6 +343,8 @@ Pflichtregeln:
 ## 8. Finanz-Submodell (v1.3 — vollstaendig und integriert)
 
 Dieses Unterkapitel ist **integral** Bestandteil der Domain-Core-Definition und verbindlich fuer Datenmodell, API, Buchhaltungsexporte und Pruefungspfad.
+
+**Operative Umsetzung (Phasen, Meilensteine, QA):** [`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](./MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md). **PWA / UI:** [`docs/referenz-ui-ux.md`](./referenz-ui-ux.md). Für die **fachlichen Regeln** in diesem Abschnitt bleibt diese Systembeschreibung maßgeblich; technische Abweichungen nur per ADR/Ticket dokumentiert.
 
 ### 8.1 Grundprinzipien
 
@@ -655,9 +679,8 @@ Die folgende **vierstufige** Reihenfolge dient **nur** als **Startvorlage** fuer
 
 ---
 
-**Version:** 1.3  
-**Revision:** 1.3.8 (8.10: Standard-Tagesfristen und -Mahngebuehren, mandanteneditierbar, Audit; Anhang 17: illustrative Standardzahlen; 16: Festlegung v1.3.8)  
-**Status:** Fachlich verbindlicher Entwurf fuer weitere Phasen (Datenmodell, API, Frontend, QA)  
+**Domänenbasis (Teil I):** Historischer Kern **ERP Systembeschreibung v1.3** — **Revision 1.3.8** (8.10: Standard-Tagesfristen und -Mahngebuehren, mandanteneditierbar, Audit; Anhang 17: illustrative Standardzahlen; 16: Festlegung v1.3.8). In diesem Repository eingebettet in **Dokumentversion 2.0** (siehe Dokumentkopf).  
+**Status (Teil I):** Die **fachliche Domänendefinition** (Abschnitte **1–17**) ist **verbindlich**. Konkrete **API-, Persistenz- und UI-Umsetzung** erfolgen inkrementell und sind gegen **ADR**, **OpenAPI** und Code zu messen (vgl. Teil 0 sowie Teil I **§16** — keine Produktions-Go-Ziele ohne dokumentierte Persistenz-/Audit-Linie).  
 **Hinweis:** Bei Konflikt zwischen Einfachheit und fachlicher Korrektheit gilt immer fachliche Korrektheit.  
 **Historie v1.2:** Der Text von v1.2 liegt im Archiv: `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`. **Verbindlich** ist ab Konsolidierung 2.0 ausschließlich dieses Dokument (`docs/ERP-Systembeschreibung.md`).
 
@@ -665,9 +688,11 @@ Die folgende **vierstufige** Reihenfolge dient **nur** als **Startvorlage** fuer
 
 ## Anhang — Archivhinweis
 
-Die historischen Einzelstände (**ERP Systembeschreibung v1.2** / **v1.3**, **ERP Systembeschreibung.txt**, **ERP Systembeschreibung.docx**) und die Referenzkopie **ENTWICKLUNGSPHASEN-MVP-V1.3.md** liegen ausschließlich unter:
+Die historischen Einzelstände (**ERP Systembeschreibung v1.2** / **v1.3**, **ERP Systembeschreibung.txt**, **ERP Systembeschreibung.docx**) liegen unter:
 
 `docs/_archiv/systembeschreibung-und-phasen-legacy/`
+
+**Kanonischer MVP-Finanz-Fahrplan (Phasen + Arbeitsablauf):** `docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`. Historische MVP-Finanz-Dateinamen und erläuternder Archivtext: `docs/_archiv/mvp-finanz-legacy-stubs/`; unter `docs/` bleiben nur **minimale Weiterleitungen** (`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`, `docs/PHASENARBEITSPLAN-MVP-V1.3-FINANZ.md`) für stabile externe Links.
 
 Die vormals im **Repo-Root** liegenden Duplikate dieser Dateien wurden entfernt. Archivierte Dateien sind **nicht** maßgeblich; bei Widersprüchen gilt **dieses** Dokument (`docs/ERP-Systembeschreibung.md`).
 

@@ -5,7 +5,7 @@
 
 ## Increment 1 (verbindlich)
 
-**Aufmass-Lebenszyklus-Slice** gemäß `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md` **§5.4 Aufmass** (und Querverweise §2 Traceability, §7 Nachvollziehbarkeit).
+**Aufmass-Lebenszyklus-Slice** gemäß `docs/ERP-Systembeschreibung.md` **§5.4 Aufmass** (und Querverweise §2 Traceability, §7 Nachvollziehbarkeit).
 
 ### Begründung (Trade-off)
 

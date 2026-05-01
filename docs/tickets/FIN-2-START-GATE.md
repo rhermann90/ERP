@@ -1,8 +1,8 @@
 # FIN-2-Start-Gate (Rechnung + Berechnungskette 8.4)
 
-**Rolle:** Kanonische, **binäre** Freigabebedingungen für den **Start** der **FIN-2**-Implementierung (`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`) — **historisch erfüllt** und als Nachweis-Archiv im Repo geführt.  
+**Rolle:** Kanonische, **binäre** Freigabebedingungen für den **Start** der **FIN-2**-Implementierung (`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`, Teil 3–4) — **historisch erfüllt** und als Nachweis-Archiv im Repo geführt.  
 **Domänenquelle:** `docs/ERP-Systembeschreibung.md` — **8.1**, **8.2**, **8.4**, **5.5**, Traceability; Quality Gate spätere MVP-Abnahme: **§15**.  
-**Status:** Spalte „erfüllt“ **G1–G10 = ja** (2026-04-21); formale Gegenzeichnung: Abschnitt 4. **Repo-Ist-Stand (2026-04-28):** FIN-2-Kern (Rechnungsentwurf, Lesen, **Buchung** `POST /invoices/{invoiceId}/book`, 8.4-Basis) und **FIN-3**-Zahlungseingang (**Intake** + `GET …/payment-intakes`) sind auf `main` **implementiert** — siehe [`docs/adr/0007-finance-persistence-and-invoice-boundaries.md`](../adr/0007-finance-persistence-and-invoice-boundaries.md), [`docs/contracts/finance-fin0-openapi-mapping.md`](../contracts/finance-fin0-openapi-mapping.md), `src/api/finance-invoice-routes.ts`, `src/api/finance-payment-intake-routes.ts`. *Noch nicht* durch dieses Gate ersetzt: fachliche **Tiefe** (z. B. 8.4(2–6), Pfad C), **FIN-3** jenseits Intake (8.8–8.9, Bankfile) — siehe ADR-0007 und [`docs/PHASENARBEITSPLAN-MVP-V1.3-FINANZ.md`](../PHASENARBEITSPLAN-MVP-V1.3-FINANZ.md).
+**Status:** Spalte „erfüllt“ **G1–G10 = ja** (2026-04-21); formale Gegenzeichnung: Abschnitt 4. **Repo-Ist-Stand (2026-04-28):** FIN-2-Kern (Rechnungsentwurf, Lesen, **Buchung** `POST /invoices/{invoiceId}/book`, 8.4-Basis) und **FIN-3**-Zahlungseingang (**Intake** + `GET …/payment-intakes`) sind auf `main` **implementiert** — siehe [`docs/adr/0007-finance-persistence-and-invoice-boundaries.md`](../adr/0007-finance-persistence-and-invoice-boundaries.md), [`docs/contracts/finance-fin0-openapi-mapping.md`](../contracts/finance-fin0-openapi-mapping.md), `src/api/finance-invoice-routes.ts`, `src/api/finance-payment-intake-routes.ts`. *Noch nicht* durch dieses Gate ersetzt: fachliche **Tiefe** (z. B. 8.4(2–6), Pfad C), **FIN-3** jenseits Intake (8.8–8.9, Bankfile) — siehe ADR-0007 und [`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md).
 
 ---
 
@@ -33,7 +33,7 @@
 
 ## 2. FIN-0 — Freigabe-Scope (parallel zu Phase 2)
 
-*Hinweis **Repo-Stand:** Die folgenden Listen beschrieben die **ursprüngliche** Trennung „FIN-0-Dokumentation vs. FIN-2-Code“. Nach Freigabe **G1–G10** und Merge auf `main` sind **FIN-2** (Entwurf, Lesen, Buchung) und **FIN-3 Intake** **produktiv** — für aktuelle Grenzen und Backlog siehe **ADR-0007** und [`docs/PHASENARBEITSPLAN-MVP-V1.3-FINANZ.md`](../PHASENARBEITSPLAN-MVP-V1.3-FINANZ.md).*
+*Hinweis **Repo-Stand:** Die folgenden Listen beschrieben die **ursprüngliche** Trennung „FIN-0-Dokumentation vs. FIN-2-Code“. Nach Freigabe **G1–G10** und Merge auf `main` sind **FIN-2** (Entwurf, Lesen, Buchung) und **FIN-3 Intake** **produktiv** — für aktuelle Grenzen und Backlog siehe **ADR-0007** und [`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md).*
 
 **Im Scope FIN-0 (explizit erlaubt vor FIN-2)** — weiterhin gültig für **reine** Contract-/QA-Inkremente
 
@@ -86,7 +86,7 @@ Team,
 3. **OpenAPI / Contracts:** `docs/api-contract.yaml` (**`info.version`** siehe Dateikopf), `docs/contracts/finance-fin0-openapi-mapping.md`, `docs/contracts/error-codes.json` (**`contractVersion`** siehe Dateikopf).  
 4. **QA:** `docs/contracts/qa-fin-0-gate-readiness.md`, `docs/contracts/qa-fin-2-start-gate-stub-matrix.md`, `docs/contracts/qa-fin-0-stub-test-matrix.md`  
 5. **Koordination / QA-Gate:** `docs/contracts/qa-fin-0-gate-readiness.md`  
-6. **Phasenüberblick:** `docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`, [`docs/PHASENARBEITSPLAN-MVP-V1.3-FINANZ.md`](../PHASENARBEITSPLAN-MVP-V1.3-FINANZ.md)  
+6. **Phasenüberblick:** [`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md)  
 7. **MVP-Abnahme später:** `docs/ERP-Systembeschreibung.md` **§15**.
 
 Nächste Rollen: **Backend** weitere Finanz-Inkremente nur mit Contract-Pflege; **Frontend** SoT-gekoppelt (`allowedActions`); **QA** CI grün + Evidence; **Code Review** kein Merge ohne **G8**-Abgleich bei API-Änderungen.
@@ -97,7 +97,7 @@ Projektleitung
 
 ## 6. Verweise
 
-- `docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`  
+- `docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`  
 - `docs/tickets/PHASE-2-STARTAUFTRAG.md`, `docs/tickets/PHASE-2-PRIORISIERUNG-INCREMENT-1.md`, `docs/tickets/PHASE-2-PRIORISIERUNG-INCREMENT-2.md`  
 - `docs/adr/0004-measurement-lifecycle-phase2-inc1.md`, `docs/adr/0005-lv-hierarchy-phase2-inc2.md`, `docs/adr/0007-finance-persistence-and-invoice-boundaries.md` (FIN-0 / Gate **G4**-Artefakt)  
 - `docs/api-contract.yaml`, `docs/contracts/finance-fin0-openapi-mapping.md`, `docs/contracts/error-codes.json`  

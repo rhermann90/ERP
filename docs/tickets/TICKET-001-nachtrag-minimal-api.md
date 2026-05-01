@@ -1,7 +1,7 @@
 # TICKET-001 — Minimal-API Nachtragsangebot (v1.2 Folgeprozess)
 
 ## Kontext
-`docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md` verlangt nach verbindlicher Annahme (`ANGENOMMEN`) Änderungen **ausschließlich über Nachtragsangebot** mit Referenz auf die konkrete Basis-Angebotsversion.
+`docs/ERP-Systembeschreibung.md` verlangt nach verbindlicher Annahme (`ANGENOMMEN`) Änderungen **ausschließlich über Nachtragsangebot** mit Referenz auf die konkrete Basis-Angebotsversion.
 
 ## Phase-1-Scope
 **Umgesetzt (Minimal-API)** im aktuellen Backend-Slice.

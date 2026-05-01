@@ -30,7 +30,7 @@ Vor M4 (E-Mail, Vorlagen, persistierte Mandantenkonfiguration) einen **reinen Le
 
 1. **Persistierte Konfiguration** (`dunning_stage_config` o. ä.) pro Mandant, append-only Versionierung optional (§8.10 / ADR-Folge).
 2. **Read** aus DB mit Fallback auf MVP-Defaults für leere Mandanten.
-3. **M4:** Vorlagen, E-Mail-Footer, Vorschau — weiterhin **separates** Inkrement laut ENTWICKLUNGSPHASEN FIN-4.
+3. **M4:** Vorlagen, E-Mail-Footer, Vorschau — weiterhin **separates** Inkrement laut MVP-FINANZ Teil 4 FIN-4.
 
 ## QA-Kurzcheck
 

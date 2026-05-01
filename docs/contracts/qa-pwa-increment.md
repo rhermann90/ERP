@@ -1,6 +1,6 @@
 # QA Matrix – PWA-Increment (Shell + API-Basis)
 
-**Fachliche Referenz:** `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md` (Mandantentrennung, Nachvollziehbarkeit, keine Offline-Schreibsimulation ohne Backend-GO).
+**Fachliche Referenz:** `docs/ERP-Systembeschreibung.md` (Mandantentrennung, Nachvollziehbarkeit, keine Offline-Schreibsimulation ohne Backend-GO).
 
 **Zweck:** Nachweis für PWA-relevante Schicht (Browser-App, CORS, Security-Header, Service Worker, Manifest) und Regression der kritischen Backend-Pfade, die die PWA konsumiert.
 

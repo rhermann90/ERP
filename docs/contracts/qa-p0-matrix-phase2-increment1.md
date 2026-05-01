@@ -1,6 +1,6 @@
 # QA P0 Matrix - Phase 2 Increment 1 (Aufmass)
 
-Quellen: `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`, `docs/contracts/action-contracts.json`, `docs/contracts/error-codes.json`, `docs/api-contract.yaml`
+Quellen: `docs/ERP-Systembeschreibung.md`, `docs/contracts/action-contracts.json`, `docs/contracts/error-codes.json`, `docs/api-contract.yaml`
 
 Fokus P0: Tenant-Isolation, SoT (`allowedActions`) vs schreibende API, Audit auf kritischen Übergängen, Traceability/fail-closed.
 
