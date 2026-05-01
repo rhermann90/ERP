@@ -1,6 +1,6 @@
 # FOLLOWUP — LV-Löschfälle bei hängenden Angeboten (FK `ON DELETE RESTRICT`)
 
-**Status:** offen — **fachliche Regel durch Projektleitung / Domäne** erforderlich, bevor ein Implementierungs-PR „still“ FKs oder APIs ändert.
+**Status:** offen — **fachliche Regel durch Team / Domäne** erforderlich, bevor ein Implementierungs-PR „still“ FKs oder APIs ändert.
 
 ## Kontext
 
@@ -17,7 +17,7 @@ Damit ist ein **DB-seitiges** Löschen einer `lv_versions`-Zeile **abgelehnt**, 
 - Traceability und FIN-2-Start-Gate (**G5**) verlangen eine **verbindliche** LV-Bezugsgröße; ein unbemerktes Löschen oder Umbiegen von FKs würde die Prüfkette unterlaufen.
 - v1.3 / ADR-0006: **keine** Vereinfachung der SoT-Regeln.
 
-## Von PL / Fachlichkeit zu klären (Beispielfragen)
+## Von Team / Domäne zu klären (Beispielfragen)
 
 1. Darf eine **FREIGEGEBENE** LV-Version überhaupt gelöscht werden, wenn noch Angebotsversionen darauf zeigen? (Vermutung: nein.)
 2. Ist **Archivierung** statt physischem Delete die kanonische Operation?
@@ -26,17 +26,17 @@ Damit ist ein **DB-seitiges** Löschen einer `lv_versions`-Zeile **abgelehnt**, 
 
 ## Abhängigkeiten
 
-- Nächster Persistenz-Slice (**Nachtrag/Supplement** o. ä.) nach **PL-Priorität**; dieser Blocker nur relevant, sobald **LV-Lösch- oder Archivierungs-APIs** produktiv angebunden werden.
+- Nächster Persistenz-Slice (**Nachtrag/Supplement** o. ä.) nach **Ticket-Priorität**; dieser Blocker nur relevant, sobald **LV-Lösch- oder Archivierungs-APIs** produktiv angebunden werden.
 - **FIN-2** / **8.4** bleiben bis [`FIN-2-START-GATE.md`](./FIN-2-START-GATE.md) voll erfüllt **out of scope**.
 
 ## Nicht-Ziel
 
-- Keine Änderung von `ON DELETE`-Semantik in einer Migration **ohne** ADR-Update und PL-Freigabe.
+- Keine Änderung von `ON DELETE`-Semantik in einer Migration **ohne** ADR-Update und dokumentierter Architektur-/Release-Freigabe.
 
-## Umsetzung (nach PL-Regel)
+## Umsetzung (nach Team-/Ticket-Regel)
 
-- **Option A — Implementierung:** sobald PL die fachlichen Antworten (Abschnitt „Von PL / Fachlichkeit zu klären“) geliefert hat: API/Domain + ggf. Migration **nur** im Scope des genehmigten Tickets; weiterhin **keine** Phantom-Error-Codes.
-- **Option B — Technischer Spike:** kurzer Nachweis (z. B. repro-Skript, dokumentierte FK-Fehlermeldungen) **nur** in Ticket/ADR — **ohne** Schemaänderung bis PL-Freigabe.
+- **Option A — Implementierung:** sobald Team/Domäne die fachlichen Antworten (Abschnitt „Von Team / Domäne zu klären“) geliefert hat: API/Domain + ggf. Migration **nur** im Scope des genehmigten Tickets; weiterhin **keine** Phantom-Error-Codes.
+- **Option B — Technischer Spike:** kurzer Nachweis (z. B. repro-Skript, dokumentierte FK-Fehlermeldungen) **nur** in Ticket/ADR — **ohne** Schemaänderung bis dokumentierter Freigabe.
 - Bis dahin: **kein** heimliches Anpassen von FKs/`ON DELETE`.
 
 ## Verknuepfung (Betrieb / CI)

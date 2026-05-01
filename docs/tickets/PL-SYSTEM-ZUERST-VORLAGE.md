@@ -1,10 +1,11 @@
 # Vorlage — „PL / System — zuerst“ (kommunizierter Rahmen)
+> **Hinweis (Entwicklungsphase):** Begriffe „PL“, „Projektleitung“, „PL-Eintrag“ in diesem Snapshot sind **historisch**. Steuerung: Team/Maintainer — [AGENTS.md](../../AGENTS.md) Punkt 6. **Pfadname** `PL-SYSTEM-ZUERST-*` historisch.
 
-**Zweck:** Einmal ausfüllen und als **Referenz** in Team-Tickets, PR-Beschreibungen, Merge-Kommentaren oder Eskalation einfügen. Damit liegt der von **Projektleitung / System** kommunizierte Rahmen **schriftlich** vor (Voraussetzung in [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) §0).
+**Zweck:** Einmal ausfüllen und als **Referenz** in Team-Tickets, PR-Beschreibungen, Merge-Kommentaren oder Eskalation einfügen. Damit liegt der vom **Team / System** kommunizierte Rahmen **schriftlich** vor (Voraussetzung in [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) §0).
 
-**Eingetragene Sprint-Instanz (Beispiel / aktuell):** [`PL-SYSTEM-ZUERST-2026-04-14.md`](./PL-SYSTEM-ZUERST-2026-04-14.md) — verbindlicher **„PL / System — zuerst“**-Rahmen vom **2026-04-14**; neuere Sprints als eigene Datei `PL-SYSTEM-ZUERST-<Datum>.md` anlegen und hier verlinken.
+**Eingetragene Sprint-Instanz (Beispiel / aktuell):** [`PL-SYSTEM-ZUERST-2026-04-14.md`](./PL-SYSTEM-ZUERST-2026-04-14.md) — Referenz-**„PL / System — zuerst“**-Rahmen *(Pfadname historisch)* vom **2026-04-14**; neuere Sprints als eigene Datei `PL-SYSTEM-ZUERST-<Datum>.md` anlegen und hier verlinken.
 
-**Ersetzt nicht:** den verbindlichen **PL-Eintrag** (vier Inhaltszellen ohne Platzhalter `—`) in [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md), wenn ein PR **AuditService**, **Dual-Write** oder die **Transaktionsgrenze für Audit** ändert — dort nur die Tabelle im Ticket, nicht diese Vorlage.
+**Ersetzt nicht:** den **Audit-/Architektur-Eintrag** (vier Inhaltszellen ohne Platzhalter `—`) in [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md), wenn ein PR **AuditService**, **Dual-Write** oder die **Transaktionsgrenze für Audit** ändert — dort nur die Tabelle im Ticket, nicht diese Vorlage.
 
 ---
 
@@ -12,11 +13,11 @@
 
 **Kanonisch (ein Snapshot pro Zyklus — vermeidet Drift):** Volltext und Prioritäten stehen **nur** in der datierten Datei, z. B. [`PL-SYSTEM-ZUERST-2026-04-14.md`](./PL-SYSTEM-ZUERST-2026-04-14.md). Diese Vorlage enthält **keinen** zweiten Volltext mehr.
 
-**Wartung durch PL:** Neuen Zyklus = neue Datei `docs/tickets/PL-SYSTEM-ZUERST-<YYYY-MM-DD>.md` (Inhalt aus dem Abschnitt **Kopierblock** ableiten), oben unter **Eingetragene Sprint-Instanz** verlinken und in [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) §0 das Datum / den Pfad anpassen.
+**Wartung durch Team/Maintainer:** Neuen Zyklus = neue Datei `docs/tickets/PL-SYSTEM-ZUERST-<YYYY-MM-DD>.md` (Inhalt aus dem Abschnitt **Kopierblock** ableiten), oben unter **Eingetragene Sprint-Instanz** verlinken und in [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) §0 das Datum / den Pfad anpassen.
 
 ---
 
-## Kopierblock (Vorlage für künftige Zyklen — von PL/System ausfüllen; Platzhalter ersetzen)
+## Kopierblock (Vorlage für künftige Zyklen — vom Team ausfüllen; Platzhalter ersetzen)
 
 ```text
 ## PL / System — zuerst (verbindlicher Rahmen)
@@ -29,12 +30,12 @@
 
 **Gates / Merge-Regeln (kurz):**
 - FIN-2 / produktive Finanz-API: erst nach Schließen G1–G10 in docs/tickets/FIN-2-START-GATE.md
-- PR mit Audit-Verhalten (AuditService / Dual-Write / Transaktionsgrenze Audit): erst nach vollständigem „PL-Eintrag“ in docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md (alle vier Zellen ohne —)
-- Mandanten-Go Finanz (UStG / GoBD / E-Rechnung / DSGVO u. a.): fachliche Checkliste `Checklisten/compliance-rechnung-finanz.md` mit StB/DSB/PL — zusätzlich zu CI; kein Ersatz für separates Release-GO (siehe README)
+- PR mit Audit-Verhalten (AuditService / Dual-Write / Transaktionsgrenze Audit): **empfohlen** nach dokumentiertem Eintrag in docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md (alle vier Zellen ohne —); Entwicklungsphase: [AGENTS.md](../../AGENTS.md) Punkt 6
+- Mandanten-Go Finanz (UStG / GoBD / E-Rechnung / DSGVO u. a.): fachliche Checkliste `Checklisten/compliance-rechnung-finanz.md` mit StB/DSB/Release-Owner — **vor Produktiv-Go**; zusätzlich zu CI; kein Ersatz für separates Release-GO (siehe README)
 
 **Optional — Branch-Schutz / CI:** <z. B. Required Check „backend“ auf main — ja/nein/offen>
 
-**Bei Abweichung oder fehlender Nachvollziehbarkeit:** Rückmeldung an PL nach Format in docs/contracts/qa-fin-0-gate-readiness.md
+**Bei Abweichung oder fehlender Nachvollziehbarkeit:** Rückmeldung ans Team nach Format in docs/contracts/qa-fin-0-gate-readiness.md
 ```
 
 ---
@@ -45,8 +46,8 @@
 | --- | --- |
 | Sprint-Rahmen PL/System (Instanz) | [`PL-SYSTEM-ZUERST-2026-04-14.md`](./PL-SYSTEM-ZUERST-2026-04-14.md) |
 | FIN-2-Start-Gate | [`FIN-2-START-GATE.md`](./FIN-2-START-GATE.md) |
-| Audit Dual-Write / Merge-Sperre | [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) |
-| QA Merge-Evidence §5a/§5b, Rückmeldung an PL (Format) | [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) |
+| Audit Dual-Write / FOLLOWUP-Ticket | [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) |
+| QA Merge-Evidence §5a/§5b, Rückmeldung ans Team (Format) | [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) |
 | CI-Workflow (`backend`) | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) |
 | Persistenz-CI / Runbook | [`docs/runbook/ci-and-persistence-tests.md`](../runbook/ci-and-persistence-tests.md) |
 | Repo-Einstieg | [`README.md`](../../README.md) |

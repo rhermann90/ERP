@@ -4,21 +4,21 @@
 **Kontext:** FIN-0 = primär Dokumentation/Verträge; Regression = **gesamte** CI / lokaler `npm test` grün. **Merge auf `main`/`master`:** kanonische Evidence = **grüner GitHub Actions-Run** (Job wie [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)); lokaler Erfolg (auch **99/99**, **0 skipped** lokal) **ersetzt** den Remote-Run **nicht**. FIN-2 = später; P0-Matrix nur **Stub** (siehe `qa-fin-2-start-gate-stub-matrix.md`).  
 **MVP-Abnahme später:** `docs/ERP-Systembeschreibung.md` **§15** *Validierung und Quality Gate* — dort u. a. Finanzlogik (Abschnitt 8) konsistent mit Lebenszyklen und Traceability, AuditEvent-Modell, Rollen inkl. Zahlungs-/Mahnaktionen.
 
-**Produktiv-Go außerhalb reiner Software-QA:** Für Mandanten-Go unter **UStG / HGB / AO / GoBD / E-Rechnung / DSGVO** die fachliche Checkliste [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) mit **Steuerberatung, Datenschutz und PL** abarbeiten — **ergänzend** zu §5a/CI, **kein** Ersatz für separates Release-GO (siehe [`README.md`](../../README.md)).
+**Produktiv-Go außerhalb reiner Software-QA:** Für Mandanten-Go unter **UStG / HGB / AO / GoBD / E-Rechnung / DSGVO** die fachliche Checkliste [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) mit **Steuerberatung, Datenschutz und Release-Verantwortlichen** abarbeiten — **ergänzend** zu §5a/CI, **kein** Ersatz für separates Release-GO (siehe [`README.md`](../../README.md)).
 
 **Finanz-PR (Code + Contracts):** technische Abnahme je Merge mit [`review-checklist-finanz-pr.md`](./review-checklist-finanz-pr.md) (SoT, G8-Bündel, §5b bei Misch-PRs, GoBD-Querschnitt-Verweis).
 
 ---
 
-## 0) Vorbedingung — **PL / System — zuerst**
+## 0) Vorbedingung — **Sprint-Kontext („System zuerst“)**
 
-QA-Arbeit an Merge-Evidence, Gate-Stichproben und Contract-Abgleich setzt den **vom Projektleitung / System** kommunizierten Rahmen voraus. **Verbindlich für diesen Koordinationszyklus** (Stand **2026-04-14**): Sprint-Snapshot [`docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md`](../tickets/PL-SYSTEM-ZUERST-2026-04-14.md) (Volltext **nur** dort — keine Dublette in der Vorlage). **Index + Kopierblock** für Folgezyklen: [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](../tickets/PL-SYSTEM-ZUERST-VORLAGE.md). **Domäne:** [`docs/ERP-Systembeschreibung.md`](../ERP-Systembeschreibung.md). **Multi-Agent-Kernregeln:** [`.cursor/rules/erp-multi-agent.mdc`](../../.cursor/rules/erp-multi-agent.mdc). **Lieferkette (Git → PR → §5a → Tracker):** nur im **Team-Clone** mit kanonischem Remote arbeiten; **nächste planbare Arbeit** leitet die Projektleitung aus der **„Rückmeldung an Projektleitung“** des **Code Reviewers** ab (dieselbe Aussage **blocking** wie im GitHub-Review; Format **Rückmeldung an Projektleitung** unten). Liegt der Rahmen nicht ausreichend vor oder widerspricht ein PR dem aktuellen Snapshot, dokumentiert QA die Lücke in der **Rückmeldung an Projektleitung** (Format unten) und trifft **keine** PL-Prozessentscheidungen eigenmächtig (z. B. FIN-2-Spalte **erfüllt**, Audit-**PL-Eintrag**). *(Hinweis: Für die **PL-Arbeitsplanung** ist allein die Code-Review-Rückmeldung maßgeblich; QA nutzt dieses Format bei eigener Eskalation/Merge-Evidence.)*
+QA-Arbeit an Merge-Evidence, Gate-Stichproben und Contract-Abgleich orientiert sich am dokumentierten Team-Rahmen. **Referenz-Snapshot** (Stand **2026-04-14**): [`docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md`](../tickets/PL-SYSTEM-ZUERST-2026-04-14.md) *(Pfad historisch)* — Volltext **nur** dort. **Index + Kopierblock** für Folgezyklen: [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](../tickets/PL-SYSTEM-ZUERST-VORLAGE.md). **Domäne:** [`docs/ERP-Systembeschreibung.md`](../ERP-Systembeschreibung.md). **Multi-Agent-Kernregeln:** [`.cursor/rules/erp-multi-agent.mdc`](../../.cursor/rules/erp-multi-agent.mdc). **Lieferkette (Git → PR → §5a → Tracker):** nur im **Team-Clone** mit kanonischem Remote arbeiten; **nächste planbare Arbeit** leitet das Team aus Review-Rückmeldung und Tickets ab (dieselbe Aussage **blocking** wie im GitHub-Review; Format **Rückmeldung ans Team** unten). Liegt der Rahmen nicht ausreichend vor oder widerspricht ein PR dem Snapshot, dokumentiert QA die Lücke im gleichen Format und trifft **keine** Gate-Prozessentscheidungen eigenmächtig (z. B. FIN-2-Spalte **erfüllt**, Audit-**Gate-Eintrag**). *(QA nutzt dieses Format bei Eskalation/Merge-Evidence.)*
 
 ---
 
-## Rückmeldung an Projektleitung (Format)
+## Rückmeldung ans Team / Review (Format)
 
-Bei Eskalation, nach relevantem **Merge-PR-Review**, oder auf **PL-Anforderung**: Rückmeldung in **genau diesem Aufbau** — **immer** die beiden Pflichtangaben **Actions-Link** und **Merge blockiert** (siehe Abschnitt **Offene Punkte / PL-Entscheidung**).
+Bei Eskalation, nach relevantem **Merge-PR-Review**, oder auf **Maintainer-Anforderung**: Rückmeldung in **genau diesem Aufbau** — **immer** die beiden Pflichtangaben **Actions-Link** und **Merge blockiert** (siehe Abschnitt **Offene Punkte / Entscheidung**).
 
 ### Ergebnis
 
@@ -32,23 +32,23 @@ Bei Eskalation, nach relevantem **Merge-PR-Review**, oder auf **PL-Anforderung**
 
 *(max. 3 Bullets)*
 
-### Offene Punkte / PL-Entscheidung nötig
+### Offene Punkte / Entscheidung nötig
 
-*(Bullets; inkl. was auf PL-Antwort wartet)*
+*(Bullets; inkl. was auf Team-/Maintainer-Antwort wartet)*
 
 **Pflicht (immer ausfüllen):**
 
 - **Grüner GitHub-Actions-Link für Merge auf `main` vorhanden (PR-Evidence):** ja / nein — falls nein: `fehlt` | `rot` | `SHA unklar` *(kurz)*  
 - **Merge auf `main` aus QA-Sicht blockiert:** ja / nein — falls ja: *(Grund: §5b-Grund, fehlende Evidence, G8, Gate-Widerspruch, …)*
 
-**Sonderfall — noch kein PR / kein Merge-Gegenstand:** Wenn in der Rückmeldung **kein** konkreter Merge auf `main` bewertet wird (z. B. nur Koordination, lokaler Workspace ohne Remote-PR), ist **„Merge blockiert“** mit **nein** zu beantworten *(Begründung: kein anstehender Merge — §5a/§5b erst bei existierendem PR)*. Fehlendes **Git/Remote** oder fehlende **Tracker-URL** gehören unter **Offene Punkte / PL-Entscheidung**, **nicht** als „Merge blockiert: ja“. **„Ja“** nur, wenn ein **benannter** PR/Merge **tatsächlich** ohne vollständige §5a, mit **rotem** Run, **SHA-Unklarheit** oder anderem §5b-Grund **für diesen Merge** vorliegt.
+**Sonderfall — noch kein PR / kein Merge-Gegenstand:** Wenn in der Rückmeldung **kein** konkreter Merge auf `main` bewertet wird (z. B. nur Koordination, lokaler Workspace ohne Remote-PR), ist **„Merge blockiert“** mit **nein** zu beantworten *(Begründung: kein anstehender Merge — §5a/§5b erst bei existierendem PR)*. Fehlendes **Git/Remote** oder fehlende **Tracker-URL** gehören unter **Offene Punkte / Entscheidung**, **nicht** als „Merge blockiert: ja“. **„Ja“** nur, wenn ein **benannter** PR/Merge **tatsächlich** ohne vollständige §5a, mit **rotem** Run, **SHA-Unklarheit** oder anderem §5b-Grund **für diesen Merge** vorliegt.
 
 ### blocking *(Code Review / Eskalation — explizite Zeilen; bei „kein blocking“ exakt so schreiben)*
 
 - …  
 *oder:* **kein blocking**
 
-*(Hinweis: dieselben Zeilen wie im GitHub-Review-Kommentar verwenden, damit PL ohne PR-Kontext entscheiden kann. Vorlage:* [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](../tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md)*)*
+*(Hinweis: dieselben Zeilen wie im GitHub-Review-Kommentar verwenden, damit das Team ohne PR-Kontext entscheiden kann. Vorlage:* [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](../tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md)*)*
 
 ### Evidence (falls zutreffend)
 
@@ -65,7 +65,7 @@ Bei Eskalation, nach relevantem **Merge-PR-Review**, oder auf **PL-Anforderung**
 | **G1** | **Ja** (I) | Persistenz + Tenant-Isolation über Prisma/Integrationstests (Muster: bestehende Persistenz-Suites). |
 | **G2** | **Ja** (I) | Analog G1 für Aufmass-Slice + Negativfall fremder Mandant. |
 | **G3** | **Ja** (I + E) | Referenz-Test „Traceability fail-closed“ ist fachlich spezifizierbar (heutige Muster: `TRACEABILITY_*` in API-Tests). |
-| **G4** | **Teilweise** | **Binär** „ADR merged“: automatisierbar nur als trivialer Datei-Check; **inhaltliche** Vollständigkeit (a)–(c) = **Review/M** + ggf. Checkliste. *Hinweis Repo:* `docs/adr/0007-finance-persistence-and-invoice-boundaries.md` existiert — Spalte „erfüllt“ in `FIN-2-START-GATE.md` ist durch **Projektleitung** gegen Nachweis-Link zu aktualisieren, nicht durch QA allein. |
+| **G4** | **Teilweise** | **Binär** „ADR merged“: automatisierbar nur als trivialer Datei-Check; **inhaltliche** Vollständigkeit (a)–(c) = **Review/M** + ggf. Checkliste. *Hinweis Repo:* `docs/adr/0007-finance-persistence-and-invoice-boundaries.md` existiert — Spalte „erfüllt“ in `FIN-2-START-GATE.md` ist durch **Maintainer / Team-Prozess** gegen Nachweis-Link zu aktualisieren, nicht durch QA allein. |
 | **G5** | **Ja** (C + I) | OpenAPI/JSON-Schema + Implementierungstest: `lvVersionId` Pflicht, keine Abweichung ohne ADR-Änderung. |
 | **G6** | **Nein (nicht rein automatisch)** | „Schriftliche Erklärung“ = **M** (Ticket/QA-Report); unterstützbar durch Verweis auf grüne P0-Matrizen Phase-2. |
 | **G7** | **Ja** (I) | CI + `npm test`; Persistenz ohne SKIP bei gesetztem `PERSISTENCE_DB_TEST_URL` (siehe `.github/workflows/ci.yml`). |
@@ -107,7 +107,7 @@ Siehe: [`qa-fin-2-start-gate-stub-matrix.md`](./qa-fin-2-start-gate-stub-matrix.
 
 ### 3b) PR „reine Doku: Tickets / Koordination“ vs. Sprint-Rahmen
 
-Für einen geplanten **reinen Doku-PR** (Ziel: nur Dateien unter [`docs/tickets/`](../tickets/) bzw. [`docs/contracts/`](./) wie in der PR-Beschreibung **explizit** benannt, optional [`docs/contracts/qa-fin-0-gate-readiness.md`](./qa-fin-0-gate-readiness.md) §3b): Inhalt gegen [`docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md`](../tickets/PL-SYSTEM-ZUERST-2026-04-14.md) und [`docs/tickets/FIN-2-START-GATE.md`](../tickets/FIN-2-START-GATE.md) stichprobenartig prüfen (kein produktives FIN-2 vor Gate G1–G10; keine Audit-Laufzeit-Freigabe ohne vollständigen **PL-Eintrag** in [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](../tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md)). **Dieselben Commits** enthalten zusätzlich **`src/`**, **`apps/`**, **`prisma/`**, oder **OpenAPI** / **`error-codes.json`** / **Contracts** ohne separates Gate → **Misch-PR** → **§5b** / Merge aus QA-Sicht blockieren / in **blocking** und Rückmeldung an PL eskalieren („Misch-PR: nicht reine Doku“) — gültig bleibt nur eine **im PR ausdrücklich** benannte reine Doku-Ausnahme laut Sprint/PL.
+Für einen geplanten **reinen Doku-PR** (Ziel: nur Dateien unter [`docs/tickets/`](../tickets/) bzw. [`docs/contracts/`](./) wie in der PR-Beschreibung **explizit** benannt, optional [`docs/contracts/qa-fin-0-gate-readiness.md`](./qa-fin-0-gate-readiness.md) §3b): Inhalt gegen [`docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md`](../tickets/PL-SYSTEM-ZUERST-2026-04-14.md) und [`docs/tickets/FIN-2-START-GATE.md`](../tickets/FIN-2-START-GATE.md) stichprobenartig prüfen (kein produktives FIN-2 vor Gate G1–G10; bei PRs, die Audit-Laufzeitsemantik **bewusst** ändern: **Audit-Gate-Eintrag** in [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](../tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) **empfohlen** vollständig — in der Entwicklungsphase **kein** automatischer Merge-Stopper durch leere Zellen; kanonisch [AGENTS.md](../../AGENTS.md) Punkt 6). **Dieselben Commits** enthalten zusätzlich **`src/`**, **`apps/`**, **`prisma/`**, oder **OpenAPI** / **`error-codes.json`** / **Contracts** ohne separates Gate → **Misch-PR** → **§5b** / Merge aus QA-Sicht blockieren / in **blocking** und Rückmeldung ans Team eskalieren („Misch-PR: nicht reine Doku“) — gültig bleibt nur eine **im PR ausdrücklich** benannte reine Doku-Ausnahme laut Sprint/Team.
 
 ---
 
@@ -131,7 +131,7 @@ Für einen geplanten **reinen Doku-PR** (Ziel: nur Dateien unter [`docs/tickets/
 
 Im **§5a**-Kernkommentar sind Platzhalter **ausschließlich** durch echte Werte aus der **GitHub Actions-UI** (und bei Post-Merge zusätzlich aus dem Merge auf `main`) zu ersetzen — **keine** erfundenen URLs oder SHAs. **Post-Merge:** Vorlage **5a)** und Tabelle unten (Run belegt Merge auf `main`). **Pre-Merge** (PR noch nicht auf `main`): Vorlage **5a-pre)** — siehe nächster Absatz.
 
-**Vor Merge auf `main` (Szenario A — Review verlangt Evidence vor Approve):** Es darf **keine** falsche Behauptung `Commit <SHA> = Merge auf main` stehen, solange noch **kein** Merge auf `main` erfolgt ist. Stattdessen **§5a (PR-Evidence)** unten (**Vorlage 5a-pre**) verwenden: Run-URL und SHA aus dem **grünen** `backend`-Lauf auf dem **PR-Head** (Run-Detail in GitHub), plus **eine** vom **Projektleitung / Team** bestätigte Zeile **Team-Regel Evidence-SHA**, die klarstellt, dass der SHA den **vom Run geprüften PR-Commit** bezeichnet und ein Merge auf `main` **erst nach** Approve erfolgt. Nach erfolgreichem Merge kann dieselbe §5a-Zelle **editiert** werden auf die **Post-Merge**-Form (**Vorlage 5a)** mit Merge-Commit und passendem Run auf `main` — **nur** wenn das Team das so vereinbart; sonst neuer klar benannter Nachweis-Kommentar ohne Widerspruch zum Kern.
+**Vor Merge auf `main` (Szenario A — Review verlangt Evidence vor Approve):** Es darf **keine** falsche Behauptung `Commit <SHA> = Merge auf main` stehen, solange noch **kein** Merge auf `main` erfolgt ist. Stattdessen **§5a (PR-Evidence)** unten (**Vorlage 5a-pre**) verwenden: Run-URL und SHA aus dem **grünen** `backend`-Lauf auf dem **PR-Head** (Run-Detail in GitHub), plus **eine** vom **Team / Maintainer:in** bestätigte Zeile **Team-Regel Evidence-SHA**, die klarstellt, dass der SHA den **vom Run geprüften PR-Commit** bezeichnet und ein Merge auf `main` **erst nach** Approve erfolgt. Nach erfolgreichem Merge kann dieselbe §5a-Zelle **editiert** werden auf die **Post-Merge**-Form (**Vorlage 5a)** mit Merge-Commit und passendem Run auf `main` — **nur** wenn das Team das so vereinbart; sonst neuer klar benannter Nachweis-Kommentar ohne Widerspruch zum Kern.
 
 | Feld | Herkunft | Platzhalter bis zur Nachreichung |
 | --- | --- | --- |
@@ -152,7 +152,7 @@ Erst **nach** grünem `backend`-Job und belegbarem SHA die Zeile **„Actions (g
 3. **Optional (Team-Beschluss — Nachvollziehbarkeit):** eine Zeile **`QA-Kern (Permalink):`** + HTTPS-URL des **GitHub-Kommentars**, der diesen §5a-Block enthält (Kommentar-Zeitstempel in der UI anklicken → Adresszeile kopieren). **Ersetzt nicht** Run-URL + SHA; ergänzt nur den wörtlichen PR-Kontext.  
 4. **Optional:** Verweis auf diese Datei / [`qa-fin-0-stub-test-matrix.md`](./qa-fin-0-stub-test-matrix.md) und PR-Scope („reine Doku“ laut **§3b**, falls zutreffend).
 
-**Regel:** Pro Merge-PR **exakt ein** QA-Kommentar (ein GitHub-Kommentar / ein Block), dessen Kern **immer** entweder **§5a** oder **§5b** ist — **kein** leerer QA-Kommentar, **kein** **zweiter** QA-**Kern**-Kommentar (5a/5b) zum **selben** Merge, der dem ersten **widerspricht**. Bei Korrektur: **bestehenden** Kommentar **editieren** und auf **Team-Klarheit** (Evidence, SHA-Regel) drängen — nicht einen neuen Kern-Kommentar parallel posten. **§5c** nur **im selben** Kommentar **unterhalb** von §5a oder §5b (FIN-2 / G8 / Kontext). **§5a** = grün + Run-URL + SHA + **Pflicht:** eine bestätigte Zeile **Team-Regel Evidence-SHA**; **empfohlen (Team):** Permalink-Zeile zum QA-Kern-Kommentar (siehe Baustein 3 oben). **§5b** = Blocker (Grund); Log nur **Copy-Paste** aus Actions (**keine** Paraphrase). **Fehlender Link** / **rot** / **SHA unklar** → **§5b**; QA **ratet** Squash/Merge-Zuordnung **nicht**. Eskalation oder formale **Rückmeldung an Projektleitung:** Format **„Rückmeldung an Projektleitung“** weiter oben in dieser Datei — **immer** mit Pflichtzeilen **Actions-Link vorhanden** (ja/nein), **Merge blockiert** (ja/nein) und bei Review-Eskalation dem Abschnitt **blocking** (siehe dort).
+**Regel:** Pro Merge-PR **exakt ein** QA-Kommentar (ein GitHub-Kommentar / ein Block), dessen Kern **immer** entweder **§5a** oder **§5b** ist — **kein** leerer QA-Kommentar, **kein** **zweiter** QA-**Kern**-Kommentar (5a/5b) zum **selben** Merge, der dem ersten **widerspricht**. Bei Korrektur: **bestehenden** Kommentar **editieren** und auf **Team-Klarheit** (Evidence, SHA-Regel) drängen — nicht einen neuen Kern-Kommentar parallel posten. **§5c** nur **im selben** Kommentar **unterhalb** von §5a oder §5b (FIN-2 / G8 / Kontext). **§5a** = grün + Run-URL + SHA + **Pflicht:** eine bestätigte Zeile **Team-Regel Evidence-SHA**; **empfohlen (Team):** Permalink-Zeile zum QA-Kern-Kommentar (siehe Baustein 3 oben). **§5b** = Blocker (Grund); Log nur **Copy-Paste** aus Actions (**keine** Paraphrase). **Fehlender Link** / **rot** / **SHA unklar** → **§5b**; QA **ratet** Squash/Merge-Zuordnung **nicht**. Eskalation oder formale **Rückmeldung ans Team:** Format **„Rückmeldung ans Team / Review“** weiter oben in dieser Datei — **immer** mit Pflichtzeilen **Actions-Link vorhanden** (ja/nein), **Merge blockiert** (ja/nein) und bei Review-Eskalation dem Abschnitt **blocking** (siehe dort).
 
 ### 5a-pre) Grün — PR-Evidence **vor** Merge auf `main` (Szenario A)
 
@@ -163,22 +163,22 @@ Erst **nach** grünem `backend`-Job und belegbarem SHA die Zeile **„Actions (g
 
 Actions (grün): https://github.com/<ORG>/<REPO>/actions/runs/<RUN_ID> — Commit <SHA> — geprüfter PR-Head, Job `backend`
 
-Team-Regel Evidence-SHA (Pflicht: genau eine Zeile, vom PL/Team bestätigt; QA ratet nicht): <z. B. „SHA = Commit aus Run-Detail (PR-Head); Merge auf main erst nach Approve unter dieser Evidence.“>
+Team-Regel Evidence-SHA (Pflicht: genau eine Zeile, vom Team/Maintainer bestätigt; QA ratet nicht): <z. B. „SHA = Commit aus Run-Detail (PR-Head); Merge auf main erst nach Approve unter dieser Evidence.“>
 
 QA-Kern (Permalink) — optional, Team empfohlen: <HTTPS-URL des GitHub-Kommentars (Zeitstempel des Kommentars anklicken)>
 
 Kontext FIN-0 / Gate: `docs/contracts/qa-fin-0-gate-readiness.md` | FIN-2-Start-Gate: `docs/tickets/FIN-2-START-GATE.md`
 ```
 
-*Für **Team-Regel Evidence-SHA** (Pre-Merge): wortgleiche **Standardzeile** aus dem Abschnitt **„PL-Bestätigung — Standardzeile …“** direkt unter dieser Vorlage verwenden — sofern die Projektleitung keine abweichende **eine** Zeile schriftlich vorgibt.*
+*Für **Team-Regel Evidence-SHA** (Pre-Merge): wortgleiche **Standardzeile** aus dem Abschnitt **„Team-Bestätigung — Standardzeile …“** direkt unter dieser Vorlage verwenden — sofern das Team keine abweichende **eine** Zeile schriftlich vorgibt.*
 
-#### PL-Bestätigung — Standardzeile **Team-Regel Evidence-SHA** (Pre-Merge)
+#### Team-Bestätigung — Standardzeile **Team-Regel Evidence-SHA** (Pre-Merge)
 
-Sofern die **Projektleitung** keine **abweichende** Zeile schriftlich vorgibt (Ticket/PR-Kommentar mit Datum), gilt für **FIN-0**-PRs in diesem Koordinationszyklus die folgende **eine** Zeile als **bestätigt** — **QA** darf sie in **Team-Regel Evidence-SHA** **wortgleich** einfügen (kein Raten):
+Sofern das **Team** keine **abweichende** Zeile schriftlich vorgibt (Ticket/PR-Kommentar mit Datum), gilt für **FIN-0**-PRs in diesem Koordinationszyklus die folgende **eine** Zeile als **bestätigt** — **QA** darf sie in **Team-Regel Evidence-SHA** **wortgleich** einfügen (kein Raten):
 
 `SHA = Commit aus Run-Detail (PR-Head); Merge auf main erst nach Approve unter dieser Evidence.`
 
-**Abweichung:** Nur mit expliziter, schriftlicher anderer **eine** Zeile durch die Projektleitung; QA verwendet ausschließlich diese.
+**Abweichung:** Nur mit expliziter, schriftlicher anderer **eine** Zeile durch **Maintainer / Team**; QA verwendet ausschließlich diese.
 
 ### 5a) Grün — Merge-Evidence (Pflichtzeile)
 
@@ -220,7 +220,7 @@ Bitte Fix; danach **dieselbe** QA-Kommentar-Zelle **editieren** auf **§5a** (vo
 ### 5c) Kontextblock (optional — **nur** im **selben** Kommentar **unter** §5a oder §5b; SHA-Unklarheit löst **nicht** 5c aus, sondern **§5b**)
 
 ```text
-**FIN-2-Start-Gate:** `docs/tickets/FIN-2-START-GATE.md` — Spalte **erfüllt** / **Nachweis** pflegt **Projektleitung** (Prozess); QA setzt sie **nicht** eigenständig. Nach PL-Pflege **G1–G3** (ggf. **G7**): Nachweise in der Gate-Tabelle stichprobenartig gegen benannten PR **und** grünen Actions-Run auf `main`; Widerspruch → Eskalation PL.
+**FIN-2-Start-Gate:** `docs/tickets/FIN-2-START-GATE.md` — Spalte **erfüllt** / **Nachweis** pflegt das **Team / Maintainer:in** (Prozess); QA setzt sie **nicht** eigenständig. Nach Team-Pflege **G1–G3** (ggf. **G7**): Nachweise in der Gate-Tabelle stichprobenartig gegen benannten PR **und** grünen Actions-Run auf `main`; Widerspruch → Eskalation ans Team.
 
 **G8 (Contract-PR, vgl. §4):** `docs/api-contract.yaml` ↔ `docs/contracts/error-codes.json` ↔ `docs/contracts/finance-fin0-openapi-mapping.md` — bei Abweichung Merge blockieren. SHA-Unklarheit: **§5b** oben, nicht interpretieren.
 
@@ -235,7 +235,7 @@ Bitte Fix; danach **dieselbe** QA-Kommentar-Zelle **editieren** auf **§5a** (vo
 
 ### §5a / §5b — Abschluss (Definition **fertig**)
 
-**Vollständig geregelt** in diesem Abschnitt **„## 5) QA-Kommentar“**: Pflichtbausteine **§5a** (grün + HTTPS-Run + SHA + **eine** Zeile **Team-Regel Evidence-SHA**), Varianten **5a-pre)** (PR-Head vor Merge, **keine** falsche Behauptung „= Merge auf main“) und **5a)** (post-merge), Blocker **§5b**, optionaler Kontext **§5c**, sowie die **Regel** „ein Kern-Kommentar pro Merge, editieren statt widersprüchlich duplizieren“. **Keine** weiteren §5a-Textbausteine außerhalb dieses Dokuments als verbindlich ansehen. **Änderungen** an diesen Regeln nur mit **Projektleitung** und in **derselben** Datei (und ggf. parallel in [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](../tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md), falls dort auf §5 verwiesen wird), damit es keine parallelen Definitionen gibt.
+**Vollständig geregelt** in diesem Abschnitt **„## 5) QA-Kommentar“**: Pflichtbausteine **§5a** (grün + HTTPS-Run + SHA + **eine** Zeile **Team-Regel Evidence-SHA**), Varianten **5a-pre)** (PR-Head vor Merge, **keine** falsche Behauptung „= Merge auf main“) und **5a)** (post-merge), Blocker **§5b**, optionaler Kontext **§5c**, sowie die **Regel** „ein Kern-Kommentar pro Merge, editieren statt widersprüchlich duplizieren“. **Keine** weiteren §5a-Textbausteine außerhalb dieses Dokuments als verbindlich ansehen. **Änderungen** an diesen Regeln nur mit **Team / Maintainer:in** und in **derselben** Datei (und ggf. parallel in [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](../tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md), falls dort auf §5 verwiesen wird), damit es keine parallelen Definitionen gibt.
 
 ### Referenzbeispiel — erfülltes Post-Merge-§5a (**Archiv**, Squash PR #1 → `main`)
 
@@ -256,8 +256,8 @@ Kontext FIN-0 / Gate: docs/contracts/qa-fin-0-gate-readiness.md | FIN-2-Start-Ga
 ## Offene Punkte (QA)
 
 - **§5a / §5b:** Spezifikation **abgeschlossen** (siehe Abschnitt **„§5a / §5b — Abschluss“** oben); offen bleiben nur noch **operative** Nachweise je PR/Merge in GitHub.
-- **Rückmeldung an PL:** bei Eskalation oder auf PL-Wunsch das Format **„Rückmeldung an Projektleitung“** (Abschnitt oben) verwenden — inkl. **Pflichtzeilen** Actions-Link ja/nein und Merge blockiert ja/nein.
+- **Rückmeldung ans Team:** bei Eskalation oder auf Wunsch das Format **„Rückmeldung ans Team / Review“** (Abschnitt oben) verwenden — inkl. **Pflichtzeilen** Actions-Link ja/nein und Merge blockiert ja/nein.
 - `FIN-2-START-GATE.md`: Spalte „erfüllt“ für **G4** manuell mit Repo-ADR abgleichen (Drift-Risiko, wenn Tabelle nicht gepflegt wird).
-- **Nach PL-Pflege** von **G1–G3** (ggf. **G7**): Nachweise in der Gate-Tabelle stichprobenartig gegen benannten PR/Commit und gegen Tests **sowie** grünen **Actions**-Run auf `main` prüfen; bei Widerspruch **an PL eskalieren** — **kein** stillschweigendes OK; QA setzt **erfüllt** / **Nachweis** **nicht** allein.
+- **Nach Team-Pflege** von **G1–G3** (ggf. **G7**): Nachweise in der Gate-Tabelle stichprobenartig gegen benannten PR/Commit und gegen Tests **sowie** grünen **Actions**-Run auf `main` prüfen; bei Widerspruch **eskaliieren** — **kein** stillschweigendes OK; QA setzt **erfüllt** / **Nachweis** **nicht** allein.
 - **FIN-2 P0-Matrix:** erst nach Gate-Freigabe (G1–G10) voll nutzen — siehe [`qa-fin-2-start-gate-stub-matrix.md`](./qa-fin-2-start-gate-stub-matrix.md) und [`FIN-2-START-GATE.md`](../tickets/FIN-2-START-GATE.md).
-- **Erinnerung an Projektleitung (optional, Branch-Schutz):** Status-Check **`backend`** (`.github/workflows/ci.yml`) auf **`main`** als **Required** aktivieren — technische Absicherung der Evidence-Pflicht und roter CI. Prozess/Org-Entscheid; QA hält die Empfehlung hier fest.
+- **Erinnerung ans Team (optional, Branch-Schutz):** Status-Check **`backend`** (`.github/workflows/ci.yml`) auf **`main`** als **Required** aktivieren — technische Absicherung der Evidence-Pflicht und roter CI. Prozess/Org-Entscheid; QA hält die Empfehlung hier fest.

@@ -21,7 +21,7 @@ Kern-Invarianten und Plan-Modus: [`.cursor/rules/erp-multi-agent.mdc`](./erp-mul
 Delivery rules:
 - Work in phases with explicit quality gates.
 - Before merging to `main` / `master`: green GitHub Actions job **`backend`** (see `.github/workflows/ci.yml`); follow `.github/pull_request_template.md` and QA §5a in `docs/contracts/qa-fin-0-gate-readiness.md`. Branch protection: `docs/runbooks/github-branch-protection-backend.md`.
-- For production go-live on invoicing / tax / e-invoice topics: use the non-code checklist [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) with tax counsel / DPO / PL — it does not replace legal advice or the README’s separate release GO for GoBD/compliance.
+- For production go-live on invoicing / tax / e-invoice topics: use the non-code checklist [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) with tax counsel / DPO / release owners — it does not replace legal advice or the README’s separate release GO for GoBD/compliance.
 - Do not commit secrets (env files with credentials, private SSH keys, tokens); canonical Git remote is the team repo `rhermann90/ERP` (see root `README.md`).
 - Every output must include: result, rationale, risks, open questions.
 - Explain impact on legal compliance, data consistency, maintainability, and PWA readiness.

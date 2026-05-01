@@ -135,7 +135,7 @@ Abgleich der **Reihenfolge** oben mit Tickets/ADR/QA im Repository (**verkürzt*
 
 | # | Strang | Repo-Nachweise und Kurzstatus |
 |---|--------|--------------------------------|
-| 1 | Phase 2 / LV–Aufmass | **Inc 1 (Aufmass):** abgeschlossen — `docs/adr/0004-measurement-lifecycle-phase2-inc1.md`, QA `docs/contracts/qa-persistence-increment-1.md`. **Inc 2 (LV §9):** ADR **ACCEPTED** — `docs/adr/0005-lv-hierarchy-phase2-inc2.md`; Umsetzung Domäne/API (`src/services/lv-service.ts`, `src/api/app.ts`), Prisma-Modell, Seed/Traceability. Tests: `test/app.test.ts` (SoT/Text-Invarianten), `test/persistence.integration.test.ts` (Seed §9/Aufmass, Negativfall **cross-tenant LV-FK** für Strukturknoten). **Hinweis:** Spalte „erfüllt“ im **`FIN-2-START-GATE`** (G1–G10) trägt weiterhin nur die **Projektleitung** nach formeller Abnahme ein — `docs/tickets/FIN-2-START-GATE.md`. |
+| 1 | Phase 2 / LV–Aufmass | **Inc 1 (Aufmass):** abgeschlossen — `docs/adr/0004-measurement-lifecycle-phase2-inc1.md`, QA `docs/contracts/qa-persistence-increment-1.md`. **Inc 2 (LV §9):** ADR **ACCEPTED** — `docs/adr/0005-lv-hierarchy-phase2-inc2.md`; Umsetzung Domäne/API (`src/services/lv-service.ts`, `src/api/app.ts`), Prisma-Modell, Seed/Traceability. Tests: `test/app.test.ts` (SoT/Text-Invarianten), `test/persistence.integration.test.ts` (Seed §9/Aufmass, Negativfall **cross-tenant LV-FK** für Strukturknoten). **Hinweis:** Spalte „erfüllt“ im **`FIN-2-START-GATE`** (G1–G10) trägt weiterhin nur das **Team / Maintainer:in** nach formeller Abnahme ein — `docs/tickets/FIN-2-START-GATE.md`. |
 | 2 | Angebot / Nachtrag / Status | **TICKET-002** Iteration 1 geschlossen — `docs/tickets/TICKET-002-nachtrag-lifecycle-v12.md`, `docs/adr/0002-nachtrag-lifecycle.md`. API-/Tenant-Szenarien u. a. in `test/app.test.ts`; SoT erlaubte Aktionen über `AuthorizationService`. |
 | 3 | FIN-0 bis FIN-1 | **FIN-0:** Verträge/Stubs/QA — `docs/api-contract.yaml`, `docs/adr/0007-finance-persistence-and-invoice-boundaries.md`, `docs/contracts/qa-fin-0-gate-readiness.md` (§3 Regression/CI, §5a/§5b Merge-Evidence), `test/finance-fin0-stubs.test.ts`; Koordination Sprint: `docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md`. **FIN-1** (Zahlungsbedingungen persistiert/versioniert): **`payment_terms_heads`** / **`payment_terms_versions`** in Postgres, ADR-0008, OpenAPI/Contracts — siehe [`README.md`](../README.md) „Hinweis zur Persistenz“ und Persistenz-/Finanz-Tests (`test/persistence.integration.test.ts`, `test/finance-fin0-stubs.test.ts`); Feintuning und Abnahme weiter mit MVP-/Gate-Dokumenten abgleichen. |
 | 4 | FIN-2 | **FIN-2-Start-Gate** G1–G10 **ja** inkl. Freigabezeile (2026-04-21) — `docs/tickets/FIN-2-START-GATE.md`. **Umgesetzter Kernslice (M2/Wave3):** Rechnungsentwurf, Lesen, **`BOOK_INVOICE`** / `POST /invoices/{invoiceId}/book` (**ENTWURF → GEBUCHT_VERSENDET**), **8.4(1)** + USt/Brutto, optional **B2-1a** `skontoBps`, Traceability fail-closed, Persistenz/Audit — ADR-0007 **Status**, `src/services/invoice-service.ts`, `docs/contracts/finance-fin0-openapi-mapping.md`, Tests u. a. `test/finance-fin0-stubs.test.ts` / `test/persistence.integration.test.ts`. **Bewusst nicht** dieser Slice: vollständiger **8.4(2–6)**-Motor, Zwischenstatus **GEPRUEFT/FREIGEGEBEN** (Pfad C, eigenes Gate), belastbarer End-to-End **LV→Rechnung** — siehe ADR-0007 **Non-Goals** / **§8**, [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md), Zeile **FIN-2** in [`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md) (Teil 7 Abschnitt D). |
@@ -147,7 +147,7 @@ Abgleich der **Reihenfolge** oben mit Tickets/ADR/QA im Repository (**verkürzt*
 | 10 | Kunde / Projekt / Stammdaten | Kernentitäten fachlich in Teil I §3–5; technische UI/Stammdaten-Verwaltung überwiegend **noch nicht** als eigenständiger CRM-Strang abgeschlossen — Traceability-Tests in `test/persistence.integration.test.ts` / `test/app.test.ts` als aktueller Nachweis für angebundene Ketten. |
 | 11 | Rollen fein | Grobe Rollen in Auth/Tests; Feingranularität **11** / SoD nach Abschluss der Schreibpfade. |
 
-**Koordination / Sprint-Kontext:** `docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md` (historischer Sprint-Fokus). **FIN-2:** Start-Gate erfüllt; Kernbuchung nach Gate im Repo — weitere FIN-2-Erweiterungen (8.4(2–6), Pfad C, LV→Rechnung-E2E) nur nach PL laut [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md).
+**Koordination / Sprint-Kontext:** `docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md` (historischer Sprint-Fokus). **FIN-2:** Start-Gate erfüllt; Kernbuchung nach Gate im Repo — weitere FIN-2-Erweiterungen (8.4(2–6), Pfad C, LV→Rechnung-E2E) nur nach dokumentiertem Gate laut [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md).
 
 **Parallele Pflege:** Offene Risiken und Annahmen fortlaufend in **Teil I §16** pflegen; ADRs bei Architekturentscheidungen.
 
@@ -357,6 +357,8 @@ Dieses Unterkapitel ist **integral** Bestandteil der Domain-Core-Definition und 
 
 **Vollstaendige Traceability:** Jede finanzielle Veraenderung muss rueckverfolgbar sein: Rechnung (inkl. gebundener **Zahlungsbedingungs-Version**), Projekt-Konditionshistorie, Differenzbuchung (falls zutreffend), Zahlungseingang, Zahlungszuordnung, Zahlungsstatus.
 
+**Scope-Grenze (Produkt):** Die in **Abschnitt 8** beschriebenen Finanzobjekte beziehen sich auf die **Geschäftsbeziehung des Mandanten zu dessen Kunden** (Leistungsverzeichnis, Aufmaß, Angebot, Rechnung, Zahlung, Mahnung). Eine **Abrechnung der Software- oder Plattformnutzung gegenüber dem Mandanten** als ERP-Nutzer ist **nicht** Gegenstand dieses Finanzsubmoduls und wird hier **nicht** modelliert — verbindlich dokumentiert in **ADR 0012**.
+
 ### 8.2 Rechnung (erweitert)
 
 **Typen:** Abschlagsrechnung, Teilrechnung, Schlussrechnung, Gutschrift.
@@ -423,7 +425,7 @@ Dieses Unterkapitel ist **integral** Bestandteil der Domain-Core-Definition und 
 
 **Idempotenz / Duplikate (Pflicht):** Bank- oder Kassenimporte koennen **doppelt** ankommen; jeder Eingang traegt einen **technischen Schluessel** (z. B. Bank-Transaktions-ID, Hash aus Datum+Betrag+Verwendungszweck) **mandantenweit eindeutig** oder es ist ein **expliziter** Merge-/Kollisionsworkflow vorgesehen — **kein** doppeltes Verbuchen ohne Domaenenereignis/Audit.
 
-**Bank- / Importgebuehren (bewusst verschoben):** Abweichende **Bankspesen** oder **Importgebuehren** gegenueber dem Zahlungskernbetrag sind in **v1.3.x** **nicht** normativ geregelt; fachliche und buchhalterische Abbildung erfolgt **ueber separates Ticket** mit GoBD-/Audit-Freigabe, sobald die Projektleitung priorisiert.
+**Bank- / Importgebuehren (bewusst verschoben):** Abweichende **Bankspesen** oder **Importgebuehren** gegenueber dem Zahlungskernbetrag sind in **v1.3.x** **nicht** normativ geregelt; fachliche und buchhalterische Abbildung erfolgt **ueber separates Ticket** mit GoBD-/Audit-Freigabe, sobald das Team priorisiert.
 
 ### 8.8 Zahlungszuordnung
 
@@ -639,7 +641,7 @@ Phase 1 ist nur abgeschlossen, wenn:
 - Rollen-/Aktionsrechte je Status definiert sind — **v1.3: inkl. Zahlungs- und Mahnaktionen**
 - AuditEvent-Modell umgesetzt ist
 - DSGVO- und Exportregeln mit Pflichtfeldern dokumentiert sind
-- **Operative Abnahme neben Software-QA:** fuer Mandanten-Go unter **UStG / HGB / AO / GoBD / E-Rechnung / DSGVO** die Checkliste [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) mit **Steuerberatung, Datenschutz und Projektleitung** abgearbeitet (kein Ersatz fuer separates Release-GO; siehe [`README.md`](../README.md))
+- **Operative Abnahme neben Software-QA:** fuer Mandanten-Go unter **UStG / HGB / AO / GoBD / E-Rechnung / DSGVO** die Checkliste [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) mit **Steuerberatung, Datenschutz und Release-Verantwortlichen** abgearbeitet (kein Ersatz fuer separates Release-GO; siehe [`README.md`](../README.md))
 
 ## 16. Offene Risiken und Annahmen (Pflichtabschnitt)
 

@@ -1,5 +1,8 @@
 # QA- und Review-Protokoll — Finanz-/Mahn (Session 2026-04-23)
 
+> **[historisch — nicht normativ]** Snapshot 2026-04-23. Aktuelles Format: „Rückmeldung ans Team / Review“ in [`qa-fin-0-gate-readiness.md`](./qa-fin-0-gate-readiness.md). [AGENTS.md](../../AGENTS.md) Punkt 6.
+
+
 Ausführung des Plans „QA Review Finanz-Mahn“ gegen den Workspace-Stand. Kein Merge-PR-Objekt; dieses Dokument dient als Nachweis für lokale Abnahme und als Vorlage für den PR-Kommentar bei Merge.
 
 ---
@@ -12,8 +15,8 @@ Ausführung des Plans „QA Review Finanz-Mahn“ gegen den Workspace-Stand. Kei
 | **G8 Contract-Bündel** | **OK (Stichprobe)** | Mahn-Codes (`DUNNING_*`) in [`error-codes.json`](./error-codes.json); Pfade in [`api-contract.yaml`](../api-contract.yaml); Zeilen in [`finance-fin0-openapi-mapping.md`](./finance-fin0-openapi-mapping.md) zu FIN-4/M4. |
 | **Mandanten-FK** | **OK** | [`prisma/schema.prisma`](../../prisma/schema.prisma): `DunningTenantStageConfig` `@@id([tenantId, stageOrdinal])`, `DunningTenantStageTemplate` `@@id([tenantId, stageOrdinal, channel])`, `DunningReminder` mit FK auf `Invoice` über `[tenantId, invoiceId]`. |
 | **Tests** | **OK** | `npm run verify:ci` und `npm run verify:ci:local-db` am 2026-04-23 erfolgreich (siehe Abschnitt 3). |
-| **Misch-PR / Gate** | **Hinweis** | Enthält der spätere Merge-PR Doku und `src/`/`prisma/` ohne klare Trennung, Abschnitt 5b in [`qa-fin-0-gate-readiness.md`](./qa-fin-0-gate-readiness.md) und PL-Rückmeldung einplanen. |
-| **GoBD / Audit-Querschnitt** | **Nicht Gegenstand** | Für größere Releases weiterhin [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](../tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) mit PL. |
+| **Misch-PR / Gate** | **Hinweis** | Enthält der spätere Merge-PR Doku und `src/`/`prisma/` ohne klare Trennung, Abschnitt 5b in [`qa-fin-0-gate-readiness.md`](./qa-fin-0-gate-readiness.md) und Team-Rückmeldung einplanen. |
+| **GoBD / Audit-Querschnitt** | **Nicht Gegenstand** | Für größere Releases weiterhin [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](../tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) mit Team/Release-Owner. |
 
 ---
 
@@ -63,9 +66,9 @@ Automatisierte Stellvertreter sind grün (Abschnitt 2–3). Für Browser-Abnahme
 
 ---
 
-## 6) Rückmeldung an Projektleitung
+## 6) Rückmeldung ans Team / Review *(historisch: „Rückmeldung an Projektleitung“)*
 
-**Nicht erforderlich** für diese reine Workspace-Abnahme (kein offener Merge-Blocker, keine Eskalation). Bei PR mit Misch-Doku/Code oder fehlender Actions-Evidence das Format aus `qa-fin-0-gate-readiness.md` („Rückmeldung an Projektleitung“) verwenden.
+**Nicht erforderlich** für diese reine Workspace-Abnahme (kein offener Merge-Blocker, keine Eskalation). Bei PR mit Misch-Doku/Code oder fehlender Actions-Evidence das Format aus `qa-fin-0-gate-readiness.md` (**„Rückmeldung ans Team / Review“**) verwenden.
 
 ---
 

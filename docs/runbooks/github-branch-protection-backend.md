@@ -21,9 +21,9 @@
 - Der sichtbare Check-Name kann je nach GitHub-UI leicht abweichen — in der **Actions**-Ansicht des grünen Runs den genauen Namen übernehmen.
 - Ohne Org-Rechte: Ticket an Admin mit Verweis auf diese Datei und auf **QA**-Pflicht §5a in `qa-fin-0-gate-readiness.md`.
 
-**Ersetzt nicht:** menschliche Code-Reviews oder PL-Gates (`FIN-2-START-GATE.md`).
+**Ersetzt nicht:** menschliche Code-Reviews oder dokumentierte Gates (`FIN-2-START-GATE.md`).
 
-## Projektleitung / QA: Nachweis zur Pflicht für `e2e-smoke`
+## Team / QA: Nachweis zur Pflicht für `e2e-smoke`
 
 **Aktuell (siehe Tabelle unten):** Merge auf Default-Branch ist nur bei grünem **`backend`** und grünem **`e2e-smoke`** möglich (Ruleset „branch protection“).
 

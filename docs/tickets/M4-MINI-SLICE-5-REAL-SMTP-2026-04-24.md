@@ -1,6 +1,8 @@
 # M4 Mini-Slice 5a — Mahn-E-Mail per SMTP (FIN-4)
 
-**Status:** umgesetzt (Code + Vertrag + Tests). **PL-Gate:** weiterhin [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) und [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](./NEXT-INCREMENT-FINANCE-WAVE3.md) §PL-Gate beachten.
+> **Hinweis (Entwicklungsphase):** „PL“/„PL-Gate“ hier **historisch**; Steuerung: Team/Maintainer, ADRs, CI — kanonisch [AGENTS.md](../../AGENTS.md) Punkt 6.
+
+**Status:** umgesetzt (Code + Vertrag + Tests). **Architektur-Gate:** weiterhin [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) (Merge-Evidence §5a/§5b) und [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](./NEXT-INCREMENT-FINANCE-WAVE3.md) (Abschnitt „Gewählter Strang“, „Non-Goals“) beachten.
 
 ## Ziel
 

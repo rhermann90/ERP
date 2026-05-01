@@ -1,7 +1,9 @@
 # M4 — Mini-Slice 4: E-Mail-Vorschau + Versand-Stub (ohne SMTP)
 
+> **Hinweis (Entwicklungsphase):** „PL“/„PL-Gate“ hier **historisch**; Steuerung: Team/Maintainer, ADRs, CI — kanonisch [AGENTS.md](../../AGENTS.md) Punkt 6.
+
 **Status:** Umgesetzt (Repo)  
-**PL-Gate:** Default **Option A** laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./NEXT-INCREMENT-FINANCE-WAVE3.md) — kein Mix mit 8.4(2–6) oder Pfad C.
+**Architektur-Gate:** Default **Option A** laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./NEXT-INCREMENT-FINANCE-WAVE3.md) (Abschnitt „Gewählter Strang“, „Non-Goals“) — kein Mix mit 8.4(2–6) oder Pfad C.
 
 ## Ziel
 
@@ -18,7 +20,7 @@ Serverseitige **Plain-Text-Vorschau** (Vorlage EMAIL + System-Footer) und **Vers
 
 SMTP, HTML, Massenversand, fest codierter Rechtshinweis.
 
-**Nächster PL-Schritt (nicht dieses Ticket):** produktiver Versand (SMTP oder gebündelter Provider), Idempotenz/Retry am echten Versand, ggf. Massenversand und Rechtshinweis-Block — jeweils mit eigenem Scope, ADR-Schnitt und Gate; dieser Slice bleibt bewusst auf Vorschau + Audit-Stub ohne Mail-Transport.
+**Nächster Team-Schritt (nicht dieses Ticket):** produktiver Versand (SMTP oder gebündelter Provider), Idempotenz/Retry am echten Versand, ggf. Massenversand und Rechtshinweis-Block — jeweils mit eigenem Scope, ADR-Schnitt und Gate; dieser Slice bleibt bewusst auf Vorschau + Audit-Stub ohne Mail-Transport.
 
 ## Referenz
 

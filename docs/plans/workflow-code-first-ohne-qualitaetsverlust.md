@@ -8,7 +8,7 @@ Dieses Dokument **ersetzt** keine Verträge, Checklisten oder Regeln im Repo. Es
 
 - **Merge:** `npm run verify:ci` bleibt die kanonische lokale Vorprüfung; GitHub-Job **`backend`** liefert die Merge-Evidence (siehe [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [AGENTS.md](../../AGENTS.md)).
 - **Finanz- und Mandantenthemen:** keine Lockerung bei **Mandantenisolation**, **Versionierung** geschäftskritischer Zustände (kein destruktives Überschreiben), **Traceability** entlang der Kette Rechnung → Messung → LV → Angebot → Projekt → Kunde (siehe [`.cursor/rules/erp-multi-agent.mdc`](../../.cursor/rules/erp-multi-agent.mdc)).
-- **Produktiv-Go** Rechnung, Mahn, Massen-E-Mail: die Checkliste [Checklisten/compliance-rechnung-finanz.md](../../Checklisten/compliance-rechnung-finanz.md) bleibt der **fachliche** Abnahme-Pfad mit StB/DSB/PL — kein Ersatz für Rechtsberatung, aber **nicht** durch „weniger schreiben“ im Alltag ersetzbar.
+- **Produktiv-Go** Rechnung, Mahn, Massen-E-Mail: die Checkliste [Checklisten/compliance-rechnung-finanz.md](../../Checklisten/compliance-rechnung-finanz.md) bleibt der **fachliche** Abnahme-Pfad mit StB/DSB/Release-Owner — **vor Mandanten-Produktiv-Go**, kein Merge-Gate; kein Ersatz für Rechtsberatung, aber **nicht** durch „weniger schreiben“ im Alltag ersetzbar ([AGENTS.md](../../AGENTS.md) Punkt 6).
 - **QA und Gates:** bei merge- oder phase-kritischen Themen die bestehenden Verweise in [docs/contracts/qa-fin-0-gate-readiness.md](../contracts/qa-fin-0-gate-readiness.md) und zugehörige Artefakte einhalten.
 - **Orientierung im Code:** bei neuen vertikalen Slices oder größeren Verschiebungen [docs/CODEMAPS/overview.md](../CODEMAPS/overview.md) wie in [AGENTS.md](../../AGENTS.md) beschrieben pflegen.
 

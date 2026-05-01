@@ -1,7 +1,7 @@
 # FOLLOWUP — Audit-Events persistieren (DATA-01 / GoBD-Vorbereitung)
 
 **Status:** umgesetzt (Inkrement 2 — Postgres-Pfad; In-Memory unverändert für Tests)  
-**Zieltermin-Review:** 2026-04-30 (Indikativ; PL-Gate erforderlich)
+**Zieltermin-Review:** 2026-04-30 (Indikativ; Architektur-Gate (Team) — vor Implementierungs-PR dokumentieren)
 
 ## Kontext
 

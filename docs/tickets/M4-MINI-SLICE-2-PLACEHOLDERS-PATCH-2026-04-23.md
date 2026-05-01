@@ -1,7 +1,7 @@
 # M4 — Mini-Slice 2: Mahn-Vorlage Text patchen (§8.10 Pflichtplatzhalter, ohne Versand)
 
 **Status:** Erledigt (Repo, 2026-04-23) — `verify:ci` + `verify:ci:local-db` grün  
-**PL-Entscheid:** Option **Platzhalter-Validierung** als zweiter M4-Mini-Slice nach Vorlagen-Read (Slice 1) — konsistent mit [`M4-MINI-SLICE-1-VORLAGEN-READ-2026-04-23.md`](./M4-MINI-SLICE-1-VORLAGEN-READ-2026-04-23.md); Alternativen E-Mail-Stammdaten / erweitertes Protokoll bleiben zurückgestellt.
+**Team-Entscheid:** Option **Platzhalter-Validierung** als zweiter M4-Mini-Slice nach Vorlagen-Read (Slice 1) — konsistent mit [`M4-MINI-SLICE-1-VORLAGEN-READ-2026-04-23.md`](./M4-MINI-SLICE-1-VORLAGEN-READ-2026-04-23.md); Alternativen E-Mail-Stammdaten / erweitertes Protokoll bleiben zurückgestellt.
 
 ## Ableitung aus §8.10
 
