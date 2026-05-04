@@ -62,7 +62,7 @@ UI/UX-Leitfaden und Darstellungsmodi: [`docs/ui-ux-style-guide.md`](../ui-ux-sty
 
 | Pfad | Rolle |
 |------|--------|
-| `src/main.tsx`, `src/App.tsx` | Einstieg, Routing-Oberfläche; Shell **read-only** bei `entityType=INVOICE`: `GET /invoices/{id}` („Detail“ / GET), `GET …/payment-intakes`, `GET …/dunning-reminders` (Listen; `ApiClient`), `GET /finance/payment-terms?projectId=…` (aus Invoice), `GET /documents/{id}/allowed-actions?entityType=INVOICE` (Diagnose; `ApiClient`); stabile E2E-`data-testid`: `shell-document-panel`, `shell-document-entity-type`, `shell-document-id`, `shell-document-detail-get`, `offer-shell-detail`, `lv-shell-detail`, `invoice-shell-detail`, `shell-invoice-readonly-subreads`, `shell-invoice-payment-terms-json`, `shell-invoice-allowed-actions-json`, `supplement-shell-detail` |
+| `src/main.tsx`, `src/App.tsx` | Einstieg, Routing-Oberfläche; Shell **read-only** bei `entityType=INVOICE`: `GET /invoices/{id}` („Detail“ / GET), `GET …/payment-intakes`, `GET …/dunning-reminders` (Listen; `ApiClient`), `GET /finance/payment-terms?projectId=…` (aus Invoice), `GET /documents/{id}/allowed-actions?entityType=INVOICE` (Diagnose; `ApiClient`); global FIN-4 Lesepfade ohne Dokument-Kontext: `GET /finance/dunning-reminder-config`, `GET /finance/dunning-reminder-templates`, `GET /finance/dunning-email-footer`, `GET /finance/dunning-reminder-automation` (`shell-dunning-config-panel`, `shell-fin4-extra-readonly-panel`); **`GET /lv/versions/{lvVersionId}`** für Entity **LV_VERSION** (Phase 2 LV Lesepfad §9); stabile E2E-`data-testid`: `shell-document-panel`, `shell-document-entity-type`, `shell-document-id`, `shell-document-detail-get`, `offer-shell-detail`, `lv-shell-detail`, `invoice-shell-detail`, `shell-invoice-readonly-subreads`, `shell-invoice-payment-terms-json`, `shell-invoice-allowed-actions-json`, `supplement-shell-detail` |
 | `src/components/DocumentTextPanels.tsx` | Aufmass-Shell nach `MEASUREMENT_VERSION`-GET; `data-testid="measurement-shell-detail"` |
 | `src/lib/api-client.ts`, `api-error.ts` | API-Aufrufe und Fehler |
 | `src/lib/tenant-session.ts`, `token-payload.ts` | Mandanten-Session |
@@ -82,7 +82,7 @@ UI/UX-Leitfaden und Darstellungsmodi: [`docs/ui-ux-style-guide.md`](../ui-ux-sty
 ## Tests
 
 - Backend: `vitest` am Root (`npm test`).
-- Web: `npm run test -w apps/web`; E2E: `npm run test:e2e` (Playwright); Finanz-Rauchtest-Journey [`e2e/login-finance-smoke.spec.ts`](../../e2e/login-finance-smoke.spec.ts) (Tabs Rechnung, Grundeinstellungen/Mahn, Mahnwesen, Fortgeschritten — UI-/Lesepfade gemäß bestehenden Buttons).
+- Web: `npm run test -w apps/web`; E2E: `npm run test:e2e` (Playwright); Finanz-Rauchtest-Journey [`e2e/login-finance-smoke.spec.ts`](../../e2e/login-finance-smoke.spec.ts) (Tabs Rechnung, Grundeinstellungen/Mahn inkl. Kandidaten-Region nach GET, Mahnwesen, Fortgeschritten — UI-/Lesepfade gemäß bestehenden Buttons). Haupt-Shell read-only FIN-4: [`GET /finance/dunning-reminder-config`](../../docs/api-contract.yaml) (`shell-dunning-config-panel` / `shell-dunning-config-fetch`); zusätzlich die drei weiteren FIN-4-Lesepfade oben (`shell-fin4-extra-readonly-panel`) in [`apps/web/src/App.tsx`](../../apps/web/src/App.tsx).
 
 ## Optionale Spuren (eigene PRs)
 

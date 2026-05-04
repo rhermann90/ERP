@@ -108,6 +108,10 @@ export default function App() {
   const [invoiceAllowedActionsShellJson, setInvoiceAllowedActionsShellJson] = useState("");
   /** Haupt-Shell: read-only GET /finance/dunning-reminder-config (FIN-4). */
   const [shellDunningConfigJson, setShellDunningConfigJson] = useState("");
+  /** Haupt-Shell: weitere FIN-4-Lesepfade ohne Dokument-Kontext (Spur E). */
+  const [shellDunningTemplatesJson, setShellDunningTemplatesJson] = useState("");
+  const [shellDunningFooterJson, setShellDunningFooterJson] = useState("");
+  const [shellDunningAutomationJson, setShellDunningAutomationJson] = useState("");
 
   const [modalAction, setModalAction] = useState<string | null>(null);
   const [form, setForm] = useState<ActionFormFields>({
@@ -185,6 +189,9 @@ export default function App() {
       setInvoiceShellDetail(null);
       setLvShellDetail(null);
       setShellDunningConfigJson("");
+      setShellDunningTemplatesJson("");
+      setShellDunningFooterJson("");
+      setShellDunningAutomationJson("");
       setBanner(null);
       const p = loadDocPrefs(tenantId);
       setDocumentId(p.documentId);
@@ -421,6 +428,66 @@ export default function App() {
     try {
       const r = await client.getDunningReminderConfig();
       setShellDunningConfigJson(JSON.stringify(r, null, 2));
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setBanner({
+          kind: "error",
+          text: e.envelope.message,
+          code: e.envelope.code,
+          correlationId: e.envelope.correlationId,
+        });
+      } else setBanner({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [client]);
+
+  const loadShellDunningReminderTemplates = useCallback(async () => {
+    setBusy(true);
+    setBanner(null);
+    try {
+      const r = await client.getDunningReminderTemplates();
+      setShellDunningTemplatesJson(JSON.stringify(r, null, 2));
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setBanner({
+          kind: "error",
+          text: e.envelope.message,
+          code: e.envelope.code,
+          correlationId: e.envelope.correlationId,
+        });
+      } else setBanner({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [client]);
+
+  const loadShellDunningEmailFooter = useCallback(async () => {
+    setBusy(true);
+    setBanner(null);
+    try {
+      const r = await client.getDunningEmailFooter();
+      setShellDunningFooterJson(JSON.stringify(r, null, 2));
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setBanner({
+          kind: "error",
+          text: e.envelope.message,
+          code: e.envelope.code,
+          correlationId: e.envelope.correlationId,
+        });
+      } else setBanner({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [client]);
+
+  const loadShellDunningReminderAutomation = useCallback(async () => {
+    setBusy(true);
+    setBanner(null);
+    try {
+      const r = await client.getDunningReminderAutomation();
+      setShellDunningAutomationJson(JSON.stringify(r, null, 2));
     } catch (e) {
       if (e instanceof ApiError) {
         setBanner({
@@ -816,6 +883,76 @@ export default function App() {
             </h3>
             <pre className="system-block" style={{ margin: 0 }} data-testid="shell-dunning-config-json">
               {shellDunningConfigJson}
+            </pre>
+          </>
+        ) : null}
+      </section>
+
+      <section className="panel" data-testid="shell-fin4-extra-readonly-panel">
+        <h2>FIN-4 — weitere Lesepfade (Shell, read-only)</h2>
+        <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: 0 }}>
+          <code>GET /finance/dunning-reminder-templates</code>, <code>GET /finance/dunning-email-footer</code>,{" "}
+          <code>GET /finance/dunning-reminder-automation</code> — keine Schreibaktionen.
+        </p>
+        <div className="actions-row" style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+          <button
+            type="button"
+            className="btn secondary"
+            data-testid="shell-dunning-templates-fetch"
+            disabled={busy}
+            aria-label="Mahn-Vorlagen laden (GET)"
+            onClick={() => void loadShellDunningReminderTemplates()}
+          >
+            Vorlagen (GET)
+          </button>
+          <button
+            type="button"
+            className="btn secondary"
+            data-testid="shell-dunning-footer-fetch"
+            disabled={busy}
+            aria-label="E-Mail-Footer Stammdaten laden (GET)"
+            onClick={() => void loadShellDunningEmailFooter()}
+          >
+            E-Mail-Footer (GET)
+          </button>
+          <button
+            type="button"
+            className="btn secondary"
+            data-testid="shell-dunning-automation-fetch"
+            disabled={busy}
+            aria-label="Mandanten-Automation Mahnlauf laden (GET)"
+            onClick={() => void loadShellDunningReminderAutomation()}
+          >
+            Automation Mahnlauf (GET)
+          </button>
+        </div>
+        {shellDunningTemplatesJson ? (
+          <>
+            <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
+              Antwort GET /finance/dunning-reminder-templates
+            </h3>
+            <pre className="system-block" style={{ margin: 0 }} data-testid="shell-dunning-templates-json">
+              {shellDunningTemplatesJson}
+            </pre>
+          </>
+        ) : null}
+        {shellDunningFooterJson ? (
+          <>
+            <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
+              Antwort GET /finance/dunning-email-footer
+            </h3>
+            <pre className="system-block" style={{ margin: 0 }} data-testid="shell-dunning-footer-json">
+              {shellDunningFooterJson}
+            </pre>
+          </>
+        ) : null}
+        {shellDunningAutomationJson ? (
+          <>
+            <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
+              Antwort GET /finance/dunning-reminder-automation
+            </h3>
+            <pre className="system-block" style={{ margin: 0 }} data-testid="shell-dunning-automation-json">
+              {shellDunningAutomationJson}
             </pre>
           </>
         ) : null}

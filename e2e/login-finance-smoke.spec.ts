@@ -49,6 +49,30 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await expect(page.getByTestId("shell-dunning-config-json")).toContainText("MVP_STATIC_DEFAULTS");
   });
 
+  test("Haupt-Shell: FIN-4 weitere Lesepfade — Vorlagen/Footer/Automation (GET)", async ({ page }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("shell-fin4-extra-readonly-panel")).toBeVisible({ timeout: 20_000 });
+
+    await page.getByTestId("shell-dunning-templates-fetch").click();
+    await expect(page.getByTestId("shell-dunning-templates-json")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("shell-dunning-templates-json")).toContainText("templateSource");
+
+    await page.getByTestId("shell-dunning-footer-fetch").click();
+    await expect(page.getByTestId("shell-dunning-footer-json")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("shell-dunning-footer-json")).toContainText("footerSource");
+
+    await page.getByTestId("shell-dunning-automation-fetch").click();
+    await expect(page.getByTestId("shell-dunning-automation-json")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("shell-dunning-automation-json")).toContainText("runMode");
+  });
+
   test("Haupt-Shell: OFFER_VERSION GET-Detail", async ({ page }) => {
     await page.goto("/#/login");
 
