@@ -34,6 +34,11 @@ function makeClient(): ApiClient {
     postDunningReminderRunDryRun: vi.fn(),
     postDunningReminderRunExecute: vi.fn(),
     postDunningReminderBatchSendEmails: vi.fn(),
+    getTenantInvoiceTaxProfile: vi.fn(),
+    patchTenantInvoiceTaxProfile: vi.fn(),
+    getProjectInvoiceTaxOverride: vi.fn(),
+    putProjectInvoiceTaxOverride: vi.fn(),
+    deleteProjectInvoiceTaxOverride: vi.fn(),
     getAuditEvents: vi.fn(),
   };
 }
