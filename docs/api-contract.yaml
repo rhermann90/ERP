@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-1/2/3/4 Finance)
-  version: 1.28.1-phase2-lv-section9-hierarchy
+  version: 1.28.2-phase2-lv-section9-single-node
   description: |
     **PWA / Browser-Anbindung**
     - **CORS**: Umgebungsvariable `CORS_ORIGINS` — kommagetrennte, exakte Origins (z. B. `https://app.example.com,http://localhost:5173`). Leer oder unset: keine `Access-Control-*`-Header (gleiche Origin oder Server-zu-Server).
@@ -2139,6 +2139,40 @@ paths:
                 $ref: '#/components/schemas/LvPositionV2'
         '404':
           description: LV_VERSION_NOT_FOUND | LV_POSITION_NOT_FOUND
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: Authentifizierung fehlgeschlagen
+  /lv/versions/{lvVersionId}/nodes/{nodeId}:
+    get:
+      description: |
+        Liest einen Strukturknoten der angegebenen LV-Version §9 (mandantenisoliert). 404 wenn der Knoten nicht zu dieser Version gehört.
+        Schema wie Snapshot/`GET …/structure` — siehe ADR-0013.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: lvVersionId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: nodeId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: LV-Strukturknoten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LvStructureNode'
+        '404':
+          description: LV_VERSION_NOT_FOUND | LV_NODE_NOT_FOUND
         '403':
           description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
         '401':

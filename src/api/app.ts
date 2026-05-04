@@ -414,6 +414,20 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     }
   });
 
+  app.get("/lv/versions/:lvVersionId/nodes/:nodeId", async (request, reply) => {
+    try {
+      const params = request.params as { lvVersionId: string; nodeId: string };
+      const result = lvHierarchyService.getStructureNodeForHttpHeaders(
+        request.headers,
+        params.lvVersionId,
+        params.nodeId,
+      );
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
   app.post("/lv/versions/:lvVersionId/status", async (request, reply) => {
     try {
       const auth = parseAuthContext(request.headers);

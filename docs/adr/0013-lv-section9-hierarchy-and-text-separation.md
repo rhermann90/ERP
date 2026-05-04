@@ -1,4 +1,4 @@
-# ADR-0013 — LV §9 Hierarchie-Lesepfade (`/structure`, `/positions/{id}`)
+# ADR-0013 — LV §9 Hierarchie-Lesepfade (`/structure`, `/nodes/{id}`, `/positions/{id}`)
 
 **Status:** ACCEPTED (2026-05-04)
 
@@ -8,11 +8,12 @@ LV §9 (Hierarchie, Texttrennung Systemtext vs. Bearbeitungstext, SoT `LV_VERSIO
 
 ## Entscheidung
 
-### D1 — Zwei zusätzliche **read-only** GET-Endpunkte (Projektion)
+### D1 — Zusätzliche **read-only** GET-Endpunkte (Projektion)
 
 | Pfad | Antwort |
 |------|---------|
 | `GET /lv/versions/{lvVersionId}/structure` | `LvHierarchySnapshot`: `lvVersionId`, `structureNodes[]`, `positions[]` — dieselben Knoten/Positionen wie im Snapshot, **ohne** `catalog` und **ohne** `version`-Kopf. JSON-Felder wie bestehende Ressourcen (`editingText` auf Knoten/Positionen). |
+| `GET /lv/versions/{lvVersionId}/nodes/{nodeId}` | Ein `LvStructureNode` wie im Snapshot (Schema-Alias OpenAPI: `LvStructureNode` = `LvStructureNodeResource`). 404 wenn Knoten fehlt oder nicht zu dieser Version gehört. |
 | `GET /lv/versions/{lvVersionId}/positions/{positionId}` | Eine `LvPosition` wie im Snapshot (Schema-Alias OpenAPI: `LvPositionV2` = `LvPositionResource`). 404 wenn Position fehlt oder nicht zu dieser Version gehört. |
 
 ### D2 — OpenAPI-Aliase

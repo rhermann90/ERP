@@ -33,4 +33,17 @@ export class LvHierarchyService {
     }
     return pos;
   }
+
+  public getStructureNodeForHttpHeaders(
+    rawHeaders: unknown,
+    lvVersionId: string,
+    nodeId: string,
+  ): LvStructureNode {
+    const snap = this.lvService.getVersionSnapshotForHttpHeaders(rawHeaders, lvVersionId);
+    const node = snap.structureNodes.find((n) => n.id === nodeId);
+    if (!node) {
+      throw new DomainError("LV_NODE_NOT_FOUND", "Strukturknoten nicht gefunden", 404);
+    }
+    return node;
+  }
 }

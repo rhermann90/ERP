@@ -40,6 +40,10 @@ Server-zu-Server: Header direkt lesen. **Browser + CORS:** nur sichtbar, wenn di
 
 Vollständige Schemas: `docs/api-contract.yaml`. Mapping: `docs/contracts/finance-fin0-openapi-mapping.md`.
 
+## Neu ab `1.28.2` (Phase 2 — LV §9 Einzelknoten-Lesepfad)
+
+- **`GET /lv/versions/{lvVersionId}/nodes/{nodeId}`:** ein Strukturknoten wie in `structureNodes[]` / Snapshot; **404** `LV_NODE_NOT_FOUND`, wenn die ID keine Knoten-ID dieser Version ist (z. B. Positions-ID übergeben).
+
 ## Neu ab `1.28.1` (Phase 2 — LV §9 Hierarchie-Lesepfad, Contract-Klarstellung)
 
 - **`GET /lv/versions/{lvVersionId}/structure`**, **`GET /lv/versions/{lvVersionId}/positions/{positionId}`:** Projektion wie Snapshot-Knoten/-Positionen (`editingText`); OpenAPI-Schemata **`LvStructureNode`** / **`LvPositionV2`** sind Aliase zu **`LvStructureNodeResource`** / **`LvPositionResource`**. **`LvHierarchySnapshot`** ohne eingebettete `allowedActions` — SoT weiterhin über **`GET /documents/{id}/allowed-actions`**.

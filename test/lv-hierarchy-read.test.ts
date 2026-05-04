@@ -123,4 +123,60 @@ describe("LV §9 Hierarchie-Lesepfade (structure / single position)", () => {
     expect(res.statusCode).toBe(404);
     expect(res.json().code).toBe("LV_VERSION_NOT_FOUND");
   });
+
+  it("GET /lv/versions/:id/nodes/:nid returns single structure node (TITEL)", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: `/lv/versions/${SEED_IDS.lvVersionId}/nodes/${SEED_IDS.lvTitelId}`,
+      headers: buildHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { id: string; kind: string; lvVersionId: string; editingText: string };
+    expect(body.id).toBe(SEED_IDS.lvTitelId);
+    expect(body.kind).toBe("TITEL");
+    expect(body.lvVersionId).toBe(SEED_IDS.lvVersionId);
+    expect(body.editingText).toContain("Titel");
+  });
+
+  it("GET node returns 404 when LV version missing", async () => {
+    const fakeVersion = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0999";
+    const res = await app.inject({
+      method: "GET",
+      url: `/lv/versions/${fakeVersion}/nodes/${SEED_IDS.lvBereichId}`,
+      headers: buildHeaders(),
+    });
+    expect(res.statusCode).toBe(404);
+    expect(res.json().code).toBe("LV_VERSION_NOT_FOUND");
+  });
+
+  it("GET node returns 404 when id is not a node of this version", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: `/lv/versions/${SEED_IDS.lvVersionId}/nodes/${SEED_IDS.lvPositionSeedA}`,
+      headers: buildHeaders(),
+    });
+    expect(res.statusCode).toBe(404);
+    expect(res.json().code).toBe("LV_NODE_NOT_FOUND");
+  });
+
+  it("VIEWER may read single node", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: `/lv/versions/${SEED_IDS.lvVersionId}/nodes/${SEED_IDS.lvBereichId}`,
+      headers: buildHeaders("VIEWER"),
+    });
+    expect(res.statusCode).toBe(200);
+    expect((res.json() as { kind: string }).kind).toBe("BEREICH");
+  });
+
+  it("GET node is tenant-isolated (404)", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: `/lv/versions/${SEED_IDS.lvVersionId}/nodes/${SEED_IDS.lvTitelId}`,
+      headers: buildHeaders("ADMIN", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"),
+    });
+    expect(res.statusCode).toBe(404);
+    expect(res.json().code).toBe("LV_VERSION_NOT_FOUND");
+  });
+
 });
