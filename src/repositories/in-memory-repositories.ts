@@ -1,3 +1,4 @@
+import type { InvoiceTaxRegime } from "../domain/invoice-tax-regime.js";
 import {
   AuditEvent,
   ExportRun,
@@ -18,6 +19,8 @@ import {
   OfferVersion,
   SupplementOffer,
   SupplementVersion,
+  ProjectInvoiceTaxOverride,
+  TenantInvoiceTaxProfile,
   TenantId,
   TraceabilityLink,
   UUID,
@@ -48,6 +51,42 @@ export class InMemoryRepositories {
   public dunningEmailSends = new Map<UUID, DunningEmailSend>();
   /** `${tenantId}:${idempotencyKey}` → dunningEmailSend.id */
   public dunningEmailSendByIdempotencyKey = new Map<string, UUID>();
+
+  /** FIN-5: ein Profil je Mandant (Postgres `tenant_invoice_tax_profiles`). */
+  public tenantInvoiceTaxProfiles = new Map<TenantId, TenantInvoiceTaxProfile>();
+  /** Schlüssel `${tenantId}:${projectId}` → Override */
+  public projectInvoiceTaxOverrides = new Map<string, ProjectInvoiceTaxOverride>();
+
+  public getTenantInvoiceTaxProfile(tenantId: TenantId): TenantInvoiceTaxProfile | undefined {
+    return this.tenantInvoiceTaxProfiles.get(tenantId);
+  }
+
+  public putTenantInvoiceTaxProfile(profile: TenantInvoiceTaxProfile): void {
+    this.tenantInvoiceTaxProfiles.set(profile.tenantId, profile);
+  }
+
+  public getProjectInvoiceTaxOverride(tenantId: TenantId, projectId: UUID): ProjectInvoiceTaxOverride | undefined {
+    return this.projectInvoiceTaxOverrides.get(`${tenantId}:${projectId}`);
+  }
+
+  public putProjectInvoiceTaxOverride(row: ProjectInvoiceTaxOverride): void {
+    this.projectInvoiceTaxOverrides.set(`${row.tenantId}:${row.projectId}`, row);
+  }
+
+  public deleteProjectInvoiceTaxOverride(tenantId: TenantId, projectId: UUID): void {
+    this.projectInvoiceTaxOverrides.delete(`${tenantId}:${projectId}`);
+  }
+
+  /** Projekt-Override schlägt Mandanten-Default; ohne Eintrag → Standard-USt 19 %. */
+  public resolveEffectiveInvoiceTaxRegime(tenantId: TenantId, projectId: UUID): InvoiceTaxRegime {
+    const o = this.getProjectInvoiceTaxOverride(tenantId, projectId);
+    if (o) return o.invoiceTaxRegime;
+    return this.getTenantInvoiceTaxProfile(tenantId)?.defaultInvoiceTaxRegime ?? "STANDARD_VAT_19";
+  }
+
+  public resolveTaxReasonCodeForProject(tenantId: TenantId, projectId: UUID): string | undefined {
+    return this.getProjectInvoiceTaxOverride(tenantId, projectId)?.taxReasonCode;
+  }
 
   public getOfferByTenant(tenantId: TenantId, offerId: UUID): Offer | undefined {
     const offer = this.offers.get(offerId);
