@@ -1,3 +1,4 @@
+import type { InvoiceTaxRegime } from "./invoice-tax-regime.js";
 export type UUID = string;
 export type TenantId = string;
 export type UserId = string;
@@ -225,6 +226,28 @@ export interface Invoice {
   paymentTermsVersionId?: UUID;
   /** 8.4(2) B2-1a: Skonto in Basispunkten (0–10_000), auf LV-Netto nach Schritt 1; Default 0. */
   skontoBps?: number;
+  /** FIN-5 / 8.16: effektives Regime zum Zeitpunkt der Entwurfskalkulation (Snapshot). */
+  invoiceTaxRegime?: InvoiceTaxRegime;
+  /** Ausgewiesener USt-Satz in Basispunkten (0 bei Sonderregimen ohne ausgewiesene USt). */
+  vatRateBpsEffective?: number;
+  /** Optionaler Begründungscode (z. B. Projekt-Override). */
+  taxReasonCode?: string;
+}
+
+/** FIN-5: Mandanten-Default für Rechnungs-Steuerregime. */
+export interface TenantInvoiceTaxProfile {
+  tenantId: TenantId;
+  defaultInvoiceTaxRegime: InvoiceTaxRegime;
+  construction13bConfig?: Record<string, unknown>;
+}
+
+/** FIN-5: Projekt-Override (schlägt Mandanten-Default). */
+export interface ProjectInvoiceTaxOverride {
+  tenantId: TenantId;
+  projectId: UUID;
+  invoiceTaxRegime: InvoiceTaxRegime;
+  taxReasonCode?: string;
+  construction13bConfig?: Record<string, unknown>;
 }
 
 /** FIN-3: gebuchter Zahlungseingang (Idempotenz über tenant + idempotency_key). */
@@ -275,6 +298,8 @@ export interface AuditEvent {
     | "INVOICE"
     | "PAYMENT_TERMS_VERSION"
     | "DUNNING_TENANT_STAGE_CONFIG"
+    | "TENANT_INVOICE_TAX_PROFILE"
+    | "PROJECT_INVOICE_TAX_OVERRIDE"
     | "USER";
   entityId: UUID;
   action:
@@ -296,7 +321,10 @@ export interface AuditEvent {
     | "DUNNING_EMAIL_FOOTER_PATCHED"
     | "DUNNING_EMAIL_SEND_STUB"
     | "DUNNING_EMAIL_SENT"
-    | "DUNNING_TENANT_AUTOMATION_PATCHED";
+    | "DUNNING_TENANT_AUTOMATION_PATCHED"
+    | "TENANT_INVOICE_TAX_PROFILE_PATCHED"
+    | "PROJECT_INVOICE_TAX_OVERRIDE_UPSERTED"
+    | "PROJECT_INVOICE_TAX_OVERRIDE_DELETED";
   timestamp: Date;
   actorUserId: UserId;
   reason?: string;
