@@ -165,6 +165,27 @@ function FinancePrepStepInvoiceInner({
                 <span style={{ color: "var(--text-secondary)" }}>nur bei ENTWURF</span>
               )}
             </dd>
+            <dt style={{ color: "var(--text-secondary)" }}>Steuerregime</dt>
+            <dd style={{ margin: 0 }}>
+              <code>{invoiceOverview.invoiceTaxRegime}</code>
+              {invoiceOverview.taxReasonCode ? (
+                <span style={{ marginLeft: "0.35rem", color: "var(--text-secondary)" }}>
+                  ({invoiceOverview.taxReasonCode})
+                </span>
+              ) : null}
+            </dd>
+            {invoiceOverview.mandatoryTaxNoticeLines && invoiceOverview.mandatoryTaxNoticeLines.length > 0 ? (
+              <>
+                <dt style={{ color: "var(--text-secondary)", alignSelf: "start" }}>Pflicht-Hinweise</dt>
+                <dd style={{ margin: 0 }}>
+                  <ul style={{ margin: 0, paddingLeft: "1.1rem", fontSize: "0.82rem" }}>
+                    {invoiceOverview.mandatoryTaxNoticeLines.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </dd>
+              </>
+            ) : null}
             <dt style={{ color: "var(--text-secondary)" }}>SoT Zahlung</dt>
             <dd style={{ margin: 0 }}>
               {invoiceAllowedActions == null ? (

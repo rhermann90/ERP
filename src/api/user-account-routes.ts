@@ -4,7 +4,7 @@ import { DomainError } from "../errors/domain-error.js";
 import { AuditService } from "../services/audit-service.js";
 import { AuthorizationService } from "../services/authorization-service.js";
 import { UserAccountService } from "../services/user-account-service.js";
-import { createTenantUserSchema, patchTenantUserSchema } from "../validation/schemas.js";
+import { createTenantUserSchema, patchTenantUserSchema, userListQuerySchema } from "../validation/schemas.js";
 import { handleHttpError, parseAuthContext } from "./http-response.js";
 
 export type RegisterUserAccountRoutesOptions = {
@@ -41,8 +41,12 @@ export function registerUserAccountRoutes(app: FastifyInstance, opts: RegisterUs
         }
         const auth = parseAuthContext(request.headers);
         authorizationService.assertCanManageTenantUsers(auth.role);
+        const query = userListQuerySchema.parse(request.query);
         const service = new UserAccountService(prisma, audit);
-        const result = await service.listUsers(auth.tenantId);
+        const result = await service.listUsers(auth.tenantId, {
+          page: query.page,
+          pageSize: query.pageSize,
+        });
         return reply.status(200).send(result);
       } catch (error) {
         return handleHttpError(error, request, reply);

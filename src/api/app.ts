@@ -14,6 +14,7 @@ import { OfferService } from "../services/offer-service.js";
 import { SupplementService } from "../services/supplement-service.js";
 import { PaymentTermsService } from "../services/payment-terms-service.js";
 import { InvoiceService } from "../services/invoice-service.js";
+import { InvoiceTaxSettingsService } from "../services/invoice-tax-settings-service.js";
 import { TraceabilityService } from "../services/traceability-service.js";
 import {
   addLvPositionSchema,
@@ -37,7 +38,7 @@ import {
   updateLvNodeEditingSchema,
   updateMeasurementPositionsSchema,
 } from "../validation/schemas.js";
-import { seedDemoData } from "../composition/seed.js";
+import { seedDemoData, SEED_IDS } from "../composition/seed.js";
 import { seedAuthUsers } from "../composition/seed-auth-prisma.js";
 import {
   buildFastifyLoggerOptions,
@@ -67,6 +68,11 @@ import {
   PrismaInvoicePersistence,
   type InvoicePersistencePort,
 } from "../persistence/invoice-persistence.js";
+import {
+  noopInvoiceTaxProfilePersistence,
+  PrismaInvoiceTaxProfilePersistence,
+  type InvoiceTaxProfilePersistencePort,
+} from "../persistence/invoice-tax-profile-persistence.js";
 import {
   noopLvMeasurementPersistence,
   PrismaLvMeasurementPersistence,
@@ -125,6 +131,7 @@ import { registerPaymentIntakeRoutes } from "./finance-payment-intake-routes.js"
 import { registerPaymentTermsRoutes } from "./finance-payment-terms-routes.js";
 import { registerDunningReminderConfigRoutes } from "./finance-dunning-config-routes.js";
 import { registerInvoiceFinanceRoutes } from "./finance-invoice-routes.js";
+import { registerFinanceInvoiceTaxRoutes } from "./finance-invoice-tax-routes.js";
 import { registerAuthLoginRoutes } from "./auth-login-routes.js";
 import { registerPasswordResetRoutes } from "./password-reset-routes.js";
 import { registerUserAccountRoutes } from "./user-account-routes.js";
@@ -200,6 +207,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   let lvMeasurementPersistence: LvMeasurementPersistencePort = noopLvMeasurementPersistence;
   let paymentTermsPersistence: PaymentTermsPersistencePort = noopPaymentTermsPersistence;
   let invoicePersistence: InvoicePersistencePort = noopInvoicePersistence;
+  let invoiceTaxProfilePersistence: InvoiceTaxProfilePersistencePort = noopInvoiceTaxProfilePersistence;
   let paymentIntakePersistence: PaymentIntakePersistencePort = noopPaymentIntakePersistence;
   let dunningReminderPersistence: DunningReminderPersistencePort = noopDunningReminderPersistence;
   let dunningStageConfigPersistence: DunningStageConfigPersistencePort = noopDunningStageConfigPersistence;
@@ -216,6 +224,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     lvMeasurementPersistence = new PrismaLvMeasurementPersistence(prisma);
     paymentTermsPersistence = new PrismaPaymentTermsPersistence(prisma);
     invoicePersistence = new PrismaInvoicePersistence(prisma);
+    invoiceTaxProfilePersistence = new PrismaInvoiceTaxProfilePersistence(prisma);
     paymentIntakePersistence = new PrismaPaymentIntakePersistence(prisma);
     dunningReminderPersistence = new PrismaDunningReminderPersistence(prisma);
     dunningStageConfigPersistence = new PrismaDunningStageConfigPersistence(prisma);
@@ -230,6 +239,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       await supplementPersistence.syncAllSupplementsFromMemory(repos);
       await paymentTermsPersistence.syncAllPaymentTermsFromMemory(repos);
       await invoicePersistence.syncAllInvoicesFromMemory(repos);
+      await invoiceTaxProfilePersistence.upsertTenantProfileFromMemory(repos, SEED_IDS.tenantId);
       await paymentIntakePersistence.hydrateIntoMemory(repos);
       await dunningReminderPersistence.hydrateIntoMemory(repos);
       await dunningEmailSendPersistence.hydrateIntoMemory(repos);
@@ -242,6 +252,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       await paymentIntakePersistence.hydrateIntoMemory(repos);
       await dunningReminderPersistence.hydrateIntoMemory(repos);
       await dunningEmailSendPersistence.hydrateIntoMemory(repos);
+      await invoiceTaxProfilePersistence.hydrateIntoMemory(repos);
     }
     app.addHook("onClose", async () => {
       await prisma?.$disconnect();
@@ -299,6 +310,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   const supplementService = new SupplementService(repos, audit, lvRef, supplementPersistence);
   const paymentTermsService = new PaymentTermsService(repos, audit, paymentTermsPersistence);
   const invoiceService = new InvoiceService(repos, audit, invoicePersistence, traceabilityService);
+  const invoiceTaxSettingsService = new InvoiceTaxSettingsService(repos, audit, invoiceTaxProfilePersistence);
   const paymentIntakeService = new PaymentIntakeService(repos, audit, invoicePersistence, paymentIntakePersistence);
   const dunningReminderService = new DunningReminderService(repos, audit, dunningReminderPersistence);
   const dunningReminderConfigService = new DunningReminderConfigService(dunningStageConfigPersistence, audit, prisma);
@@ -778,6 +790,11 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   registerPaymentTermsRoutes(app, {
     authorizationService,
     paymentTermsService,
+  });
+
+  registerFinanceInvoiceTaxRoutes(app, {
+    authorizationService,
+    invoiceTaxSettingsService,
   });
 
   registerDunningReminderConfigRoutes(app, {

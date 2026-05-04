@@ -11,6 +11,9 @@ export function isFin4OpenApiContractResponsePath(path: string): boolean {
   if (p === "/finance/dunning-email-footer" || p.startsWith("/finance/dunning-email-footer?")) {
     return true;
   }
+  if (p.startsWith("/finance/invoice-tax-profile")) {
+    return true;
+  }
   return p.startsWith("/finance/dunning-reminder");
 }
 

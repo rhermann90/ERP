@@ -165,6 +165,13 @@ export type LvVersionSnapshot = {
   }>;
 };
 
+/** FIN-5 §8.16 — effektives Regime auf der Rechnung (Server-Snapshot). */
+export type InvoiceTaxRegimeApi =
+  | "STANDARD_VAT_19"
+  | "REVERSE_CHARGE"
+  | "SMALL_BUSINESS_19"
+  | "CONSTRUCTION_13B";
+
 /** Antwort `GET /invoices/:invoiceId` (FIN-2 + 8.4 MVP). */
 export type InvoiceOverview = {
   invoiceId: string;
@@ -185,6 +192,11 @@ export type InvoiceOverview = {
   paymentTermsVersionId?: string;
   /** 8.4(2) B2-1a: Skonto in Basispunkten (Server liefert 0 wenn nicht am Entwurf gesetzt). */
   skontoBps: number;
+  /** FIN-5: persistierter / effektiver Steuerregime-Code (§8.16). */
+  invoiceTaxRegime: InvoiceTaxRegimeApi;
+  taxReasonCode?: string;
+  /** §8.10 Pflicht-Hinweise bei Sonderregime; optional/leer bei Standard. */
+  mandatoryTaxNoticeLines?: string[];
 };
 
 export type CreateInvoiceDraftResponse = {
@@ -194,6 +206,23 @@ export type CreateInvoiceDraftResponse = {
   vatCents: number;
   totalGrossCents: number;
   skontoBps: number;
+  invoiceTaxRegime: InvoiceTaxRegimeApi;
+  mandatoryTaxNoticeLines: string[];
+};
+
+/** Antwort `GET /finance/invoice-tax-profile` (FIN-5). */
+export type TenantInvoiceTaxProfileRead = {
+  tenantId: string;
+  defaultInvoiceTaxRegime: InvoiceTaxRegimeApi;
+  construction13bConfig?: Record<string, unknown>;
+};
+
+/** Antwort `GET /finance/invoice-tax-profile/projects/:projectId`. */
+export type ProjectInvoiceTaxOverrideRead = {
+  projectId: string;
+  invoiceTaxRegime: InvoiceTaxRegimeApi | null;
+  taxReasonCode?: string;
+  construction13bConfig?: Record<string, unknown>;
 };
 
 /** Antwort `POST /finance/payments/intake` (FIN-3). */
@@ -457,6 +486,23 @@ export type ApiClient = {
     confirmBatchSend?: true;
     items: Array<{ invoiceId: string; toEmail: string; idempotencyKey?: string }>;
   }): Promise<DunningReminderBatchEmailResponse>;
+  getTenantInvoiceTaxProfile(): Promise<TenantInvoiceTaxProfileRead>;
+  patchTenantInvoiceTaxProfile(body: {
+    defaultInvoiceTaxRegime: InvoiceTaxRegimeApi;
+    construction13bConfig?: Record<string, unknown>;
+    reason: string;
+  }): Promise<{ tenantId: string; defaultInvoiceTaxRegime: InvoiceTaxRegimeApi }>;
+  getProjectInvoiceTaxOverride(projectId: string): Promise<ProjectInvoiceTaxOverrideRead>;
+  putProjectInvoiceTaxOverride(
+    projectId: string,
+    body: {
+      invoiceTaxRegime: InvoiceTaxRegimeApi;
+      taxReasonCode?: string;
+      construction13bConfig?: Record<string, unknown>;
+      reason: string;
+    },
+  ): Promise<{ projectId: string; invoiceTaxRegime: InvoiceTaxRegimeApi }>;
+  deleteProjectInvoiceTaxOverride(projectId: string, body: { reason: string }): Promise<void>;
   getAuditEvents(page?: number, pageSize?: number): Promise<AuditEventsListResponse>;
 };
 
@@ -733,6 +779,42 @@ export function createApiClient(options: {
         });
       }
       return parsed as PaymentIntakeRecordResponse;
+    },
+    getTenantInvoiceTaxProfile() {
+      return requestJson<TenantInvoiceTaxProfileRead>("GET", "/finance/invoice-tax-profile");
+    },
+    patchTenantInvoiceTaxProfile(body) {
+      return requestJson<{ tenantId: string; defaultInvoiceTaxRegime: InvoiceTaxRegimeApi }>(
+        "PATCH",
+        "/finance/invoice-tax-profile",
+        body,
+      );
+    },
+    getProjectInvoiceTaxOverride(projectId) {
+      const id = projectId.trim();
+      assertUuidKey(id, "projectId");
+      return requestJson<ProjectInvoiceTaxOverrideRead>(
+        "GET",
+        `/finance/invoice-tax-profile/projects/${encodeURIComponent(id)}`,
+      );
+    },
+    putProjectInvoiceTaxOverride(projectId, body) {
+      const id = projectId.trim();
+      assertUuidKey(id, "projectId");
+      return requestJson<{ projectId: string; invoiceTaxRegime: InvoiceTaxRegimeApi }>(
+        "PUT",
+        `/finance/invoice-tax-profile/projects/${encodeURIComponent(id)}`,
+        body,
+      );
+    },
+    async deleteProjectInvoiceTaxOverride(projectId, body) {
+      const id = projectId.trim();
+      assertUuidKey(id, "projectId");
+      await requestJson<void>(
+        "DELETE",
+        `/finance/invoice-tax-profile/projects/${encodeURIComponent(id)}`,
+        body,
+      );
     },
     getAuditEvents(page = 1, pageSize = 15) {
       const q = new URLSearchParams({
