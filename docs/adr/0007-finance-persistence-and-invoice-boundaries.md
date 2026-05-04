@@ -67,7 +67,7 @@ Parallel existieren **ADR-0004** (Aufmass), **ADR-0005** (LV §9), **ADR-0006** 
 
 - Vollständiger **8.4(2–6)**-Betragsmotor (mehrere unabhängige Abzugsarten, Einbehalt, konfigurierbare Regeln) jenseits **B2-1a** (nur Skonto-BP auf Schritt-1-Netto); **FIN-3**-Erweiterungen jenseits des **Intake-Slices** (z. B. vollständige **8.8–8.9**-Zuordnung, PSP, Mehrfachbelege pro Bankumsatz), **FIN-4** Mahnwesen M4 (Konfiguration, E-Mail, Vorlagen). *(Hinweis: erste **FIN-2-Buchung** ENTWURF → GEBUCHT_VERSENDET ist seit 2026-04-22 im Code; siehe §8. **FIN-3**-Intake mit Persistenz und Status ist im Code; siehe Status-Kopf.)*  
 - Neue **DomainError-Codes** nur in einem PR, der `docs/contracts/error-codes.json`, OpenAPI (`docs/api-contract.yaml`), Mapping (`docs/contracts/finance-fin0-openapi-mapping.md`) und die Frontend-Fehlerbehandlung konsistent mitpflegt.  
-- Steuer-Sonderfälle **8.16** / FIN-5: nicht Gegenstand; FIN-2 bereitet nur **EUR + konsistente Steuerzeile** laut Gate-Dokument vor.
+- Steuer-Sonderfälle **8.16** / FIN-5: nicht Gegenstand dieses ADR; FIN-2 bereitet nur **EUR + konsistente Steuerzeile** (Standard-USt) vor — Fail-Closed-Haltung bis Team-Gate: [`0014-fin5-mvp-tax-fail-closed.md`](./0014-fin5-mvp-tax-fail-closed.md).
 
 ## Konsequenzen
 

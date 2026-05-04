@@ -6,9 +6,10 @@ Kurzüberblick für Navigation in `src/` (Fastify-Backend) und `apps/web` (PWA).
 
 | Bereich | Pfad | Rolle |
 |--------|------|--------|
-| **Produktiv-Go Finanz (fachlich)** | [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) | Druckbares Begleitblatt — UStG/GoBD/E-Rechnung/DSGVO neben Code/CI; Finanz-Scope nur **Mandant→Endkunde** ([`docs/adr/0012-finance-scope-tenant-customer-invoices-only.md`](../adr/0012-finance-scope-tenant-customer-invoices-only.md)) |
-| **Compliance Ledger (Hybrid-Freigabe)** | [`Checklisten/compliance-rechnung-finanz.ledger.md`](../../Checklisten/compliance-rechnung-finanz.ledger.md), [`Checklisten/compliance-rechnung-finanz-filled.md`](../../Checklisten/compliance-rechnung-finanz-filled.md) (Anlage, gleiche Marker), [`Checklisten/compliance-signoffs.schema.md`](../../Checklisten/compliance-signoffs.schema.md), [`Checklisten/compliance-freigabe-runbook.md`](../../Checklisten/compliance-freigabe-runbook.md), `scripts/validate-compliance-signoffs.mjs`, `scripts/apply-compliance-signoffs.mjs` | **54** stabile `chk-*` `lineId`; `npm run validate:compliance-signoffs`; Apply schreibt Ledger **und** Ausgefüllt-Anlage |
-| **M4 Slice 5c — PL vor Mandanten-Go** | [`docs/runbooks/m4-slice-5c-pl-mandanten-go.md`](../runbooks/m4-slice-5c-pl-mandanten-go.md) | Massen-E-Mail: Agenda-Anker, Compliance/Spec-Links (kein Ersatz für StB/DSB/PL) |
+| **Compliance (Stub + Archiv)** | [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md), [`docs/_archiv/checklisten-compliance-human-workflow/README.md`](../docs/_archiv/checklisten-compliance-human-workflow/README.md) | Stub im Repo; ausführlicher Text archiviert — **keine** Repo-Pflicht für menschliche Freigaben; Finanz-Scope **Mandant→Endkunde** ([`docs/adr/0012-finance-scope-tenant-customer-invoices-only.md`](../adr/0012-finance-scope-tenant-customer-invoices-only.md)) |
+| **Compliance Ledger (technisch)** | [`Checklisten/compliance-rechnung-finanz.ledger.md`](../../Checklisten/compliance-rechnung-finanz.ledger.md), [`Checklisten/compliance-rechnung-finanz-filled.md`](../../Checklisten/compliance-rechnung-finanz-filled.md) (Anlage), [`Checklisten/compliance-signoffs.schema.md`](../../Checklisten/compliance-signoffs.schema.md), [`Checklisten/compliance-freigabe-runbook.md`](../../Checklisten/compliance-freigabe-runbook.md) (Stub), `scripts/validate-compliance-signoffs.mjs`, `scripts/apply-compliance-signoffs.mjs` | **54** `chk-*` Marker; Validator/Apply für optionale JSON-Synchronisation |
+| **M4 Slice 5c — Agenda** | [`docs/runbooks/m4-slice-5c-pl-mandanten-go.md`](../runbooks/m4-slice-5c-pl-mandanten-go.md) | Massen-E-Mail: Agenda-Anker; operative Freigaben **außerhalb** des Repo-Prozesses |
+| **FIN-2 nächste Teilprojekte (Gate)** | [`docs/tickets/FIN-2-NEXT-SUBPROJECT-GATE.md`](../tickets/FIN-2-NEXT-SUBPROJECT-GATE.md) | Reihenfolge 8.4-Motor / Pfad C / LV-Lesepfad ohne Parallel-Mix |
 | **FIN-5 — Gate vor Implementierung** | [`docs/tickets/FIN-5-GATE-816-FAIL-CLOSED.md`](../tickets/FIN-5-GATE-816-FAIL-CLOSED.md) | Teamentscheid **8.16** vs. Fail-Closed; danach Spur **B** in [`nächste-schritte.md`](../plans/nächste-schritte.md) |
 | **Roadmap — Weg zur fertigen App** | [`docs/plans/roadmap-fertige-app.md`](../plans/roadmap-fertige-app.md) | Phasen A–E: CI/Lieferung, Option A, 5c-Go, FIN-5/6, Phase 2 LV separat |
 | HTTP-Server-Start | `src/index.ts` | Prozessstart, App bauen |
@@ -20,7 +21,7 @@ Kurzüberblick für Navigation in `src/` (Fastify-Backend) und `apps/web` (PWA).
 
 | Datei / Muster | Inhalt |
 |----------------|--------|
-| `*-routes.ts` | Ressourcen-Routen (LV, Aufmass, Angebot, Finanz, Auth, Nutzer, …); **`GET /lv/versions/{lvVersionId}`** Lesepfad §9 → `lv-service.getVersionSnapshot`; **`GET .../structure`** + **`GET .../positions/{positionId}`** → `lv-hierarchy-service` (Projektion; ADR-0013) |
+| `*-routes.ts` | Ressourcen-Routen (LV, Aufmass, Angebot, Finanz, Auth, Nutzer, …); **`GET /lv/versions/{lvVersionId}`** Lesepfad §9 → `lv-service.getVersionSnapshot`; **`GET .../structure`** + **`GET .../nodes/{nodeId}`** + **`GET .../positions/{positionId}`** → `lv-hierarchy-service` (Projektion; ADR-0013) |
 | `http-response.ts`, `idempotency-header.ts` | Gemeinsame HTTP-Hilfen |
 
 Neue Endpunkte: OpenAPI [`docs/api-contract.yaml`](../api-contract.yaml) und Fehlercodes [`docs/contracts/error-codes.json`](../contracts/error-codes.json) mitführen, wo verbindlich. **`info.version`** synchron zu [`src/domain/openapi-contract-version.ts`](../../src/domain/openapi-contract-version.ts); FIN-4-Integratoren: [`docs/contracts/FIN4-external-client-integration.md`](../contracts/FIN4-external-client-integration.md).
@@ -31,11 +32,11 @@ Richtlinien und Typen (Lebenszyklen LV/Aufmass/Angebot, Messung, Rechnungslogik,
 
 ## Services (`src/services/`)
 
-Anwendungsfälle und Orchestrierung (z. B. `offer-service`, `lv-service`, `invoice-service`, `measurement-service`, Export, Audit, Auth-Hilfen).
+Anwendungsfälle und Orchestrierung (z. B. `offer-service`, `lv-service`, `invoice-service`, `measurement-service`, `export-service` mit **POST**/**GET** `/exports` und **GET** `/exports/{exportRunId}`, Audit, Auth-Hilfen).
 
 ## Persistenz (`src/persistence/`)
 
-Write-Through / DB-Zugriff je Aggregat; spiegelt Prisma-Schema unter `prisma/`. Siehe ADR-0006, 0007, 0008 u. a.
+Write-Through / DB-Zugriff je Aggregat; spiegelt Prisma-Schema unter `prisma/`. Siehe ADR-0006, 0007, 0008 u. a. **`export-run-persistence.ts`**: Hydrate der Export-Preflight-Läufe (`export_runs`).
 
 ## Auth (`src/auth/`)
 
@@ -63,7 +64,7 @@ UI/UX-Leitfaden und Darstellungsmodi: [`docs/ui-ux-style-guide.md`](../ui-ux-sty
 
 | Pfad | Rolle |
 |------|--------|
-| `src/main.tsx`, `src/App.tsx` | Einstieg, Routing-Oberfläche; Shell **read-only** bei `entityType=INVOICE`: `GET /invoices/{id}` („Detail“ / GET), `GET …/payment-intakes`, `GET …/dunning-reminders` (Listen; `ApiClient`), `GET /finance/payment-terms?projectId=…` (aus Invoice), `GET /documents/{id}/allowed-actions?entityType=INVOICE` (Diagnose; `ApiClient`); global FIN-4 Lesepfade ohne Dokument-Kontext: `GET /finance/dunning-reminder-config`, `GET /finance/dunning-reminder-templates`, `GET /finance/dunning-email-footer`, `GET /finance/dunning-reminder-automation` (`shell-dunning-config-panel`, `shell-fin4-extra-readonly-panel`); **`GET /lv/versions/{lvVersionId}`** für Entity **LV_VERSION** (Phase 2 LV Lesepfad §9); stabile E2E-`data-testid`: `shell-document-panel`, `shell-document-entity-type`, `shell-document-id`, `shell-document-detail-get`, `offer-shell-detail`, `lv-shell-detail`, `invoice-shell-detail`, `shell-invoice-readonly-subreads`, `shell-invoice-payment-terms-json`, `shell-invoice-allowed-actions-json`, `supplement-shell-detail` |
+| `src/main.tsx`, `src/App.tsx` | Einstieg, Routing-Oberfläche; Shell **read-only** bei `entityType=INVOICE`: `GET /invoices/{id}` („Detail“ / GET), `GET …/payment-intakes`, `GET …/dunning-reminders` (Listen; `ApiClient`), `GET /finance/payment-terms?projectId=…` (aus Invoice), `GET /documents/{id}/allowed-actions?entityType=INVOICE` (Diagnose; `ApiClient`), **`GET /exports` / `GET /exports/{exportRunId}`** (Export-Preflight-Protokoll; Liste `entityType=INVOICE`, UI filtert auf `invoiceId`; `ApiClient`); global FIN-4 Lesepfade ohne Dokument-Kontext: `GET /finance/dunning-reminder-config`, `GET /finance/dunning-reminder-templates`, `GET /finance/dunning-email-footer`, `GET /finance/dunning-reminder-automation` (`shell-dunning-config-panel`, `shell-fin4-extra-readonly-panel`); **`GET /lv/versions/{lvVersionId}`** für Entity **LV_VERSION** (Phase 2 LV Lesepfad §9); stabile E2E-`data-testid`: `shell-document-panel`, `shell-document-entity-type`, `shell-document-id`, `shell-document-detail-get`, `offer-shell-detail`, `lv-shell-detail`, `invoice-shell-detail`, `shell-invoice-trace-lv`, `shell-invoice-trace-measurement`, `shell-invoice-trace-offer-version`, `shell-invoice-readonly-subreads`, `shell-invoice-payment-terms-json`, `shell-invoice-allowed-actions-json`, `shell-invoice-export-runs-json`, `shell-invoice-export-run-detail-json`, `supplement-shell-detail` |
 | `src/components/DocumentTextPanels.tsx` | Aufmass-Shell nach `MEASUREMENT_VERSION`-GET; `data-testid="measurement-shell-detail"` |
 | `src/lib/api-client.ts`, `api-error.ts` | API-Aufrufe und Fehler |
 | `src/lib/tenant-session.ts`, `token-payload.ts` | Mandanten-Session |

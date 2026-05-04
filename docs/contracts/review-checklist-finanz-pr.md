@@ -7,7 +7,7 @@
 - **FIN-1:** `GET /finance/payment-terms`, `POST /finance/payment-terms/versions` — OpenAPI-Tag Finance (FIN-1), [`../../src/api/finance-payment-terms-routes.ts`](../../src/api/finance-payment-terms-routes.ts), [`../../src/services/payment-terms-service.ts`](../../src/services/payment-terms-service.ts); Regression: [`../../test/finance-fin0-stubs.test.ts`](../../test/finance-fin0-stubs.test.ts) (VIEWER lesen vs. Schreiben, `customerId`-Konsistenz, `paymentTermsVersionId` nur Projekt der Angebotsversion).
 - **FIN-2:** Rechnungsentwurf/Buchung — ADR-0007, Traceability in [`../../src/services/invoice-service.ts`](../../src/services/invoice-service.ts); neue Felder oder Domänencodes: `error-codes.json`, `api-contract.yaml`, [`finance-fin0-openapi-mapping.md`](./finance-fin0-openapi-mapping.md).
 
-## Technisch (Pflicht je PR)
+## Technisch (Repo-Erwartung je PR)
 
 1. **SoT / Erlaubnisliste:** Änderungen an [`../../src/services/authorization-service.ts`](../../src/services/authorization-service.ts) spiegeln in [`action-contracts.json`](./action-contracts.json) und im PWA-Executor [`../../apps/web/src/lib/action-executor.ts`](../../apps/web/src/lib/action-executor.ts) sowie — bei Finanz-Vorbereitung — direkte API-Nutzung in [`../../apps/web/src/components/FinancePreparation.tsx`](../../apps/web/src/components/FinancePreparation.tsx) / [`../../apps/web/src/lib/api-client.ts`](../../apps/web/src/lib/api-client.ts).
 2. **Contract-Bündel (G8):** Bei neuen oder geänderten Domänencodes — [`error-codes.json`](./error-codes.json) + [`api-contract.yaml`](../api-contract.yaml) + Mapping in [`finance-fin0-openapi-mapping.md`](./finance-fin0-openapi-mapping.md) **im selben PR**, soweit betroffen.
@@ -17,7 +17,7 @@
 
 ## Misch-PR und QA-Gate
 
-- **§5b:** PRs, die **Doku +** `src/` **oder** `prisma/` **ohne** klare Trennung mischen — Regeln in [`qa-fin-0-gate-readiness.md`](./qa-fin-0-gate-readiness.md) **§5b** beachten (Team/QA vor Merge).
+- **§5b:** PRs, die **Doku +** `src/` **oder** `prisma/` **ohne** klare Trennung mischen — Regeln in [`qa-fin-0-gate-readiness.md`](./qa-fin-0-gate-readiness.md) **§5b** beachten (technischer Blocker nach QA-Datei, keine gesonderte menschliche Freigabe-Pflicht im Repo).
 
 ## GoBD / Audit (Querschnitt, nicht jedes kleine PR)
 

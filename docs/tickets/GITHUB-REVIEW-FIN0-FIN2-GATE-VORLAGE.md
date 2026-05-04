@@ -12,7 +12,7 @@
 
 ## Merge-Evidence — §5a / §5b (QA im PR)
 
-Vor **Approve** eines Merge-PRs auf `main`: im PR einen **vollständigen** QA-Kern nach [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) Abschnitt **„## 5)“** — **vor** Merge auf `main` Vorlage **5a-pre)**, **nach** Merge **5a)**; bei fehlender/rot Evidence oder unklarem SHA-Bezug **§5b** (kein Approve). Reviewer prüfen, dass **kein** leerer QA-Kern-Kommentar besteht und **Team-Regel Evidence-SHA** wörtlich nachvollziehbar ist (QA rät Squash/Merge **nicht**).
+Vor **Approve** eines Merge-PRs auf `main`: im PR einen **vollständigen** QA-Kern nach [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md) Abschnitt **„## 5)“** — **vor** Merge auf `main` Vorlage **5a-pre)**, **nach** Merge **5a)** (HTTPS Run-URL + SHA aus Run-Details); bei fehlender/rot Evidence oder SHA ohne eindeutige Zuordnung **§5b** (kein Approve). Reviewer prüfen, dass **kein** leerer QA-Kern-Kommentar besteht (QA rät Squash/Merge **nicht**).
 
 ---
 

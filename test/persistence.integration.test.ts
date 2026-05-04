@@ -70,7 +70,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     });
     const cleanup = createPrismaClient(dbUrl!);
     await cleanup.$executeRawUnsafe(
-      `TRUNCATE TABLE dunning_reminder_run_intents, dunning_reminders, dunning_email_sends, dunning_tenant_automation, dunning_tenant_stage_config, dunning_tenant_stage_templates, dunning_tenant_email_footer, payment_intakes, invoices, payment_terms_versions, payment_terms_heads, supplement_versions, supplement_offers, measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, audit_events, offer_versions, offers, password_reset_challenges, users RESTART IDENTITY CASCADE`,
+      `TRUNCATE TABLE dunning_reminder_run_intents, dunning_reminders, dunning_email_sends, dunning_tenant_automation, dunning_tenant_stage_config, dunning_tenant_stage_templates, dunning_tenant_email_footer, payment_intakes, invoices, payment_terms_versions, payment_terms_heads, supplement_versions, supplement_offers, measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, export_runs, audit_events, offer_versions, offers, password_reset_challenges, users RESTART IDENTITY CASCADE`,
     );
     await cleanup.$disconnect();
 
@@ -391,6 +391,174 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
       },
     });
     expect(res.statusCode).toBe(201);
+    const body = res.json() as { id: string };
+    const row = await prisma.exportRunRow.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: body.id } },
+    });
+    expect(row).not.toBeNull();
+    expect(row?.status).toBe("SUCCEEDED");
+    expect(row?.entityType).toBe("INVOICE");
+    expect(row?.format).toBe("XRECHNUNG");
+    const audit = await prisma.auditEvent.findFirst({
+      where: { tenantId: SEED_IDS.tenantId, entityType: "EXPORT_RUN", entityId: body.id },
+    });
+    expect(audit).not.toBeNull();
+    expect(audit?.action).toBe("EXPORT_SUCCEEDED");
+  });
+
+  it("GET /exports: Admin listet Exportläufe inkl. Rechnungs-Export", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/exports",
+      headers: adminHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: Array<{ entityType: string; format: string }>; total: number };
+    expect(body.total).toBeGreaterThanOrEqual(1);
+    expect(body.data.some((r) => r.entityType === "INVOICE" && r.format === "XRECHNUNG")).toBe(true);
+  });
+
+  it("GET /exports: BUCHHALTUNG erhält 403 bei entityType=OFFER_VERSION", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/exports?entityType=OFFER_VERSION",
+      headers: roleHeaders("BUCHHALTUNG"),
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("GET /exports: BUCHHALTUNG sieht nur INVOICE-Läufe wenn zusätzlich OFFER_VERSION-Zeile in DB", async () => {
+    const gaebRunId = randomUUID();
+    await prisma.exportRunRow.create({
+      data: {
+        tenantId: SEED_IDS.tenantId,
+        id: gaebRunId,
+        entityType: "OFFER_VERSION",
+        entityId: SEED_IDS.offerVersionId,
+        format: "GAEB",
+        status: "SUCCEEDED",
+        validationErrors: [],
+        createdAt: new Date(),
+        createdBy: SEED_IDS.seedAdminUserId,
+      },
+    });
+    try {
+      const adminRes = await app.inject({
+        method: "GET",
+        url: "/exports?pageSize=100",
+        headers: adminHeaders(),
+      });
+      expect(adminRes.statusCode).toBe(200);
+      const adminBody = adminRes.json() as { data: Array<{ id: string }>; total: number };
+      expect(adminBody.data.some((r) => r.id === gaebRunId)).toBe(true);
+
+      const bhRes = await app.inject({
+        method: "GET",
+        url: "/exports?pageSize=100",
+        headers: roleHeaders("BUCHHALTUNG"),
+      });
+      expect(bhRes.statusCode).toBe(200);
+      const bhBody = bhRes.json() as { data: Array<{ entityType: string }>; total: number };
+      expect(bhBody.data.every((r) => r.entityType === "INVOICE")).toBe(true);
+      expect(bhBody.data.some((r) => r.entityType === "OFFER_VERSION")).toBe(false);
+    } finally {
+      await prisma.exportRunRow.delete({
+        where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: gaebRunId } },
+      });
+    }
+  });
+
+  it("GET /exports: VIEWER erhält 403", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/exports",
+      headers: roleHeaders("VIEWER"),
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("GET /exports/{exportRunId}: Admin lädt Exportlauf nach Rechnungs-Export", async () => {
+    const post = await app.inject({
+      method: "POST",
+      url: "/exports",
+      headers: adminHeaders(),
+      payload: {
+        entityType: "INVOICE",
+        entityId: SEED_IDS.invoiceId,
+        format: "XRECHNUNG",
+      },
+    });
+    expect(post.statusCode).toBe(201);
+    const { id } = post.json() as { id: string };
+    const get = await app.inject({
+      method: "GET",
+      url: `/exports/${id}`,
+      headers: adminHeaders(),
+    });
+    expect(get.statusCode).toBe(200);
+    expect((get.json() as { id: string }).id).toBe(id);
+  });
+
+  it("GET /exports/{exportRunId}: unbekannte UUID → EXPORT_RUN_NOT_FOUND", async () => {
+    const id = randomUUID();
+    const get = await app.inject({
+      method: "GET",
+      url: `/exports/${id}`,
+      headers: adminHeaders(),
+    });
+    expect(get.statusCode).toBe(404);
+    expect(get.json().code).toBe("EXPORT_RUN_NOT_FOUND");
+  });
+
+  it("GET /exports/{exportRunId}: BUCHHALTUNG erhält 403 für OFFER_VERSION-Lauf", async () => {
+    const gaebRunId = randomUUID();
+    await prisma.exportRunRow.create({
+      data: {
+        tenantId: SEED_IDS.tenantId,
+        id: gaebRunId,
+        entityType: "OFFER_VERSION",
+        entityId: SEED_IDS.offerVersionId,
+        format: "GAEB",
+        status: "SUCCEEDED",
+        validationErrors: [],
+        createdAt: new Date(),
+        createdBy: SEED_IDS.seedAdminUserId,
+      },
+    });
+    try {
+      const get = await app.inject({
+        method: "GET",
+        url: `/exports/${gaebRunId}`,
+        headers: roleHeaders("BUCHHALTUNG"),
+      });
+      expect(get.statusCode).toBe(403);
+      expect(get.json().code).toBe("AUTH_ROLE_FORBIDDEN");
+    } finally {
+      await prisma.exportRunRow.delete({
+        where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: gaebRunId } },
+      });
+    }
+  });
+
+  it("GET /exports/{exportRunId}: VIEWER erhält 403", async () => {
+    const post = await app.inject({
+      method: "POST",
+      url: "/exports",
+      headers: adminHeaders(),
+      payload: {
+        entityType: "INVOICE",
+        entityId: SEED_IDS.invoiceId,
+        format: "XRECHNUNG",
+      },
+    });
+    expect(post.statusCode).toBe(201);
+    const { id } = post.json() as { id: string };
+    const get = await app.inject({
+      method: "GET",
+      url: `/exports/${id}`,
+      headers: roleHeaders("VIEWER"),
+    });
+    expect(get.statusCode).toBe(403);
   });
 
   it("FIN-1 M1: zwei Zahlungsbedingungs-Versionen; Rechnung bleibt auf alter Version (Postgres); Buchung ändert PT-Referenz nicht", async () => {

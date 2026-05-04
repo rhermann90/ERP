@@ -287,6 +287,18 @@ export const auditListQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+export const exportRunListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+  entityType: z.enum(["OFFER_VERSION", "SUPPLEMENT_VERSION", "INVOICE"]).optional(),
+  status: z.enum(["PENDING", "FAILED", "SUCCEEDED"]).optional(),
+  format: z.enum(["XRECHNUNG", "GAEB"]).optional(),
+});
+
+export const exportRunIdParamsSchema = z.object({
+  exportRunId: z.string().uuid(),
+});
+
 export const allowedActionsQuerySchema = z.object({
   entityType: z.enum([
     "OFFER_VERSION",

@@ -1,6 +1,6 @@
 import type { LvPosition } from "./types.js";
 
-/** Regel 8.11 / MVP: Regelsteuersatz 19 % (Deutschland), in Basispunkten. */
+/** Regel 8.11 / MVP: Regelsteuersatz 19 % (Deutschland), in Basispunkten. FIN-5 / 8.16: bis Gate nur Standardpfad (ADR-0014). */
 export const GERMAN_VAT_STANDARD_BPS = 1900;
 
 /**
