@@ -13,9 +13,9 @@
 - **Service:** [`invoice-tax-settings-service.ts`](../../src/services/invoice-tax-settings-service.ts) — Resolver **Override > Profile > Default**; Mutationen schreiben Audit-Events.
 - **Persistenz:** [`invoice-tax-profile-persistence.ts`](../../src/persistence/invoice-tax-profile-persistence.ts) (Mandanten-Profil + Projekt-Override).
 - **Routes:** [`finance-invoice-tax-routes.ts`](../../src/api/finance-invoice-tax-routes.ts) — `GET|PATCH /finance/invoice-tax-profile` und `GET|PUT|DELETE /finance/invoice-tax-profile/projects/{projectId}` mit lokaler Rate-Limit-Konfig (read 60/min, write 20/min).
-- **OpenAPI:** [`api-contract.yaml`](../api-contract.yaml) `info.version: 1.29.0-fin5-invoice-tax-816`; Schemas `InvoiceTaxRegime`, `TenantInvoiceTaxProfile…`; Rechnungs-Snapshot um `invoiceTaxRegime`, `vatRateBpsEffective`, `taxReasonCode` erweitert; FIN4-Mapping in [`FIN4-external-client-integration.md`](../contracts/FIN4-external-client-integration.md) ergänzt; [`finance-fin0-openapi-mapping.md`](../contracts/finance-fin0-openapi-mapping.md) aktualisiert.
+- **OpenAPI:** [`api-contract.yaml`](../api-contract.yaml) `info.version: 1.29.1-fin5-manage-tax-settings-sot`; Schemas `InvoiceTaxRegime`, `TenantInvoiceTaxProfile…`; Rechnungs-Snapshot um `invoiceTaxRegime`, `vatRateBpsEffective`, `taxReasonCode` erweitert; FIN4-Mapping in [`FIN4-external-client-integration.md`](../contracts/FIN4-external-client-integration.md) ergänzt; [`finance-fin0-openapi-mapping.md`](../contracts/finance-fin0-openapi-mapping.md) aktualisiert.
 - **Audit:** Mutationen am Profil/Override erzeugen Audit-Events (siehe ADR-0015 §Audit).
-- **PWA:** `ApiClient`-Mock in [`apps/web/src/lib/api-client.ts`](../../apps/web/src/lib/api-client.ts); minimaler Read-Path im Step-UI von [`FinancePrepStepInvoice.tsx`](../../apps/web/src/components/finance/preparation/FinancePrepStepInvoice.tsx). **Schreib-UI fehlt noch** (Paket A unten).
+- **PWA:** `ApiClient`-Mock in [`apps/web/src/lib/api-client.ts`](../../apps/web/src/lib/api-client.ts); minimaler Read-Path im Step-UI von [`FinancePrepStepInvoice.tsx`](../../apps/web/src/components/finance/preparation/FinancePrepStepInvoice.tsx). **Paket A (Schreib-UI Steuerprofil):** siehe Abschnitt Paket A unten — umgesetzt.
 - **Tests:** [`test/finance-fin0-stubs.test.ts`](../../test/finance-fin0-stubs.test.ts), [`test/invoice-calculation.test.ts`](../../test/invoice-calculation.test.ts), Persistence-Integration ohne `export_runs` (nicht im Branch-Schema). App-Shell-Smoke [`e2e/app-shell-smoke.spec.ts`](../../e2e/app-shell-smoke.spec.ts).
 - **Doku:** ADR-0015; ADR-0014 superseded; FIN4-Integration und Mapping-Tabelle erweitert; Codemap [`overview.md`](../CODEMAPS/overview.md) FIN-5-Zeile aktualisiert.
 
@@ -23,14 +23,17 @@
 
 ### Paket A — PWA Steuerprofil-UI (Mandant + Projekt)
 
+**Status:** erledigt (Repo-Stand nach diesem Inkrement): Mandanten- und Projekt-Steuerprofil in der Finanz-Vorbereitung unter Tab „Grundeinstellungen Mahnlauf“ als zweites Panel; Schreibpfade über **`MANAGE_INVOICE_TAX_SETTINGS`** in `GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE` (minimaler Backend-Spiegel zu `assertCanManageInvoiceTaxSettings`). OpenAPI **`1.29.1-fin5-manage-tax-settings-sot`**.
+
 **Zweck:** Sichtbare und schreibbare UI für `/finance/invoice-tax-profile` (Mandanten-Default) und `/finance/invoice-tax-profile/projects/{projectId}` (Projekt-Override) in der Finanz-Vorbereitung.
 
 **Lieferung:**
 
-- Neuer Tab oder Region in `apps/web/src/components/finance/preparation/` — Muster wie [`FinanceDunningGrundeinstellungenPanel`](../../apps/web/src/components/finance/FinanceDunningGrundeinstellungenPanel.tsx) (Mandanten-Pflege).
-- `ApiClient`-Methoden produktiv schalten (nicht nur Mock): `getInvoiceTaxProfile`, `patchInvoiceTaxProfile`, `getProjectInvoiceTaxOverride`, `putProjectInvoiceTaxOverride`, `deleteProjectInvoiceTaxOverride`.
-- Schreibpfade über `allowedActions`-SoT analog FIN-1/FIN-3 (kein parallel berechnetes UI-Recht).
-- Tests: [`apps/web/src/components/FinancePreparation.test.tsx`](../../apps/web/src/components/FinancePreparation.test.tsx) erweitern; E2E [`e2e/login-finance-smoke.spec.ts`](../../e2e/login-finance-smoke.spec.ts) um Tax-Profile-PATCH/PUT/DELETE.
+- Region [`FinanceInvoiceTaxSettingsPanel`](../../apps/web/src/components/finance/preparation/FinanceInvoiceTaxSettingsPanel.tsx) im Tab „Grundeinstellungen“ neben [`FinanceDunningGrundeinstellungenPanel`](../../apps/web/src/components/finance/FinanceDunningGrundeinstellungenPanel.tsx).
+- **`ApiClient`**-HTTP weiterhin produktiv für FIN-5-Pfade (bereits vor Paket A).
+- Schreibpfade über `allowedActions`-SoT (**`MANAGE_INVOICE_TAX_SETTINGS`**) analog FIN-3.
+- Backend: [`authorization-service.ts`](../../src/services/authorization-service.ts) ergänzt um diese SoT-Aktion für berechtigte Rollen.
+- Tests: [`FinancePreparation.test.tsx`](../../apps/web/src/components/FinancePreparation.test.tsx); Backend [`test/app.test.ts`](../../test/app.test.ts); E2E [`e2e/login-finance-smoke.spec.ts`](../../e2e/login-finance-smoke.spec.ts).
 
 **Akzeptanz:**
 
@@ -38,7 +41,8 @@
 - PWA-Web-Tests grün; `npm run verify:pre-merge` Exit 0.
 - Strukturierte API-Fehler durchgängig nach Muster `FinanceStructuredApiError`.
 
-**Aufwand:** mittel; **kein** Backend-Touch.
+**Aufwand:** mittel; **Backend:** minimal (nur SoT-Aktion in `allowed-actions`).
+
 
 ### Paket B — Pflicht-Hinweise im Rechnungsausweis (PWA Read-Only)
 
@@ -115,7 +119,7 @@ Keine Pflicht-Reihenfolge — kleine, einzeln verifizierte PRs sind das Ziel.
 - ADR (superseded): [`docs/adr/0014-fin5-mvp-tax-fail-closed.md`](../adr/0014-fin5-mvp-tax-fail-closed.md)
 - Mapping: [`docs/contracts/finance-fin0-openapi-mapping.md`](../contracts/finance-fin0-openapi-mapping.md)
 - Integratoren: [`docs/contracts/FIN4-external-client-integration.md`](../contracts/FIN4-external-client-integration.md)
-- OpenAPI: [`docs/api-contract.yaml`](../api-contract.yaml) (`info.version: 1.29.0-fin5-invoice-tax-816`)
+- OpenAPI: [`docs/api-contract.yaml`](../api-contract.yaml) (`info.version: 1.29.1-fin5-manage-tax-settings-sot`)
 - Übergeordnetes: [`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md) Teil 3 / FIN-5
 - Historisches Gate (Option B): [`FIN-5-GATE-816-FAIL-CLOSED.md`](./FIN-5-GATE-816-FAIL-CLOSED.md)
 - P1-3-Eintrag: [`P1-3-DOCS-MILESTONE-WAVE3.md`](./P1-3-DOCS-MILESTONE-WAVE3.md) Zeile 7

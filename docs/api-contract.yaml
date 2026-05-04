@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-1/2/3/4 Finance)
-  version: 1.29.0-fin5-invoice-tax-816
+  version: 1.29.1-fin5-manage-tax-settings-sot
   description: |
     **PWA / Browser-Anbindung**
     - **CORS**: Umgebungsvariable `CORS_ORIGINS` — kommagetrennte, exakte Origins (z. B. `https://app.example.com,http://localhost:5173`). Leer oder unset: keine `Access-Control-*`-Header (gleiche Origin oder Server-zu-Server).
@@ -86,7 +86,7 @@ components:
             entityType=MEASUREMENT_VERSION: Aktionen gemäß §5.4 v1.2 (z. B. MEASUREMENT_CREATE_VERSION nur nach FREIGEGEBEN/ABGERECHNET;
             historische Versionen: leere allowedActions).
             entityType=LV_VERSION|LV_STRUCTURE_NODE|LV_POSITION: gemäß §9 v1.2 und ADR-0005 (Text/Struktur nur ENTWURF aktuelle Version).
-            entityType=INVOICE: **BOOK_INVOICE** (ENTWURF, Rollen ADMIN|GESCHAEFTSFUEHRUNG|BUCHHALTUNG) → POST /invoices/{id}/book; kanonische Export-Aktion **EXPORT_INVOICE** (Format `XRECHNUNG` nur im Body von POST /exports); **RECORD_PAYMENT_INTAKE** nur GEBUCHT_VERSENDET|TEILBEZAHLT; **RECORD_DUNNING_REMINDER** dieselben Status/Rollen → POST /invoices/{id}/dunning-reminders; kein separates actionId-Suffix pro Exportformat.
+            entityType=INVOICE: **BOOK_INVOICE** (ENTWURF, Rollen ADMIN|GESCHAEFTSFUEHRUNG|BUCHHALTUNG) → POST /invoices/{id}/book; kanonische Export-Aktion **EXPORT_INVOICE** (Format `XRECHNUNG` nur im Body von POST /exports); **RECORD_PAYMENT_INTAKE** nur GEBUCHT_VERSENDET|TEILBEZAHLT; **RECORD_DUNNING_REMINDER** dieselben Status/Rollen → POST /invoices/{id}/dunning-reminders; **MANAGE_INVOICE_TAX_SETTINGS** alle Rechnungsstatus, Rollen wie Zahlungseingang → PATCH /finance/invoice-tax-profile bzw. PUT|DELETE /finance/invoice-tax-profile/projects/{projectId}; kein separates actionId-Suffix pro Exportformat.
     MeasurementPosition:
       type: object
       required: [lvPositionId, quantity, unit]

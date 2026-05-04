@@ -28,7 +28,13 @@ const noopApi = {
     entityType: entityType ?? "INVOICE",
     allowedActions:
       entityType === "INVOICE"
-        ? ["RECORD_PAYMENT_INTAKE", "RECORD_DUNNING_REMINDER", "EXPORT_INVOICE"]
+        ? [
+            "BOOK_INVOICE",
+            "RECORD_PAYMENT_INTAKE",
+            "RECORD_DUNNING_REMINDER",
+            "EXPORT_INVOICE",
+            "MANAGE_INVOICE_TAX_SETTINGS",
+          ]
         : [],
   }),
   getMeasurementVersion: async () => ({}),
@@ -264,6 +270,26 @@ const noopApi = {
       results: [],
     },
   }),
+  getTenantInvoiceTaxProfile: async () => ({
+    tenantId: "00000000-0000-4000-8000-000000000001",
+    defaultInvoiceTaxRegime: "STANDARD_VAT_19" as const,
+  }),
+  getProjectInvoiceTaxOverride: async () => ({
+    projectId: "10101010-1010-4010-8010-101010101010",
+    invoiceTaxRegime: null as null,
+  }),
+  patchTenantInvoiceTaxProfile: async (body: { defaultInvoiceTaxRegime: string; reason: string }) => ({
+    tenantId: "00000000-0000-4000-8000-000000000001",
+    defaultInvoiceTaxRegime: body.defaultInvoiceTaxRegime as "STANDARD_VAT_19",
+  }),
+  putProjectInvoiceTaxOverride: async (
+    _projectId: string,
+    body: { invoiceTaxRegime: string; taxReasonCode?: string; reason: string },
+  ) => ({
+    projectId: "10101010-1010-4010-8010-101010101010",
+    invoiceTaxRegime: body.invoiceTaxRegime as "REVERSE_CHARGE",
+  }),
+  deleteProjectInvoiceTaxOverride: async () => undefined,
 } as unknown as ApiClient;
 
 describe("FinancePreparation", () => {
@@ -280,6 +306,7 @@ describe("FinancePreparation", () => {
     expect(screen.getByRole("heading", { name: /Zahlungseingang \(FIN-3\)/i })).not.toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: /Grundeinstellungen Mahnlauf/i }));
     expect(screen.getByRole("heading", { name: /Grundeinstellungen Mahnlauf \(SEMI, ADR-0011\)/i })).not.toBeNull();
+    expect(screen.getByRole("heading", { name: /Steuerprofil Rechnung \(FIN-5\)/i })).not.toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: /^Mahnwesen$/i }));
     expect(screen.getByRole("heading", { name: /Mahn-Ereignis \(FIN-4\)/i })).not.toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: /^Fortgeschritten$/i }));
