@@ -1,7 +1,7 @@
 # Projektprüfung nach cursor-stack Skills
 
 **Stand:** 2026-05-04 — Audit ergänzt nach Rebase/Push  
-**Branch:** `feat/export-runs-shell-spur-a` @ `56ce781` (nach **`git rebase origin/main`**, Push zum Remote; enthält u. a. Cursor-Stack + Skill-Review + Export/LV-Deltas + Follow-up-Doku)  
+**Branch:** `feat/export-runs-shell-spur-a` — nach **`git rebase origin/main`** und Push zum Remote aktualisiert; aktuellen Commit siehe `git log -1` auf dem Branch (Inhalt: Cursor-Stack, Skill-Review, Export/LV-Deltas, Follow-up-Doku).  
 **Projekt-Overrides:** [`.cursor/rules/cursor-stack.mdc`](../../.cursor/rules/cursor-stack.mdc) — `mainBranch: main`, `testCommand: npm run verify:ci`, `preMergeCommand: npm run verify:pre-merge`
 
 Skills-Referenz: [`.cursor/skills/*/SKILL.md`](../../.cursor/skills/).
