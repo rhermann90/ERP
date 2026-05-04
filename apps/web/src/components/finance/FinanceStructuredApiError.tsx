@@ -1,9 +1,69 @@
 import type { ApiErrorEnvelope } from "../../lib/api-error.js";
 
-export function FinanceStructuredApiError({ envelope, status }: { envelope: ApiErrorEnvelope; status: number }) {
+const STRUCTURED_ERROR_HINTS: Partial<Record<string, string>> = {
+  DOCUMENT_NOT_FOUND:
+    "Die angefragte Ressource wurde nicht gefunden oder gehört nicht zum aktuellen Mandanten. UUID prüfen und ggf. Rechnung neu laden.",
+  PAYMENT_EXCEEDS_OPEN_AMOUNT:
+    "Der Zahlungsbetrag ist höher als der offene Rechnungsbetrag. Rechnung laden und „Offenen Betrag übernehmen“ nutzen oder den Cent-Wert anpassen.",
+  PAYMENT_INVOICE_NOT_PAYABLE:
+    "Zahlungseingang ist für diese Rechnung (Status/Rolle) nicht zulässig. SoT und Rechnungsstatus prüfen.",
+  PAYMENT_INTAKE_IDEMPOTENCY_MISMATCH:
+    "Derselbe Idempotency-Key wurde mit anderem Payload wiederverwendet. Neuen Key erzeugen oder den ursprünglichen Request wiederholen.",
+  VALIDATION_FAILED:
+    "Eingaben entsprechen nicht der API-Validierung. Pflichtfelder, Formate und Grenzwerte prüfen (Details ggf. im Backend-Log).",
+  UNAUTHORIZED: "Sitzung fehlt oder ist abgelaufen — neu anmelden.",
+  AUTH_ROLE_FORBIDDEN: "Die aktuelle Rolle darf diese Aktion nicht ausführen.",
+  FORBIDDEN_AUDIT_READ:
+    "Audit-Lesen ist nur für ADMIN, BUCHHALTUNG oder GESCHAEFTSFUEHRUNG erlaubt — Rolle wechseln oder anderen Nutzer verwenden.",
+  TRACEABILITY_LINK_MISSING:
+    "Traceability zur LV/Angebotskette fehlt — Entwurf kann so nicht erzeugt oder fortgeführt werden.",
+  DUNNING_EMAIL_FOOTER_NOT_READY:
+    "E-Mail-Footer (Pflicht-Stammdaten laut FIN-4 / ADR-0010) ist nicht vollständig — zuerst Footer unter Tab Mahnwesen pflegen.",
+  DUNNING_EMAIL_SMTP_NOT_CONFIGURED:
+    "SMTP ist für diese Umgebung nicht konfiguriert (`ERP_SMTP_*`). Für Tests den Versand-Stub nutzen oder SMTP setzen.",
+  DUNNING_EMAIL_SMTP_ERROR:
+    "Der SMTP-Server hat den Versand abgelehnt. Empfänger, Credentials und Provider-Logs prüfen.",
+  DUNNING_INVOICE_NOT_ELIGIBLE:
+    "Rechnung ist für diese Mahnstufe nicht zugelassen (offener Betrag, Fälligkeit oder bereits gebuchte Mahnung).",
+  DUNNING_BATCH_EMAIL_CONFIRM_REQUIRED:
+    "Batch-E-Mail erwartet eine ausdrückliche Bestätigung im Request (siehe OpenAPI / Spec M4 5c) — Payload prüfen.",
+  DUNNING_BATCH_EMAIL_TOO_MANY_ITEMS: "Batch-E-Mail: maximal 25 Zeilen pro Aufruf — items[] kürzen.",
+  DUNNING_BATCH_EMAIL_DUPLICATE_INVOICE_ID: "In items[] ist dieselbe Rechnungs-ID mehrfach — Duplikate entfernen.",
+  DUNNING_BATCH_EMAIL_DUPLICATE_IDEMPOTENCY_KEY:
+    "Derselbe Idempotency-Key wurde für unterschiedliche Batch-Zeilen verwendet — je Zeile eigenen Key setzen.",
+  DUNNING_RUN_CONFIG_INCOMPLETE: "Mahnstufen-Konfiguration ist für den Lauf unvollständig — GET Konfig prüfen und Stufen pflegen.",
+  DUNNING_RUN_INVOICES_INVALID: "Mindestens eine Rechnungs-ID im Mahnlauf ist ungültig oder nicht mandantentreu.",
+  DUNNING_RUN_IDEMPOTENCY_MISMATCH: "Idempotency-Key wurde mit anderem Mahnlauf-Payload wiederverwendet.",
+  DUNNING_RUN_STAGE_INVALID: "Mahn-Stufe für den Lauf ungültig — Ordinal 1–9 und Konfiguration prüfen.",
+  DUNNING_EMAIL_IDEMPOTENCY_MISMATCH:
+    "Derselbe Idempotency-Key wurde für einen anderen E-Mail-Versand wiederverwendet — neuen Key setzen.",
+  DUNNING_EMAIL_STAGE_INVALID: "Mahn-Stufe für E-Mail-Vorschau oder Versand passt nicht zur Konfiguration.",
+  DUNNING_EMAIL_TEMPLATE_NOT_FOUND: "Keine Vorlage für diese Stufe/Kanal — Vorlagen-GET und Konfig prüfen.",
+  DUNNING_EMAIL_STAGE_CONFIG_NOT_FOUND: "Keine aktive Stufen-Zeile für diese Ordinal — Konfiguration prüfen.",
+};
+
+function StructuredErrorCodeHint({ code }: { code: string }) {
+  if (code === "DUNNING_REMINDER_RUN_DISABLED") return null;
+  const text = STRUCTURED_ERROR_HINTS[code];
+  if (!text) return null;
+  return (
+    <p style={{ margin: "0.35rem 0 0", fontSize: "0.82rem", color: "var(--text-primary)" }}>{text}</p>
+  );
+}
+
+export function FinanceStructuredApiError({
+  envelope,
+  status,
+  announcementRole = "alert",
+}: {
+  envelope: ApiErrorEnvelope;
+  status: number;
+  /** `status` nutzen, wenn ein Eltern-Element bereits `aria-live="polite"` ansagt. */
+  announcementRole?: "alert" | "status";
+}) {
   return (
     <div
-      role="alert"
+      role={announcementRole}
       style={{
         marginTop: "0.75rem",
         padding: "0.65rem 0.75rem",
@@ -17,6 +77,7 @@ export function FinanceStructuredApiError({ envelope, status }: { envelope: ApiE
         {status} · {envelope.code}
       </strong>
       <p style={{ margin: "0.35rem 0 0.5rem" }}>{envelope.message}</p>
+      <StructuredErrorCodeHint code={envelope.code} />
       {envelope.code === "DUNNING_REMINDER_RUN_DISABLED" ? (
         <p style={{ margin: "0.35rem 0 0", fontSize: "0.82rem", color: "var(--text-primary)" }}>
           Mandanten-Mahnlauf ist auf <strong>AUS (OFF)</strong>. Bitte unter Grundeinstellungen Automation auf <strong>SEMI</strong> stellen, oder nur Kandidaten laden (kein Dry-Run / keine Batch-Ausführung).
@@ -24,7 +85,7 @@ export function FinanceStructuredApiError({ envelope, status }: { envelope: ApiE
       ) : null}
       <dl
         style={{
-          margin: 0,
+          margin: "0.5rem 0 0",
           display: "grid",
           gridTemplateColumns: "auto 1fr",
           gap: "0.2rem 0.75rem",
@@ -41,6 +102,17 @@ export function FinanceStructuredApiError({ envelope, status }: { envelope: ApiE
         <dt>blocking</dt>
         <dd style={{ margin: 0 }}>{String(envelope.blocking)}</dd>
       </dl>
+      <p
+        data-testid="finance-structured-api-error-disclaimer"
+        style={{
+          margin: "0.6rem 0 0",
+          fontSize: "0.72rem",
+          color: "var(--text-secondary)",
+          lineHeight: 1.35,
+        }}
+      >
+        Hinweistexte zur technischen Einordnung — keine Rechts-, Steuer- oder Buchhaltungsberatung.
+      </p>
     </div>
   );
 }

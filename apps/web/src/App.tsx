@@ -106,6 +106,8 @@ export default function App() {
   const [invoiceDunningRemindersJson, setInvoiceDunningRemindersJson] = useState("");
   const [invoicePaymentTermsJson, setInvoicePaymentTermsJson] = useState("");
   const [invoiceAllowedActionsShellJson, setInvoiceAllowedActionsShellJson] = useState("");
+  /** Haupt-Shell: read-only GET /finance/dunning-reminder-config (FIN-4). */
+  const [shellDunningConfigJson, setShellDunningConfigJson] = useState("");
 
   const [modalAction, setModalAction] = useState<string | null>(null);
   const [form, setForm] = useState<ActionFormFields>({
@@ -182,6 +184,7 @@ export default function App() {
       setOfferVersionDetail(null);
       setInvoiceShellDetail(null);
       setLvShellDetail(null);
+      setShellDunningConfigJson("");
       setBanner(null);
       const p = loadDocPrefs(tenantId);
       setDocumentId(p.documentId);
@@ -411,6 +414,26 @@ export default function App() {
       setBusy(false);
     }
   }, [client, invoiceShellDetail]);
+
+  const loadShellDunningReminderConfig = useCallback(async () => {
+    setBusy(true);
+    setBanner(null);
+    try {
+      const r = await client.getDunningReminderConfig();
+      setShellDunningConfigJson(JSON.stringify(r, null, 2));
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setBanner({
+          kind: "error",
+          text: e.envelope.message,
+          code: e.envelope.code,
+          correlationId: e.envelope.correlationId,
+        });
+      } else setBanner({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [client]);
 
   const openAction = (actionId: string) => {
     if (!allowedActions?.includes(actionId)) return;
@@ -766,6 +789,35 @@ export default function App() {
               ))
             )}
           </div>
+        ) : null}
+      </section>
+
+      <section className="panel" data-testid="shell-dunning-config-panel">
+        <h2>Mahnstufen-Konfiguration (Shell, read-only)</h2>
+        <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: 0 }}>
+          <code>GET /finance/dunning-reminder-config</code> — FIN-4; keine Schreibaktionen in diesem Panel.
+        </p>
+        <div className="actions-row">
+          <button
+            type="button"
+            className="btn secondary"
+            data-testid="shell-dunning-config-fetch"
+            disabled={busy}
+            aria-label="Mahnstufen-Konfiguration laden (GET)"
+            onClick={() => void loadShellDunningReminderConfig()}
+          >
+            Mahnstufen-Konfiguration (GET)
+          </button>
+        </div>
+        {shellDunningConfigJson ? (
+          <>
+            <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
+              Antwort GET /finance/dunning-reminder-config
+            </h3>
+            <pre className="system-block" style={{ margin: 0 }} data-testid="shell-dunning-config-json">
+              {shellDunningConfigJson}
+            </pre>
+          </>
         ) : null}
       </section>
 

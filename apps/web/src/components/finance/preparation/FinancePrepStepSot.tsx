@@ -1,8 +1,9 @@
+import { memo } from "react";
 import { DEMO_SEED_IDS } from "../../../lib/demo-seed-ids.js";
 import { FinanceCollapsibleJson } from "../FinanceCollapsibleJson.js";
 import { FinancePrepPanel } from "../FinancePrepPanel.js";
 import type { SotEntityType } from "../finance-preparation-meta.js";
-import { SOT_ENTITY_TYPES } from "../finance-preparation-meta.js";
+import { FIN_PREP_A11Y, SOT_ENTITY_TYPES } from "../finance-preparation-meta.js";
 
 export type FinancePrepStepSotProps = {
   busy: boolean;
@@ -15,7 +16,7 @@ export type FinancePrepStepSotProps = {
   onLoadSotAllowedActions: () => void;
 };
 
-export function FinancePrepStepSot({
+function FinancePrepStepSotInner({
   busy,
   invoiceIdRead,
   sotEntityType,
@@ -27,7 +28,7 @@ export function FinancePrepStepSot({
 }: FinancePrepStepSotProps) {
   return (
     <FinancePrepPanel step={4} title="SoT — erlaubte Aktionen (Fortgeschritten)">
-      <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
+      <p id={FIN_PREP_A11Y.sotIntro} style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
         <code>GET /documents/:id/allowed-actions</code> — gleiche Quelle wie die Dokument-Shell; <code>id</code> ist die UUID der
         gewählten Entität (nicht immer die Rechnungs-ID).
       </p>
@@ -99,6 +100,7 @@ export function FinancePrepStepSot({
           value={sotEntityType}
           onChange={(e) => setSotEntityType(e.target.value as SotEntityType)}
           aria-label="entityType für allowed-actions"
+          aria-describedby={FIN_PREP_A11Y.sotIntro}
           style={{ display: "block", width: "100%", marginTop: "0.25rem", maxWidth: "28rem" }}
         >
           {SOT_ENTITY_TYPES.map((t) => (
@@ -115,6 +117,7 @@ export function FinancePrepStepSot({
           value={sotDocumentId}
           onChange={(e) => setSotDocumentId(e.target.value)}
           aria-label="Dokument-ID für allowed-actions"
+          aria-describedby={FIN_PREP_A11Y.sotIntro}
           style={{ width: "100%", fontFamily: "monospace", fontSize: "0.85rem", marginTop: "0.25rem" }}
         />
       </label>
@@ -125,3 +128,5 @@ export function FinancePrepStepSot({
     </FinancePrepPanel>
   );
 }
+
+export const FinancePrepStepSot = memo(FinancePrepStepSotInner);

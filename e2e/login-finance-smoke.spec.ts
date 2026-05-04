@@ -32,6 +32,23 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await expect(page.getByTestId("lv-shell-detail")).toContainText(SEED_LV_VERSION_ID);
   });
 
+  test("Haupt-Shell: GET /finance/dunning-reminder-config (read-only)", async ({ page }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("shell-dunning-config-panel")).toBeVisible({ timeout: 20_000 });
+
+    await page.getByTestId("shell-dunning-config-fetch").click();
+    await expect(page.getByTestId("shell-dunning-config-json")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("shell-dunning-config-json")).toContainText('"stages"');
+    await expect(page.getByTestId("shell-dunning-config-json")).toContainText("MVP_STATIC_DEFAULTS");
+  });
+
   test("Haupt-Shell: OFFER_VERSION GET-Detail", async ({ page }) => {
     await page.goto("/#/login");
 
@@ -139,6 +156,35 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await expect(supplementPanel).toContainText("ENTWURF");
     await expect(supplementPanel).toContainText(SEED_SUPPLEMENT_VERSION_ID);
     await expect(supplementPanel).toContainText("33333333-3333-4333-8333-333333333333");
+  });
+
+  test("Finanz-Vorbereitung: Grundeinstellungen — Kandidaten-GET zeigt Eligibility-Region (data-testid)", async ({
+    page,
+  }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+    await page.getByRole("link", { name: "Finanz (Vorbereitung)" }).click();
+    await expect(page.locator("section.finance-prep")).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole("tab", { name: /Grundeinstellungen Mahnlauf/i }).click();
+    await expect(page.getByRole("heading", { name: /Grundeinstellungen Mahnlauf \(SEMI, ADR-0011\)/i })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await page.getByLabel("Mahn-Stufe fuer Kandidaten und Batch").fill("1");
+    /** Nach Seed-Rechnung (issueDate + 14 Kalendertage laut MVP-Stufen-Defaults) — Kandidat für Stufe 1. */
+    await page.getByLabel("asOfDate fuer Mahnlauf und Kandidaten").fill("2026-04-28");
+    await page.getByRole("button", { name: "Kandidaten laden (GET)" }).click();
+
+    const region = page.getByTestId("finance-dunning-candidates-region");
+    await expect(region).toBeVisible({ timeout: 15_000 });
+    await expect(region.getByTestId("finance-dunning-candidate-invoice-0")).toContainText(SEED_INVOICE_ID);
+    await expect(region).toContainText("Fälligkeit / Kontext (B3)");
   });
 
   test("Finanz: Deep-Link #/finanz-grundeinstellungen zeigt Mahn-Grundeinstellungen (Option A / M4 IA)", async ({

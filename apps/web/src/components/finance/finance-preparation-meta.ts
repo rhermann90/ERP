@@ -54,8 +54,12 @@ export const DOC_LINKS: FinancePrepDocLink[] = [
     repoPath: "docs/tickets/M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md",
   },
   {
-    label: "M4 Slice 5c — Massen-E-Mail Mahnwesen (Spec)",
+    label: "M4 Slice 5c — Massen-E-Mail Mahnwesen (Spec + Endpoint im Repo)",
     repoPath: "docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md",
+  },
+  {
+    label: "Runbook — Mandanten-Go Massen-E-Mail (5c, organisatorisch)",
+    repoPath: "docs/runbooks/m4-slice-5c-pl-mandanten-go.md",
   },
   {
     label: "FIN-2-Start-Gate (G1–G10)",
@@ -72,6 +76,10 @@ export const DOC_LINKS: FinancePrepDocLink[] = [
   {
     label: "MVP Finanz — Phasen und Arbeitsablauf (FIN-0 … FIN-6)",
     repoPath: "docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md",
+  },
+  {
+    label: "FIN-5 — Team-Gate (8.16 vs. Fail-Closed, vor Spur B)",
+    repoPath: "docs/tickets/FIN-5-GATE-816-FAIL-CLOSED.md",
   },
   {
     label: "Roadmap — Weg zur fertigen App (Phasen A–E)",
@@ -96,6 +104,16 @@ export const DEMO_PROJECT_ID = "10101010-1010-4010-8010-101010101010";
 export const DEMO_CUSTOMER_ID = "20202020-2020-4020-8020-202020202020";
 /** Seed-Rechnung SEED_IDS.invoiceId (gebucht, mit 8.4-Beträgen). */
 export const DEMO_INVOICE_ID = "44444444-4444-4444-8444-444444444444";
+
+/** DOM-Ids für Hilfetexte (`aria-describedby`) in der Finanz-Vorbereitung. */
+export const FIN_PREP_A11Y = {
+  termsIntro: "finance-prep-terms-intro",
+  draftIntro: "finance-prep-draft-intro",
+  invoiceUuidHint: "finance-prep-invoice-uuid-hint",
+  invoiceEmpty: "finance-prep-invoice-empty",
+  sotIntro: "finance-prep-sot-intro",
+  fin3Steps: "finance-prep-fin3-steps",
+} as const;
 
 export function formatEurFromCents(cents: number | undefined): string {
   if (cents === undefined) return "—";

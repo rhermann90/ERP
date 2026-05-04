@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { FinanceCollapsibleJson } from "../FinanceCollapsibleJson.js";
 import { FinancePrepPanel } from "../FinancePrepPanel.js";
 
@@ -7,7 +8,7 @@ export type FinancePrepStepAuditProps = {
   onLoadAuditEvents: () => void;
 };
 
-export function FinancePrepStepAudit({ busy, auditJson, onLoadAuditEvents }: FinancePrepStepAuditProps) {
+function FinancePrepStepAuditInner({ busy, auditJson, onLoadAuditEvents }: FinancePrepStepAuditProps) {
   return (
     <FinancePrepPanel step={7} title="Audit — Nachvollziehbarkeit">
       <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
@@ -21,3 +22,5 @@ export function FinancePrepStepAudit({ busy, auditJson, onLoadAuditEvents }: Fin
     </FinancePrepPanel>
   );
 }
+
+export const FinancePrepStepAudit = memo(FinancePrepStepAuditInner);

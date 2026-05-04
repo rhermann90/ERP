@@ -1,9 +1,11 @@
+import { memo } from "react";
+
 /**
  * Kurzübersicht: welche Finanz-Funktionen diese Vorbereitungsseite gegen das Backend ausführt.
  * Einordnung konsistent mit docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md Teil 1 (Kurz-Iststand) und
  * docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md (Non-Goals: kein vollständiger 8.4(2–6), kein M4-Mix).
  */
-export function FinanceFeatureMatrix() {
+function FinanceFeatureMatrixInner() {
   const rows: { area: string; inUi: string; einordnung: string; hinweis: string }[] = [
     {
       area: "FIN-1 Zahlungsbedingungen",
@@ -110,3 +112,5 @@ export function FinanceFeatureMatrix() {
     </div>
   );
 }
+
+export const FinanceFeatureMatrix = memo(FinanceFeatureMatrixInner);
