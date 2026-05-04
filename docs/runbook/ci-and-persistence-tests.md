@@ -18,7 +18,8 @@ Workflow: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)
 
 - **Postgres 16** als Service-Container auf Port **5432** (im Actions-Job: Host-Port 5432 → Container 5432).
 - **`DATABASE_URL`** und **`PERSISTENCE_DB_TEST_URL`** zeigen auf dieselbe Test-DB (`erp_test`).
-- Ablauf: `npm ci` → `prisma migrate deploy` → `prisma:validate` → `typecheck` → `npm test`.
+- Ablauf: `npm ci` → `prisma migrate deploy` → `prisma:validate` → `validate:api-contract-yaml` → **`validate:cursor-project-rules`** → `typecheck` → `npm test`.
+- **Cursor — Projektregeln:** `validate:cursor-project-rules` prüft kanonisch [`.cursor/rules/cursor-stack.mdc`](../../.cursor/rules/cursor-stack.mdc) und Redirect-Stubs (`erp-*.mdc`). Skills: `.cursor/skills/`; Refresh aus [cursor-stack](https://github.com/Himanshu-Sangshetti/cursor-stack) mit `npm run sync:cursor-stack-skills` (Netzwerk + Git) oder **offline** nach `.cursor/rules/cursor-stack.mdc` (Abschnitt „Geschlossene / offline Umgebungen“). Siehe auch [`AGENTS.md`](../../AGENTS.md).
 - **Prisma-CLI-Version** entspricht den Root-Abhängigkeiten in `package.json` / `package-lock.json` (Major-Upgrade: [`docs/tickets/PRISMA-7-UPGRADE.md`](../tickets/PRISMA-7-UPGRADE.md)). In CI: `npm run check:prisma-stack` vor `prisma:validate`.
 
 Ohne `PERSISTENCE_DB_TEST_URL` schlagen die Persistenz-Suites in CI nicht fehl durch Überspringen: `test/persistence*.ts` werfen bei `GITHUB_ACTIONS=true` ohne Variable einen Fehler (**Stop-the-line**).

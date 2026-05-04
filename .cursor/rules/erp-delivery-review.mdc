@@ -1,34 +1,8 @@
 ---
-description: ERP delivery, merge gates, response schema, review (code/contracts/web paths)
-globs:
-  - src/**
-  - apps/web/**
-  - prisma/**
-  - README.md
-  - Checklisten/**
-  - docs/contracts/**
-  - docs/api-contract.yaml
-  - docs/adr/**
-  - docs/tickets/**
-  - docs/CODEMAPS/**
+description: Stub — kanonische Projektregeln in cursor-stack.mdc
 alwaysApply: false
 ---
 
-# ERP Delivery, Merge Gates, Response Schema, Review
+# Projektregeln (Redirect)
 
-Kern-Invarianten und Plan-Modus: [`.cursor/rules/erp-multi-agent.mdc`](./erp-multi-agent.mdc). Diese Datei ergänzt sie für **Lieferung**, **Merge**, **Antwortformat** und **Review**, wenn du unter den obigen Pfaden arbeitest.
-
-Delivery rules:
-- Work in phases with explicit quality gates.
-- Before merging to `main` / `master`: green GitHub Actions job **`backend`** (see `.github/workflows/ci.yml`); follow `.github/pull_request_template.md` and QA §5a in `docs/contracts/qa-fin-0-gate-readiness.md`. Branch protection: `docs/runbooks/github-branch-protection-backend.md`.
-- For production go-live on invoicing / tax / e-invoice topics: use the non-code checklist [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) with tax counsel / DPO / release owners — it does not replace legal advice or the README’s separate release GO for GoBD/compliance.
-- Do not commit secrets (env files with credentials, private SSH keys, tokens); canonical Git remote is the team repo `rhermann90/ERP` (see root `README.md`).
-- Every output must include: result, rationale, risks, open questions.
-- Explain impact on legal compliance, data consistency, maintainability, and PWA readiness.
-- For purely mechanical, non-domain edits (e.g. spelling in unrelated comments, agent-doc link fixes): keep result and rationale concise; for risks, compliance, data consistency, maintainability, and PWA readiness, state explicitly when none apply (a short phrase or "none" per dimension is enough). For anything touching domain logic, API contracts, persistence, auth, or finance/tax UI, use the full format without exception.
-- Prefer scalable, modular, and testable solutions over quick hacks.
-
-Review rules:
-- Treat missing tests for critical paths as incomplete.
-- Flag legal/financial risks early.
-- Stop phase progression on unresolved critical findings.
+Liefer-, Merge- und Review-Format sind in den **Projektregeln** [`cursor-stack.mdc`](./cursor-stack.mdc) (Abschnitte „Delivery paths“ und „Review rules“). Dieser Pfad (`erp-delivery-review.mdc`) bleibt nur für alte Verweise erhalten.

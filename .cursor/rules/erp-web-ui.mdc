@@ -1,16 +1,8 @@
 ---
-description: PWA UI/UX — Tokens, Theming, Barrierefreiheit für apps/web
-globs:
-  - apps/web/**
+description: Stub — kanonische Projektregeln in cursor-stack.mdc
 alwaysApply: false
 ---
 
-# ERP Web UI (PWA)
+# Projektregeln (Redirect)
 
-Bei Änderungen unter `apps/web/`:
-
-1. **Pflichtlektüre / Link-Hub:** [`docs/referenz-ui-ux.md`](../../docs/referenz-ui-ux.md); fachlich [`docs/ui-ux-style-guide.md`](../../docs/ui-ux-style-guide.md), technisch [`docs/web-theming.md`](../../docs/web-theming.md).
-2. **Farben / Flächen:** nur CSS-Variablen aus [`apps/web/src/index.css`](../../apps/web/src/index.css); keine Auth-Tokens in `localStorage` (nur `erp-theme`, `erp-dark-palette-last` für Darstellung).
-3. **SoT / Finanz-UI:** unverändert [`apps/web/README.md`](../../apps/web/README.md) und Frontend-Verträge unter `docs/contracts/` — keine parallele Berechtigungslogik in der UI.
-4. **Neue Bedienelemente:** Kontrast (WCAG 2.2 AA für Fließtext); Touch-Ziele für primäre Aktionen großzügig; keine kritischen Infos nur per Hover.
-5. **Icons:** ein Outline-Set, ein Anbieter — siehe Style-Guide bis ein Set festgelegt ist.
+Web-UI-/PWA-Hinweise für `apps/web/**` stehen in den **Projektregeln** [`cursor-stack.mdc`](./cursor-stack.mdc) (Abschnitt „PWA / apps/web“). Dieser Pfad (`erp-web-ui.mdc`) bleibt nur für alte Verweise erhalten.

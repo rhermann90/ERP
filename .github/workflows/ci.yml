@@ -63,6 +63,9 @@ jobs:
       - name: Validate docs/api-contract.yaml (YAML syntax)
         run: npm run validate:api-contract-yaml
 
+      - name: Validate Cursor project rules (canonical + stubs)
+        run: npm run validate:cursor-project-rules
+
       - name: Typecheck
         run: npm run typecheck
 

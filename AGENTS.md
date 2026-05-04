@@ -44,6 +44,8 @@ Tickets und Gates (z. B. FIN-2, QA §5a) stehen in `docs/tickets/` und `docs/con
 | Nur Backend-Tests | `npm test` |
 | Web-Unit-Tests | `npm run test -w apps/web` |
 | OpenAPI-Validierung | `npm run validate:api-contract-yaml` |
+| Cursor-Projektregeln (canonical `cursor-stack.mdc`, keine Legacy-Vollregeln) | `npm run validate:cursor-project-rules` |
+| Cursor-Skills aus upstream cursor-stack nachziehen (überschreibt `.cursor/skills/`) | **Mit Netzwerk + Git:** `npm run sync:cursor-stack-skills` — danach Diff prüfen, `validate:cursor-project-rules`, commit. **Airgap / ohne GitHub:** acht Ordner aus cursor-stack-Artefakt nach `.cursor/skills/<name>/` kopieren — siehe [`.cursor/rules/cursor-stack.mdc`](./.cursor/rules/cursor-stack.mdc) („Geschlossene / offline Umgebungen“). |
 
 **Editor:** VS Code / Cursor können Workspace-Empfehlungen aus [`.vscode/extensions.json`](./.vscode/extensions.json) installieren (Prisma, YAML, Playwright, Docker, deutsches Sprachpaket). **ESLint / Prettier / Biome:** zugehörige Editor-Extensions erst ergänzen, wenn das Team die passenden npm-DevDependencies und Konfiguration im Repo eingeführt hat — sonst leere oder irreführende Hinweise im Editor.
 

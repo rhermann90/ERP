@@ -1,0 +1,105 @@
+---
+description: Projektregeln — ERP-Domäne, Liefer-/Review-Format, Web-UI, Plan-Modus, Ship-/Test-Overrides; Slash-Workflows unter .cursor/skills/
+alwaysApply: true
+---
+
+# Projektregeln
+
+**Projektregeln** (eine Datei, hier): Domäne, Lieferformat, Review/Web-UI, Plan-Modus und lokale Ship-/Test-Overrides.
+
+Slash-Workflows (Paket [cursor-stack](https://github.com/Himanshu-Sangshetti/cursor-stack)) unter `.cursor/skills/`: `/researcher`, `/plan-ceo`, `/plan-eng`, `/code-review`, `/ship`, `/qa`, `/retro`, `/workflow`.
+
+**Cursor-IDE:** Verfügbarkeit und Benennung von Slash-Befehlen hängen vom Cursor-Build ab. Wenn ein Befehl fehlt, den Inhalt des passenden `SKILL.md` unter `.cursor/skills/<name>/` manuell in den Chat übernehmen oder als User-Rule referenzieren.
+
+## Domain core
+
+Authoritative domain source is [`docs/ERP-Systembeschreibung.md`](../../docs/ERP-Systembeschreibung.md) (konsolidiert v2.0). Archivierte Einzelstände: `docs/_archiv/systembeschreibung-und-phasen-legacy/`. Repository-Orientierung: [`AGENTS.md`](../../AGENTS.md).
+
+Non-negotiable rules:
+
+- Do not simplify domain logic.
+- Enforce strict tenant isolation.
+- Use versioning for business-critical states; no destructive overwrite.
+- Preserve end-to-end traceability: invoice → measurement → LV → offer → project → customer.
+- Never mix immutable system text with editable business text.
+- When uncertain, state assumptions explicitly and request clarification.
+
+## Delivery paths (full format)
+
+**Liefer-, Merge-, Review- und Ausgabeformat (vollständig)** gelten bei Arbeit unter: `src/`, `apps/web/`, `prisma/`, `README.md`, `Checklisten/`, `docs/contracts/`, `docs/api-contract.yaml`, `docs/adr/`, `docs/tickets/`, `docs/CODEMAPS/`.
+
+Für Aufgaben **außerhalb** dieser Pfade: weiterhin **result**, **rationale**, **risks**, **open questions** inhaltlich abdecken; Auswirkungsdimensionen (Compliance, Datenkonsistenz, Wartbarkeit, PWA) nur kurz oder „keine“, soweit nicht fachlich relevant.
+
+Delivery rules:
+
+- Work in phases with explicit quality gates.
+- Before merging to `main` / `master`: green GitHub Actions job **`backend`** (see `.github/workflows/ci.yml`); follow `.github/pull_request_template.md` and QA in [`docs/contracts/qa-fin-0-gate-readiness.md`](../../docs/contracts/qa-fin-0-gate-readiness.md). Branch protection: [`docs/runbooks/github-branch-protection-backend.md`](../../docs/runbooks/github-branch-protection-backend.md).
+- For invoicing / tax / e-invoice topics beyond code and CI: optional background under [`docs/_archiv/checklisten-compliance-human-workflow/`](../../docs/_archiv/checklisten-compliance-human-workflow/); stub [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) does not impose repo-side human sign-off.
+- Do not commit secrets (env files with credentials, private SSH keys, tokens); canonical Git remote is the team repo `rhermann90/ERP` (see root `README.md`).
+- Every output must include: **result**, **rationale**, **risks**, **open questions**.
+- Explain impact on legal compliance, data consistency, maintainability, and PWA readiness.
+- For purely mechanical, non-domain edits: keep result and rationale concise; for risks/compliance/data consistency/maintainability/PWA state explicitly when none apply. For anything touching domain logic, API contracts, persistence, auth, or finance/tax UI, use the full format without exception.
+- Prefer scalable, modular, and testable solutions over quick hacks.
+
+Review rules:
+
+- Treat missing tests for critical paths as incomplete.
+- Flag legal/financial risks early.
+- Stop phase progression on unresolved critical findings.
+
+## PWA / `apps/web/**`
+
+Bei Änderungen unter `apps/web/`:
+
+1. **Pflichtlektüre / Link-Hub:** [`docs/referenz-ui-ux.md`](../../docs/referenz-ui-ux.md); [`docs/ui-ux-style-guide.md`](../../docs/ui-ux-style-guide.md), [`docs/web-theming.md`](../../docs/web-theming.md).
+2. **Farben / Flächen:** nur CSS-Variablen aus [`apps/web/src/index.css`](../../apps/web/src/index.css); keine Auth-Tokens in `localStorage` (nur `erp-theme`, `erp-dark-palette-last` für Darstellung).
+3. **SoT / Finanz-UI:** [`apps/web/README.md`](../../apps/web/README.md) und Frontend-Verträge unter `docs/contracts/` — keine parallele Berechtigungslogik in der UI.
+4. **Neue Bedienelemente:** Kontrast (WCAG 2.2 AA für Fließtext); Touch-Ziele für primäre Aktionen großzügig; keine kritischen Infos nur per Hover.
+5. **Icons:** ein Outline-Set, ein Anbieter — siehe Style-Guide bis ein Set festgelegt ist.
+
+## Cursor Plan mode
+
+- Whenever the session is in **Plan mode**, **every** turn that lays out or updates a plan must use the **TodoWrite** tool with concrete todos (stable `id`, sensible `status`) when that tool is available; prose checklists do not replace it.
+- When the IDE requires a **CreatePlan** artifact for the same turn, produce **both**: the CreatePlan output **and** TodoWrite todos aligned with that plan (same scope).
+
+## cursor-stack project values (git / tests)
+
+Use these for `/ship`, `/plan-ceo`, `/plan-eng`, and any execution checklist unless the user overrides inline:
+
+```
+mainBranch: main
+testCommand: npm run verify:ci
+preMergeCommand: npm run verify:pre-merge
+complexityThreshold: 12
+branchPrefix: feat/
+```
+
+- Prefer `testCommand` for ship flows; use `preMergeCommand` when the user asks for full pre-merge (CI + finance smoke E2E).
+- OpenAPI or contract touches: sync [`docs/api-contract.yaml`](../../docs/api-contract.yaml), [`src/domain/openapi-contract-version.ts`](../../src/domain/openapi-contract-version.ts), FIN4 doc per [`AGENTS.md`](../../AGENTS.md).
+
+## Upstream skills
+
+Skills sind eine **Kopie** aus [cursor-stack](https://github.com/Himanshu-Sangshetti/cursor-stack) (MIT); es gibt **keine** automatische Synchronisation beim `npm install`.
+
+Ordnernamen (Ziel jeweils `.cursor/skills/<name>/`): `plan-ceo`, `plan-eng`, `code-review`, `ship`, `qa`, `retro`, `researcher`, `workflow`.
+
+- **Aktualisieren (mit Netzwerk + Git):** im ERP-Repo-Root `npm run sync:cursor-stack-skills` — shallow-clone upstream und Überschreiben dieser Ordner unter `.cursor/skills/`.
+- **Danach (immer):** `git diff .cursor/skills` prüfen (unerwartete Änderungen verwerfen oder gezielt committen), `npm run validate:cursor-project-rules` ausführen (**ohne Netzwerk**, reine Dateiprüfung).
+
+### Geschlossene / offline Umgebungen (ohne `npm run sync:cursor-stack-skills`)
+
+`sync:cursor-stack-skills` clone’t von GitHub und braucht **ausgehendes Netzwerk** und ein **`git`** im PATH. Ist das ausgeschlossen (Airgap, Proxy-only ohne GitHub, Corporate-Desktop ohne Git):
+
+1. **Auf einem System mit Zugang zu upstream:** Repository [cursor-stack](https://github.com/Himanshu-Sangshetti/cursor-stack) klonen oder als ZIP/Source-Bundle beziehen — oder nur die acht Ordner (oben) als Archiv packen, z. B. nach einem lokalen Clone:
+
+   `tar -czf cursor-stack-skills.tgz plan-ceo plan-eng code-review ship qa retro researcher workflow`
+
+   (im Wurzelverzeichnis des cursor-stack-Arbeitsbaums ausführen).
+
+2. **Im ERP-Arbeitsbaum (auch ohne Git möglich):** Archiv übernehmen (USB, internes Artefakt-Repo, Signed Blob), entpacken und die acht Ordner **vollständig** nach `<ERP>/.cursor/skills/<name>/` kopieren — bestehende gleichnamige Ordner dabei ersetzen (gleiche Struktur wie nach einem erfolgreichen Sync).
+
+3. **Validierung:** `npm run validate:cursor-project-rules` im ERP-Repo ausführen.
+
+**Ohne Netzwerk** musst du die Skills nicht aus dem ERP-Repo neu laden; bereits eingecheckte `.cursor/skills/` reichen für die Arbeit. Aktualisieren ist dann nur ein **manueller Artefakt-Tausch** wie oben.
+
+Es gibt **keinen festen Versions-Pin** gegenüber upstream; bei großen Sprüngen im Upstream-Repo vor dem Merge eigenes Review einplanen.

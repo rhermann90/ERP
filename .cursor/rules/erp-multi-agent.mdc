@@ -1,24 +1,8 @@
 ---
-description: Persistent working rules for ERP multi-agent delivery
-alwaysApply: true
+description: Stub — kanonische Projektregeln in cursor-stack.mdc
+alwaysApply: false
 ---
 
-# ERP Multi-Agent Core Rules
+# Projektregeln (Redirect)
 
-Authoritative domain source is [`docs/ERP-Systembeschreibung.md`](../../docs/ERP-Systembeschreibung.md) (konsolidiert v2.0; Abschnitte 1–17 entsprechen der historischen v1.3-Struktur). Archivierte Einzelstände: `docs/_archiv/systembeschreibung-und-phasen-legacy/`. Repository-Orientierung für Agenten: [`AGENTS.md`](../../AGENTS.md).
-
-Non-negotiable rules:
-- Do not simplify domain logic.
-- Enforce strict tenant isolation.
-- Use versioning for business-critical states; no destructive overwrite.
-- Preserve end-to-end traceability: invoice -> measurement -> LV -> offer -> project -> customer.
-- Never mix immutable system text with editable business text.
-- When uncertain, state assumptions explicitly and request clarification.
-
-**Liefer-, Merge-, Review- und Ausgabeformat (vollständig):** gelten bei Arbeit unter den Pfaden der Regel [`erp-delivery-review.mdc`](./erp-delivery-review.mdc) (`src/`, `apps/web/`, `prisma/`, `README.md`, `Checklisten/`, `docs/contracts/`, `docs/api-contract.yaml`, `docs/adr/`, `docs/tickets/`, `docs/CODEMAPS/`). Für Aufgaben **außerhalb** dieser Pfade: weiterhin **result**, **rationale**, **risks**, **open questions** inhaltlich abdecken; Auswirkungsdimensionen (Compliance, Datenkonsistenz, Wartbarkeit, PWA) nur kurz oder „keine“, soweit nicht fachlich relevant.
-
-**PWA/UI** unter `apps/web/**`: zusätzlich Cursor-Regel [`erp-web-ui.mdc`](./erp-web-ui.mdc); Link-Hub [`docs/referenz-ui-ux.md`](../../docs/referenz-ui-ux.md).
-
-Cursor Plan mode (IDE):
-- Whenever the session is in **Plan mode**, **every** turn that lays out or updates a plan must use the **TodoWrite** tool with concrete todos (stable `id`, sensible `status`) when that tool is available; prose checklists do not replace it.
-- When the IDE requires a **CreatePlan** artifact for the same turn, produce **both**: the CreatePlan output **and** TodoWrite todos aligned with that plan (same scope). CreatePlan alone does not satisfy the TodoWrite requirement and vice versa.
+Die **Projektregeln** dieses Repos liegen in [`cursor-stack.mdc`](./cursor-stack.mdc). Dieser Pfad (`erp-multi-agent.mdc`) bleibt nur für alte Verweise erhalten.
