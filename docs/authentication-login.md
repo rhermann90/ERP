@@ -84,7 +84,7 @@ Ohne Postgres (In-Memory-Modus): beide Reset-Endpunkte **503** / `USER_MANAGEMEN
 
 ## Benutzerverwaltung (API + UI)
 
-- **API:** `GET /users`, `POST /users`, `PATCH /users/{userId}` — nur mit **Postgres** und nur für die Rolle **ADMIN** (`AUTH_ROLE_FORBIDDEN` sonst). Ohne DB: `503` / `USER_MANAGEMENT_REQUIRES_DB`.
+- **API:** `GET /users`, `POST /users`, `PATCH /users/{userId}` — nur mit **Postgres** und nur für die Rolle **ADMIN** (`AUTH_ROLE_FORBIDDEN` sonst). Ohne DB: `503` / `USER_MANAGEMENT_REQUIRES_DB`. **`GET /users`** ist paginiert (`page`, `pageSize`, Antwort `data`, `page`, `pageSize`, `total` — siehe OpenAPI).
 - **UI:** Hash `#/benutzer` (Link in Navigation und auf der Startseite, nur wenn im Token die Rolle `ADMIN` steht).
 - **Audit:** `entityType: USER`, Aktionen `USER_CREATED`, `USER_UPDATED` (kein Klartext-Passwort in `beforeState`/`afterState`).
 - **Regeln:** kein Deaktivieren des eigenen Kontos; kein Entfernen/Herabstufen des letzten aktiven Administrators.

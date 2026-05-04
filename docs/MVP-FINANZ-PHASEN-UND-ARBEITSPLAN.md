@@ -47,7 +47,7 @@
 | **FIN-2** | Rechnung & Berechnungskette | 8.2, 8.4, 8.12, 8.16 (EUR) | Gebuchte Rechnung unveränderlich; Endbetrag aus definierter Kette |
 | **FIN-3** | Zahlungseingang & Zuordnung & Status | 8.7–8.9 | Manuelle Zahlung + Zuordnung; Zahlungsstatus ableitbar |
 | **FIN-4** | Mahnwesen vertikal | 8.10 | Stufen inkl. Standardfristen/-gebühren, Vorlagen/Platzhalter, E-Mail-Footer, Vorschau, Audit |
-| **FIN-5** | Steuern & Sonderfälle (MVP-Subset) | 8.11, 8.16 | Standard-USt + ein ausgewählter Sonderfall **oder** explizit „deaktiviert“ mit Fail-Closed |
+| **FIN-5** | Steuern & Sonderfälle (MVP-Subset) | 8.11, 8.16 | Drei §8.16-Regime schaltbar (Mandanten-Default, optional Projekt-Override); kein stiller Fallback auf 19 %-Standard-USt bei aktivem Sonderregime; Export-Preflight konsistent |
 | **FIN-6** | Härtung & Abnahme MVP | 8.14, 12, 15, 14 (optional) | DSGVO-Minimierung Zahlungsdaten; Audit vollständig; Export-Schnitt **optional** DATEV-Skeleton |
 
 **Hinweis:** **8.6** (Differenzbuchung) und **8.15** (Einbehalt-Auflösung) können in **FIN-2** (minimaler Ausgleichsposten) beginnen und in **FIN-6** vervollständigt werden, sofern Randfälle aus **8.6** explizit modelliert sind — **kein** stilles Verhalten.
@@ -143,11 +143,11 @@
 **Lieferobjekte**
 
 - Standard-USt-Pfad in **8.4** Schritt 7 integriert.  
-- **Ein** Sonderfall aus **8.16** vollständig hinter Feature-Flag **oder** konsequent „nicht aktivierbar“ mit **Fail-Closed** bis Implementierung fertig (im ADR festhalten).
+- **Drei** dokumentierte Regime (**Standard-USt**, **Kleinunternehmer**, **Reverse Charge**, **§13b-Bau**) mit Mandanten-Default und Projekt-Override; Rechnung persistiert effektives Regime und Basispunkte; Pflicht-Hinweiszeilen (§8.10) auf Lesepfad/Entwurf.
 
 **Meilenstein M5**
 
-- Rechnung + Export-Preflight (bestehendes `Exportlauf`-Muster) für den gewählten Umfang **grün**; keine stillen Fallbacks auf Standard-USt bei aktivem Sonderfall.
+- Rechnung + Export-Preflight für Standard-USt **grün**; bei aktivem Nicht-Standard-Regime **kein** stiller XRechnung-Mapping-Fallback (`EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED` bis Mapping-Reife).
 
 ---
 
@@ -241,7 +241,7 @@
 - [ ] **Nächstes technisches Inkrement** ist benannt (z. B. [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) oder Nachfolger).
 - [ ] Multi-Agent-Regeln bekannt: [`.cursor/rules/erp-multi-agent.mdc`](../.cursor/rules/erp-multi-agent.mdc).
 
-**Technischer Index-Sync (2026-05-01, kein Ersatz für manuelle Checklisten oben):** Abgleich mit **Teil 1** und [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md): **Pfad A / B2-1a** umgesetzt; **FIN-4** Konfig/Vorlagen/Footer/Mahnlauf **5b-0/5b-1**, Automation **OFF/SEMI** (ADR-0011), **`POST /finance/dunning-reminder-run`** bei **OFF** → 409; PWA **OFF-1a** / Deep-Link Grundeinstellungen umgesetzt. **Nächster Default:** M4-Rest nach Team-Priorität (u. a. Massen-E-Mail); keine Parallele zu **8.4(2–6)** oder **Pfad C** ohne Gate.
+**Technischer Index-Sync (2026-05-04, kein Ersatz für manuelle Checklisten oben):** Abgleich mit **Teil 1** und [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md): **Pfad A / B2-1a** umgesetzt; **FIN-4** Konfig/Vorlagen/Footer/Mahnlauf **5b-0/5b-1** und **5c**; Automation **OFF/SEMI** (ADR-0011); Rechnungs-Export-Preflight **`POST /exports`**; **FIN-5** Rechnungssteuer-Profile **`/finance/invoice-tax-profile…`** mit Fail-Closed laut ADR-0014. **FIN-2** nächste Teilprojekte: [`FIN-2-NEXT-SUBPROJECT-GATE.md`](./tickets/FIN-2-NEXT-SUBPROJECT-GATE.md). **FIN-5 (M5)** Gate **geschlossen** Option **B**: [`FIN-5-GATE-816-FAIL-CLOSED.md`](./tickets/FIN-5-GATE-816-FAIL-CLOSED.md), [`adr/0014-fin5-mvp-tax-fail-closed.md`](./adr/0014-fin5-mvp-tax-fail-closed.md). Keine Parallele zu **8.4(2–6)** oder **Pfad C** ohne Gate.
 
 ---
 
@@ -256,7 +256,7 @@
 
 ### D — Master-Tabelle: FIN-Phasen × Ist × Lücke × Nächster Schritt
 
-*Ist-Stand an **Teil 1** angelehnt; FIN-1-M1-Zeile und DoD zuletzt **2026-04-25**; QA lokal `verify:ci` + `verify:ci:local-db` auf Commit [`b31c1b4`](https://github.com/rhermann90/ERP/commit/b31c1b4693724d1b8394183c7f00b19b9a969ea7). Nach größeren Releases diese Tabelle und den Anker-Commit oben aktualisieren.*
+*Ist-Stand an **Teil 1** angelehnt; FIN-1-M1-Zeile und DoD zuletzt **2026-04-25**; QA lokal `verify:ci` + `verify:ci:local-db` auf Commit [`b31c1b4`](https://github.com/rhermann90/ERP/commit/b31c1b4693724d1b8394183c7f00b19b9a969ea7). Nach größeren Releases diese Tabelle und den Anker-Commit oben aktualisieren; bei FIN-5-/Persistenz-PRs zusätzlich `verify:pre-merge` und nach Merge §5a-Evidenz auf `main` pflegen.*
 
 | Phase | Meilenstein | DoD-Kern (Kurz) | Ist (Repo, hochlevel) | Lücke / Risiko | Nächster sinnvoller Schritt |
 |-------|-------------|-----------------|------------------------|----------------|----------------------------|
@@ -264,9 +264,10 @@
 | **FIN-1** | M1 | Versionierte Konditionen, append-only | `payment_terms_*` in Postgres, APIs; PWA-Demo angebunden; **M1-DoD:** Persistenz-`it` „FIN-1 M1: zwei Zahlungsbedingungs-Versionen …“ in [`test/persistence.integration.test.ts`](../test/persistence.integration.test.ts) (zwei Versionen, Rechnung auf **v1**, Buchung behält **v1**) | Rest optional: UX/Copy in Finanz-Vorbereitung zu PT; §8.5 | Nach Ticket-Priorität: nächster Strang laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) (Default **A**); kein Mix mit 8.4(2–6)/Pfad C ohne Gate |
 | **FIN-2** | M2 | Gebuchte Rechnung, 8.4-Kette, E2E aus LV-Kette | Entwurf, Buchung `BOOK_INVOICE`, 8.4(1)+USt/Brutto, **B2-1a** `skontoBps` (Wave3 Pfad A laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md)); PWA Shell + Finanz-Vorbereitung (SoT, Skonto optional API-first) | **8.4(2–6)**-Motor; Pfad GEPRUEFT/FREIGEGEBEN (**Pfad C**, eigenes Gate); belastbarer **LV→Rechnung**-E2E | Nach Wave3 **nicht** parallel 8.4-Tiefe + Pfad C mischen; nächste Priorität **M4-Rest** *oder* bewusst 8.4(2–6) / Konvergenz — siehe Wave3-Non-Goals |
 | **FIN-3** | M3 | Zahlung, Status, Idempotenz 8.7 | Intake POST, Liste GET, SoT, Status TEILBEZAHLT/BEZAHLT; PWA SoT-gekoppelt | **Bankfile** und vollständige **8.8–8.9** bewusst out of scope (ADR-0007); Intake: Überzahlung als Domainfehler **`PAYMENT_EXCEEDS_OPEN_AMOUNT`**, Audit + zentrale Domainfälle in Tests | Backlog 8.8–8.9 / PSP gesondert; optional Review Randfälle (z. B. Replay/Parallelität) |
-| **FIN-4** | M4 | Mahnwesen 8.10 inkl. Konfig, Vorlagen, E-Mail | `dunning_reminders`, Konfig inkl. Soft-Delete, Vorlagen/Footer, Mahnlauf **5b**, Automation **OFF/SEMI**, Run-API — ADR-0009/0010/0011 | Rest **M4** (z. B. Massen-E-Mail) nach Ticket-Priorität | **Nächster Schritt:** laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) — Default **A**; kein Mix mit 8.4(2–6) oder Pfad C |
-| **FIN-5** | M5 | Steuer-Sonderfall 8.16 oder Fail-Closed | In Teil 1 nicht als erledigt geführt | Entscheidung + ADR/Flag | Ein Sonderfall produktiv **oder** Fail-Closed dokumentieren |
-| **FIN-6** | M6 | Härtung 8.14, 12, 15; PWA-Regeln | Audit fail-hard, README zu 8.14/PWA | Feldklassifikation §8.14; Gesamt-QA §15 | [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md); Compliance-Vorbereitung |
+| **FIN-4** | M4 | Mahnwesen 8.10 inkl. Konfig, Vorlagen, E-Mail | Kern wie zuvor; **5c** Massen-E-Mail technisch im Repo — ADR-0009/0010/0011 | Operatives Mandanten-Go 5c außerhalb Repo; optionale UX-Tickets | Optional kleine Spur-A-Follow-ups; kein Mix mit 8.4(2–6) oder Pfad C |
+| **FIN-5** | M5 | Steuer-Sonderfall 8.16 oder Fail-Closed | Standard-USt-Pfad aktiv; **Fail-Closed** für MVP — Gate geschlossen Option **B** ([`FIN-5-GATE-816-FAIL-CLOSED.md`](./tickets/FIN-5-GATE-816-FAIL-CLOSED.md), [`adr/0014-fin5-mvp-tax-fail-closed.md`](./adr/0014-fin5-mvp-tax-fail-closed.md)) | Kein 8.16-Sonderfall produktiv; Mandanten mit zwingendem 8.16 außerhalb MVP bis Folge-Release | **FIN-6** / QA §15 oder Option **A** nach neuem Gate + PR |
+| **FIN-6** | M6 | Härtung 8.14, 12, 15; PWA-Regeln | Audit fail-hard; Logging-Hinweise §8.14 — [`contracts/fin6-logging-privacy-814.md`](./contracts/fin6-logging-privacy-814.md); Abnahme-Skeleton Gate 15 — [`contracts/qa-fin-mvp-gate-15-abnahme.md`](./contracts/qa-fin-mvp-gate-15-abnahme.md) | Vollständige Feldklassifikation; Gesamt-QA §15 Evidenz auf `main` | [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md); Gate-15-Checkliste abarbeiten |
+
 
 ### D1 — Merge-Evidenz GitHub Actions
 
@@ -298,6 +299,7 @@
 | 2026-04-22 | GitHub Actions **workflow `ci.yml`**, Run auf `main` (Job `backend`) | **success** (`gh run list --workflow=ci.yml --branch=main`; Job per `gh run view 24792922353 --json jobs`) | [Run 24792922353](https://github.com/rhermann90/ERP/actions/runs/24792922353), Job [backend](https://github.com/rhermann90/ERP/actions/runs/24792922353/job/72555004789) — Merge-SHA [`900ec2f3…`](https://github.com/rhermann90/ERP/commit/900ec2f3408be60ec788724130b1e7436b22bc87) |
 | 2026-04-25 | `npm run verify:ci` + `npm run verify:ci:local-db` (Repo-Root, Compose **15432**) | Exit 0; **257** Tests (Persistenzsuite inkl. FIN-1 M1-`it`) | Historisch: [`b31c1b4…`](https://github.com/rhermann90/ERP/commit/b31c1b4693724d1b8394183c7f00b19b9a969ea7) |
 | 2026-04-25 | `npm run verify:ci` + `npm run verify:ci:local-db` + `npx playwright test e2e/login-finance-smoke.spec.ts` (FIN-4 SEMI / ADR-0011) | Exit 0; Root-Suite inkl. Persistenz grün; E2E **1** bestanden | **§5a (Remote, PR-Head):** [PR #40](https://github.com/rhermann90/ERP/pull/40), Tip [`e346fa9…`](https://github.com/rhermann90/ERP/commit/e346fa9ef10f0b9cdd6176ef7673743f4c587215) — GitHub Actions **backend** + **e2e-smoke** **success** ([CI workflow run](https://github.com/rhermann90/ERP/actions/runs/24919930108), UTC 2026-04-25). Feature-Bundle: [`32dfc73…`](https://github.com/rhermann90/ERP/commit/32dfc73ff79f49c214272aaf6bbe1d281d847439). [`qa-fin-0-gate-readiness.md`](./contracts/qa-fin-0-gate-readiness.md) §5a. |
+
 
 *Hinweis: Root-`npm test` inkl. Postgres-Persistenz (`PERSISTENCE_DB_TEST_URL`) vor Merge-PR zusätzlich laut [`ci-and-persistence-tests.md`](./runbook/ci-and-persistence-tests.md) / `verify:ci` ausführen — nicht durch die beiden Zeilen oben ersetzt.*
 
@@ -433,8 +435,8 @@
 
 **Arbeitsschritte:**
 
-1. Entscheidung dokumentieren (Aktivierung vs. Flag).
-2. Export-/Preflight-Muster prüfen, falls Export berührt.
+1. ~~Entscheidung dokumentieren (Aktivierung vs. Flag).~~ **Erledigt:** Option A — [`adr/0015-fin5-invoice-tax-regimes-816.md`](../adr/0015-fin5-invoice-tax-regimes-816.md).
+2. Export-/Preflight-Muster: XRechnung fail-closed bei Nicht-Standard.
 
 **QA:** E1 + ggf. web build/test.
 

@@ -44,7 +44,7 @@ flowchart LR
 
 **Option vs. Spur (Lesen):** Im Ticket [NEXT-INCREMENT-FINANCE-WAVE3.md](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) sind **Option A–D** (Tabelle) nicht dieselben Labels wie **Spur A–E** in [nächste-schritte.md](./nächste-schritte.md); kurz erklärt unter **Hinweis (Lesen)** direkt unter der Optionen-Tabelle — **Option B** = 8.4(2–6)-Motor, **Spur B** = FIN-5.
 
-**Gewählt laut Ticket:** weiter [NEXT-INCREMENT-FINANCE-WAVE3.md](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) — nach technischem M4-Kern (inkl. **5c**): optional kleine UX-/Shell-Follow-ups unter Spur **A**; strategisch **FIN-5** ([`MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md) Teil 3) mit Spur **B** in [nächste-schritte.md](./nächste-schritte.md), sobald §8.16/Fail-Closed geklärt ist; keine parallele Option **B/C** (8.4(2–6), Zwischenstatus) ohne dokumentiertes Gate.
+**Gewählt laut Ticket:** weiter [NEXT-INCREMENT-FINANCE-WAVE3.md](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) — nach technischem M4-Kern (inkl. **5c**): optional kleine UX-/Shell-Follow-ups unter Spur **A**; **FIN-5 (M5)** unter **Option B (Fail-Closed)** geschlossen — [`FIN-5-GATE-816-FAIL-CLOSED.md`](../tickets/FIN-5-GATE-816-FAIL-CLOSED.md); strategisch als Nächstes **FIN-6** mit Spur **C** in [nächste-schritte.md](./nächste-schritte.md), wenn priorisiert; keine parallele Option **B/C** (8.4(2–6), Zwischenstatus) ohne dokumentiertes Gate.
 
 **Konkret nächste Umsetzungsschritte (Auswahl im Team, jeweils eigener PR):**
 
@@ -64,7 +64,7 @@ Mahn-IA/Routing: [FOLLOWUP-M4-DUNNING-UX-GRUNDEINSTELLUNGEN-TAB.md](../tickets/F
 
 | Phase | Inhalt | Quelle |
 |-------|--------|--------|
-| **FIN-5** | Steuern und Sonderfälle (MVP-Subset) | [MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md), Teil 3 |
+| **FIN-5** | Steuern MVP: **Fail-Closed** (Option **B**, Gate geschlossen 2026-05-04) — [`FIN-5-GATE-816-FAIL-CLOSED.md`](../tickets/FIN-5-GATE-816-FAIL-CLOSED.md), [ADR-0014](../adr/0014-fin5-mvp-tax-fail-closed.md) | [MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md), Teil 3 |
 | **FIN-6** | Härtung und Abnahme MVP (u. a. 8.14, 12, 15; optional Export-Skeleton) | dortselbst |
 | **Audit / GoBD-Querschnitt** | eigenes Ticket, nicht mit Mahn-UI mischen | [FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md](../tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) |
 

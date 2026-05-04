@@ -40,6 +40,15 @@ Server-zu-Server: Header direkt lesen. **Browser + CORS:** nur sichtbar, wenn di
 
 Vollständige Schemas: `docs/api-contract.yaml`. Mapping: `docs/contracts/finance-fin0-openapi-mapping.md`.
 
+## Neu ab `1.28.5` (Benutzerverwaltung — Listenpfad)
+
+- **`GET /users`:** **Breaking** für Clients mit altem Shape — Antwort **`TenantUserListResponse`** mit **`data`**, **`page`**, **`pageSize`**, **`total`**; Query **`page`**, **`pageSize`** (max. 100). Kein FIN-4-Header-Pfad — gebündeltes OpenAPI/`info.version`-Bump für Integratoren.
+
+## Neu ab `1.29.0` (FIN-5 — Rechnungssteuer-Profile / Fail-Closed 8.16)
+
+- **`GET|PATCH /finance/invoice-tax-profile`** und Projekt-Override-Pfade unter **`/finance/invoice-tax-profile/projects/…`:** Mandanten-Default und Overrides für effektives Rechnungssteuerregime; auf diesen Pfaden sendet der Server **`x-erp-openapi-contract-version`** wie bei den FIN-4-Leitpfaden. ADR: [`docs/adr/0014-fin5-mvp-tax-fail-closed.md`](../adr/0014-fin5-mvp-tax-fail-closed.md).
+
+
 ## Neu ab `1.28.2` (Phase 2 — LV §9 Einzelknoten-Lesepfad)
 
 - **`GET /lv/versions/{lvVersionId}/nodes/{nodeId}`:** ein Strukturknoten wie in `structureNodes[]` / Snapshot; **404** `LV_NODE_NOT_FOUND`, wenn die ID keine Knoten-ID dieser Version ist (z. B. Positions-ID übergeben).
