@@ -9,6 +9,8 @@ const STRUCTURED_ERROR_HINTS: Partial<Record<string, string>> = {
     "Zahlungseingang ist für diese Rechnung (Status/Rolle) nicht zulässig. SoT und Rechnungsstatus prüfen.",
   PAYMENT_INTAKE_IDEMPOTENCY_MISMATCH:
     "Derselbe Idempotency-Key wurde mit anderem Payload wiederverwendet. Neuen Key erzeugen oder den ursprünglichen Request wiederholen.",
+  INVOICE_TAX_REGIME_INVALID:
+    "Steuerregime-Code wird vom Server nicht akzeptiert — gültige Enum-Werte aus OpenAPI/API-Doku verwenden.",
   VALIDATION_FAILED:
     "Eingaben entsprechen nicht der API-Validierung. Pflichtfelder, Formate und Grenzwerte prüfen (Details ggf. im Backend-Log).",
   UNAUTHORIZED: "Sitzung fehlt oder ist abgelaufen — neu anmelden.",

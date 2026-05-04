@@ -13,11 +13,15 @@ import type {
   DunningReminderReadRow,
   DunningStageConfigReadRow,
   InvoiceOverview,
+  InvoiceTaxRegimeApi,
   PaymentIntakeReadRow,
+  ProjectInvoiceTaxOverrideRead,
+  TenantInvoiceTaxProfileRead,
 } from "../lib/api-client.js";
 import { ApiError } from "../lib/api-error.js";
 import {
   BOOK_INVOICE_ACTION_ID,
+  MANAGE_INVOICE_TAX_SETTINGS_ACTION_ID,
   RECORD_DUNNING_REMINDER_ACTION_ID,
   RECORD_PAYMENT_INTAKE_ACTION_ID,
 } from "../lib/finance-sot.js";
@@ -43,6 +47,7 @@ import { FinancePrepStepDraft } from "./finance/preparation/FinancePrepStepDraft
 import { FinancePrepStepInvoice } from "./finance/preparation/FinancePrepStepInvoice.js";
 import { FinancePrepStepSot } from "./finance/preparation/FinancePrepStepSot.js";
 import { FinancePrepStepTerms } from "./finance/preparation/FinancePrepStepTerms.js";
+import { FinanceInvoiceTaxSettingsPanel } from "./finance/preparation/FinanceInvoiceTaxSettingsPanel.js";
 import { financePrepStepAriaLive, finNoticeFromUnknown, formatSkontoDisplay, isUuidShape } from "./finance/finance-prep-helpers.js";
 
 const FINANCE_PREP_MAIN_TABS: FinancePrepMainTab[] = ["rechnung", "grundeinstellungen", "mahnwesen", "fortgeschritten"];
@@ -70,6 +75,10 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
   /** Servertreu nach GET/PATCH Automation (nur OFF/SEMI). */
   const [dunningAutomationServerRunMode, setDunningAutomationServerRunMode] = useState<"OFF" | "SEMI" | null>(null);
   const [financePrepMainTab, setFinancePrepMainTab] = useState<FinancePrepMainTab>(() => initialMainTab ?? "rechnung");
+
+  useEffect(() => {
+    setFinancePrepMainTab(initialMainTab ?? "rechnung");
+  }, [initialMainTab]);
 
   const financePrepTabButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -171,12 +180,24 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
   const [paymentPanelError, setPaymentPanelError] = useState<FinNotice | null>(null);
   const [dunningPanelError, setDunningPanelError] = useState<FinNotice | null>(null);
   const [bookPanelError, setBookPanelError] = useState<FinNotice | null>(null);
+  const [invoiceTaxTenantProfile, setInvoiceTaxTenantProfile] = useState<TenantInvoiceTaxProfileRead | null>(null);
+  const [invoiceTaxProjectOverride, setInvoiceTaxProjectOverride] = useState<ProjectInvoiceTaxOverrideRead | null>(null);
+  const [invoiceTaxPanelError, setInvoiceTaxPanelError] = useState<FinNotice | null>(null);
+  const [invoiceTaxMutationJson, setInvoiceTaxMutationJson] = useState("");
 
   const canRecordPaymentIntake = invoiceAllowedActions?.includes(RECORD_PAYMENT_INTAKE_ACTION_ID) === true;
   const canRecordDunningReminder = invoiceAllowedActions?.includes(RECORD_DUNNING_REMINDER_ACTION_ID) === true;
   const canBookInvoice = invoiceAllowedActions?.includes(BOOK_INVOICE_ACTION_ID) === true;
   const invoiceIdLooksValid = isUuidShape(invoiceIdRead);
   const hasLoadedInvoice = invoiceOverview != null;
+
+  const effectiveProjectIdForTax = useMemo(() => {
+    const raw = (invoiceOverview?.projectId ?? projectId).trim();
+    return isUuidShape(raw) ? raw : "";
+  }, [invoiceOverview?.projectId, projectId]);
+
+  const canManageInvoiceTaxSettings =
+    invoiceAllowedActions?.includes(MANAGE_INVOICE_TAX_SETTINGS_ACTION_ID) === true;
 
   const dunningFooterReadyForEmail = useMemo(() => {
     try {
@@ -317,12 +338,12 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
       try {
         const id = (overrideInvoiceId ?? invoiceIdRead).trim();
         const data = await api.getInvoice(id);
-        setInvoiceOverview(data);
         const [sot, payList, dunList] = await Promise.all([
           api.getAllowedActions(id, "INVOICE"),
           api.listInvoicePaymentIntakes(id),
           api.listInvoiceDunningReminders(id),
         ]);
+        setInvoiceOverview(data);
         setInvoiceAllowedActions(sot.allowedActions);
         setPaymentIntakes(payList.data);
         setDunningReminders(dunList.data);
@@ -1163,6 +1184,130 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
     void submitEmailSend();
   }, [submitEmailSend]);
 
+  const loadInvoiceTaxReads = useCallback(async () => {
+    setInvoiceTaxPanelError(null);
+    setBusy(true);
+    try {
+      const tenant = await api.getTenantInvoiceTaxProfile();
+      setInvoiceTaxTenantProfile(tenant);
+      const pid = effectiveProjectIdForTax;
+      if (!pid) {
+        setInvoiceTaxProjectOverride(null);
+        setInvoiceTaxPanelError({
+          kind: "text",
+          text: "Projekt-UUID fehlt oder ist ungültig — Rechnung laden oder Projekt-ID im FIN-1-Feld setzen.",
+        });
+        return;
+      }
+      const proj = await api.getProjectInvoiceTaxOverride(pid);
+      setInvoiceTaxProjectOverride(proj);
+    } catch (e) {
+      setInvoiceTaxTenantProfile(null);
+      setInvoiceTaxProjectOverride(null);
+      setInvoiceTaxPanelError(finNoticeFromUnknown(e));
+    } finally {
+      setBusy(false);
+    }
+  }, [api, effectiveProjectIdForTax]);
+
+  const patchInvoiceTaxTenant = useCallback(
+    async (body: { defaultInvoiceTaxRegime: InvoiceTaxRegimeApi; reason: string }) => {
+      setInvoiceTaxPanelError(null);
+      if (!canManageInvoiceTaxSettings) {
+        setInvoiceTaxPanelError({
+          kind: "text",
+          text: `Schreiben nur mit SoT-Aktion ${MANAGE_INVOICE_TAX_SETTINGS_ACTION_ID}.`,
+        });
+        return;
+      }
+      if (body.reason.trim().length < 5) {
+        setInvoiceTaxPanelError({ kind: "text", text: "Grund mindestens 5 Zeichen." });
+        return;
+      }
+      setBusy(true);
+      try {
+        const r = await api.patchTenantInvoiceTaxProfile(body);
+        setInvoiceTaxMutationJson(JSON.stringify(r, null, 2));
+        const tenant = await api.getTenantInvoiceTaxProfile();
+        setInvoiceTaxTenantProfile(tenant);
+        if (effectiveProjectIdForTax) {
+          const proj = await api.getProjectInvoiceTaxOverride(effectiveProjectIdForTax);
+          setInvoiceTaxProjectOverride(proj);
+        }
+      } catch (e) {
+        setInvoiceTaxPanelError(finNoticeFromUnknown(e));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [api, canManageInvoiceTaxSettings, effectiveProjectIdForTax],
+  );
+
+  const putInvoiceTaxProject = useCallback(
+    async (body: { invoiceTaxRegime: InvoiceTaxRegimeApi; taxReasonCode?: string; reason: string }) => {
+      setInvoiceTaxPanelError(null);
+      if (!canManageInvoiceTaxSettings || !effectiveProjectIdForTax) {
+        setInvoiceTaxPanelError({
+          kind: "text",
+          text: effectiveProjectIdForTax
+            ? `Schreiben nur mit SoT-Aktion ${MANAGE_INVOICE_TAX_SETTINGS_ACTION_ID}.`
+            : "Projekt-UUID erforderlich.",
+        });
+        return;
+      }
+      if (body.reason.trim().length < 5) {
+        setInvoiceTaxPanelError({ kind: "text", text: "Grund mindestens 5 Zeichen." });
+        return;
+      }
+      setBusy(true);
+      try {
+        const r = await api.putProjectInvoiceTaxOverride(effectiveProjectIdForTax, body);
+        setInvoiceTaxMutationJson(JSON.stringify(r, null, 2));
+        setInvoiceTaxProjectOverride({
+          projectId: r.projectId,
+          invoiceTaxRegime: r.invoiceTaxRegime,
+          taxReasonCode: body.taxReasonCode,
+        });
+      } catch (e) {
+        setInvoiceTaxPanelError(finNoticeFromUnknown(e));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [api, canManageInvoiceTaxSettings, effectiveProjectIdForTax],
+  );
+
+  const deleteInvoiceTaxProject = useCallback(
+    async (reason: string) => {
+      setInvoiceTaxPanelError(null);
+      if (!canManageInvoiceTaxSettings || !effectiveProjectIdForTax) {
+        setInvoiceTaxPanelError({
+          kind: "text",
+          text: effectiveProjectIdForTax
+            ? `Schreiben nur mit SoT-Aktion ${MANAGE_INVOICE_TAX_SETTINGS_ACTION_ID}.`
+            : "Projekt-UUID erforderlich.",
+        });
+        return;
+      }
+      if (reason.trim().length < 5) {
+        setInvoiceTaxPanelError({ kind: "text", text: "Grund mindestens 5 Zeichen." });
+        return;
+      }
+      setBusy(true);
+      try {
+        await api.deleteProjectInvoiceTaxOverride(effectiveProjectIdForTax, { reason: reason.trim() });
+        setInvoiceTaxMutationJson(JSON.stringify({ ok: true, operation: "DELETE_PROJECT_INVOICE_TAX_OVERRIDE" }, null, 2));
+        const proj = await api.getProjectInvoiceTaxOverride(effectiveProjectIdForTax);
+        setInvoiceTaxProjectOverride(proj);
+      } catch (e) {
+        setInvoiceTaxPanelError(finNoticeFromUnknown(e));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [api, canManageInvoiceTaxSettings, effectiveProjectIdForTax],
+  );
+
   const openCents = openAmountCents(invoiceOverview);
 
   const noticeStep1 = notice?.sourceStep === 1 ? notice : null;
@@ -1455,6 +1600,20 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
             onPrefillBatchEmailItemsFromCandidates={() => void prefillBatchEmailItemsFromCandidates()}
             onDunningBatchEmailDryRun={runSubmitDunningBatchEmailDryRun}
             onDunningBatchEmailExecute={runSubmitDunningBatchEmailExecute}
+          />
+          <FinanceInvoiceTaxSettingsPanel
+            busy={busy}
+            liveStatus={finPrepStepLiveStatus("FIN-5 Steuerprofil (Mandant + Projekt)", busy)}
+            canManageInvoiceTaxSettings={canManageInvoiceTaxSettings}
+            effectiveProjectId={effectiveProjectIdForTax}
+            tenantProfile={invoiceTaxTenantProfile}
+            projectOverride={invoiceTaxProjectOverride}
+            panelError={invoiceTaxPanelError}
+            mutationResultJson={invoiceTaxMutationJson}
+            onLoadReads={() => void loadInvoiceTaxReads()}
+            onPatchTenant={(b) => void patchInvoiceTaxTenant(b)}
+            onPutProject={(b) => void putInvoiceTaxProject(b)}
+            onDeleteProject={(r) => void deleteInvoiceTaxProject(r)}
           />
         </div>
 

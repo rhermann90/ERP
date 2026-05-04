@@ -165,7 +165,8 @@ export default function App() {
   const hashQuery = readHashQuery();
   const showFinancePrep = isFinancePrepHashPath(hashPath);
   const financePrepInitialMainTab = resolveFinancePrepInitialMainTab(hashPath, hashQuery);
-  const financePrepRouteKey = `${hashPath}:${hashQuery.get("tab") ?? ""}`;
+  /** Stable across Tab-/Hash-Wechsel innerhalb Finanz-Vorbereitung — sonst Remount und Verlust von z. B. invoiceAllowedActions (FIN-5 SoT). */
+  const financePrepMountKey = `finance-prep:${tenantId || "no-tenant"}`;
   const showLogin = hashPath === "/login";
   const showPasswordReset = hashPath === "/password-reset";
 
@@ -711,7 +712,7 @@ export default function App() {
       ) : null}
 
       {showFinancePrep ? (
-        <FinancePreparation key={financePrepRouteKey} api={client} initialMainTab={financePrepInitialMainTab} />
+        <FinancePreparation key={financePrepMountKey} api={client} initialMainTab={financePrepInitialMainTab} />
       ) : null}
 
       {showLogin ? (

@@ -51,6 +51,11 @@ Vollständige Schemas: `docs/api-contract.yaml`. Mapping: `docs/contracts/financ
 - **`GET|PATCH /finance/invoice-tax-profile`** und Projekt-Override-Pfade unter **`/finance/invoice-tax-profile/projects/…`:** Mandanten-Default und Overrides für effektives Rechnungssteuerregime; auf diesen Pfaden sendet der Server **`x-erp-openapi-contract-version`** wie bei den FIN-4-Leitpfaden. ADR: [`docs/adr/0014-fin5-mvp-tax-fail-closed.md`](../adr/0014-fin5-mvp-tax-fail-closed.md).
 
 
+## Neu ab `1.29.1` (FIN-5 — SoT-Schreibrecht im Invoice-Shell)
+
+- **`GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE`** kann zusätzlich **`MANAGE_INVOICE_TAX_SETTINGS`** liefern (Rollen wie Zahlungseingang, alle Rechnungsstatus) — kanonisch für PWA/Clients vor **PATCH** Mandanten-Steuerprofil bzw. **PUT|DELETE** Projekt-Override. Contract: [`action-contracts.json`](./action-contracts.json); Mapping: [`finance-fin0-openapi-mapping.md`](./finance-fin0-openapi-mapping.md).
+
+
 ## Neu ab `1.28.2` (Phase 2 — LV §9 Einzelknoten-Lesepfad)
 
 - **`GET /lv/versions/{lvVersionId}/nodes/{nodeId}`:** ein Strukturknoten wie in `structureNodes[]` / Snapshot; **404** `LV_NODE_NOT_FOUND`, wenn die ID keine Knoten-ID dieser Version ist (z. B. Positions-ID übergeben).

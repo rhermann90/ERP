@@ -261,6 +261,20 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await expect(page.getByTestId("finance-dunning-batch-email-section")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByTestId("finance-dunning-batch-email-dry-run")).toBeVisible({ timeout: 10_000 });
 
+    await expect(page.getByRole("heading", { name: /Steuerprofil Rechnung \(FIN-5\)/i })).toBeVisible({ timeout: 10_000 });
+    await page.getByTestId("finance-invoice-tax-load").click();
+    await expect(page.getByTestId("finance-invoice-tax-tenant-json")).toContainText("defaultInvoiceTaxRegime", { timeout: 20_000 });
+    await page.getByTestId("finance-invoice-tax-patch-tenant").click();
+    /** PATCH-Antwort (nicht GET-Mandanten-JSON): erst nach erfolgreichem Schreibpfad sichtbar. */
+    await expect(page.getByTestId("finance-invoice-tax-mutation-json")).toContainText("11111111-1111-4111-8111-111111111111", {
+      timeout: 20_000,
+    });
+    await expect(page.getByTestId("finance-invoice-tax-mutation-json")).toContainText("defaultInvoiceTaxRegime");
+    await page.getByTestId("finance-invoice-tax-put-project").click();
+    await expect(page.getByTestId("finance-invoice-tax-delete-project")).toBeEnabled({ timeout: 20_000 });
+    await page.getByTestId("finance-invoice-tax-delete-project").click();
+    await expect(page.getByTestId("finance-invoice-tax-panel")).toContainText("DELETE_PROJECT_INVOICE_TAX_OVERRIDE", { timeout: 20_000 });
+
     await page.getByLabel("asOfDate fuer Mahnlauf und Kandidaten").fill("2099-12-31");
     await page.getByRole("button", { name: "Kandidaten laden (GET)" }).click();
     await expect(page.getByText("Rohantwort GET /finance/dunning-reminder-candidates", { exact: true })).toBeVisible({

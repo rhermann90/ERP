@@ -15,7 +15,7 @@ export function normalizeCorsOrigins(origins: string[]): Set<string> {
   return new Set(origins);
 }
 
-const CORS_METHODS = "GET,HEAD,POST,PATCH,OPTIONS";
+const CORS_METHODS = "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS";
 const CORS_HEADERS = "Authorization, Content-Type, X-Tenant-Id, X-Request-Id, X-Correlation-Id";
 
 function setCorsHeaders(reply: { header: (k: string, v: string) => void }, origin: string): void {

@@ -454,7 +454,8 @@ export class AuthorizationService {
 
   /**
    * Rechnungen: **BOOK_INVOICE** (ENTWURF, Rollen wie `assertCanBookInvoice`), **EXPORT_INVOICE** (Exportformat `XRECHNUNG` | `GAEB` nur im Body von POST /exports),
-   * **RECORD_PAYMENT_INTAKE** (GEBUCHT_VERSENDET | TEILBEZAHLT), **RECORD_DUNNING_REMINDER** (GEBUCHT_VERSENDET | TEILBEZAHLT).
+   * **RECORD_PAYMENT_INTAKE** (GEBUCHT_VERSENDET | TEILBEZAHLT), **RECORD_DUNNING_REMINDER** (GEBUCHT_VERSENDET | TEILBEZAHLT),
+   * **MANAGE_INVOICE_TAX_SETTINGS** (alle Status, Rollen wie `assertCanManageInvoiceTaxSettings` / Zahlungseingang).
    * **EXPORT_INVOICE_XRECHNUNG** ist kein SoT-Action — nicht verwenden (verhindert Drift zu assertCanExport / EXPORT_ACTIONS_BY_ROLE).
    */
   private allowedInvoiceActionsByStatus(status: InvoiceStatus, role: UserRole): string[] {
@@ -479,7 +480,8 @@ export class AuthorizationService {
       DUNNING_REMINDER_ROLES.has(role) && (status === "GEBUCHT_VERSENDET" || status === "TEILBEZAHLT")
         ? ["RECORD_DUNNING_REMINDER"]
         : [];
-    return [...bookAllowed, ...exportAllowed, ...payAllowed, ...dunningAllowed];
+    const taxSettingsAllowed = PAYMENT_INTAKE_ROLES.has(role) ? ["MANAGE_INVOICE_TAX_SETTINGS"] : [];
+    return [...bookAllowed, ...exportAllowed, ...payAllowed, ...dunningAllowed, ...taxSettingsAllowed];
   }
 
   private allowedMeasurementActionsByVersion(

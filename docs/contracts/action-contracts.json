@@ -703,6 +703,57 @@
       }
     },
     {
+      "actionId": "MANAGE_INVOICE_TAX_SETTINGS",
+      "requiredRole": [
+        "ADMIN",
+        "BUCHHALTUNG",
+        "GESCHAEFTSFUEHRUNG"
+      ],
+      "allowedFromStatus": [
+        "ENTWURF",
+        "GEPRUEFT",
+        "FREIGEGEBEN",
+        "GEBUCHT_VERSENDET",
+        "TEILBEZAHLT",
+        "BEZAHLT",
+        "STORNIERT"
+      ],
+      "allowedToStatus": [
+        "ENTWURF",
+        "GEPRUEFT",
+        "FREIGEGEBEN",
+        "GEBUCHT_VERSENDET",
+        "TEILBEZAHLT",
+        "BEZAHLT",
+        "STORNIERT"
+      ],
+      "validationSchema": {
+        "endpoint": "PATCH /finance/invoice-tax-profile | PUT /finance/invoice-tax-profile/projects/{projectId} | DELETE /finance/invoice-tax-profile/projects/{projectId}",
+        "requiredFields": [
+          "reason"
+        ],
+        "fieldRules": {
+          "PATCH_body": "defaultInvoiceTaxRegime (enum), reason minLength 5; optional construction13bConfig",
+          "PUT_body": "invoiceTaxRegime (enum), reason minLength 5; optional taxReasonCode maxLength 128; optional construction13bConfig",
+          "DELETE_body": "reason minLength 5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "TENANT_INVOICE_TAX_PROFILE_PATCHED|PROJECT_INVOICE_TAX_OVERRIDE_UPSERTED|PROJECT_INVOICE_TAX_OVERRIDE_DELETED",
+      "backendErrors": [
+        "INVOICE_TAX_REGIME_INVALID",
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "VALIDATION_FAILED"
+      ],
+      "backendPolicyMirror": {
+        "source": "AuthorizationService.assertCanManageInvoiceTaxSettings + allowedInvoiceActionsByStatus",
+        "sourceOfTruthEndpoint": "GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE",
+        "canonicalActionId": "MANAGE_INVOICE_TAX_SETTINGS"
+      }
+    },
+    {
       "actionId": "EXPORT_OFFER_VERSION",
       "requiredRole": [
         "ADMIN",

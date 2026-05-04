@@ -1,5 +1,5 @@
 {
-  "contractVersion": "1.29.0-fin5-invoice-tax-816",
+  "contractVersion": "1.29.1-fin5-manage-tax-settings-sot",
   "phase": "phase-2-inc2-lv+fin0-contract",
   "qaClosure": {
     "defectId": "QA-P1-001",
