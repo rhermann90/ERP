@@ -20,7 +20,7 @@ Kurzüberblick für Navigation in `src/` (Fastify-Backend) und `apps/web` (PWA).
 
 | Datei / Muster | Inhalt |
 |----------------|--------|
-| `*-routes.ts` | Ressourcen-Routen (LV, Aufmass, Angebot, Finanz, Auth, Nutzer, …); **`GET /lv/versions/{lvVersionId}`** Lesepfad §9 → `lv-service.getVersionSnapshot` |
+| `*-routes.ts` | Ressourcen-Routen (LV, Aufmass, Angebot, Finanz, Auth, Nutzer, …); **`GET /lv/versions/{lvVersionId}`** Lesepfad §9 → `lv-service.getVersionSnapshot`; **`GET .../structure`** + **`GET .../positions/{positionId}`** → `lv-hierarchy-service` (Projektion; ADR-0013) |
 | `http-response.ts`, `idempotency-header.ts` | Gemeinsame HTTP-Hilfen |
 
 Neue Endpunkte: OpenAPI [`docs/api-contract.yaml`](../api-contract.yaml) und Fehlercodes [`docs/contracts/error-codes.json`](../contracts/error-codes.json) mitführen, wo verbindlich. **`info.version`** synchron zu [`src/domain/openapi-contract-version.ts`](../../src/domain/openapi-contract-version.ts); FIN-4-Integratoren: [`docs/contracts/FIN4-external-client-integration.md`](../contracts/FIN4-external-client-integration.md).

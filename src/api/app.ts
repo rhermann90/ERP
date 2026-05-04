@@ -7,6 +7,7 @@ import { AuditService } from "../services/audit-service.js";
 import { AuthorizationService } from "../services/authorization-service.js";
 import { ExportService } from "../services/export-service.js";
 import { LvReferenceValidator } from "../services/lv-reference-validator.js";
+import { LvHierarchyService } from "../services/lv-hierarchy-service.js";
 import { LvService } from "../services/lv-service.js";
 import { MeasurementService } from "../services/measurement-service.js";
 import { OfferService } from "../services/offer-service.js";
@@ -340,6 +341,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   const authorizationService = new AuthorizationService(repos);
   const measurementService = new MeasurementService(repos, audit, lvRef, lvMeasurementPersistence);
   const lvService = new LvService(repos, audit, lvMeasurementPersistence, authorizationService);
+  const lvHierarchyService = new LvHierarchyService(lvService);
   const exportService = new ExportService(repos, audit);
 
   registerPasswordResetRoutes(app, { getPrisma: () => prisma, audit });
@@ -382,6 +384,30 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     try {
       const params = request.params as { lvVersionId: string };
       const result = lvService.getVersionSnapshotForHttpHeaders(request.headers, params.lvVersionId);
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.get("/lv/versions/:lvVersionId/structure", async (request, reply) => {
+    try {
+      const params = request.params as { lvVersionId: string };
+      const result = lvHierarchyService.getHierarchySnapshotForHttpHeaders(request.headers, params.lvVersionId);
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.get("/lv/versions/:lvVersionId/positions/:positionId", async (request, reply) => {
+    try {
+      const params = request.params as { lvVersionId: string; positionId: string };
+      const result = lvHierarchyService.getPositionForHttpHeaders(
+        request.headers,
+        params.lvVersionId,
+        params.positionId,
+      );
       return reply.status(200).send(result);
     } catch (error) {
       return handleHttpError(error, request, reply);
