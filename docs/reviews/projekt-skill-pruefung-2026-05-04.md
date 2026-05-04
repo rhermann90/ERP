@@ -1,7 +1,7 @@
 # Projektprüfung nach cursor-stack Skills
 
-**Stand:** 2026-05-04 (UTC-lokal Agent-Lauf)  
-**Branch (Auditzeitpunkt):** `feat/export-runs-shell-spur-a` @ `cdf8a85` (ahead `origin` um Cursor/cursor-stack Commit; Diff zu `origin/main` siehe `git diff origin/main --stat`)  
+**Stand:** 2026-05-04 — Audit ergänzt nach Rebase/Push  
+**Branch:** `feat/export-runs-shell-spur-a` @ `56ce781` (nach **`git rebase origin/main`**, Push zum Remote; enthält u. a. Cursor-Stack + Skill-Review + Export/LV-Deltas + Follow-up-Doku)  
 **Projekt-Overrides:** [`.cursor/rules/cursor-stack.mdc`](../../.cursor/rules/cursor-stack.mdc) — `mainBranch: main`, `testCommand: npm run verify:ci`, `preMergeCommand: npm run verify:pre-merge`
 
 Skills-Referenz: [`.cursor/skills/*/SKILL.md`](../../.cursor/skills/).
@@ -98,7 +98,7 @@ Auszug priorisiert nach SKILL-Kategorien (kein Voll-Repo-Review).
 
 | Check | Ergebnis |
 |--------|----------|
-| `npm run verify:pre-merge` (= `verify:ci` + Playwright [`e2e/login-finance-smoke.spec.ts`](../../e2e/login-finance-smoke.spec.ts)) | **PASS** (2026-05-04 Agent-Lauf), 13 E2E-Tests grün |
+| `npm run verify:pre-merge` (= `verify:ci` + Playwright [`e2e/login-finance-smoke.spec.ts`](../../e2e/login-finance-smoke.spec.ts)) | **PASS** (initial und **erneut nach Rebase auf `origin/main`** am selben Tag), 13 E2E-Tests grün |
 | Explorationsplan (Skill „Full exploration“) | **Nicht ausgeführt** — außerhalb Budget; empfohlen bei großen UI-Änderungen zusätzlich |
 
 Merge-Evidenz-Vorlagen: [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md).
@@ -112,9 +112,10 @@ Merge-Evidenz-Vorlagen: [`docs/contracts/qa-fin-0-gate-readiness.md`](../contrac
 | Absichtliche Änderungen / kein Debug-Müll im geplanten Merge-Set | Zu prüfen im PR-Diff gegen `origin/main` — Branch enthält u. a. Cursor-Integration und Finanz/LV-Deltas |
 | Keine Secrets im Diff | Kein Scan-Ersatz für Menschen; keine offensichtlichen Muster in Audit-Stichprobe |
 | Tests: **`npm run verify:ci`** | **PASS** (Teil von verify:pre-merge) |
-| Rebase-Ziel **`origin/main`** vor Merge | **Empfehlung:** vor PR-Merge ausführen; Branch war **ahead 1** gegenüber `origin/feat/export-runs-shell-spur-a` zum Zeitpunkt des Checks |
+| Rebase-Ziel **`origin/main`** vor Merge | **Erledigt** (`git fetch` + `git rebase origin/main`); danach `verify:pre-merge` erneut grün |
+| Push zum Remote | **Erledigt** — `origin/feat/export-runs-shell-spur-a` mit `--force-with-lease` aktualisiert (History nach Rebase) |
 
-**Kein Push/PR** durch dieses Audit ausgeführt.
+**PR/Merge** auf `main`: durch Menschen in GitHub; Evidence §5a siehe [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md).
 
 ---
 
@@ -128,8 +129,9 @@ Merge-Evidenz-Vorlagen: [`docs/contracts/qa-fin-0-gate-readiness.md`](../contrac
 
 ## Ergebnis & nächste Schritte
 
-- **Technisch:** Vor-merge-Kette **`npm run verify:pre-merge`** ist auf der geprüften Arbeitskopie **grün**; Projektregeln-Validator **grün**.
+- **Technisch:** Vor-merge-Kette **`npm run verify:pre-merge`** ist nach Rebase **grün**; Projektregeln-Validator **grün**.
 - **Prozess:** Branch-Inhalt ist **breit** — für Review-Barriere kleine, thematische PRs oder sehr diszipliniertes Mono-PR-Review laut [`docs/plans/nächste-schritte.md`](../plans/nächste-schritte.md).
-- **Strategie:** FIN-5-Gate bleibt dokumentiertes Team-To-do vor Spur **B**.
+- **Strategie (Team, nicht automatisierbar):** Vor Spur **B** / FIN-5-Implementierung die Entscheidung **§8.16 vs. Fail-Closed** dokumentiert festhalten ([`docs/tickets/FIN-5-GATE-816-FAIL-CLOSED.md`](../tickets/FIN-5-GATE-816-FAIL-CLOSED.md), ADR [`docs/adr/0014-fin5-mvp-tax-fail-closed.md`](../adr/0014-fin5-mvp-tax-fail-closed.md)); danach „Gewählte Spur“ in [`docs/plans/nächste-schritte.md`](../plans/nächste-schritte.md) anpassen.
+- **QA optional:** Vollständige UI-Exploration (Skill „Full exploration“) bei großen PWA-Änderungen zusätzlich zum Smoke — nicht Teil dieses Follow-ups.
 
-Keine automatischen Code-Änderungen aus diesem Dokument abgeleitet.
+Fachliche/operative Punkte dieses Abschnitts ändern keinen Anwendungscode; der Follow-up-Rebase/Push war rein lieferkettenbezogen.
