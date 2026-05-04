@@ -5,7 +5,7 @@
  * deaktiviert, wenn der Server `runMode === "OFF"` meldet. **GET Kandidaten** bleibt erlaubt (Lesepfad,
  * Transparenz). HTTP **1b:** `POST /finance/dunning-reminder-run` und `POST …/send-emails` liefern **409** `DUNNING_REMINDER_RUN_DISABLED`.
  */
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { FinanceCollapsibleJson } from "./FinanceCollapsibleJson.js";
 import { FinancePrepPanel } from "./FinancePrepPanel.js";
 import type {
@@ -84,7 +84,7 @@ function parseCandidatesResponse(raw: string): DunningReminderCandidatesReadResp
   }
 }
 
-export function FinanceDunningGrundeinstellungenPanel({
+function FinanceDunningGrundeinstellungenPanelInner({
   busy,
   serverAutomationRunMode,
   dunningAutomationJson,
@@ -141,6 +141,7 @@ export function FinanceDunningGrundeinstellungenPanel({
         ) : null}
         {batchMahnlaufDisabled ? (
           <p
+            id="finance-grundeinst-mandant-off-status"
             role="status"
             style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginTop: 0, marginBottom: "0.45rem" }}
           >
@@ -259,13 +260,19 @@ export function FinanceDunningGrundeinstellungenPanel({
           <button type="button" disabled={busy} onClick={onLoadDunningCandidates}>
             Kandidaten laden (GET)
           </button>
-          <button type="button" disabled={busy || batchMahnlaufDisabled} onClick={onDunningBatchDryRun}>
+          <button
+            type="button"
+            disabled={busy || batchMahnlaufDisabled}
+            onClick={onDunningBatchDryRun}
+            aria-describedby={batchMahnlaufDisabled ? "finance-grundeinst-mandant-off-status" : undefined}
+          >
             Vorschau (Dry-Run)
           </button>
           <button
             type="button"
             disabled={busy || batchMahnlaufDisabled || !canRecordDunningReminder}
             onClick={onDunningBatchExecute}
+            aria-describedby={batchMahnlaufDisabled ? "finance-grundeinst-mandant-off-status" : undefined}
           >
             Ausführen (EXECUTE)
           </button>
@@ -275,6 +282,7 @@ export function FinanceDunningGrundeinstellungenPanel({
           <div
             role="region"
             aria-label="Mahn-Kandidaten und Eligibility-Kontext"
+            data-testid="finance-dunning-candidates-region"
             style={{
               marginTop: "0.65rem",
               padding: "0.55rem 0.65rem",
@@ -342,7 +350,12 @@ export function FinanceDunningGrundeinstellungenPanel({
                           background: idx % 2 === 1 ? "color-mix(in srgb, var(--panel-2) 55%, transparent)" : undefined,
                         }}
                       >
-                        <td style={{ padding: "0.25rem 0.35rem", fontFamily: "monospace", fontSize: "0.72rem" }}>{row.invoiceId}</td>
+                        <td
+                          data-testid={`finance-dunning-candidate-invoice-${idx}`}
+                          style={{ padding: "0.25rem 0.35rem", fontFamily: "monospace", fontSize: "0.72rem" }}
+                        >
+                          {row.invoiceId}
+                        </td>
                         <td style={{ padding: "0.25rem 0.35rem", fontFamily: "monospace" }}>{row.dueDate}</td>
                         <td style={{ padding: "0.25rem 0.35rem", fontFamily: "monospace" }}>{row.stageDeadlineIso}</td>
                         <td style={{ padding: "0.25rem 0.35rem", textAlign: "right", fontFamily: "monospace" }}>{row.openAmountCents}</td>
@@ -398,6 +411,7 @@ export function FinanceDunningGrundeinstellungenPanel({
             data-testid="finance-dunning-batch-email-dry-run"
             disabled={busy || batchMahnlaufDisabled}
             onClick={onDunningBatchEmailDryRun}
+            aria-describedby={batchMahnlaufDisabled ? "finance-grundeinst-mandant-off-status" : undefined}
           >
             Batch-E-Mail Dry-Run
           </button>
@@ -406,6 +420,7 @@ export function FinanceDunningGrundeinstellungenPanel({
             data-testid="finance-dunning-batch-email-execute"
             disabled={busy || batchMahnlaufDisabled || !canRecordDunningReminder}
             onClick={onDunningBatchEmailExecute}
+            aria-describedby={batchMahnlaufDisabled ? "finance-grundeinst-mandant-off-status" : undefined}
           >
             Batch-E-Mail EXECUTE
           </button>
@@ -420,3 +435,5 @@ export function FinanceDunningGrundeinstellungenPanel({
     </FinancePrepPanel>
   );
 }
+
+export const FinanceDunningGrundeinstellungenPanel = memo(FinanceDunningGrundeinstellungenPanelInner);

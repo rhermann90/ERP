@@ -1,5 +1,7 @@
+import { memo } from "react";
 import { FinanceCollapsibleJson } from "../FinanceCollapsibleJson.js";
 import { FinancePrepPanel } from "../FinancePrepPanel.js";
+import { FIN_PREP_A11Y } from "../finance-preparation-meta.js";
 
 export type FinancePrepStepDraftProps = {
   busy: boolean;
@@ -10,7 +12,7 @@ export type FinancePrepStepDraftProps = {
   onCreateInvoiceDraft: () => void;
 };
 
-export function FinancePrepStepDraft({
+function FinancePrepStepDraftInner({
   busy,
   draftSkontoBps,
   setDraftSkontoBps,
@@ -20,7 +22,7 @@ export function FinancePrepStepDraft({
 }: FinancePrepStepDraftProps) {
   return (
     <FinancePrepPanel step={2} title="Rechnungsentwurf (FIN-2)">
-      <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
+      <p id={FIN_PREP_A11Y.draftIntro} style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
         Erzeugt einen Entwurf mit Seed-LV/Angebot, sofern Traceability im Backend erfüllt ist. Optional: Skonto in Basispunkten (B2-1a), z. B.{" "}
         <strong>200</strong> = 2 % Abzug auf das LV-Netto nach Schritt 1 vor USt.
       </p>
@@ -32,6 +34,7 @@ export function FinancePrepStepDraft({
           value={draftSkontoBps}
           onChange={(e) => setDraftSkontoBps(e.target.value)}
           aria-label="Skonto in Basispunkten für neuen Rechnungsentwurf"
+          aria-describedby={FIN_PREP_A11Y.draftIntro}
           style={{ width: "100%", fontFamily: "monospace", fontSize: "0.85rem", marginTop: "0.25rem" }}
         />
       </label>
@@ -47,3 +50,5 @@ export function FinancePrepStepDraft({
     </FinancePrepPanel>
   );
 }
+
+export const FinancePrepStepDraft = memo(FinancePrepStepDraftInner);

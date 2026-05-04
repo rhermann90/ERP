@@ -1,7 +1,9 @@
+import { memo } from "react";
 import { FinanceCollapsibleJson } from "./FinanceCollapsibleJson.js";
+import { FinancePrepNotice } from "./FinancePrepNotice.js";
 import { FinancePrepPanel } from "./FinancePrepPanel.js";
-import { FinanceStructuredApiError } from "./FinanceStructuredApiError.js";
 import type { FinNotice } from "./finance-prep-types.js";
+import { FIN_PREP_A11Y } from "./finance-preparation-meta.js";
 import { RECORD_PAYMENT_INTAKE_ACTION_ID } from "../../lib/finance-sot.js";
 
 export type FinancePreparationPaymentPanelProps = {
@@ -19,7 +21,7 @@ export type FinancePreparationPaymentPanelProps = {
   onSubmitPaymentIntake: () => void;
 };
 
-export function FinancePreparationPaymentPanel({
+function FinancePreparationPaymentPanelInner({
   busy,
   openCents,
   intakeAmountCents,
@@ -35,7 +37,7 @@ export function FinancePreparationPaymentPanel({
 }: FinancePreparationPaymentPanelProps) {
   return (
     <FinancePrepPanel step={5} title="Zahlungseingang (FIN-3)">
-      <ol style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginTop: 0, paddingLeft: "1.2rem" }}>
+      <ol id={FIN_PREP_A11Y.fin3Steps} style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginTop: 0, paddingLeft: "1.2rem" }}>
         <li>
           Rechnung laden (Schritt 3: <strong>Rechnung laden</strong>) — lädt automatisch <code>allowed-actions</code> für SoT{" "}
           <code>{RECORD_PAYMENT_INTAKE_ACTION_ID}</code>.
@@ -68,6 +70,7 @@ export function FinancePreparationPaymentPanel({
           value={intakeAmountCents}
           onChange={(e) => setIntakeAmountCents(e.target.value)}
           aria-label="Zahlungsbetrag in Cent"
+          aria-describedby={FIN_PREP_A11Y.fin3Steps}
           style={{ width: "100%", fontFamily: "monospace", fontSize: "0.85rem", marginTop: "0.25rem" }}
         />
       </label>
@@ -77,17 +80,11 @@ export function FinancePreparationPaymentPanel({
           type="text"
           value={intakeExternalRef}
           onChange={(e) => setIntakeExternalRef(e.target.value)}
+          aria-describedby={FIN_PREP_A11Y.fin3Steps}
           style={{ width: "100%", marginTop: "0.25rem" }}
         />
       </label>
-      {paymentPanelError?.kind === "api" ? (
-        <FinanceStructuredApiError envelope={paymentPanelError.error.envelope} status={paymentPanelError.error.status} />
-      ) : null}
-      {paymentPanelError?.kind === "text" ? (
-        <p role="alert" style={{ color: "var(--danger)", fontSize: "0.85rem", marginBottom: "0.5rem" }}>
-          {paymentPanelError.text}
-        </p>
-      ) : null}
+      <FinancePrepNotice notice={paymentPanelError} />
       <button
         type="button"
         onClick={() => void onSubmitPaymentIntake()}
@@ -106,3 +103,5 @@ export function FinancePreparationPaymentPanel({
     </FinancePrepPanel>
   );
 }
+
+export const FinancePreparationPaymentPanel = memo(FinancePreparationPaymentPanelInner);

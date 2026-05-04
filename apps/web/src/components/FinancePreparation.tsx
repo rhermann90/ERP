@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   applyFinancePrepTabToLocationHash,
   financePrepHashWithTab,
@@ -25,7 +25,7 @@ import { FinanceFeatureMatrix } from "./finance/FinanceFeatureMatrix.js";
 import { FinanceDunningGrundeinstellungenPanel } from "./finance/FinanceDunningGrundeinstellungenPanel.js";
 import { FinancePreparationDunningPanel } from "./finance/FinancePreparationDunningPanel.js";
 import { FinancePreparationPaymentPanel } from "./finance/FinancePreparationPaymentPanel.js";
-import { FinanceStructuredApiError } from "./finance/FinanceStructuredApiError.js";
+import { FinancePrepNotice } from "./finance/FinancePrepNotice.js";
 import type { FinNotice } from "./finance/finance-prep-types.js";
 import {
   DEMO_CUSTOMER_ID,
@@ -42,6 +42,8 @@ import { FinancePrepStepInvoice } from "./finance/preparation/FinancePrepStepInv
 import { FinancePrepStepSot } from "./finance/preparation/FinancePrepStepSot.js";
 import { FinancePrepStepTerms } from "./finance/preparation/FinancePrepStepTerms.js";
 import { formatSkontoDisplay, isUuidShape } from "./finance/finance-prep-helpers.js";
+
+const FINANCE_PREP_MAIN_TABS: FinancePrepMainTab[] = ["rechnung", "grundeinstellungen", "mahnwesen", "fortgeschritten"];
 
 export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; initialMainTab?: FinancePrepMainTab }) {
   const [projectId, setProjectId] = useState(DEMO_PROJECT_ID);
@@ -67,10 +69,52 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
   const [dunningAutomationServerRunMode, setDunningAutomationServerRunMode] = useState<"OFF" | "SEMI" | null>(null);
   const [financePrepMainTab, setFinancePrepMainTab] = useState<FinancePrepMainTab>(() => initialMainTab ?? "rechnung");
 
+  const financePrepTabButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
   const selectFinancePrepMainTab = useCallback((t: FinancePrepMainTab) => {
     setFinancePrepMainTab(t);
     applyFinancePrepTabToLocationHash(t);
   }, []);
+
+  const focusFinancePrepTabAtIndex = useCallback(
+    (idx: number) => {
+      const tab = FINANCE_PREP_MAIN_TABS[idx];
+      if (!tab) return;
+      selectFinancePrepMainTab(tab);
+      requestAnimationFrame(() => {
+        financePrepTabButtonRefs.current[idx]?.focus();
+      });
+    },
+    [selectFinancePrepMainTab],
+  );
+
+  const onFinancePrepTabKeyDown = useCallback(
+    (tabIdx: number) => (e: KeyboardEvent<HTMLButtonElement>) => {
+      switch (e.key) {
+        case "ArrowRight":
+        case "ArrowDown":
+          e.preventDefault();
+          focusFinancePrepTabAtIndex((tabIdx + 1) % FINANCE_PREP_MAIN_TABS.length);
+          break;
+        case "ArrowLeft":
+        case "ArrowUp":
+          e.preventDefault();
+          focusFinancePrepTabAtIndex((tabIdx - 1 + FINANCE_PREP_MAIN_TABS.length) % FINANCE_PREP_MAIN_TABS.length);
+          break;
+        case "Home":
+          e.preventDefault();
+          focusFinancePrepTabAtIndex(0);
+          break;
+        case "End":
+          e.preventDefault();
+          focusFinancePrepTabAtIndex(FINANCE_PREP_MAIN_TABS.length - 1);
+          break;
+        default:
+          break;
+      }
+    },
+    [focusFinancePrepTabAtIndex],
+  );
   const [dunningAutomationIanaTimezone, setDunningAutomationIanaTimezone] = useState("Europe/Berlin");
   const [dunningAutomationFederalState, setDunningAutomationFederalState] = useState("");
   const [dunningAutomationPaymentTermDayKind, setDunningAutomationPaymentTermDayKind] = useState<"CALENDAR" | "BUSINESS">(
@@ -1033,6 +1077,57 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
     }
   }, [api]);
 
+  const onInvoiceIdInputChange = useCallback((value: string) => {
+    setInvoiceIdRead(value);
+    setInvoiceAllowedActions(null);
+    setPaymentIntakes(null);
+    setDunningReminders(null);
+  }, []);
+
+  const runSubmitDunningTenantAutomationPatch = useCallback(() => {
+    void submitDunningTenantAutomationPatch();
+  }, [submitDunningTenantAutomationPatch]);
+
+  const runSubmitDunningBatchDryRun = useCallback(() => {
+    void submitDunningBatchDryRun();
+  }, [submitDunningBatchDryRun]);
+
+  const runSubmitDunningBatchExecute = useCallback(() => {
+    void submitDunningBatchExecute();
+  }, [submitDunningBatchExecute]);
+
+  const runSubmitLoadDunningCandidates = useCallback(() => {
+    void submitLoadDunningCandidates();
+  }, [submitLoadDunningCandidates]);
+
+  const runSubmitDunningBatchEmailDryRun = useCallback(() => {
+    void submitDunningBatchEmailDryRun();
+  }, [submitDunningBatchEmailDryRun]);
+
+  const runSubmitDunningBatchEmailExecute = useCallback(() => {
+    void submitDunningBatchEmailExecute();
+  }, [submitDunningBatchEmailExecute]);
+
+  const runLoadDunningReads = useCallback(() => {
+    void loadDunningReads();
+  }, [loadDunningReads]);
+
+  const runSubmitFooterPatch = useCallback(() => {
+    void submitFooterPatch();
+  }, [submitFooterPatch]);
+
+  const runSubmitEmailPreview = useCallback(() => {
+    void submitEmailPreview();
+  }, [submitEmailPreview]);
+
+  const runSubmitEmailSendStub = useCallback(() => {
+    void submitEmailSendStub();
+  }, [submitEmailSendStub]);
+
+  const runSubmitEmailSend = useCallback(() => {
+    void submitEmailSend();
+  }, [submitEmailSend]);
+
   const openCents = openAmountCents(invoiceOverview);
 
   const financePrepPageTitle =
@@ -1110,9 +1205,14 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
             type="button"
             role="tab"
             id="finance-prep-tab-rechnung"
+            ref={(el) => {
+              financePrepTabButtonRefs.current[0] = el;
+            }}
+            tabIndex={financePrepMainTab === "rechnung" ? 0 : -1}
             aria-selected={financePrepMainTab === "rechnung"}
             aria-controls="finance-prep-panel-rechnung"
             onClick={() => selectFinancePrepMainTab("rechnung")}
+            onKeyDown={onFinancePrepTabKeyDown(0)}
             style={{
               fontWeight: financePrepMainTab === "rechnung" ? 700 : 400,
               borderBottom: financePrepMainTab === "rechnung" ? "2px solid var(--accent)" : "2px solid transparent",
@@ -1128,9 +1228,14 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
             type="button"
             role="tab"
             id="finance-prep-tab-grundeinstellungen"
+            ref={(el) => {
+              financePrepTabButtonRefs.current[1] = el;
+            }}
+            tabIndex={financePrepMainTab === "grundeinstellungen" ? 0 : -1}
             aria-selected={financePrepMainTab === "grundeinstellungen"}
             aria-controls="finance-prep-panel-grundeinstellungen"
             onClick={() => selectFinancePrepMainTab("grundeinstellungen")}
+            onKeyDown={onFinancePrepTabKeyDown(1)}
             style={{
               fontWeight: financePrepMainTab === "grundeinstellungen" ? 700 : 400,
               borderBottom: financePrepMainTab === "grundeinstellungen" ? "2px solid var(--accent)" : "2px solid transparent",
@@ -1146,9 +1251,14 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
             type="button"
             role="tab"
             id="finance-prep-tab-mahnwesen"
+            ref={(el) => {
+              financePrepTabButtonRefs.current[2] = el;
+            }}
+            tabIndex={financePrepMainTab === "mahnwesen" ? 0 : -1}
             aria-selected={financePrepMainTab === "mahnwesen"}
             aria-controls="finance-prep-panel-mahnwesen"
             onClick={() => selectFinancePrepMainTab("mahnwesen")}
+            onKeyDown={onFinancePrepTabKeyDown(2)}
             style={{
               fontWeight: financePrepMainTab === "mahnwesen" ? 700 : 400,
               borderBottom: financePrepMainTab === "mahnwesen" ? "2px solid var(--accent)" : "2px solid transparent",
@@ -1164,9 +1274,14 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
             type="button"
             role="tab"
             id="finance-prep-tab-fortgeschritten"
+            ref={(el) => {
+              financePrepTabButtonRefs.current[3] = el;
+            }}
+            tabIndex={financePrepMainTab === "fortgeschritten" ? 0 : -1}
             aria-selected={financePrepMainTab === "fortgeschritten"}
             aria-controls="finance-prep-panel-fortgeschritten"
             onClick={() => selectFinancePrepMainTab("fortgeschritten")}
+            onKeyDown={onFinancePrepTabKeyDown(3)}
             style={{
               fontWeight: financePrepMainTab === "fortgeschritten" ? 700 : 400,
               borderBottom: financePrepMainTab === "fortgeschritten" ? "2px solid var(--accent)" : "2px solid transparent",
@@ -1180,14 +1295,9 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
           </button>
         </div>
 
-        {dunningPanelError?.kind === "api" ? (
-          <FinanceStructuredApiError envelope={dunningPanelError.error.envelope} status={dunningPanelError.error.status} />
-        ) : null}
-        {dunningPanelError?.kind === "text" ? (
-          <p role="alert" style={{ color: "var(--danger)", fontSize: "0.85rem", marginBottom: "0.65rem" }}>
-            {dunningPanelError.text}
-          </p>
-        ) : null}
+        <div id="finance-prep-dunning-notice" aria-live="polite" aria-relevant="additions text">
+          <FinancePrepNotice notice={dunningPanelError} structuredAnnouncementRole="status" />
+        </div>
 
         <div
           id="finance-prep-panel-rechnung"
@@ -1218,12 +1328,7 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
         <FinancePrepStepInvoice
           busy={busy}
           invoiceIdRead={invoiceIdRead}
-          onInvoiceIdInputChange={(value: string) => {
-            setInvoiceIdRead(value);
-            setInvoiceAllowedActions(null);
-            setPaymentIntakes(null);
-            setDunningReminders(null);
-          }}
+          onInvoiceIdInputChange={onInvoiceIdInputChange}
           invoiceIdLooksValid={invoiceIdLooksValid}
           onLoadInvoice={loadInvoice}
           invoiceOverview={invoiceOverview}
@@ -1279,23 +1384,23 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
             setDunningAutomationPreferredChannel={setDunningAutomationPreferredChannel}
             dunningAutomationPatchReason={dunningAutomationPatchReason}
             setDunningAutomationPatchReason={setDunningAutomationPatchReason}
-            onSubmitDunningTenantAutomationPatch={() => void submitDunningTenantAutomationPatch()}
+            onSubmitDunningTenantAutomationPatch={runSubmitDunningTenantAutomationPatch}
             dunningStageOrdinal={dunningStageOrdinal}
             setDunningStageOrdinal={setDunningStageOrdinal}
             dunningBatchAsOfDate={dunningBatchAsOfDate}
             setDunningBatchAsOfDate={setDunningBatchAsOfDate}
             dunningBatchRunJson={dunningBatchRunJson}
-            onDunningBatchDryRun={() => void submitDunningBatchDryRun()}
-            onDunningBatchExecute={() => void submitDunningBatchExecute()}
+            onDunningBatchDryRun={runSubmitDunningBatchDryRun}
+            onDunningBatchExecute={runSubmitDunningBatchExecute}
             canRecordDunningReminder={canRecordDunningReminder}
             dunningCandidatesJson={dunningCandidatesJson}
-            onLoadDunningCandidates={() => void submitLoadDunningCandidates()}
+            onLoadDunningCandidates={runSubmitLoadDunningCandidates}
             dunningBatchEmailItemsJson={dunningBatchEmailItemsJson}
             setDunningBatchEmailItemsJson={setDunningBatchEmailItemsJson}
             dunningBatchEmailResultJson={dunningBatchEmailResultJson}
             onPrefillBatchEmailItemsFromCandidates={() => void prefillBatchEmailItemsFromCandidates()}
-            onDunningBatchEmailDryRun={() => void submitDunningBatchEmailDryRun()}
-            onDunningBatchEmailExecute={() => void submitDunningBatchEmailExecute()}
+            onDunningBatchEmailDryRun={runSubmitDunningBatchEmailDryRun}
+            onDunningBatchEmailExecute={runSubmitDunningBatchEmailExecute}
           />
         </div>
 
@@ -1341,7 +1446,7 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
           configDeleteReason={configDeleteReason}
           setConfigDeleteReason={setConfigDeleteReason}
           onSubmitDunningConfigDelete={submitDunningConfigDelete}
-          onReloadDunningReads={() => void loadDunningReads()}
+          onReloadDunningReads={runLoadDunningReads}
           hasLoadedInvoice={hasLoadedInvoice}
           dunningEmailPreviewJson={dunningEmailPreviewJson}
           dunningEmailSendStubJson={dunningEmailSendStubJson}
@@ -1376,10 +1481,10 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
           footerSignatureLine={footerSignatureLine}
           setFooterSignatureLine={setFooterSignatureLine}
           onPrefillFooterPatchFromGet={prefillFooterPatchFromGet}
-          onSubmitFooterPatch={() => void submitFooterPatch()}
-          onSubmitEmailPreview={() => void submitEmailPreview()}
-          onSubmitEmailSendStub={() => void submitEmailSendStub()}
-          onSubmitEmailSend={() => void submitEmailSend()}
+          onSubmitFooterPatch={runSubmitFooterPatch}
+          onSubmitEmailPreview={runSubmitEmailPreview}
+          onSubmitEmailSendStub={runSubmitEmailSendStub}
+          onSubmitEmailSend={runSubmitEmailSend}
         />
         </div>
 
@@ -1404,14 +1509,9 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
 
         </div>
 
-        {notice?.kind === "api" ? (
-          <FinanceStructuredApiError envelope={notice.error.envelope} status={notice.error.status} />
-        ) : null}
-        {notice?.kind === "text" ? (
-          <p role="alert" style={{ color: "var(--danger)", fontSize: "0.85rem", marginTop: "0.5rem" }}>
-            {notice.text}
-          </p>
-        ) : null}
+        <div aria-live="polite" aria-relevant="additions text">
+          <FinancePrepNotice notice={notice} structuredAnnouncementRole="status" />
+        </div>
       </div>
 
       <h3 className="visually-hidden">Referenzdokumente im Repository</h3>

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { DunningReminderReadRow, InvoiceOverview, PaymentIntakeReadRow } from "../../../lib/api-client.js";
 import { repoDocHref } from "../../../lib/repo-doc-links.js";
 import {
@@ -7,10 +8,10 @@ import {
 } from "../../../lib/finance-sot.js";
 import { FinanceCollapsibleJson } from "../FinanceCollapsibleJson.js";
 import { FinancePrepPanel } from "../FinancePrepPanel.js";
-import { FinanceStructuredApiError } from "../FinanceStructuredApiError.js";
+import { FinancePrepNotice } from "../FinancePrepNotice.js";
 import type { FinNotice } from "../finance-prep-types.js";
 import { formatSkontoDisplay } from "../finance-prep-helpers.js";
-import { formatEurFromCents } from "../finance-preparation-meta.js";
+import { DEMO_INVOICE_ID, FIN_PREP_A11Y, formatEurFromCents } from "../finance-preparation-meta.js";
 
 export type FinancePrepStepInvoiceProps = {
   busy: boolean;
@@ -33,7 +34,7 @@ export type FinancePrepStepInvoiceProps = {
   onSubmitEntwurfSkontoRecalc: () => void;
 };
 
-export function FinancePrepStepInvoice({
+function FinancePrepStepInvoiceInner({
   busy,
   invoiceIdRead,
   onInvoiceIdInputChange,
@@ -56,7 +57,15 @@ export function FinancePrepStepInvoice({
   return (
     <FinancePrepPanel step={3} title="Rechnung laden, Beträge & Buchung">
       <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
-        Live-Prüfung <code>GET /invoices/:invoiceId</code> — Netto/USt/Brutto wie vom Server berechnet (8.4 MVP).
+        Live-Prüfung <code>GET /invoices/:invoiceId</code> — Netto/USt/Brutto wie vom Server berechnet (Kernrechnung 8.4 MVP).
+      </p>
+      <p
+        id={FIN_PREP_A11Y.invoiceUuidHint}
+        data-testid={FIN_PREP_A11Y.invoiceUuidHint}
+        style={{ fontSize: "0.8rem", color: "var(--text-secondary)", margin: "0.35rem 0 0.5rem" }}
+      >
+        Voreinstellung: gebuchte Demo-Rechnung{" "}
+        <code>{DEMO_INVOICE_ID}</code> — andere IDs nach Schritt 2 (Entwurf) oder aus der API übernehmen.
       </p>
       <label style={{ display: "block", marginBottom: "0.5rem" }}>
         Rechnungs-ID (UUID)
@@ -67,6 +76,7 @@ export function FinancePrepStepInvoice({
             onInvoiceIdInputChange(e.target.value);
           }}
           aria-label="Rechnungs-ID für GET"
+          aria-describedby={FIN_PREP_A11Y.invoiceUuidHint}
           style={{ width: "100%", fontFamily: "monospace", fontSize: "0.85rem", marginTop: "0.25rem" }}
         />
       </label>
@@ -78,6 +88,11 @@ export function FinancePrepStepInvoice({
       >
         Rechnung laden
       </button>
+      {!invoiceOverview ? (
+        <p id={FIN_PREP_A11Y.invoiceEmpty} role="status" style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginTop: "0.65rem", marginBottom: 0 }}>
+          Noch keine Rechnung geladen — UUID prüfen und „Rechnung laden“ wählen.
+        </p>
+      ) : null}
       {invoiceOverview ? (
         <div style={{ marginTop: "0.75rem", fontSize: "0.85rem" }}>
           <div className="finance-prep-metric-grid" role="group" aria-label="Kernzahlen Rechnung">
@@ -206,14 +221,7 @@ export function FinancePrepStepInvoice({
               >
                 Rechnung buchen
               </button>
-              {bookPanelError?.kind === "api" ? (
-                <FinanceStructuredApiError envelope={bookPanelError.error.envelope} status={bookPanelError.error.status} />
-              ) : null}
-              {bookPanelError?.kind === "text" ? (
-                <p role="alert" style={{ color: "var(--danger)", fontSize: "0.85rem", marginTop: "0.5rem" }}>
-                  {bookPanelError.text}
-                </p>
-              ) : null}
+              <FinancePrepNotice notice={bookPanelError} />
             </div>
           ) : null}
           {paymentIntakes != null ? (
@@ -298,3 +306,5 @@ export function FinancePrepStepInvoice({
     </FinancePrepPanel>
   );
 }
+
+export const FinancePrepStepInvoice = memo(FinancePrepStepInvoiceInner);

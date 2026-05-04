@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ApiClient, DunningStageConfigReadRow } from "../lib/api-client.js";
 import { ApiError } from "../lib/api-error.js";
@@ -7,6 +7,7 @@ import {
   isFinancePrepHashPath,
   resolveFinancePrepInitialMainTab,
 } from "../lib/hash-route.js";
+import { FinanceStructuredApiError } from "./finance/FinanceStructuredApiError.js";
 import { FinancePreparation } from "./FinancePreparation.js";
 
 const draftResponse = {
@@ -465,9 +466,11 @@ describe("FinancePreparation", () => {
     });
     await waitFor(() => expect(getDunningReminderTemplates).toHaveBeenCalled());
     fireEvent.click(screen.getByRole("tab", { name: /^Mahnwesen$/i }));
-    const alert = screen.getByRole("alert");
-    expect(alert.textContent).toContain("DUNNING_TEMPLATE_NOT_PERSISTABLE");
-    expect(alert.textContent).toContain("Nur mit Postgres");
+    const dunningLive = document.getElementById("finance-prep-dunning-notice");
+    expect(dunningLive).toBeTruthy();
+    const statusAnnouncement = within(dunningLive as HTMLElement).getByRole("status");
+    expect(statusAnnouncement.textContent).toContain("DUNNING_TEMPLATE_NOT_PERSISTABLE");
+    expect(statusAnnouncement.textContent).toContain("Nur mit Postgres");
     fireEvent.click(screen.getByRole("button", { name: /Mahn-Lesepfade.*erneut laden/i }));
     await waitFor(() => expect(getDunningReminderTemplates).toHaveBeenCalledTimes(2));
     await waitFor(() => {
@@ -508,7 +511,9 @@ describe("FinancePreparation", () => {
     fireEvent.click(screen.getByRole("button", { name: /PUT-JSON aus GET vorbefüllen/i }));
     fireEvent.click(screen.getByRole("button", { name: /PUT \/finance\/dunning-reminder-config/i }));
     await waitFor(() => expect(replaceDunningReminderConfig).toHaveBeenCalled());
-    expect(screen.getByRole("alert")).toBeTruthy();
+    const dunningLive = document.getElementById("finance-prep-dunning-notice");
+    expect(dunningLive).toBeTruthy();
+    expect(within(dunningLive as HTMLElement).getByRole("status")).toBeTruthy();
   });
 
   it("calls patchDunningReminderStage when PATCH Stufe is submitted with label", async () => {
@@ -684,8 +689,9 @@ describe("FinancePreparation", () => {
       fireEvent.click(screen.getByRole("button", { name: /Kandidaten laden \(GET\)/i }));
     });
     await waitFor(() => expect(getDunningReminderCandidates).toHaveBeenCalledWith({ stageOrdinal: 1 }));
-    expect(screen.getByRole("region", { name: /Mahn-Kandidaten und Eligibility-Kontext/i })).not.toBeNull();
-    const cell = screen.getByText("44444444-4444-4444-8444-444444444444");
+    const candidatesRegion = screen.getByTestId("finance-dunning-candidates-region");
+    expect(candidatesRegion).not.toBeNull();
+    const cell = within(candidatesRegion).getByTestId("finance-dunning-candidate-invoice-0");
     expect(cell).not.toBeNull();
     expect(screen.getByText("BUSINESS")).not.toBeNull();
     const tr = cell.closest("tr");
@@ -787,5 +793,43 @@ describe("hash-route — Finanz-Vorbereitung (Deep-Link)", () => {
       render(<FinancePreparation api={noopApi as unknown as ApiClient} initialMainTab="grundeinstellungen" />);
     });
     expect(screen.getByRole("heading", { name: /Finanz \(Vorbereitung\) — Mahn-Grundeinstellungen/i })).not.toBeNull();
+  });
+});
+
+describe("FinanceStructuredApiError — Nutzerhinweise", () => {
+  it("zeigt Zusatztext bei DOCUMENT_NOT_FOUND", () => {
+    render(
+      <FinanceStructuredApiError
+        status={404}
+        envelope={{
+          code: "DOCUMENT_NOT_FOUND",
+          message: "nicht da",
+          correlationId: "c-doc",
+          retryable: false,
+          blocking: true,
+        }}
+      />,
+    );
+    expect(screen.getByText(/nicht gefunden oder gehört nicht zum aktuellen Mandanten/i)).not.toBeNull();
+    expect(screen.getByText("c-doc")).not.toBeNull();
+    expect(screen.getByTestId("finance-structured-api-error-disclaimer")).not.toBeNull();
+  });
+
+  it("zeigt OFF-Hinweis bei DUNNING_REMINDER_RUN_DISABLED ohne generischen DOCUMENT-Hinweis", () => {
+    render(
+      <FinanceStructuredApiError
+        status={409}
+        envelope={{
+          code: "DUNNING_REMINDER_RUN_DISABLED",
+          message: "off",
+          correlationId: "c-off",
+          retryable: false,
+          blocking: true,
+        }}
+      />,
+    );
+    expect(screen.getByText(/Mandanten-Mahnlauf ist auf/i)).not.toBeNull();
+    expect(screen.queryByText(/nicht gefunden oder gehört nicht/i)).toBeNull();
+    expect(screen.getByTestId("finance-structured-api-error-disclaimer")).not.toBeNull();
   });
 });

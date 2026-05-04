@@ -1,5 +1,7 @@
+import { memo } from "react";
 import { FinanceCollapsibleJson } from "../FinanceCollapsibleJson.js";
 import { FinancePrepPanel } from "../FinancePrepPanel.js";
+import { DEMO_PROJECT_ID, FIN_PREP_A11Y } from "../finance-preparation-meta.js";
 
 export type FinancePrepStepTermsProps = {
   busy: boolean;
@@ -12,7 +14,7 @@ export type FinancePrepStepTermsProps = {
   onCreatePaymentTermsVersion: () => void;
 };
 
-export function FinancePrepStepTerms({
+function FinancePrepStepTermsInner({
   busy,
   projectId,
   setProjectId,
@@ -24,14 +26,23 @@ export function FinancePrepStepTerms({
 }: FinancePrepStepTermsProps) {
   return (
     <FinancePrepPanel step={1} title="Zahlungsbedingungen (FIN-1)">
+      <p
+        id={FIN_PREP_A11Y.termsIntro}
+        style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}
+      >
+        <code>GET /finance/payment-terms</code> und <code>POST …/versions</code> gelten je Projekt. Das Feld unten ist mit der Demo-Projekt-ID aus dem Memory-Seed vorbelegt (
+        <code>{DEMO_PROJECT_ID}</code>
+        ).
+      </p>
       <label style={{ display: "block", marginBottom: "0.5rem" }}>
-        <span className="visually-hidden">Projekt-ID</span>
+        Projekt-ID (UUID)
         <input
           type="text"
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
           aria-label="Projekt-ID (UUID)"
-          style={{ width: "100%", fontFamily: "monospace", fontSize: "0.85rem" }}
+          aria-describedby={FIN_PREP_A11Y.termsIntro}
+          style={{ width: "100%", fontFamily: "monospace", fontSize: "0.85rem", marginTop: "0.25rem" }}
         />
       </label>
       <label style={{ display: "block", marginBottom: "0.5rem" }}>
@@ -40,6 +51,7 @@ export function FinancePrepStepTerms({
           type="text"
           value={termsLabel}
           onChange={(e) => setTermsLabel(e.target.value)}
+          aria-describedby={FIN_PREP_A11Y.termsIntro}
           style={{ width: "100%", marginTop: "0.25rem" }}
         />
       </label>
@@ -55,3 +67,5 @@ export function FinancePrepStepTerms({
     </FinancePrepPanel>
   );
 }
+
+export const FinancePrepStepTerms = memo(FinancePrepStepTermsInner);

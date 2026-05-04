@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { FinanceCollapsibleJson } from "./FinanceCollapsibleJson.js";
 import { FinancePrepPanel } from "./FinancePrepPanel.js";
 import type { DunningEmailFooterData } from "./finance-prep-helpers.js";
@@ -92,7 +92,7 @@ export type FinancePreparationDunningPanelProps = {
   onSubmitEmailSend: () => void;
 };
 
-export function FinancePreparationDunningPanel({
+function FinancePreparationDunningPanelInner({
   busy,
   dunningReminderConfigJson,
   dunningTemplatesJson,
@@ -605,3 +605,5 @@ export function FinancePreparationDunningPanel({
     </FinancePrepPanel>
   );
 }
+
+export const FinancePreparationDunningPanel = memo(FinancePreparationDunningPanelInner);
