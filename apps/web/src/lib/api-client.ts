@@ -165,6 +165,34 @@ export type LvVersionSnapshot = {
   }>;
 };
 
+/** Eintrag aus `GET /exports` bzw. `GET /exports/{exportRunId}` (Export-Preflight-Protokoll). */
+export type ExportRunRead = {
+  id: string;
+  tenantId: string;
+  entityType: "OFFER_VERSION" | "SUPPLEMENT_VERSION" | "INVOICE";
+  entityId: string;
+  format: "XRECHNUNG" | "GAEB";
+  status: "PENDING" | "FAILED" | "SUCCEEDED";
+  validationErrors: string[];
+  createdAt: string;
+  createdBy: string;
+};
+
+export type ExportRunListResponse = {
+  data: ExportRunRead[];
+  page: number;
+  pageSize: number;
+  total: number;
+};
+
+export type ExportRunListParams = {
+  page?: number;
+  pageSize?: number;
+  entityType?: "OFFER_VERSION" | "SUPPLEMENT_VERSION" | "INVOICE";
+  status?: "PENDING" | "FAILED" | "SUCCEEDED";
+  format?: "XRECHNUNG" | "GAEB";
+};
+
 /** Antwort `GET /invoices/:invoiceId` (FIN-2 + 8.4 MVP). */
 export type InvoiceOverview = {
   invoiceId: string;
@@ -381,6 +409,8 @@ export type ApiClient = {
     reason: string;
   }): Promise<CreateInvoiceDraftResponse>;
   getInvoice(invoiceId: string): Promise<InvoiceOverview>;
+  listExportRuns(params?: ExportRunListParams): Promise<ExportRunListResponse>;
+  getExportRun(exportRunId: string): Promise<ExportRunRead>;
   listInvoicePaymentIntakes(invoiceId: string): Promise<{ data: PaymentIntakeReadRow[] }>;
   listInvoiceDunningReminders(invoiceId: string): Promise<{ data: DunningReminderReadRow[] }>;
   getDunningReminderConfig(): Promise<DunningReminderConfigReadResponse>;
@@ -538,6 +568,21 @@ export function createApiClient(options: {
     },
     getInvoice(invoiceId) {
       return requestJson<InvoiceOverview>("GET", `/invoices/${encodeURIComponent(invoiceId)}`);
+    },
+    listExportRuns(params?: ExportRunListParams) {
+      const q = new URLSearchParams();
+      if (params?.page != null) q.set("page", String(params.page));
+      if (params?.pageSize != null) q.set("pageSize", String(params.pageSize));
+      if (params?.entityType) q.set("entityType", params.entityType);
+      if (params?.status) q.set("status", params.status);
+      if (params?.format) q.set("format", params.format);
+      const qs = q.toString();
+      return requestJson<ExportRunListResponse>("GET", qs ? `/exports?${qs}` : "/exports");
+    },
+    getExportRun(exportRunId: string) {
+      const id = exportRunId.trim();
+      assertUuidKey(id, "exportRunId");
+      return requestJson<ExportRunRead>("GET", `/exports/${encodeURIComponent(id)}`);
     },
     listInvoicePaymentIntakes(invoiceId) {
       return requestJson<{ data: PaymentIntakeReadRow[] }>(

@@ -6,6 +6,10 @@
 
 **Domänenquelle:** [`docs/ERP-Systembeschreibung.md`](../ERP-Systembeschreibung.md) — Steuerlogik und EUR-Pfad (**8.16**), USt (**8.11**); ADR-0007 verweist auf späteres FIN-5-Flag ([`docs/tickets/FIN-2-START-GATE.md`](./FIN-2-START-GATE.md) Nachweis-Spalte zu **8.16**).
 
+## Repo-Haltung vor menschlicher Ausfüllung (nicht Ersatz für die Tabelle unten)
+
+Bis **Produkt / Steuer-Fach / Release** eine Option wählen und die Zeilen **Gewählte Option** ausfüllen, dokumentiert das Repository eine **technische Fail-Closed-Haltung** (entspricht Option **B**) in [`docs/adr/0014-fin5-mvp-tax-fail-closed.md`](../adr/0014-fin5-mvp-tax-fail-closed.md). **`Gewählte Spur (Team)`** in [`docs/plans/nächste-schritte.md`](../plans/nächste-schritte.md) bleibt **A**, bis diese Gate-Tabelle ausgefüllt ist und Maintainer Spur **B** setzen.
+
 ## Entscheidung (eine Option auswählen und begründen)
 
 | Option | Bedeutung | Folge im Repo |
@@ -22,7 +26,7 @@
 ## Nach der Entscheidung (Maintainer)
 
 1. In [`docs/plans/nächste-schritte.md`](../plans/nächste-schritte.md) die Zeile **„Gewählte Spur (Team)“** auf **B** setzen und ersten FIN-5-PR mit Scope/Ticket/ADR verknüpfen.
-2. Bei Option **B:** neuen oder bestehenden ADR ergänzen (Fail-Closed-Umfang, welche APIs/UI betroffen sind).
+2. Bei Option **B:** neuen oder bestehenden ADR ergänzen (Fail-Closed-Umfang, welche APIs/UI betroffen sind). *(Vorläufig: [`docs/adr/0014-fin5-mvp-tax-fail-closed.md`](../adr/0014-fin5-mvp-tax-fail-closed.md).)*
 
 ## Verwandte Artefakte (ohne Misch-PR)
 

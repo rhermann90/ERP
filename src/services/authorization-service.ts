@@ -359,6 +359,33 @@ export class AuthorizationService {
     }
   }
 
+  /** Welche Export-Zieltypen die Rolle listen darf (gleiche Basis wie POST /exports). */
+  public allowedExportEntityTypesForRole(
+    role: UserRole,
+  ): Array<"OFFER_VERSION" | "SUPPLEMENT_VERSION" | "INVOICE"> {
+    const actions = new Set(EXPORT_ACTIONS_BY_ROLE[role]);
+    const types: Array<"OFFER_VERSION" | "SUPPLEMENT_VERSION" | "INVOICE"> = [];
+    if (actions.has("EXPORT_OFFER_VERSION")) types.push("OFFER_VERSION");
+    if (actions.has("EXPORT_SUPPLEMENT_VERSION")) types.push("SUPPLEMENT_VERSION");
+    if (actions.has("EXPORT_INVOICE")) types.push("INVOICE");
+    return types;
+  }
+
+  public assertCanListExportRuns(role: UserRole): void {
+    if (this.allowedExportEntityTypesForRole(role).length === 0) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Export-Protokoll", 403);
+    }
+  }
+
+  public assertExportRunListEntityTypeAllowed(
+    role: UserRole,
+    entityType: "OFFER_VERSION" | "SUPPLEMENT_VERSION" | "INVOICE",
+  ): void {
+    if (!this.allowedExportEntityTypesForRole(role).includes(entityType)) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer diesen Export-Zieltyp", 403);
+    }
+  }
+
   public getAllowedActions(
     tenantId: string,
     entityType:

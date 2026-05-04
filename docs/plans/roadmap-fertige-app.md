@@ -1,6 +1,6 @@
 # Roadmap: Weg zur fertigen App
 
-**Stand:** konsolidiert mit [nächste-schritte.md](./nächste-schritte.md), [MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md), [NEXT-INCREMENT-FINANCE-WAVE3.md](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md). Kein Ersatz für StB/DSB/Release bei Produktiv-Go.
+**Stand:** konsolidiert mit [nächste-schritte.md](./nächste-schritte.md), [MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md), [NEXT-INCREMENT-FINANCE-WAVE3.md](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md). Mandanten-Go ist **nicht** durch dieses Repo verpflichtend abgebildet.
 
 ## Zielbild
 
@@ -8,7 +8,7 @@
 
 1. **Technische Lieferfähigkeit:** grünes CI (`backend`, `e2e-smoke`), kleine PRs, Verträge synchron ([nächste-schritte.md](./nächste-schritte.md), [AGENTS.md](../../AGENTS.md)).
 2. **Finanz-MVP v1.3:** Phasen FIN-0–FIN-6 laut [MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md); derzeit Schwerpunkt **Finanz Welle 3 / Option A** ([NEXT-INCREMENT-FINANCE-WAVE3.md](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md)).
-3. **Mandanten-Produktiv-Go:** menschliche Freigaben + [Checklisten/compliance-rechnung-finanz.md](../../Checklisten/compliance-rechnung-finanz.md); Agenda [m4-slice-5c-pl-mandanten-go.md](../runbooks/m4-slice-5c-pl-mandanten-go.md).
+3. **Mandanten-Produktiv-Go (extern):** operative Bewertung außerhalb des Repo-Prozesses; optionaler Kontext: Archiv [`docs/_archiv/checklisten-compliance-human-workflow/README.md`](../docs/_archiv/checklisten-compliance-human-workflow/README.md), Stub [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md); Agenda [m4-slice-5c-pl-mandanten-go.md](../runbooks/m4-slice-5c-pl-mandanten-go.md).
 
 ```mermaid
 flowchart LR
@@ -51,6 +51,7 @@ flowchart LR
 - Rest-M4 / §8.10 gemäß Ticket („Nächster Strang“, Non-Goals beachten).
 - Optional: weitere Playwright-Journeys [login-finance-smoke.spec.ts](../../e2e/login-finance-smoke.spec.ts).
 - **Erledigt (Shell):** Invoice-Shell — `GET /finance/payment-terms`, `GET …/allowed-actions` (`INVOICE`), Memory-Seed FIN‑1, E2E — siehe [nächste-schritte.md](./nächste-schritte.md) Schritt 4 / „Nach Merge (optional Schritt 4 — Shell)“.
+- **Erledigt (Shell, 2026-05-04):** Export-Preflight-Protokoll — `GET /exports`, `GET /exports/{exportRunId}` an der INVOICE-Shell ([App.tsx](../../apps/web/src/App.tsx), [api-client.ts](../../apps/web/src/lib/api-client.ts)); Persistenz `export_runs` — [CODEMAPS/overview.md](../CODEMAPS/overview.md).
 - Optional: weitere Shell-read-only-`GET` nur nach OpenAPI + [api-client.ts](../../apps/web/src/lib/api-client.ts), getrennt von Schreibpfaden in [App.tsx](../../apps/web/src/App.tsx).
 
 Mahn-IA/Routing: [FOLLOWUP-M4-DUNNING-UX-GRUNDEINSTELLUNGEN-TAB.md](../tickets/FOLLOWUP-M4-DUNNING-UX-GRUNDEINSTELLUNGEN-TAB.md) ist als erledigt dokumentiert — keine Pflicht-Arbeit aus diesem Ticket.

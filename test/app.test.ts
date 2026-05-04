@@ -450,6 +450,25 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     expect(viewer.json().allowedActions).not.toContain("BOOK_INVOICE");
   });
 
+  it("FIN-2 Micro-Schritt: GET /invoices/{id} liefert lvVersionId und Kette konsistent zum Seed (8.1 Lesepfad)", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: `/invoices/${SEED_IDS.invoiceId}`,
+      headers: buildHeaders("BUCHHALTUNG"),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      lvVersionId: string;
+      offerVersionId?: string;
+      measurementId: string;
+      projectId: string;
+    };
+    expect(body.lvVersionId).toBe(SEED_IDS.lvVersionId);
+    expect(body.offerVersionId).toBe(SEED_IDS.offerVersionId);
+    expect(body.measurementId).toBe(SEED_IDS.measurementId);
+    expect(body.projectId).toBe(SEED_IDS.projectId);
+  });
+
   it("P0 invoice export ohne SoT-Aktion: VIEWER erhält kein EXPORT_INVOICE; POST /exports 403", async () => {
     const sot = await app.inject({
       method: "GET",
@@ -1356,6 +1375,62 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     });
     expect(response.statusCode).toBe(201);
     expect(response.json().status).toBe("SUCCEEDED");
+  });
+
+  it("GET /exports/{exportRunId} returns run after invoice export (memory)", async () => {
+    const post = await app.inject({
+      method: "POST",
+      url: "/exports",
+      headers,
+      payload: {
+        entityType: "INVOICE",
+        entityId: SEED_IDS.invoiceId,
+        format: "XRECHNUNG",
+      },
+    });
+    expect(post.statusCode).toBe(201);
+    const { id } = post.json() as { id: string };
+    const get = await app.inject({
+      method: "GET",
+      url: `/exports/${id}`,
+      headers,
+    });
+    expect(get.statusCode).toBe(200);
+    expect((get.json() as { id: string }).id).toBe(id);
+    expect((get.json() as { entityType: string }).entityType).toBe("INVOICE");
+  });
+
+  it("GET /exports/{exportRunId} returns EXPORT_RUN_NOT_FOUND for unknown id (memory)", async () => {
+    const id = randomUUID();
+    const get = await app.inject({
+      method: "GET",
+      url: `/exports/${id}`,
+      headers,
+    });
+    expect(get.statusCode).toBe(404);
+    expect(get.json().code).toBe("EXPORT_RUN_NOT_FOUND");
+  });
+
+  it("GET /exports/{exportRunId} forbids VIEWER (memory)", async () => {
+    const post = await app.inject({
+      method: "POST",
+      url: "/exports",
+      headers,
+      payload: {
+        entityType: "INVOICE",
+        entityId: SEED_IDS.invoiceId,
+        format: "XRECHNUNG",
+      },
+    });
+    expect(post.statusCode).toBe(201);
+    const { id } = post.json() as { id: string };
+    const get = await app.inject({
+      method: "GET",
+      url: `/exports/${id}`,
+      headers: buildHeaders("VIEWER"),
+    });
+    expect(get.statusCode).toBe(403);
+    expect(get.json().code).toBe("AUTH_ROLE_FORBIDDEN");
   });
 
   describe("Phase 2 Inc1 — Aufmass §5.4", () => {

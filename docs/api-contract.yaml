@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-1/2/3/4 Finance)
-  version: 1.28.2-phase2-lv-section9-single-node
+  version: 1.28.4-get-export-run-detail
   description: |
     **PWA / Browser-Anbindung**
     - **CORS**: Umgebungsvariable `CORS_ORIGINS` — kommagetrennte, exakte Origins (z. B. `https://app.example.com,http://localhost:5173`). Leer oder unset: keine `Access-Control-*`-Header (gleiche Origin oder Server-zu-Server).
@@ -1542,6 +1542,56 @@ components:
         format:
           type: string
           enum: [XRECHNUNG, GAEB]
+    ExportRun:
+      type: object
+      required:
+        [id, tenantId, entityType, entityId, format, status, validationErrors, createdAt, createdBy]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        entityType:
+          type: string
+          enum: [OFFER_VERSION, SUPPLEMENT_VERSION, INVOICE]
+        entityId:
+          type: string
+          format: uuid
+        format:
+          type: string
+          enum: [XRECHNUNG, GAEB]
+        status:
+          type: string
+          enum: [PENDING, FAILED, SUCCEEDED]
+        validationErrors:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+          format: uuid
+    ExportRunListResponse:
+      type: object
+      required: [data, page, pageSize, total]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExportRun'
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
     TenantUser:
       type: object
       required: [id, email, role, active, createdAt]
@@ -2576,6 +2626,51 @@ paths:
         '401':
           description: Authentifizierung fehlgeschlagen
   /exports:
+    get:
+      description: |
+        Mandanten-isolierte Liste persistierter Export-Preflight-Läufe (neueste zuerst).
+        Sichtbare `entityType`-Werte entsprechen den Export-Rechten der Rolle (z. B. BUCHHALTUNG nur INVOICE).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - in: query
+          name: entityType
+          schema:
+            type: string
+            enum: [OFFER_VERSION, SUPPLEMENT_VERSION, INVOICE]
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [PENDING, FAILED, SUCCEEDED]
+        - in: query
+          name: format
+          schema:
+            type: string
+            enum: [XRECHNUNG, GAEB]
+      responses:
+        '200':
+          description: Seiten der Exportläufe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportRunListResponse'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN oder TENANT_SCOPE_VIOLATION
+        '401':
+          description: Authentifizierung fehlgeschlagen
     post:
       security:
         - bearerToken: []
@@ -2590,8 +2685,40 @@ paths:
       responses:
         '201':
           description: Exportlauf erfolgreich
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportRun'
         '422':
           description: EXPORT_PREFLIGHT_FAILED oder TRACEABILITY_LINK_MISSING oder TRACEABILITY_FIELD_MISMATCH
+        '403':
+          description: AUTH_ROLE_FORBIDDEN oder TENANT_SCOPE_VIOLATION
+        '401':
+          description: Authentifizierung fehlgeschlagen
+  /exports/{exportRunId}:
+    get:
+      description: |
+        Einzelner Export-Preflight-Lauf für den Mandanten. Zulässig nur, wenn die Rolle den `entityType` des Laufs auch in der Liste sehen dürfte
+        (gleiche Regeln wie `GET /exports`).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: exportRunId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Exportlauf
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportRun'
+        '404':
+          description: EXPORT_RUN_NOT_FOUND
         '403':
           description: AUTH_ROLE_FORBIDDEN oder TENANT_SCOPE_VIOLATION
         '401':

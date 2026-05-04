@@ -2,15 +2,15 @@
 
 **Zweck:** Release-Kommunikation und **laufzeitfähiger** Abgleich mit dem OpenAPI-Artefakt, ohne Domänenlogik zu duplizieren.
 
-## Keine fachliche Semantik (StB / Release / Compliance)
+## Keine fachliche Semantik (Release / Compliance)
 
 **`info.version`**, **`x-erp-openapi-contract-version`** und die OpenAPI-Schemas beschreiben ausschließlich das **HTTP-/Datenkontrakt-Paket** (Felder, Typen, Fehlercodes). Sie belegen **nicht**:
 
 - inhaltliche oder juristische Korrektheit von Mahnungen, Texten, Fristen in der Mandantenpraxis,
-- Abnahme nach [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md),
+- inhaltliche operative Abnahme außerhalb des HTTP-Kontrakts (optionaler Kontext: Stub [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md), Archiv [`docs/_archiv/checklisten-compliance-human-workflow/README.md`](../../docs/_archiv/checklisten-compliance-human-workflow/README.md)),
 - eine formelle Mahnung / PDF (siehe [`docs/tickets/B5-FORMAL-DUNNING-PDF.md`](../tickets/B5-FORMAL-DUNNING-PDF.md)).
 
-Fachliche und go-live-relevante Entscheidungen bleiben bei **StB / DSB / Release-Verantwortlichen** und den verlinkten Checklisten; technischer Contract-Abgleich ersetzt das nicht. Fachlicher Kontext Mahn-Kontext und Fristlogik: [`docs/adr/0011-fin4-semi-dunning-context.md`](../adr/0011-fin4-semi-dunning-context.md).
+Technischer Contract-Abgleich ersetzt keine externe Bewertung. Fachlicher Kontext Mahn-Kontext und Fristlogik: [`docs/adr/0011-fin4-semi-dunning-context.md`](../adr/0011-fin4-semi-dunning-context.md).
 
 ## Contract-Version
 
@@ -39,6 +39,14 @@ Server-zu-Server: Header direkt lesen. **Browser + CORS:** nur sichtbar, wenn di
 - **`asOfDate`** (Default „heute“): **Mandanten-IANA-Zeitzone** (wie ADR-0011), nicht UTC — siehe OpenAPI-Beschreibungen.
 
 Vollständige Schemas: `docs/api-contract.yaml`. Mapping: `docs/contracts/finance-fin0-openapi-mapping.md`.
+
+## Neu ab `1.28.3` (Export-Protokoll Lesepfad)
+
+- **`GET /exports`:** paginierte Liste persistierter Export-Preflight-Läufe (`ExportRunListResponse`); sichtbare `entityType`-Werte nach Export-Rechten der Rolle (OpenAPI-Parameter `page`, `pageSize`, optional `entityType` / `status` / `format`). Kein FIN-4-Header-Pfad — nur gebündeltes OpenAPI/`info.version`-Bump für Integratoren.
+
+## Neu ab `1.28.4` (Export-Protokoll Detail-Lesepfad)
+
+- **`GET /exports/{exportRunId}`:** einzelner Export-Preflight-Lauf (`ExportRun`); mandanten-isoliert; **404** `EXPORT_RUN_NOT_FOUND` wenn die ID im Mandanten nicht existiert; **403**, wenn die Rolle den `entityType` des Laufs nicht listen dürfte (gleiche Matrix wie `GET /exports`). Kein FIN-4-Header-Pfad — gebündeltes OpenAPI/`info.version`-Bump.
 
 ## Neu ab `1.28.2` (Phase 2 — LV §9 Einzelknoten-Lesepfad)
 

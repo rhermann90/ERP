@@ -106,6 +106,9 @@ export default function App() {
   const [invoiceDunningRemindersJson, setInvoiceDunningRemindersJson] = useState("");
   const [invoicePaymentTermsJson, setInvoicePaymentTermsJson] = useState("");
   const [invoiceAllowedActionsShellJson, setInvoiceAllowedActionsShellJson] = useState("");
+  /** Shell: GET /exports (INVOICE) gefiltert auf Rechnung + optional GET /exports/{id}. */
+  const [invoiceExportRunsShellJson, setInvoiceExportRunsShellJson] = useState("");
+  const [invoiceExportRunDetailShellJson, setInvoiceExportRunDetailShellJson] = useState("");
   /** Haupt-Shell: read-only GET /finance/dunning-reminder-config (FIN-4). */
   const [shellDunningConfigJson, setShellDunningConfigJson] = useState("");
   /** Haupt-Shell: weitere FIN-4-Lesepfade ohne Dokument-Kontext (Spur E). */
@@ -264,6 +267,8 @@ export default function App() {
     setInvoiceDunningRemindersJson("");
     setInvoicePaymentTermsJson("");
     setInvoiceAllowedActionsShellJson("");
+    setInvoiceExportRunsShellJson("");
+    setInvoiceExportRunDetailShellJson("");
     try {
       if (entityType === "MEASUREMENT_VERSION") {
         const raw = (await client.getMeasurementVersion(documentId.trim())) as {
@@ -408,6 +413,46 @@ export default function App() {
     try {
       const r = await client.getAllowedActions(invoiceShellDetail.invoiceId, "INVOICE");
       setInvoiceAllowedActionsShellJson(JSON.stringify(r, null, 2));
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setBanner({
+          kind: "error",
+          text: e.envelope.message,
+          code: e.envelope.code,
+          correlationId: e.envelope.correlationId,
+        });
+      } else setBanner({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [client, invoiceShellDetail]);
+
+  const loadInvoiceExportRunsForShell = useCallback(async () => {
+    if (!invoiceShellDetail) return;
+    setBusy(true);
+    setBanner(null);
+    try {
+      const list = await client.listExportRuns({ entityType: "INVOICE", page: 1, pageSize: 100 });
+      const matching = list.data
+        .filter((r) => r.entityId === invoiceShellDetail.invoiceId)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setInvoiceExportRunsShellJson(
+        JSON.stringify(
+          {
+            invoiceId: invoiceShellDetail.invoiceId,
+            runsForInvoice: matching,
+            listPage: { page: list.page, pageSize: list.pageSize, total: list.total },
+          },
+          null,
+          2,
+        ),
+      );
+      if (matching[0]) {
+        const detail = await client.getExportRun(matching[0].id);
+        setInvoiceExportRunDetailShellJson(JSON.stringify(detail, null, 2));
+      } else {
+        setInvoiceExportRunDetailShellJson("");
+      }
     } catch (e) {
       if (e instanceof ApiError) {
         setBanner({
@@ -1035,6 +1080,18 @@ export default function App() {
             </dd>
             <dt className="label">Bezahlt</dt>
             <dd style={{ margin: 0 }}>{formatShellEur(invoiceShellDetail.totalPaidCents)}</dd>
+            <dt className="label">LV-Version (Traceability 8.1)</dt>
+            <dd style={{ margin: 0 }} data-testid="shell-invoice-trace-lv">
+              <code>{invoiceShellDetail.lvVersionId}</code>
+            </dd>
+            <dt className="label">Aufmass</dt>
+            <dd style={{ margin: 0 }} data-testid="shell-invoice-trace-measurement">
+              <code>{invoiceShellDetail.measurementId}</code>
+            </dd>
+            <dt className="label">Angebotsversion</dt>
+            <dd style={{ margin: 0 }} data-testid="shell-invoice-trace-offer-version">
+              <code>{invoiceShellDetail.offerVersionId ?? "—"}</code>
+            </dd>
           </dl>
           <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.65rem", marginBottom: "0.35rem" }}>
             Weitere Lesepfade (keine Schreibaktionen):{" "}
@@ -1047,7 +1104,8 @@ export default function App() {
             </code>
             , <code>GET /finance/payment-terms</code> (<code>projectId</code> aus dieser Rechnung:{" "}
             <code>{invoiceShellDetail.projectId}</code>),{" "}
-            <code>GET /documents/…/allowed-actions</code> (<code>INVOICE</code>).
+            <code>GET /documents/…/allowed-actions</code> (<code>INVOICE</code>),{" "}
+            <code>GET /exports</code> (Protokoll INVOICE, gefiltert auf diese Rechnungs-ID in der UI).
           </p>
           <div data-testid="shell-invoice-readonly-subreads" style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
             <button type="button" disabled={busy} onClick={() => void loadInvoicePaymentIntakesRead()}>
@@ -1071,6 +1129,14 @@ export default function App() {
               onClick={() => void loadInvoiceAllowedActionsForShell()}
             >
               Erlaubte Aktionen Rechnung (GET)
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              aria-label="Export-Preflight-Protokoll für diese Rechnung laden (GET)"
+              onClick={() => void loadInvoiceExportRunsForShell()}
+            >
+              Export-Protokoll Rechnung (GET)
             </button>
           </div>
           {invoicePaymentIntakesJson ? (
@@ -1106,6 +1172,26 @@ export default function App() {
               </h3>
               <pre className="system-block" style={{ margin: 0 }} data-testid="shell-invoice-allowed-actions-json">
                 {invoiceAllowedActionsShellJson}
+              </pre>
+            </>
+          ) : null}
+          {invoiceExportRunsShellJson ? (
+            <>
+              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
+                Antwort GET /exports (INVOICE, gefiltert)
+              </h3>
+              <pre className="system-block" style={{ margin: 0 }} data-testid="shell-invoice-export-runs-json">
+                {invoiceExportRunsShellJson}
+              </pre>
+            </>
+          ) : null}
+          {invoiceExportRunDetailShellJson ? (
+            <>
+              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
+                Antwort GET /exports/:exportRunId (neuester Lauf)
+              </h3>
+              <pre className="system-block" style={{ margin: 0 }} data-testid="shell-invoice-export-run-detail-json">
+                {invoiceExportRunDetailShellJson}
               </pre>
             </>
           ) : null}

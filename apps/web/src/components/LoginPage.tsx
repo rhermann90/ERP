@@ -30,7 +30,17 @@ export function LoginPage({ apiBase, defaultTenantId, onSuccess, onNavigateHome 
           correlationId: e.envelope.correlationId,
         });
       } else {
-        setError({ text: e instanceof Error ? e.message : String(e) });
+        const raw = e instanceof Error ? e.message : String(e);
+        const network =
+          e instanceof TypeError ||
+          raw === "Failed to fetch" ||
+          raw === "NetworkError when attempting to fetch resource." ||
+          raw === "Load failed";
+        setError({
+          text: network
+            ? "Netzwerk: API nicht erreichbar oder CORS blockiert. Backend (Port 3000) starten; Root-.env: CORS_ORIGINS exakt wie PWA-Adresse (z. B. http://localhost:5173 — bei 127.0.0.1 dieselbe Form). VITE_API_BASE_URL prüfen. Siehe apps/web/README.md „Lokal gegen Backend“."
+            : raw,
+        });
       }
     } finally {
       setBusy(false);

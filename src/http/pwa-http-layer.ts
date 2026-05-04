@@ -94,7 +94,8 @@ function sanitizeHeaders(
   headers: Record<string, unknown>,
 ): Record<string, string | string[] | undefined> {
   const out: Record<string, string | string[] | undefined> = {};
-  const drop = new Set(["authorization", "cookie", "set-cookie"]);
+  /** FIN-6 / 8.14: Idempotenz-Header nicht in Klartext in strukturierten Request-Logs. */
+  const drop = new Set(["authorization", "cookie", "set-cookie", "idempotency-key"]);
   for (const [k, v] of Object.entries(headers)) {
     if (drop.has(k.toLowerCase())) continue;
     if (typeof v === "string" || Array.isArray(v)) out[k] = v;
