@@ -42,6 +42,26 @@ const STRUCTURED_ERROR_HINTS: Partial<Record<string, string>> = {
   DUNNING_EMAIL_STAGE_CONFIG_NOT_FOUND: "Keine aktive Stufen-Zeile für diese Ordinal — Konfiguration prüfen.",
 };
 
+function structuredDetailLines(details: unknown): string[] {
+  if (details == null) return [];
+  if (Array.isArray(details)) {
+    return details.map((x) => (typeof x === "string" ? x : JSON.stringify(x)));
+  }
+  if (typeof details === "object" && details !== null && "errors" in details) {
+    const inner = (details as { errors?: unknown }).errors;
+    if (Array.isArray(inner)) {
+      return inner.map((x) => {
+        if (typeof x === "string") return x;
+        if (x && typeof x === "object" && "message" in x && typeof (x as { message?: unknown }).message === "string") {
+          return (x as { message: string }).message;
+        }
+        return JSON.stringify(x);
+      });
+    }
+  }
+  return [];
+}
+
 function StructuredErrorCodeHint({ code }: { code: string }) {
   if (code === "DUNNING_REMINDER_RUN_DISABLED") return null;
   const text = STRUCTURED_ERROR_HINTS[code];
@@ -77,6 +97,20 @@ export function FinanceStructuredApiError({
         {status} · {envelope.code}
       </strong>
       <p style={{ margin: "0.35rem 0 0.5rem" }}>{envelope.message}</p>
+      {(() => {
+        const lines = structuredDetailLines(envelope.details);
+        if (lines.length === 0) return null;
+        return (
+          <ul
+            data-testid="finance-structured-api-error-detail-list"
+            style={{ margin: "0.35rem 0 0.5rem", paddingLeft: "1.2rem", fontSize: "0.82rem" }}
+          >
+            {lines.map((line, i) => (
+              <li key={`${i}-${line}`}>{line}</li>
+            ))}
+          </ul>
+        );
+      })()}
       <StructuredErrorCodeHint code={envelope.code} />
       {envelope.code === "DUNNING_REMINDER_RUN_DISABLED" ? (
         <p style={{ margin: "0.35rem 0 0", fontSize: "0.82rem", color: "var(--text-primary)" }}>

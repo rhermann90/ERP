@@ -768,6 +768,77 @@ describe("FinancePreparation", () => {
       expect(postDunningReminderBatchSendEmails).toHaveBeenCalled();
     });
   });
+
+  it("Schritt 3 zeigt strukturierten API-Fehler mit Detail-Liste nach fehlgeschlagenem Rechnungsladen", async () => {
+    const getInvoice = vi.fn().mockRejectedValue(
+      new ApiError(403, {
+        code: "TENANT_SCOPE_VIOLATION",
+        message: "Tenant-Scope passt nicht zum Auth-Token",
+        correlationId: "c1",
+        retryable: false,
+        blocking: true,
+        details: { errors: [{ message: "Scope-Zeile A" }, { message: "Scope-Zeile B" }] },
+      }),
+    );
+    const api = { ...noopApi, getInvoice } as unknown as ApiClient;
+    await act(async () => {
+      render(<FinancePreparation api={api} />);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Rechnung laden$/i }));
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("finance-structured-api-error-detail-list")).not.toBeNull();
+    });
+    expect(screen.getByText("Scope-Zeile A")).not.toBeNull();
+    expect(screen.getByText(/TENANT_SCOPE_VIOLATION/)).not.toBeNull();
+  });
+
+  it("Schritt 2 zeigt zentralen Skonto-Hinweistext bei ungültigen Basispunkten", async () => {
+    await act(async () => {
+      render(<FinancePreparation api={noopApi} />);
+    });
+    fireEvent.change(screen.getByLabelText(/Skonto in Basispunkten für neuen Rechnungsentwurf/i), {
+      target: { value: "99999" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Rechnungsentwurf anlegen/i }));
+    await waitFor(() => {
+      expect(screen.queryByTestId("finance-prep-notice")).not.toBeNull();
+    });
+    expect(screen.getByText(/ganze Zahl von 0 bis 10_000/i)).not.toBeNull();
+  });
+
+  it("aria-live Schritt 3 endet wieder bei bereit nach erfolgreichem Rechnungsladen", async () => {
+    const demoInvoiceId = "44444444-4444-4444-8444-444444444444";
+    const getInvoice = vi.fn().mockResolvedValue({
+      invoiceId: demoInvoiceId,
+      projectId: "10101010-1010-4010-8010-101010101010",
+      customerId: "20202020-2020-4020-8020-202020202020",
+      measurementId: "m",
+      lvVersionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001",
+      offerId: "o",
+      offerVersionId: "33333333-3333-4333-8333-333333333333",
+      status: "GEBUCHT_VERSENDET",
+      skontoBps: 0,
+      lvNetCents: 100_000,
+      vatRateBps: 1900,
+      vatCents: 19_000,
+      totalGrossCents: 119_000,
+      totalPaidCents: 0,
+    });
+    const api = { ...noopApi, getInvoice } as unknown as ApiClient;
+    await act(async () => {
+      render(<FinancePreparation api={api} />);
+    });
+    const live = screen.getByTestId("finance-prep-step-status-3");
+    expect(live.textContent).toContain("bereit");
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Rechnung laden$/i }));
+    });
+    await waitFor(() => expect(getInvoice).toHaveBeenCalled());
+    await waitFor(() => expect(live.textContent).toContain("bereit"));
+  });
+
 });
 
 describe("hash-route — Finanz-Vorbereitung (Deep-Link)", () => {

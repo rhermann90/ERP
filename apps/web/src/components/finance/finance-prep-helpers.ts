@@ -1,4 +1,38 @@
 import type { DunningEmailFooterReadResponse } from "../../lib/api-client.js";
+import { ApiError, extractStructuredError } from "../../lib/api-error.js";
+import type { FinNotice } from "./finance-prep-types.js";
+
+/** Catch-Block → Anzeige inkl. `extractStructuredError` für nicht-`ApiError`-Payloads. */
+export function finNoticeFromUnknown(e: unknown, opts?: { sourceStep?: number }): FinNotice {
+  const sourceStep = opts?.sourceStep;
+  if (e instanceof ApiError) {
+    return sourceStep != null ? { kind: "api", error: e, sourceStep } : { kind: "api", error: e };
+  }
+  const env = extractStructuredError(e);
+  if (env) {
+    const status =
+      typeof e === "object" && e !== null && "status" in e && typeof (e as { status: unknown }).status === "number"
+        ? (e as { status: number }).status
+        : 400;
+    const notice: FinNotice = { kind: "api", error: new ApiError(status, env) };
+    return sourceStep != null ? { ...notice, sourceStep } : notice;
+  }
+  const textNotice: FinNotice = { kind: "text", text: String(e) };
+  return sourceStep != null ? { ...textNotice, sourceStep } : textNotice;
+}
+
+/** Kurzstatus für `aria-live` je Schritt — Fehler im Schritt zählen als „Aktion offen“. */
+export function financePrepStepAriaLive(
+  step: number,
+  busy: boolean,
+  busyStep: number | null,
+  notice: FinNotice | null,
+  opts?: { extraActionOpen?: boolean },
+): string {
+  if (busy && busyStep === step) return "Ladevorgang";
+  if (notice?.sourceStep === step || opts?.extraActionOpen) return "Aktion offen";
+  return "bereit";
+}
 
 /** Loose UUID v4 check for enabling buttons (server validates strictly). */
 export function isUuidShape(value: string): boolean {

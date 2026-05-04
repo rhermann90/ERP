@@ -748,7 +748,7 @@ export default function App() {
           </label>
           <label className="field">
             <span>X-Tenant-Id</span>
-            <input type="text" value={tenantId} onChange={(e) => setTenantId(e.target.value)} />
+            <input type="text" value={tenantId} onChange={(e) => setTenantId(e.target.value)} aria-label="X-Tenant-Id" />
           </label>
           <label className="field" style={{ gridColumn: "1 / -1" }}>
             <span>Bearer Token (dev: npm run dev:token im Repo-Root)</span>

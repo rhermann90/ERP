@@ -1,12 +1,16 @@
 import { memo } from "react";
 import { DEMO_SEED_IDS } from "../../../lib/demo-seed-ids.js";
 import { FinanceCollapsibleJson } from "../FinanceCollapsibleJson.js";
+import { FinancePrepNotice } from "../FinancePrepNotice.js";
 import { FinancePrepPanel } from "../FinancePrepPanel.js";
+import type { FinNotice } from "../finance-prep-types.js";
 import type { SotEntityType } from "../finance-preparation-meta.js";
 import { FIN_PREP_A11Y, SOT_ENTITY_TYPES } from "../finance-preparation-meta.js";
 
 export type FinancePrepStepSotProps = {
   busy: boolean;
+  liveStatus: string;
+  stepNotice: FinNotice | null;
   invoiceIdRead: string;
   sotEntityType: SotEntityType;
   setSotEntityType: (t: SotEntityType) => void;
@@ -18,6 +22,8 @@ export type FinancePrepStepSotProps = {
 
 function FinancePrepStepSotInner({
   busy,
+  liveStatus,
+  stepNotice,
   invoiceIdRead,
   sotEntityType,
   setSotEntityType,
@@ -27,7 +33,8 @@ function FinancePrepStepSotInner({
   onLoadSotAllowedActions,
 }: FinancePrepStepSotProps) {
   return (
-    <FinancePrepPanel step={4} title="SoT — erlaubte Aktionen (Fortgeschritten)">
+    <FinancePrepPanel step={4} title="SoT — erlaubte Aktionen (Fortgeschritten)" liveStatus={liveStatus}>
+      <FinancePrepNotice notice={stepNotice} structuredAnnouncementRole="status" />
       <p id={FIN_PREP_A11Y.sotIntro} style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
         <code>GET /documents/:id/allowed-actions</code> — gleiche Quelle wie die Dokument-Shell; <code>id</code> ist die UUID der
         gewählten Entität (nicht immer die Rechnungs-ID).

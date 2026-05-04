@@ -1,10 +1,14 @@
 import { memo } from "react";
 import { FinanceCollapsibleJson } from "../FinanceCollapsibleJson.js";
+import { FinancePrepNotice } from "../FinancePrepNotice.js";
 import { FinancePrepPanel } from "../FinancePrepPanel.js";
+import type { FinNotice } from "../finance-prep-types.js";
 import { DEMO_PROJECT_ID, FIN_PREP_A11Y } from "../finance-preparation-meta.js";
 
 export type FinancePrepStepTermsProps = {
   busy: boolean;
+  liveStatus: string;
+  stepNotice: FinNotice | null;
   projectId: string;
   setProjectId: (v: string) => void;
   termsLabel: string;
@@ -16,6 +20,8 @@ export type FinancePrepStepTermsProps = {
 
 function FinancePrepStepTermsInner({
   busy,
+  liveStatus,
+  stepNotice,
   projectId,
   setProjectId,
   termsLabel,
@@ -25,7 +31,8 @@ function FinancePrepStepTermsInner({
   onCreatePaymentTermsVersion,
 }: FinancePrepStepTermsProps) {
   return (
-    <FinancePrepPanel step={1} title="Zahlungsbedingungen (FIN-1)">
+    <FinancePrepPanel step={1} title="Zahlungsbedingungen (FIN-1)" liveStatus={liveStatus}>
+      <FinancePrepNotice notice={stepNotice} structuredAnnouncementRole="status" />
       <p
         id={FIN_PREP_A11Y.termsIntro}
         style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}

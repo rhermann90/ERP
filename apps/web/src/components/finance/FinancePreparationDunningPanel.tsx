@@ -13,6 +13,7 @@ import { repoDocHref } from "../../lib/repo-doc-links.js";
 
 export type FinancePreparationDunningPanelProps = {
   busy: boolean;
+  liveStatus: string;
   /** JSON von `GET /finance/dunning-reminder-config` (MVP-Defaults), leer bis geladen. */
   dunningReminderConfigJson: string;
   /** JSON von `GET /finance/dunning-reminder-templates` (M4 Slice 1). */
@@ -94,6 +95,7 @@ export type FinancePreparationDunningPanelProps = {
 
 function FinancePreparationDunningPanelInner({
   busy,
+  liveStatus,
   dunningReminderConfigJson,
   dunningTemplatesJson,
   dunningEmailFooterJson,
@@ -182,7 +184,7 @@ function FinancePreparationDunningPanelInner({
     }
   }, [dunningEmailFooterJson]);
   return (
-    <FinancePrepPanel step={6} title="Mahn-Ereignis (FIN-4)">
+    <FinancePrepPanel step={6} title="Mahn-Ereignis (FIN-4)" liveStatus={liveStatus}>
       <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginTop: 0 }}>
         Nach „Rechnung laden“ prüft die UI SoT <code>{RECORD_DUNNING_REMINDER_ACTION_ID}</code>. <strong>M4 Slice 4:</strong> <code>POST …/dunning-reminders/email-preview</code> (Plain-Text) und <code>POST …/send-email-stub</code> (Audit, kein SMTP). <strong>M4 Slice 5a:</strong> <code>POST …/send-email</code> mit Header <code>Idempotency-Key</code> und SMTP (<code>ERP_SMTP_*</code>), wenn Footer technisch bereit ist. Konfig- und Vorlagen-Lesepfade beim Öffnen:{" "}
         <code>GET /finance/dunning-reminder-config</code>, <code>GET /finance/dunning-reminder-templates</code>, <code>GET /finance/dunning-email-footer</code>. Stammdaten: <code>PATCH /finance/dunning-email-footer</code> (Formular unten). Vorlagentext:{" "}

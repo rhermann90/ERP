@@ -43,6 +43,7 @@ export function RoleQuickNav({ effectiveRole, hasSession, busy, onSelect }: Prop
           <button
             key={p.id}
             type="button"
+            aria-keyshortcuts={p.ariaKeyShortcuts}
             className="quick-role-tile"
             disabled={busy}
             onClick={() => void onSelect(p)}

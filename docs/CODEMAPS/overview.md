@@ -71,7 +71,8 @@ UI/UX-Leitfaden und Darstellungsmodi: [`docs/ui-ux-style-guide.md`](../ui-ux-sty
 | `src/components/*.tsx` | UI (Shell, Login, Dokument-Texte, …) |
 | `src/lib/hash-route.ts`, `normalizeFinancePrepHashToCanon` in `App.tsx` | Finanz-Hash-Routing: Tab „Grundeinstellungen“ kanonisch `#/finanz-grundeinstellungen`; andere Tabs `#/finanz-vorbereitung?tab=…`; `?tab=grundeinstellungen` per `replaceState` vereinheitlicht; `FINANCE_PREP_*` Konstanten |
 | `src/components/FinancePreparation.tsx`, `src/components/finance/FinancePreparation*Panel.tsx` | Finanz-Vorbereitung: Tabs inkl. Grundeinstellungen Mahnlauf; OFF/SEMI; OFF-1a (Batch-Buttons bei Server-OFF); SEMI-Kontext (ADR-0010 / ADR-0011) |
-| `src/components/finance/preparation/*.tsx`, `src/components/finance/finance-preparation-meta.ts` | Step-UI (FIN-1/2/3, SoT-Explorer, Audit); Meta-Konstanten/Formatter; `DOC_LINKS` (Repo-Referenzliste unter Finanz-Vorbereitung: ADR, Tickets, Roadmap) |
+| `src/components/finance/preparation/*.tsx`, `finance-prep-helpers.ts`, `FinanceStructuredApiError.tsx`, `finance-preparation-meta.ts` (`FIN_PREP_ERROR_COPY`) | Step-UI (FIN-1/2/3, SoT-Explorer, Audit); `extractStructuredError` über `finNoticeFromUnknown`; konsistente strukturierte Fehler; A11y (`section`/`aria-labelledby`, `aria-live` Step-Status `finance-prep-step-status-{n}`); Meta/DOC_LINKS |
+| `src/components/finance/RoleQuickNav.tsx`, `src/lib/role-quick-actions.ts` | Schnellzugriff-Kacheln; optional `aria-keyshortcuts` je Preset (semantisch) |
 | `vite.config.ts` | Build/Dev |
 
 ## Verträge & Datenbank

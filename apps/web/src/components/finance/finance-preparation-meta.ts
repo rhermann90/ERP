@@ -105,6 +105,19 @@ export const DEMO_CUSTOMER_ID = "20202020-2020-4020-8020-202020202020";
 /** Seed-Rechnung SEED_IDS.invoiceId (gebucht, mit 8.4-Beträgen). */
 export const DEMO_INVOICE_ID = "44444444-4444-4444-8444-444444444444";
 
+/** Wiederkehrende Hinweise für Validierung und Client-seitige Vorbedingungen (Copy zentral). */
+export const FIN_PREP_ERROR_COPY = {
+  tenantAndTokenRequired: "Sitzung unvollständig: Bearer-Token und X-Tenant-Id erforderlich.",
+  skontoBasispunkteRange: "Skonto (Basispunkte): ganze Zahl von 0 bis 10_000 (z. B. 200 = 2 %).",
+  skontoBasispunkteRangeShort: "Skonto (Basispunkte): ganze Zahl von 0 bis 10_000.",
+  entwurfOnly: "Nur für Rechnungen im Status ENTWURF.",
+  offerTraceabilityMissing: "Rechnung ohne offerVersionId — Traceability unvollständig.",
+  clientRejected4xx:
+    "Die Anfrage wurde vom Server abgelehnt (4xx). Strukturierte Details siehe unten — bei POST/PATCH ggf. Idempotency-Key prüfen.",
+  idempotencyHint:
+    "Schreibende Aufrufe erwarten einen gültigen Idempotency-Key im Header — ohne Key lehnt das Backend deterministisch ab.",
+} as const;
+
 /** DOM-Ids für Hilfetexte (`aria-describedby`) in der Finanz-Vorbereitung. */
 export const FIN_PREP_A11Y = {
   termsIntro: "finance-prep-terms-intro",
@@ -124,4 +137,10 @@ export function openAmountCents(overview: InvoiceOverview | null): number | null
   if (!overview || overview.totalGrossCents === undefined) return null;
   const paid = overview.totalPaidCents ?? 0;
   return Math.max(0, overview.totalGrossCents - paid);
+}
+
+
+/** Kurztext für `aria-live` in `FinancePrepPanel` (Tastatur/Screenreader) — nicht-Step-1–4/7-Panels (Zahlung, Mahn, Grundeinstellungen). */
+export function finPrepStepLiveStatus(stepLabel: string, busy: boolean): string {
+  return busy ? `${stepLabel}: Aktion läuft.` : `${stepLabel}: bereit.`;
 }
