@@ -70,7 +70,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     });
     const cleanup = createPrismaClient(dbUrl!);
     await cleanup.$executeRawUnsafe(
-      `TRUNCATE TABLE dunning_reminder_run_intents, dunning_reminders, dunning_email_sends, dunning_tenant_automation, dunning_tenant_stage_config, dunning_tenant_stage_templates, dunning_tenant_email_footer, payment_intakes, invoices, payment_terms_versions, payment_terms_heads, supplement_versions, supplement_offers, measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, audit_events, offer_versions, offers, password_reset_challenges, users RESTART IDENTITY CASCADE`,
+      `TRUNCATE TABLE dunning_reminder_run_intents, dunning_reminders, dunning_email_sends, dunning_tenant_automation, dunning_tenant_stage_config, dunning_tenant_stage_templates, dunning_tenant_email_footer, payment_intakes, invoices, project_invoice_tax_overrides, tenant_invoice_tax_profiles, payment_terms_versions, payment_terms_heads, supplement_versions, supplement_offers, measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, export_runs, audit_events, offer_versions, offers, password_reset_challenges, users RESTART IDENTITY CASCADE`,
     );
     await cleanup.$disconnect();
 
@@ -161,8 +161,50 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
       },
     });
     expect(list.statusCode).toBe(200);
-    const users = (list.json() as { users: { email: string }[] }).users;
-    expect(users.some((u) => u.email === email)).toBe(true);
+    const body = list.json() as {
+      data: { email: string }[];
+      page: number;
+      pageSize: number;
+      total: number;
+    };
+    expect(body.page).toBe(1);
+    expect(body.pageSize).toBe(20);
+    expect(body.total).toBeGreaterThanOrEqual(1);
+    expect(body.data.some((u) => u.email === email)).toBe(true);
+  });
+
+  it("Benutzerverwaltung: GET /users liefert paginierte Felder (pageSize=1, zweite Seite)", async () => {
+    const login = await app.inject({
+      method: "POST",
+      url: "/auth/login",
+      payload: {
+        tenantId: SEED_IDS.tenantId,
+        email: "admin@localhost",
+        password: "dev-seed-admin-12",
+      },
+    });
+    expect(login.statusCode).toBe(200);
+    const { accessToken } = login.json() as { accessToken: string };
+    const headers = {
+      authorization: `Bearer ${accessToken}`,
+      "x-tenant-id": SEED_IDS.tenantId,
+    };
+    const first = await app.inject({ method: "GET", url: "/users?pageSize=1&page=1", headers });
+    expect(first.statusCode).toBe(200);
+    const j1 = first.json() as { data: { email: string }[]; page: number; pageSize: number; total: number };
+    expect(j1.page).toBe(1);
+    expect(j1.pageSize).toBe(1);
+    expect(j1.data).toHaveLength(1);
+    expect(j1.total).toBeGreaterThanOrEqual(2);
+
+    const second = await app.inject({ method: "GET", url: "/users?pageSize=1&page=2", headers });
+    expect(second.statusCode).toBe(200);
+    const j2 = second.json() as { data: { email: string }[]; page: number; pageSize: number; total: number };
+    expect(j2.page).toBe(2);
+    expect(j2.pageSize).toBe(1);
+    expect(j2.data).toHaveLength(1);
+    expect(j2.total).toBe(j1.total);
+    expect(j2.data[0].email).not.toBe(j1.data[0].email);
   });
 
   it("Benutzerverwaltung: ADMIN ändert Benutzer-E-Mail per PATCH", async () => {
@@ -217,7 +259,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
       },
     });
     expect(list.statusCode).toBe(200);
-    const users = (list.json() as { users: { id: string; email: string }[] }).users;
+    const users = (list.json() as { data: { id: string; email: string }[] }).data;
     const row = users.find((u) => u.id === userId);
     expect(row?.email).toBe(emailB);
   });
@@ -511,6 +553,40 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     expect(row?.issueDate).toBe(b.issueDate);
     expect(row?.totalGrossCents).toBe(b.totalGrossCents);
     expect(row?.skontoBps).toBe(0);
+  });
+
+  it("PATCH /finance/invoice-tax-profile: persistiert Mandanten-Default (FIN-5)", async () => {
+    const patch = await app.inject({
+      method: "PATCH",
+      url: "/finance/invoice-tax-profile",
+      headers: adminHeaders(),
+      payload: {
+        defaultInvoiceTaxRegime: "SMALL_BUSINESS_19",
+        reason: "Persistenztest FIN-5 Mandantensteuer Kleinunternehmer",
+      },
+    });
+    expect(patch.statusCode).toBe(200);
+    const dbRow = await prisma.tenantInvoiceTaxProfile.findUnique({
+      where: { tenantId: SEED_IDS.tenantId },
+    });
+    expect(dbRow?.defaultInvoiceTaxRegime).toBe("SMALL_BUSINESS_19");
+    const get = await app.inject({
+      method: "GET",
+      url: "/finance/invoice-tax-profile",
+      headers: adminHeaders(),
+    });
+    expect(get.statusCode).toBe(200);
+    expect((get.json() as { defaultInvoiceTaxRegime: string }).defaultInvoiceTaxRegime).toBe("SMALL_BUSINESS_19");
+    const reset = await app.inject({
+      method: "PATCH",
+      url: "/finance/invoice-tax-profile",
+      headers: adminHeaders(),
+      payload: {
+        defaultInvoiceTaxRegime: "STANDARD_VAT_19",
+        reason: "Persistenztest FIN-5 Mandantenprofil zurueck auf Standard-USt",
+      },
+    });
+    expect(reset.statusCode).toBe(200);
   });
 
   it("GET /invoices/{draftId}/payment-intakes: nach POST intake aus Postgres ohne Idempotency-Key im JSON", async () => {

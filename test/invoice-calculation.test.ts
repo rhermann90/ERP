@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   computeGrossFromLvNetEurMvp,
+  computeInvoiceTotalsForTaxRegime,
   netCentsAfterStep84_6Mvp,
   skontoNetReductionCents84_2,
   sumLvNetCentsStep84_1,
@@ -58,5 +59,29 @@ describe("invoice-calculation 8.4", () => {
     const gross = computeGrossFromLvNetEurMvp(netCentsAfterStep84_6Mvp(125000, { skontoBps: 200 }));
     expect(gross.vatCents).toBe(23275);
     expect(gross.totalGrossCents).toBe(145775);
+  });
+
+  it("FIN-5: STANDARD_VAT_19 entspricht MVP-19 %-Pfad", () => {
+    const r = computeInvoiceTotalsForTaxRegime(125000, "STANDARD_VAT_19");
+    expect(r.vatRateBpsEffective).toBe(1900);
+    expect(r.vatCents).toBe(23750);
+    expect(r.totalGrossCents).toBe(148750);
+    expect(r.invoiceTaxRegime).toBe("STANDARD_VAT_19");
+  });
+
+  it("FIN-5: Kleinunternehmer — keine USt-Zeile, Brutto = Netto", () => {
+    const r = computeInvoiceTotalsForTaxRegime(125000, "SMALL_BUSINESS_19");
+    expect(r.vatRateBpsEffective).toBe(0);
+    expect(r.vatCents).toBe(0);
+    expect(r.totalGrossCents).toBe(125000);
+  });
+
+  it("FIN-5: Reverse Charge / §13b Bau — ausgewiesen 0 %, Brutto = Netto", () => {
+    for (const regime of ["REVERSE_CHARGE", "CONSTRUCTION_13B"] as const) {
+      const r = computeInvoiceTotalsForTaxRegime(99_00, regime);
+      expect(r.vatCents).toBe(0);
+      expect(r.totalGrossCents).toBe(99_00);
+      expect(r.invoiceTaxRegime).toBe(regime);
+    }
   });
 });
