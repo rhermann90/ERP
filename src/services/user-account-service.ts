@@ -47,20 +47,27 @@ export class UserAccountService {
     private readonly audit: AuditService,
   ) {}
 
-  async listUsers(tenantId: string): Promise<{ users: TenantUserListItem[] }> {
+  async listUsers(
+    tenantId: string,
+    input: { page: number; pageSize: number },
+  ): Promise<{ data: TenantUserListItem[]; page: number; pageSize: number; total: number }> {
+    const where = { tenantId };
+    const total = await this.prisma.user.count({ where });
     const rows = await this.prisma.user.findMany({
-      where: { tenantId },
+      where,
       orderBy: { createdAt: "asc" },
+      skip: (input.page - 1) * input.pageSize,
+      take: input.pageSize,
       select: { id: true, emailNorm: true, role: true, active: true, createdAt: true },
     });
-    const users: TenantUserListItem[] = rows.map((r) => ({
+    const data: TenantUserListItem[] = rows.map((r) => ({
       id: r.id,
       email: r.emailNorm,
       role: assertRole(r.role),
       active: r.active,
       createdAt: r.createdAt.toISOString(),
     }));
-    return { users };
+    return { data, page: input.page, pageSize: input.pageSize, total };
   }
 
   async createUser(tenantId: string, actorUserId: string, input: CreateTenantUserInput): Promise<TenantUserListItem> {

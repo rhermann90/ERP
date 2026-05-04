@@ -205,6 +205,8 @@ export function seedDemoData(repos: InMemoryRepositories): void {
     vatCents: 23750,
     totalGrossCents: 148750,
     skontoBps: 0,
+    invoiceTaxRegime: "STANDARD_VAT_19",
+    vatRateBpsEffective: 1900,
   };
   const draftInvoice: Invoice = {
     id: SEED_IDS.draftInvoiceId,
@@ -221,6 +223,8 @@ export function seedDemoData(repos: InMemoryRepositories): void {
     vatCents: 950,
     totalGrossCents: 5950,
     skontoBps: 0,
+    invoiceTaxRegime: "STANDARD_VAT_19",
+    vatRateBpsEffective: 1900,
   };
   const supplementOffer: SupplementOffer = {
     id: SEED_IDS.supplementOfferId,
@@ -259,6 +263,8 @@ export function seedDemoData(repos: InMemoryRepositories): void {
     vatCents: 1900,
     totalGrossCents: 31000,
     skontoBps: 0,
+    invoiceTaxRegime: "STANDARD_VAT_19",
+    vatRateBpsEffective: 1900,
   };
 
   const paymentTermsHead: PaymentTermsHead = {
@@ -299,6 +305,10 @@ export function seedDemoData(repos: InMemoryRepositories): void {
   repos.invoices.set(invoice.id, invoice);
   repos.invoices.set(draftInvoice.id, draftInvoice);
   repos.invoices.set(inconsistentInvoice.id, inconsistentInvoice);
+  repos.putTenantInvoiceTaxProfile({
+    tenantId: SEED_IDS.tenantId,
+    defaultInvoiceTaxRegime: "STANDARD_VAT_19",
+  });
   repos.traceabilityLinks.set(invoice.id, {
     tenantId: SEED_IDS.tenantId,
     invoiceId: invoice.id,

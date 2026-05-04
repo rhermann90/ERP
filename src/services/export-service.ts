@@ -56,6 +56,12 @@ export class ExportService {
       if (!invoice.invoiceNumber || !invoice.issueDate || !invoice.totalGrossCents) {
         validationErrors.push("INVOICE_REQUIRED_FIELDS_MISSING");
       }
+      if (input.format === "XRECHNUNG") {
+        const regime = invoice.invoiceTaxRegime ?? "STANDARD_VAT_19";
+        if (regime !== "STANDARD_VAT_19") {
+          validationErrors.push("EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED");
+        }
+      }
     }
     if (input.entityType === "SUPPLEMENT_VERSION") {
       const version = this.repos.getSupplementVersionByTenant(input.tenantId, input.entityId);

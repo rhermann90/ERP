@@ -220,6 +220,18 @@ export class AuthorizationService {
     }
   }
 
+  /** FIN-5: Mandanten-/Projekt-Steuerregime lesen — gleiche Leserolle wie Rechnung. */
+  public assertCanReadInvoiceTaxSettings(role: UserRole): void {
+    this.assertCanReadInvoice(role);
+  }
+
+  /** FIN-5: Mandanten-/Projekt-Steuerregime ändern — gleiche Rollen wie Zahlungseingang. */
+  public assertCanManageInvoiceTaxSettings(role: UserRole): void {
+    if (!PAYMENT_INTAKE_ROLES.has(role)) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Steuerregime-Einstellungen", 403);
+    }
+  }
+
   public assertCanApplySupplementBillingImpact(role: UserRole): void {
     if (!SUPPLEMENT_ACTION_BY_ROLE[role].includes("SUPPLEMENT_APPLY_BILLING_IMPACT")) {
       throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Abrechnungswirkung", 403);
