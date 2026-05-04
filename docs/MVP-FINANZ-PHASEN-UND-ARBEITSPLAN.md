@@ -143,7 +143,7 @@
 **Lieferobjekte**
 
 - Standard-USt-Pfad in **8.4** Schritt 7 integriert.  
-- **Drei** dokumentierte Regime (**Standard-USt**, **Kleinunternehmer**, **Reverse Charge**, **§13b-Bau**) mit Mandanten-Default und Projekt-Override; Rechnung persistiert effektives Regime und Basispunkte; Pflicht-Hinweiszeilen (§8.10) auf Lesepfad/Entwurf.
+- **Vier** Regime-Codes inkl. **Standard-USt**, **Kleinunternehmer**, **Reverse Charge**, **§13b-Bau** mit Mandanten-Default und Projekt-Override; Rechnung persistiert effektives Regime und Basispunkte; Pflicht-Hinweiszeilen (§8.10) auf Lesepfad/Entwurf.
 
 **Meilenstein M5**
 
@@ -241,7 +241,7 @@
 - [ ] **Nächstes technisches Inkrement** ist benannt (z. B. [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) oder Nachfolger).
 - [ ] Multi-Agent-Regeln bekannt: [`.cursor/rules/erp-multi-agent.mdc`](../.cursor/rules/erp-multi-agent.mdc).
 
-**Technischer Index-Sync (2026-05-04, kein Ersatz für manuelle Checklisten oben):** Abgleich mit **Teil 1** und [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md): **Pfad A / B2-1a** umgesetzt; **FIN-4** Konfig/Vorlagen/Footer/Mahnlauf **5b-0/5b-1** und **5c**; Automation **OFF/SEMI** (ADR-0011); Rechnungs-Export-Preflight **`POST /exports`**; **FIN-5** Rechnungssteuer-Profile **`/finance/invoice-tax-profile…`** mit Fail-Closed laut ADR-0014. **FIN-2** nächste Teilprojekte: [`FIN-2-NEXT-SUBPROJECT-GATE.md`](./tickets/FIN-2-NEXT-SUBPROJECT-GATE.md). **FIN-5 (M5)** Gate **geschlossen** Option **B**: [`FIN-5-GATE-816-FAIL-CLOSED.md`](./tickets/FIN-5-GATE-816-FAIL-CLOSED.md), [`adr/0014-fin5-mvp-tax-fail-closed.md`](./adr/0014-fin5-mvp-tax-fail-closed.md). Keine Parallele zu **8.4(2–6)** oder **Pfad C** ohne Gate.
+**Technischer Index-Sync (2026-05-04, kein Ersatz für manuelle Checklisten oben):** Abgleich mit **Teil 1** und [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md): **Pfad A / B2-1a** umgesetzt; **FIN-4** Konfig/Vorlagen/Footer/Mahnlauf **5b-0/5b-1** und **5c**; Automation **OFF/SEMI** (ADR-0011); Export-Protokoll **`export_runs`** / **`POST /exports`**; **FIN-5 (M5)** §8.16-Regime mandanten- und projektweise (`/finance/invoice-tax-profile…`), Rechnungs-Snapshot, Pflicht-Hinweise, XRechnung-Preflight fail-closed bei Nicht-Standard — [`adr/0015-fin5-invoice-tax-regimes-816.md`](./adr/0015-fin5-invoice-tax-regimes-816.md); historisches Gate-Dokument (Option B, 2026-05-04): [`FIN-5-GATE-816-FAIL-CLOSED.md`](./tickets/FIN-5-GATE-816-FAIL-CLOSED.md). **FIN-2** nächste Teilprojekte: [`FIN-2-NEXT-SUBPROJECT-GATE.md`](./tickets/FIN-2-NEXT-SUBPROJECT-GATE.md). Keine Parallele zu **8.4(2–6)** oder **Pfad C** ohne Gate.
 
 ---
 
@@ -265,7 +265,7 @@
 | **FIN-2** | M2 | Gebuchte Rechnung, 8.4-Kette, E2E aus LV-Kette | Entwurf, Buchung `BOOK_INVOICE`, 8.4(1)+USt/Brutto, **B2-1a** `skontoBps` (Wave3 Pfad A laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md)); PWA Shell + Finanz-Vorbereitung (SoT, Skonto optional API-first) | **8.4(2–6)**-Motor; Pfad GEPRUEFT/FREIGEGEBEN (**Pfad C**, eigenes Gate); belastbarer **LV→Rechnung**-E2E | Nach Wave3 **nicht** parallel 8.4-Tiefe + Pfad C mischen; nächste Priorität **M4-Rest** *oder* bewusst 8.4(2–6) / Konvergenz — siehe Wave3-Non-Goals |
 | **FIN-3** | M3 | Zahlung, Status, Idempotenz 8.7 | Intake POST, Liste GET, SoT, Status TEILBEZAHLT/BEZAHLT; PWA SoT-gekoppelt | **Bankfile** und vollständige **8.8–8.9** bewusst out of scope (ADR-0007); Intake: Überzahlung als Domainfehler **`PAYMENT_EXCEEDS_OPEN_AMOUNT`**, Audit + zentrale Domainfälle in Tests | Backlog 8.8–8.9 / PSP gesondert; optional Review Randfälle (z. B. Replay/Parallelität) |
 | **FIN-4** | M4 | Mahnwesen 8.10 inkl. Konfig, Vorlagen, E-Mail | Kern wie zuvor; **5c** Massen-E-Mail technisch im Repo — ADR-0009/0010/0011 | Operatives Mandanten-Go 5c außerhalb Repo; optionale UX-Tickets | Optional kleine Spur-A-Follow-ups; kein Mix mit 8.4(2–6) oder Pfad C |
-| **FIN-5** | M5 | Steuer-Sonderfall 8.16 oder Fail-Closed | Standard-USt-Pfad aktiv; **Fail-Closed** für MVP — Gate geschlossen Option **B** ([`FIN-5-GATE-816-FAIL-CLOSED.md`](./tickets/FIN-5-GATE-816-FAIL-CLOSED.md), [`adr/0014-fin5-mvp-tax-fail-closed.md`](./adr/0014-fin5-mvp-tax-fail-closed.md)) | Kein 8.16-Sonderfall produktiv; Mandanten mit zwingendem 8.16 außerhalb MVP bis Folge-Release | **FIN-6** / QA §15 oder Option **A** nach neuem Gate + PR |
+| **FIN-5** | M5 | §8.11 / §8.16 konfigurierbare Regime | Mandanten-Default + Projekt-Override; Tabellen `tenant_invoice_tax_profiles`, `project_invoice_tax_overrides`; Rechnungs-Snapshot; Lesepfad/Entwurf mit Pflicht-Hinweisen; Audit bei Settings; XRechnung bei Regime ≠ Standard → `EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED` — [`adr/0015-fin5-invoice-tax-regimes-816.md`](./adr/0015-fin5-invoice-tax-regimes-816.md) | Vollständiges XRechnung/DATEV-Steuer-Mapping aller Regime | **FIN-6** / QA §15; Mapping vertiefen |
 | **FIN-6** | M6 | Härtung 8.14, 12, 15; PWA-Regeln | Audit fail-hard; Logging-Hinweise §8.14 — [`contracts/fin6-logging-privacy-814.md`](./contracts/fin6-logging-privacy-814.md); Abnahme-Skeleton Gate 15 — [`contracts/qa-fin-mvp-gate-15-abnahme.md`](./contracts/qa-fin-mvp-gate-15-abnahme.md) | Vollständige Feldklassifikation; Gesamt-QA §15 Evidenz auf `main` | [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md); Gate-15-Checkliste abarbeiten |
 
 
@@ -444,7 +444,7 @@
 
 **DoD:**
 
-- [ ] Entscheidung und Testabdeckung für den gewählten Umfang nachweisbar
+- [x] Entscheidung (ADR-0015) und Tests für Regime-/Export-Pfade nachweisbar (`npm run verify:ci`, `verify:ci:local-db`, `verify:pre-merge`)
 
 ---
 

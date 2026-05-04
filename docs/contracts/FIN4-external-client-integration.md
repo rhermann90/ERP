@@ -18,6 +18,7 @@ Fachliche und go-live-relevante Entscheidungen bleiben bei **StB / DSB / Release
 |--------|------|
 | `docs/api-contract.yaml` → `info.version` | muss identisch zu `ERP_OPENAPI_INFO_VERSION` in `src/domain/openapi-contract-version.ts` sein |
 | HTTP-Antwort (FIN-4-Pfade, siehe unten) | Header **`x-erp-openapi-contract-version`** = derselbe String |
+| HTTP-Antwort (`/finance/invoice-tax-profile…`, FIN-5) | derselbe Header (`src/http/pwa-http-layer.ts`) |
 
 **CI:** `npm run validate:api-contract-yaml` bricht ab, wenn YAML und TypeScript divergieren.
 
@@ -29,6 +30,7 @@ Antworten unter:
 
 - `/finance/dunning-reminder…` (Vorlagen, Kandidaten, Konfig, Automation, Mahnlauf, …)
 - `/finance/dunning-email-footer`
+- `/finance/invoice-tax-profile` und Projekt-Override-Pfade (`…/projects/{projectId}`)
 
 Server-zu-Server: Header direkt lesen. **Browser + CORS:** nur sichtbar, wenn die Origin in `CORS_ORIGINS` steht; dann ist `x-erp-openapi-contract-version` in `Access-Control-Expose-Headers` enthalten (`src/http/pwa-http-layer.ts`).
 

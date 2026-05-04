@@ -2,7 +2,7 @@
 
 **Zweck:** Abgleich `docs/api-contract.yaml` mit dem **laufenden Code** und mit `docs/contracts/error-codes.json` — keine „Phantom“-`code`-Werte; Änderungen an Domänencodes nur gemeinsam mit Contract-Version und `error-codes.json`.
 
-**Hinweis Dateiname:** Historisch `finance-fin0-…`; Inhalt deckt **FIN-1**, **FIN-2**, **FIN-3** (Zahlungseingang), **FIN-4** (Mahnwesen Lesepfad + Mahn-POST + Konfig **GET/PUT/PATCH/DELETE**) + **M4** (Vorlagen/Footer/E-Mail; siehe **`docs/adr/0010-fin4-m4-dunning-email-and-templates.md`**) und verbleibende **FIN-0**-Contract-Stubs ab.
+**Hinweis Dateiname:** Historisch `finance-fin0-…`; Inhalt deckt **FIN-1**, **FIN-2**, **FIN-5** (§8.16 Steuerprofile), **FIN-3** (Zahlungseingang), **FIN-4** (Mahnwesen Lesepfad + Mahn-POST + Konfig **GET/PUT/PATCH/DELETE**) + **M4** (Vorlagen/Footer/E-Mail; siehe **`docs/adr/0010-fin4-m4-dunning-email-and-templates.md`**) und verbleibende **FIN-0**-Contract-Stubs ab.
 
 **Externe Integratoren (FIN-4):** Release-Notes, Breaking-Felder und Antwort-Header `x-erp-openapi-contract-version` — [`FIN4-external-client-integration.md`](./FIN4-external-client-integration.md).
 
@@ -14,6 +14,8 @@
 | **FIN-1** | `POST /finance/payment-terms/versions` | dieselben |
 | **FIN-2** | `POST /invoices`, `GET /invoices/{invoiceId}`, `POST /invoices/{invoiceId}/book` | `src/api/finance-invoice-routes.ts`, `src/services/invoice-service.ts`, `src/persistence/invoice-persistence.ts` |
 | **FIN-2 (Shell-SoT)** | *(kein eigener HTTP-Pfad)* — `GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE` liefert kanonisch **`BOOK_INVOICE`** nur bei Status **ENTWURF** und Rollen wie `assertCanBookInvoice` | `src/services/authorization-service.ts` (`allowedInvoiceActionsByStatus`); PWA-Haupt-Shell: `apps/web/src/lib/action-executor.ts` (**`BOOK_INVOICE`** → `POST /invoices/{invoiceId}/book` mit `reason`, optional `issueDate`); Contract: `docs/contracts/action-contracts.json` |
+| **FIN-5** | `GET /finance/invoice-tax-profile`, `PATCH /finance/invoice-tax-profile` | `src/api/finance-invoice-tax-routes.ts`, `src/services/invoice-tax-settings-service.ts`, `src/persistence/invoice-tax-profile-persistence.ts` — Mandanten-Default §8.16; Audit bei PATCH; Rollen wie Zahlungseingang für Schreiben |
+| **FIN-5** | `GET /finance/invoice-tax-profile/projects/{projectId}`, `PUT …`, `DELETE …` | dieselben — Projekt-Override optional; DELETE mit Body `reason` |
 | **FIN-3** | `POST /finance/payments/intake` | `src/api/finance-payment-intake-routes.ts`, `src/services/payment-intake-service.ts`, `src/persistence/payment-intake-persistence.ts` — Idempotenz `(tenant_id, idempotency_key)`; Zahlung nur bei **GEBUCHT_VERSENDET** / **TEILBEZAHLT** mit 8.4-Beträgen; Persistenz + Status **TEILBEZAHLT** / **BEZAHLT**; bei DB-Unique-Kollision nach Rollback optional Replay desselben Keys |
 | **FIN-3** | `GET /invoices/{invoiceId}/payment-intakes` | `src/api/finance-invoice-routes.ts`, `src/services/invoice-service.ts` — Lesepfad je Rechnung; gleiche Rolle wie Rechnung lesen (`assertCanReadInvoice`); Antwort **ohne** Idempotency-Key (minimiert) |
 | **FIN-4** | `GET /invoices/{invoiceId}/dunning-reminders` | `src/api/finance-invoice-routes.ts`, `src/services/invoice-service.ts` (`listDunningRemindersForInvoiceRead`); Daten aus In-Memory nach Hydrate aus `src/persistence/dunning-reminder-persistence.ts` (**Postgres:** Tabelle `dunning_reminders`); gleiche Leserolle wie Rechnung (`assertCanReadInvoice`); **`docs/adr/0009-fin4-mahnwesen-slice.md`** |
@@ -46,6 +48,9 @@ Traceability-Prüfungen für Rechnungsentwurf und **Buchung**: `src/services/inv
 | Rechnung buchen, Status nicht `ENTWURF` | 409 | `INVOICE_NOT_BOOKABLE` | kein erneutes Buchen |
 | Rechnung buchen, Entwurf ohne `lvNetCents`/`vatCents`/`totalGrossCents` | 422 | `INVOICE_DRAFT_INCOMPLETE` | Entwurf neu erzeugen |
 | Rechnung buchen, Rechnungsnummer-Kollision (DB-Unique) | 409 | `INVOICE_NUMBER_CONFLICT` | Retry mit neuem Nummernkreis |
+| Rechnung buchen, Steuerregime seit Entwurf geändert | 409 | `INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT` | Neuen Entwurf erzeugen |
+| Ungültiges Steuerregime in Profil/Override | 400 | `INVOICE_TAX_REGIME_INVALID` | |
+| XRechnung-Preflight, Rechnung nicht Standard-USt | 422 | `EXPORT_PREFLIGHT_FAILED` | `details.validationErrors` enthält `EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED` |
 | Zahlungseingang, Rechnung unbekannt / falscher Mandant | 404 | `DOCUMENT_NOT_FOUND` | |
 | Zahlungseingang, Rechnung nicht zahlbar (z. B. `ENTWURF`) | 400 | `PAYMENT_INVOICE_NOT_PAYABLE` | |
 | Zahlungseingang, Rechnung ohne `totalGrossCents` / 8.4-Felder | 400 | `PAYMENT_INVOICE_AMOUNT_MISSING` | |
@@ -86,3 +91,4 @@ Traceability-Prüfungen für Rechnungsentwurf und **Buchung**: `src/services/inv
 - Gate: `docs/tickets/FIN-2-START-GATE.md` (**G8**).
 - Mahnwesen **Kern** (Mahn-Ereignis, Stufen-Konfig): `docs/adr/0009-fin4-mahnwesen-slice.md`.
 - Mahnwesen **M4** (Vorlagen, Footer, E-Mail inkl. SMTP 5a): `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`.
+- FIN-5 §8.16: `docs/adr/0015-fin5-invoice-tax-regimes-816.md`.
