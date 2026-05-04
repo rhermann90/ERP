@@ -18,6 +18,7 @@ Fachliche und go-live-relevante Entscheidungen bleiben bei **StB / DSB / Release
 |--------|------|
 | `docs/api-contract.yaml` → `info.version` | muss identisch zu `ERP_OPENAPI_INFO_VERSION` in `src/domain/openapi-contract-version.ts` sein |
 | HTTP-Antwort (FIN-4-Pfade, siehe unten) | Header **`x-erp-openapi-contract-version`** = derselbe String |
+| HTTP-Antwort (`/finance/invoice-tax-profile…`, FIN-5) | derselbe Header (`src/http/pwa-http-layer.ts`) |
 
 **CI:** `npm run validate:api-contract-yaml` bricht ab, wenn YAML und TypeScript divergieren.
 
@@ -29,6 +30,7 @@ Antworten unter:
 
 - `/finance/dunning-reminder…` (Vorlagen, Kandidaten, Konfig, Automation, Mahnlauf, …)
 - `/finance/dunning-email-footer`
+- `/finance/invoice-tax-profile` und Projekt-Override-Pfade (`…/projects/{projectId}`)
 
 Server-zu-Server: Header direkt lesen. **Browser + CORS:** nur sichtbar, wenn die Origin in `CORS_ORIGINS` steht; dann ist `x-erp-openapi-contract-version` in `Access-Control-Expose-Headers` enthalten (`src/http/pwa-http-layer.ts`).
 
@@ -39,6 +41,15 @@ Server-zu-Server: Header direkt lesen. **Browser + CORS:** nur sichtbar, wenn di
 - **`asOfDate`** (Default „heute“): **Mandanten-IANA-Zeitzone** (wie ADR-0011), nicht UTC — siehe OpenAPI-Beschreibungen.
 
 Vollständige Schemas: `docs/api-contract.yaml`. Mapping: `docs/contracts/finance-fin0-openapi-mapping.md`.
+
+## Neu ab `1.28.5` (Benutzerverwaltung — Listenpfad)
+
+- **`GET /users`:** **Breaking** für Clients mit altem Shape — Antwort **`TenantUserListResponse`** mit **`data`**, **`page`**, **`pageSize`**, **`total`**; Query **`page`**, **`pageSize`** (max. 100). Kein FIN-4-Header-Pfad — gebündeltes OpenAPI/`info.version`-Bump für Integratoren.
+
+## Neu ab `1.29.0` (FIN-5 — Rechnungssteuer-Profile / Fail-Closed 8.16)
+
+- **`GET|PATCH /finance/invoice-tax-profile`** und Projekt-Override-Pfade unter **`/finance/invoice-tax-profile/projects/…`:** Mandanten-Default und Overrides für effektives Rechnungssteuerregime; auf diesen Pfaden sendet der Server **`x-erp-openapi-contract-version`** wie bei den FIN-4-Leitpfaden. ADR: [`docs/adr/0014-fin5-mvp-tax-fail-closed.md`](../adr/0014-fin5-mvp-tax-fail-closed.md).
+
 
 ## Neu ab `1.28.2` (Phase 2 — LV §9 Einzelknoten-Lesepfad)
 

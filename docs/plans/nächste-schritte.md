@@ -128,6 +128,9 @@ Um **Code und Tests** gegenüber ausufernder Doku zu priorisieren — bei gleich
 
 **Umsetzungswahl aktueller Auftrag (Plan „Nächstes großes Inkrement“, 2026-05-01):** **Zweig 2** unter Spur **A** — **Paket Doku-Konsistenz**: [`NEXT-INCREMENT-FINANCE-WAVE3.md`](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) (Abschnitt „Nächster Strang“ / **Non-Goals**) an den IST-Stand **M4 Slice 5c** und P1-2 anbinden; **kein** FIN-5-Code in diesem PR. **Zweig 1 (FIN-5 / Spur B)** ist der nächste **strategische** MVP-Meilenstein ([`MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md) Teil 3, FIN-5), sobald das Team **§8.16 vs. Fail-Closed** festlegt — dann **Gewählte Spur** auf **B** setzen und Scope/Ticket/ADR im PR benennen.
 
+**Hinweis (2026-05-04):** Historisches Gate-Dokument Option **B**: [`FIN-5-GATE-816-FAIL-CLOSED.md`](../tickets/FIN-5-GATE-816-FAIL-CLOSED.md). **Ist (Repo):** FIN-5 Option A — Steuerregime laut [`adr/0015-fin5-invoice-tax-regimes-816.md`](../adr/0015-fin5-invoice-tax-regimes-816.md); weiterhin **`npm run verify:pre-merge`** bei Finanz-/E2E-Touch empfohlen.
+
+
 **Paket „Spur A — nächste konkrete Lieferungen“ (Referenz):**
 
 | Paket | Lieferumfang | Akzeptanz |

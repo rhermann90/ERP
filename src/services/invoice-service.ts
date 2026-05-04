@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
 import {
-  computeGrossFromLvNetEurMvp,
+  computeInvoiceTotalsForTaxRegime,
   GERMAN_VAT_STANDARD_BPS,
   netCentsAfterStep84_6Mvp,
   sumLvNetCentsStep84_1,
 } from "../domain/invoice-calculation.js";
+import { getMandatoryTaxNoticeLines } from "../domain/invoice-tax-mandatory-notices.js";
+import type { InvoiceTaxRegime } from "../domain/invoice-tax-regime.js";
 import type { Invoice, TenantId, UUID } from "../domain/types.js";
 import { DomainError } from "../errors/domain-error.js";
 import type { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
@@ -73,6 +75,8 @@ export class InvoiceService {
     vatCents: number;
     totalGrossCents: number;
     skontoBps: number;
+    invoiceTaxRegime: InvoiceTaxRegime;
+    mandatoryTaxNoticeLines: string[];
   }> {
     if (input.invoiceCurrencyCode !== "EUR") {
       throw new DomainError("VALIDATION_FAILED", "Nur EUR laut Spez", 400);
@@ -134,7 +138,10 @@ export class InvoiceService {
         400,
       );
     }
-    const { vatRateBps, vatCents, totalGrossCents } = computeGrossFromLvNetEurMvp(lvNetCents);
+    const regime = this.repos.resolveEffectiveInvoiceTaxRegime(input.tenantId, offer.projectId);
+    const taxReasonCode = this.repos.resolveTaxReasonCodeForProject(input.tenantId, offer.projectId);
+    const totals = computeInvoiceTotalsForTaxRegime(lvNetCents, regime);
+    const { vatRateBpsEffective, vatCents, totalGrossCents, invoiceTaxRegime } = totals;
 
     const id = randomUUID();
     const invoice: Invoice = {
@@ -153,6 +160,9 @@ export class InvoiceService {
       totalGrossCents,
       paymentTermsVersionId: input.paymentTermsVersionId,
       skontoBps,
+      invoiceTaxRegime,
+      vatRateBpsEffective,
+      taxReasonCode,
     };
     this.repos.invoices.set(id, invoice);
     this.repos.traceabilityLinks.set(id, {
@@ -184,10 +194,21 @@ export class InvoiceService {
         vatCents,
         totalGrossCents,
         skontoBps,
+        invoiceTaxRegime,
+        vatRateBpsEffective,
       },
     });
 
-    return { invoiceId: id, lvNetCents, vatRateBps, vatCents, totalGrossCents, skontoBps };
+    return {
+      invoiceId: id,
+      lvNetCents,
+      vatRateBps: vatRateBpsEffective,
+      vatCents,
+      totalGrossCents,
+      skontoBps,
+      invoiceTaxRegime,
+      mandatoryTaxNoticeLines: getMandatoryTaxNoticeLines(invoiceTaxRegime),
+    };
   }
 
   /**
@@ -217,6 +238,16 @@ export class InvoiceService {
         "INVOICE_DRAFT_INCOMPLETE",
         "Rechnungsentwurf ohne Betraege — Entwurf neu erzeugen",
         422,
+      );
+    }
+
+    const effectiveNow = this.repos.resolveEffectiveInvoiceTaxRegime(input.tenantId, inv.projectId);
+    const snapshotRegime = inv.invoiceTaxRegime ?? ("STANDARD_VAT_19" as InvoiceTaxRegime);
+    if (effectiveNow !== snapshotRegime) {
+      throw new DomainError(
+        "INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT",
+        "Steuerregime seit Entwurf geaendert — Entwurf verwerfen und neu anlegen",
+        409,
       );
     }
 
@@ -312,6 +343,9 @@ export class InvoiceService {
     invoiceNumber?: string;
     issueDate?: string;
     lvNetCents?: number;
+    invoiceTaxRegime: InvoiceTaxRegime;
+    taxReasonCode?: string;
+    mandatoryTaxNoticeLines?: string[];
     vatRateBps?: number;
     vatCents?: number;
     totalGrossCents?: number;
@@ -325,6 +359,8 @@ export class InvoiceService {
     }
     const paidList = this.repos.listPaymentIntakesForInvoice(tenantId, inv.id);
     const totalPaidCents = paidList.reduce((s, p) => s + p.amountCents, 0);
+    const regime = inv.invoiceTaxRegime ?? ("STANDARD_VAT_19" as InvoiceTaxRegime);
+    const notices = getMandatoryTaxNoticeLines(regime);
     return {
       invoiceId: inv.id,
       projectId: inv.projectId,
@@ -337,7 +373,13 @@ export class InvoiceService {
       invoiceNumber: inv.invoiceNumber,
       issueDate: inv.issueDate,
       lvNetCents: inv.lvNetCents,
-      vatRateBps: inv.lvNetCents != null && inv.vatCents != null ? GERMAN_VAT_STANDARD_BPS : undefined,
+      invoiceTaxRegime: regime,
+      taxReasonCode: inv.taxReasonCode,
+      mandatoryTaxNoticeLines: notices.length > 0 ? notices : undefined,
+      vatRateBps:
+        inv.lvNetCents != null && inv.vatCents != null
+          ? (inv.vatRateBpsEffective ?? GERMAN_VAT_STANDARD_BPS)
+          : undefined,
       vatCents: inv.vatCents,
       totalGrossCents: inv.totalGrossCents,
       totalPaidCents: paidList.length > 0 ? totalPaidCents : undefined,

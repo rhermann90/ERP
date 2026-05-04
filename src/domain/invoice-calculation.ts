@@ -1,3 +1,4 @@
+import type { InvoiceTaxRegime } from "./invoice-tax-regime.js";
 import type { LvPosition } from "./types.js";
 
 /** Regel 8.11 / MVP: Regelsteuersatz 19 % (Deutschland), in Basispunkten. */
@@ -59,4 +60,45 @@ export function computeGrossFromLvNetEurMvp(lvNetCents: number): {
     vatCents,
     totalGrossCents,
   };
+}
+
+/**
+ * 8.4 Schritt 7–8 mit FIN-5 / §8.16 Regime — kein stiller Fallback auf 19 %-USt bei Sonderregimen.
+ */
+export function computeInvoiceTotalsForTaxRegime(
+  lvNetCents: number,
+  regime: InvoiceTaxRegime,
+): {
+  lvNetCents: number;
+  vatRateBpsEffective: number;
+  vatCents: number;
+  totalGrossCents: number;
+  invoiceTaxRegime: InvoiceTaxRegime;
+} {
+  switch (regime) {
+    case "STANDARD_VAT_19": {
+      const r = computeGrossFromLvNetEurMvp(lvNetCents);
+      return {
+        lvNetCents: r.lvNetCents,
+        vatRateBpsEffective: r.vatRateBps,
+        vatCents: r.vatCents,
+        totalGrossCents: r.totalGrossCents,
+        invoiceTaxRegime: regime,
+      };
+    }
+    case "SMALL_BUSINESS_19":
+    case "REVERSE_CHARGE":
+    case "CONSTRUCTION_13B":
+      return {
+        lvNetCents,
+        vatRateBpsEffective: 0,
+        vatCents: 0,
+        totalGrossCents: lvNetCents,
+        invoiceTaxRegime: regime,
+      };
+    default: {
+      const _e: never = regime;
+      return _e;
+    }
+  }
 }

@@ -17,6 +17,8 @@ const draftResponse = {
   vatCents: 18_620,
   totalGrossCents: 116_620,
   skontoBps: 200,
+  invoiceTaxRegime: "STANDARD_VAT_19" as const,
+  mandatoryTaxNoticeLines: [] as string[],
 };
 
 const noopApi = {
@@ -39,6 +41,8 @@ const noopApi = {
     vatCents: 0,
     totalGrossCents: 0,
     skontoBps: 0,
+    invoiceTaxRegime: "STANDARD_VAT_19",
+    mandatoryTaxNoticeLines: [],
   }),
   listInvoicePaymentIntakes: async () => ({ data: [] }),
   listInvoiceDunningReminders: async () => ({ data: [] }),
@@ -145,6 +149,7 @@ const noopApi = {
     offerId: "",
     status: "ENTWURF",
     skontoBps: 0,
+    invoiceTaxRegime: "STANDARD_VAT_19",
   }),
   recordPaymentIntake: async () => ({
     paymentIntakeId: "00000000-0000-4000-8000-000000000099",
@@ -376,6 +381,7 @@ describe("FinancePreparation", () => {
       vatCents: 19_000,
       totalGrossCents: 119_000,
       totalPaidCents: 0,
+      invoiceTaxRegime: "STANDARD_VAT_19" as const,
     };
     const createInvoiceDraft = vi.fn().mockResolvedValue({
       ...draftResponse,
@@ -825,6 +831,7 @@ describe("FinancePreparation", () => {
       vatCents: 19_000,
       totalGrossCents: 119_000,
       totalPaidCents: 0,
+      invoiceTaxRegime: "STANDARD_VAT_19" as const,
     });
     const api = { ...noopApi, getInvoice } as unknown as ApiClient;
     await act(async () => {

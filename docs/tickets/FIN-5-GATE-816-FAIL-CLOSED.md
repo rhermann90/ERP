@@ -1,30 +1,35 @@
-# FIN-5 — Team-Gate vor Implementierung (Abschnitt 8.16 vs. Fail-Closed)
+# FIN-5 — Team-Gate (historisch): Abschnitt 8.16 vs. Fail-Closed
 
-**Status:** offen — ausfüllen durch **Produkt / Steuer-Fach / Release** (kein Agent-Ersatz).
+**Status:** **historisch / überholt** für die **produktive** FIN-5-Umsetzung — **2026-05-04** war das Gate mit Option **B — Fail-Closed** dokumentiert; die **aktuelle** Implementierung folgt **Option A** (voller definierter §8.16-Umfang) in [`docs/adr/0015-fin5-invoice-tax-regimes-816.md`](../adr/0015-fin5-invoice-tax-regimes-816.md).
 
-**Zweck:** FIN-5 ([`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md) Teil 3, Meilenstein **M5**) darf erst als **Spur B** im Repo starten, wenn diese Entscheidung **schriftlich** hier oder in einem verlinkten ADR/Protokoll festgehalten ist.
+**Zweck (Archiv):** FIN-5 ([`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md) Teil 3, Meilenstein **M5**) — ursprüngliche Entscheidung **8.16-Sonderfall (Option A)** vs. **Fail-Closed (Option B)** war hier und in [`docs/adr/0014-fin5-mvp-tax-fail-closed.md`](../adr/0014-fin5-mvp-tax-fail-closed.md) festgehalten.
 
-**Domänenquelle:** [`docs/ERP-Systembeschreibung.md`](../ERP-Systembeschreibung.md) — Steuerlogik und EUR-Pfad (**8.16**), USt (**8.11**); ADR-0007 verweist auf späteres FIN-5-Flag ([`docs/tickets/FIN-2-START-GATE.md`](./FIN-2-START-GATE.md) Nachweis-Spalte zu **8.16**).
+**Domänenquelle:** [`docs/ERP-Systembeschreibung.md`](../ERP-Systembeschreibung.md) — Steuerlogik und EUR-Pfad (**8.16**).
 
-## Entscheidung (eine Option auswählen und begründen)
+## Historische Repo-Haltung (Option B, 2026-05-04)
+
+Das Team hatte Option **B** gewählt: kein produktiver 8.16-Sonderfall bis zu einer späteren expliziten Freigabe — siehe die **Superseded**-Markierung in ADR-0014 und die untenstehende Original-Tabelle.
+
+## Aktuelle Referenz (Option A)
+
+- ADR: [`docs/adr/0015-fin5-invoice-tax-regimes-816.md`](../adr/0015-fin5-invoice-tax-regimes-816.md)
+- HTTP: `GET|PATCH /finance/invoice-tax-profile`, `GET|PUT|DELETE /finance/invoice-tax-profile/projects/{projectId}`
+- OpenAPI: `docs/api-contract.yaml` (`InvoiceTaxRegime`, erweiterte Rechnungs-Schemas)
+
+---
+
+## Original — Entscheidungstabelle (ungeändert zum Archiv)
 
 | Option | Bedeutung | Folge im Repo |
 |--------|-----------|----------------|
 | **A — Sonderfall aktiv (MVP-Subset)** | Genau **ein** ausgewählter Steuer-Sonderfall aus **8.16** soll produktiv werden | Feature-Flag + Domäne/OpenAPI/Tests laut MVP Teil 3; Export-Preflight ohne stillen Fallback auf Standard-USt |
 | **B — Fail-Closed** | Kein produktiver Sonderfall bis zur nächsten expliziten Freigabe | Relevante Pfade bleiben **nicht aktivierbar** oder liefern dokumentiert **fail-closed**; Entscheidung im **ADR** festhalten |
 
-**Gewählte Option (Team):** …
+**Gewählte Option (Team, historisch 2026-05-04):** **B — Fail-Closed**
 
-**Kurzbegründung / Risiko:** …
+**Referenz ADR (historisch):** [`docs/adr/0014-fin5-mvp-tax-fail-closed.md`](../adr/0014-fin5-mvp-tax-fail-closed.md); ergänzend dieses Ticket/Gate-Dokument.
 
-**Referenz Protokoll oder ADR (URL oder Repo-Pfad, nur echte Einträge — keine Platzhalter-URLs durch Agenten):** …
+## Verwandte Artefakte
 
-## Nach der Entscheidung (Maintainer)
-
-1. In [`docs/plans/nächste-schritte.md`](../plans/nächste-schritte.md) die Zeile **„Gewählte Spur (Team)“** auf **B** setzen und ersten FIN-5-PR mit Scope/Ticket/ADR verknüpfen.
-2. Bei Option **B:** neuen oder bestehenden ADR ergänzen (Fail-Closed-Umfang, welche APIs/UI betroffen sind).
-
-## Verwandte Artefakte (ohne Misch-PR)
-
-- Strategischer Kontext: [`docs/plans/nächste-schritte.md`](../plans/nächste-schritte.md) — Abschnitt **„Große Meilensteine“** / FIN-5.
-- Nach FIN-5: FIN-6 und Querschnitte nur als **eigene** Epochen — [`docs/plans/roadmap-fertige-app.md`](../plans/roadmap-fertige-app.md) Phase D, [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md), [`B5-SPEC-DELIVERY-BOUNDARY-WAVE3.md`](./B5-SPEC-DELIVERY-BOUNDARY-WAVE3.md).
+- Strategischer Kontext: [`docs/plans/nächste-schritte.md`](../plans/nächste-schritte.md)
+- Nach FIN-5 technischer Kern: **FIN-6** und Querschnitte — [`docs/plans/roadmap-fertige-app.md`](../plans/roadmap-fertige-app.md)

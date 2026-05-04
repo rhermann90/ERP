@@ -1,5 +1,6 @@
 import type { PrismaClient } from "../prisma-client.js";
 import type { Invoice, TenantId, UUID } from "../domain/types.js";
+import type { InvoiceTaxRegime } from "../domain/invoice-tax-regime.js";
 import type { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 
 export interface InvoicePersistencePort {
@@ -34,6 +35,9 @@ function toDomainInvoice(row: {
   supplementVersionId: string | null;
   paymentTermsVersionId: string | null;
   skontoBps: number;
+  invoiceTaxRegime: string;
+  vatRateBpsEffective: number;
+  taxReasonCode: string | null;
 }): Invoice {
   return {
     tenantId: row.tenantId,
@@ -55,6 +59,9 @@ function toDomainInvoice(row: {
     supplementVersionId: row.supplementVersionId ?? undefined,
     paymentTermsVersionId: row.paymentTermsVersionId ?? undefined,
     skontoBps: row.skontoBps,
+    invoiceTaxRegime: row.invoiceTaxRegime as InvoiceTaxRegime,
+    vatRateBpsEffective: row.vatRateBpsEffective,
+    taxReasonCode: row.taxReasonCode ?? undefined,
   };
 }
 
@@ -105,6 +112,9 @@ export class PrismaInvoicePersistence implements InvoicePersistencePort {
         supplementVersionId: inv.supplementVersionId ?? null,
         paymentTermsVersionId: inv.paymentTermsVersionId ?? null,
         skontoBps: inv.skontoBps ?? 0,
+        invoiceTaxRegime: inv.invoiceTaxRegime ?? "STANDARD_VAT_19",
+        vatRateBpsEffective: inv.vatRateBpsEffective ?? 1900,
+        taxReasonCode: inv.taxReasonCode ?? null,
       },
       update: {
         projectId: inv.projectId,
@@ -124,6 +134,9 @@ export class PrismaInvoicePersistence implements InvoicePersistencePort {
         supplementVersionId: inv.supplementVersionId ?? null,
         paymentTermsVersionId: inv.paymentTermsVersionId ?? null,
         skontoBps: inv.skontoBps ?? 0,
+        invoiceTaxRegime: inv.invoiceTaxRegime ?? "STANDARD_VAT_19",
+        vatRateBpsEffective: inv.vatRateBpsEffective ?? 1900,
+        taxReasonCode: inv.taxReasonCode ?? null,
       },
     });
   }

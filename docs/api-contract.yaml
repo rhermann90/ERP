@@ -1,14 +1,14 @@
 openapi: 3.0.3
 info:
   title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-1/2/3/4 Finance)
-  version: 1.28.2-phase2-lv-section9-single-node
+  version: 1.29.0-fin5-invoice-tax-816
   description: |
     **PWA / Browser-Anbindung**
     - **CORS**: Umgebungsvariable `CORS_ORIGINS` — kommagetrennte, exakte Origins (z. B. `https://app.example.com,http://localhost:5173`). Leer oder unset: keine `Access-Control-*`-Header (gleiche Origin oder Server-zu-Server).
     - **Auth**: `Authorization: Bearer <signed-v1-token>` (siehe `bearerToken`); optionaler Header `X-Tenant-Id` muss zum Tenant im Token passen, sonst `TENANT_SCOPE_VIOLATION`. **Passwort-Login:** `POST /auth/login` mit JSON `{ tenantId, email, password }` — siehe `docs/authentication-login.md`. **Passwort vergessen (öffentlich):** `POST /auth/request-password-reset`, `POST /auth/confirm-password-reset` — nur mit Postgres; Link `#/password-reset?token=…` (Basis `ERP_PUBLIC_APP_BASE_URL`); Produktion: SMTP + Basis-URL Pflicht. **Benutzerverwaltung:** `GET|POST /users`, `PATCH /users/{userId}` inkl. optional **E-Mail** (nur Rolle **ADMIN**, nur mit Postgres) — Audit-Ereignisse `USER` / `USER_CREATED` / `USER_UPDATED`. **Betrieb:** `AUTH_TOKEN_SECRET` (min. 32 Zeichen bei `NODE_ENV=production`); ohne Secret kein Start — siehe Repo-`.env.example`. Nur lokaler Demo-Modus: `ERP_ALLOW_INSECURE_DEV_AUTH=1` und nicht `production` (niemals deployen).
     - **Logs**: Strukturierte Fastify-Request-Logs enthalten keine `Authorization`- oder `Cookie`-Werte (`LOG_LEVEL`, `LOG_DISABLE=1` siehe Betrieb).
     - **Fehler**: Antwort-JSON gemäß Schema `Error` — Felder `code`, `message`, `correlationId`, `retryable`, `blocking`, optional `details` (Frontend-Passthrough laut `docs/contracts/decision-log-phase1-frontend.md`). **Header:** `x-correlation-id` und `x-request-id` sind gleich der Request-ID (`request.id`) und entsprechen `correlationId` im Body bei Fehlerantworten.
-    - **FIN-4 / Integratoren:** Auf Pfaden unter **`/finance/dunning-reminder…`**, **`/finance/dunning-reminder-automation`** und **`/finance/dunning-email-footer`** sendet der Server zusätzlich **`x-erp-openapi-contract-version`** (Wert identisch zu `info.version` dieser Datei). Laufzeit-Abgleich und Breaking-Notes: `docs/contracts/FIN4-external-client-integration.md`. Browser-Cross-Origin: Header steht in `Access-Control-Expose-Headers`, wenn CORS aktiv ist (`CORS_ORIGINS`).
+    - **FIN-4 / Integratoren:** Auf Pfaden unter **`/finance/dunning-reminder…`**, **`/finance/dunning-reminder-automation`**, **`/finance/dunning-email-footer`** und **`/finance/invoice-tax-profile…`** sendet der Server zusätzlich **`x-erp-openapi-contract-version`** (Wert identisch zu `info.version` dieser Datei). Laufzeit-Abgleich und Breaking-Notes: `docs/contracts/FIN4-external-client-integration.md`. Browser-Cross-Origin: Header steht in `Access-Control-Expose-Headers`, wenn CORS aktiv ist (`CORS_ORIGINS`).
 servers:
   - url: http://localhost:3000
 tags:
@@ -32,6 +32,9 @@ tags:
   - name: Finance (FIN-1)
     description: |
       Zahlungsbedingungen (Spez 8.5): Konditionskopf pro Projekt, append-only Versionen — `docs/adr/0008-payment-terms-fin1.md`.
+  - name: Finance (FIN-5)
+    description: |
+      Steuer-Sonderfälle (Spez **8.16**): Mandanten-Default und Projekt-Override für effektives Rechnungs-Steuerregime; Rechnungs-Snapshot bei Entwurf — `docs/adr/0014-fin5-mvp-tax-fail-closed.md`.
   - name: Finance (FIN-2)
     description: |
       Rechnung Entwurf + Lesepfad (Spez 8.2, Traceability) — vertikaler Slice ohne vollständige 8.4-Berechnung; siehe ADR-0007.
@@ -537,7 +540,7 @@ components:
           minLength: 5
     CreateInvoiceDraftResponse:
       type: object
-      required: [invoiceId, lvNetCents, vatRateBps, vatCents, totalGrossCents, skontoBps]
+      required: [invoiceId, lvNetCents, vatRateBps, vatCents, totalGrossCents, skontoBps, invoiceTaxRegime, mandatoryTaxNoticeLines]
       properties:
         invoiceId:
           type: string
@@ -554,6 +557,13 @@ components:
           type: integer
           minimum: 0
           maximum: 10000
+        invoiceTaxRegime:
+          $ref: '#/components/schemas/InvoiceTaxRegime'
+        mandatoryTaxNoticeLines:
+          type: array
+          items:
+            type: string
+          description: §8.10 Pflicht-Hinweiszeilen für Darstellung/Export bei aktivem Sonderregime (sonst leer).
     BookInvoiceRequest:
       type: object
       description: |
@@ -588,7 +598,7 @@ components:
     InvoiceGetResponse:
       type: object
       required:
-        [invoiceId, projectId, customerId, measurementId, lvVersionId, offerId, status]
+        [invoiceId, projectId, customerId, measurementId, lvVersionId, offerId, status, invoiceTaxRegime]
       properties:
         invoiceId:
           type: string
@@ -648,6 +658,81 @@ components:
           minimum: 0
           maximum: 10000
           description: Persistierter Skonto-Anteil aus Entwurfserzeugung (B2-1a).
+        invoiceTaxRegime:
+          $ref: '#/components/schemas/InvoiceTaxRegime'
+        taxReasonCode:
+          type: string
+          maxLength: 128
+        mandatoryTaxNoticeLines:
+          type: array
+          items:
+            type: string
+          description: §8.10 Hinweiszeilen bei Sonderregime; fehlt wenn Standard-USt ohne Zusatztexte.
+    InvoiceTaxRegime:
+      type: string
+      enum: [STANDARD_VAT_19, REVERSE_CHARGE, SMALL_BUSINESS_19, CONSTRUCTION_13B]
+    TenantInvoiceTaxProfileResponse:
+      type: object
+      required: [tenantId, defaultInvoiceTaxRegime]
+      properties:
+        tenantId:
+          type: string
+          format: uuid
+        defaultInvoiceTaxRegime:
+          $ref: '#/components/schemas/InvoiceTaxRegime'
+        construction13bConfig:
+          type: object
+          additionalProperties: true
+    PatchTenantInvoiceTaxProfileRequest:
+      type: object
+      required: [defaultInvoiceTaxRegime, reason]
+      properties:
+        defaultInvoiceTaxRegime:
+          $ref: '#/components/schemas/InvoiceTaxRegime'
+        construction13bConfig:
+          type: object
+          additionalProperties: true
+        reason:
+          type: string
+          minLength: 5
+    ProjectInvoiceTaxOverrideResponse:
+      type: object
+      required: [projectId]
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        invoiceTaxRegime:
+          type: string
+          nullable: true
+          enum: [STANDARD_VAT_19, REVERSE_CHARGE, SMALL_BUSINESS_19, CONSTRUCTION_13B]
+        taxReasonCode:
+          type: string
+        construction13bConfig:
+          type: object
+          additionalProperties: true
+    PutProjectInvoiceTaxOverrideRequest:
+      type: object
+      required: [invoiceTaxRegime, reason]
+      properties:
+        invoiceTaxRegime:
+          $ref: '#/components/schemas/InvoiceTaxRegime'
+        taxReasonCode:
+          type: string
+          maxLength: 128
+        construction13bConfig:
+          type: object
+          additionalProperties: true
+        reason:
+          type: string
+          minLength: 5
+    DeleteProjectInvoiceTaxOverrideRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 5
     PaymentIntakeRequest:
       type: object
       description: Zahlungseingang **8.7** — nur bei gebuchter/versendeter oder teilbezahlter Rechnung mit 8.4-Beträgen.
@@ -1562,12 +1647,21 @@ components:
           format: date-time
     TenantUserListResponse:
       type: object
-      required: [users]
+      required: [data, page, pageSize, total]
       properties:
-        users:
+        data:
           type: array
           items:
             $ref: '#/components/schemas/TenantUser'
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
     CreateTenantUserRequest:
       type: object
       required: [email, password, role, reason]
@@ -1875,14 +1969,28 @@ paths:
       tags: [Users (Admin)]
       operationId: tenantUsersList
       summary: Benutzer des Mandanten auflisten
-      description: Nur **ADMIN**. Ohne Postgres `503` / `USER_MANAGEMENT_REQUIRES_DB`.
+      description: |
+        Nur **ADMIN**. Ohne Postgres `503` / `USER_MANAGEMENT_REQUIRES_DB`.
+
+        **Breaking (OpenAPI `info.version` ≥ `1.28.5-users-list-paged`):** Antwort ist paginiert wie `GET /exports` (`data`, `page`, `pageSize`, `total`). Früheres Feld `users` entfällt.
       security:
         - bearerToken: []
       parameters:
         - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
       responses:
         '200':
-          description: Liste ohne Passwort-Hashes
+          description: Seitenweise Liste ohne Passwort-Hashes
           content:
             application/json:
               schema:
@@ -3271,6 +3379,155 @@ paths:
           description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
         '401':
           description: UNAUTHORIZED
+
+  /finance/invoice-tax-profile:
+    get:
+      tags: [Finance (FIN-5)]
+      operationId: finInvoiceTaxProfileGet
+      summary: Mandanten-Default Steuerregime lesen (8.16)
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      responses:
+        '200':
+          description: Profil inkl. Default-Regime
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantInvoiceTaxProfileResponse'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+    patch:
+      tags: [Finance (FIN-5)]
+      operationId: finInvoiceTaxProfilePatch
+      summary: Mandanten-Default Steuerregime setzen (8.16)
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchTenantInvoiceTaxProfileRequest'
+      responses:
+        '200':
+          description: Aktualisiertes Default-Regime
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tenantId, defaultInvoiceTaxRegime]
+                properties:
+                  tenantId:
+                    type: string
+                    format: uuid
+                  defaultInvoiceTaxRegime:
+                    $ref: '#/components/schemas/InvoiceTaxRegime'
+        '400':
+          description: INVOICE_TAX_REGIME_INVALID | VALIDATION_FAILED
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+  /finance/invoice-tax-profile/projects/{projectId}:
+    get:
+      tags: [Finance (FIN-5)]
+      operationId: finInvoiceTaxProjectOverrideGet
+      summary: Projekt-Override lesen (optional)
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Override oder invoiceTaxRegime null
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectInvoiceTaxOverrideResponse'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+    put:
+      tags: [Finance (FIN-5)]
+      operationId: finInvoiceTaxProjectOverridePut
+      summary: Projekt-Override setzen
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutProjectInvoiceTaxOverrideRequest'
+      responses:
+        '200':
+          description: Gespeichertes Override
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [projectId, invoiceTaxRegime]
+                properties:
+                  projectId:
+                    type: string
+                    format: uuid
+                  invoiceTaxRegime:
+                    $ref: '#/components/schemas/InvoiceTaxRegime'
+        '400':
+          description: INVOICE_TAX_REGIME_INVALID | VALIDATION_FAILED
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+    delete:
+      tags: [Finance (FIN-5)]
+      operationId: finInvoiceTaxProjectOverrideDelete
+      summary: Projekt-Override entfernen (Fallback Mandanten-Default)
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteProjectInvoiceTaxOverrideRequest'
+      responses:
+        '204':
+          description: Gelöscht oder noop wenn kein Override
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+
   /invoices:
     post:
       tags: [Finance (FIN-2)]

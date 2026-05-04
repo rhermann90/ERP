@@ -65,6 +65,32 @@ export const bookInvoiceSchema = z.object({
   issueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).optional(),
 });
 
+const invoiceTaxRegimeSchema = z.enum([
+  "STANDARD_VAT_19",
+  "REVERSE_CHARGE",
+  "SMALL_BUSINESS_19",
+  "CONSTRUCTION_13B",
+]);
+
+/** FIN-5: Mandanten-Default Steuerregime (§8.16). */
+export const patchTenantInvoiceTaxProfileSchema = z.object({
+  defaultInvoiceTaxRegime: invoiceTaxRegimeSchema,
+  construction13bConfig: z.record(z.string(), z.unknown()).optional(),
+  reason: z.string().min(5),
+});
+
+/** FIN-5: Projekt-Override. */
+export const putProjectInvoiceTaxOverrideSchema = z.object({
+  invoiceTaxRegime: invoiceTaxRegimeSchema,
+  taxReasonCode: z.string().max(128).optional(),
+  construction13bConfig: z.record(z.string(), z.unknown()).optional(),
+  reason: z.string().min(5),
+});
+
+export const deleteProjectInvoiceTaxOverrideSchema = z.object({
+  reason: z.string().min(5),
+});
+
 /** FIN-4: manuelles Mahn-Ereignis protokollieren (kein E-Mail-/Lauf). */
 export const createDunningReminderSchema = z.object({
   stageOrdinal: z.number().int().min(1).max(9),
@@ -286,6 +312,10 @@ export const auditListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
+
+/** GET /users — same bounds as audit list (pageSize max 100). */
+export const userListQuerySchema = auditListQuerySchema;
+
 
 export const allowedActionsQuerySchema = z.object({
   entityType: z.enum([

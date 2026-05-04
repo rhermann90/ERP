@@ -310,6 +310,86 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     expect(body.status).toBe("GEBUCHT_VERSENDET");
     expect((body as { totalGrossCents?: number }).totalGrossCents).toBe(148750);
     expect(body.skontoBps).toBe(0);
+    expect((body as { invoiceTaxRegime?: string }).invoiceTaxRegime).toBe("STANDARD_VAT_19");
+  });
+
+  it("FIN-5: PATCH Mandanten-Steuerprofil und Entwurf SMALL_BUSINESS_19 ohne USt-Zeile", async () => {
+    const patch = await app.inject({
+      method: "PATCH",
+      url: "/finance/invoice-tax-profile",
+      headers: buildHeaders(),
+      payload: {
+        defaultInvoiceTaxRegime: "SMALL_BUSINESS_19",
+        reason: "FIN-5 integration test kleinunternehmer regime",
+      },
+    });
+    expect(patch.statusCode).toBe(200);
+    const res = await app.inject({
+      method: "POST",
+      url: "/invoices",
+      headers: buildHeaders(),
+      payload: {
+        lvVersionId: SEED_IDS.lvVersionId,
+        offerVersionId: SEED_IDS.offerVersionId,
+        invoiceCurrencyCode: "EUR",
+        reason: "FIN-5 draft small business integration test",
+      },
+    });
+    expect(res.statusCode).toBe(201);
+    const draft = res.json() as {
+      vatCents: number;
+      totalGrossCents: number;
+      lvNetCents: number;
+      invoiceTaxRegime: string;
+      mandatoryTaxNoticeLines: string[];
+    };
+    expect(draft.invoiceTaxRegime).toBe("SMALL_BUSINESS_19");
+    expect(draft.vatCents).toBe(0);
+    expect(draft.totalGrossCents).toBe(draft.lvNetCents);
+    expect(draft.mandatoryTaxNoticeLines.length).toBeGreaterThan(0);
+  });
+
+  it("FIN-5: XRechnung-Preflight fail-closed bei nicht gemapptem Steuerregime", async () => {
+    const patch = await app.inject({
+      method: "PATCH",
+      url: "/finance/invoice-tax-profile",
+      headers: buildHeaders(),
+      payload: {
+        defaultInvoiceTaxRegime: "REVERSE_CHARGE",
+        reason: "FIN-5 export preflight reverse charge setup",
+      },
+    });
+    expect(patch.statusCode).toBe(200);
+    const draftRes = await app.inject({
+      method: "POST",
+      url: "/invoices",
+      headers: buildHeaders(),
+      payload: {
+        lvVersionId: SEED_IDS.lvVersionId,
+        offerVersionId: SEED_IDS.offerVersionId,
+        invoiceCurrencyCode: "EUR",
+        reason: "FIN-5 draft for export regime mapping test",
+      },
+    });
+    expect(draftRes.statusCode).toBe(201);
+    const invoiceId = (draftRes.json() as { invoiceId: string }).invoiceId;
+    const book = await app.inject({
+      method: "POST",
+      url: `/invoices/${invoiceId}/book`,
+      headers: buildHeaders(),
+      payload: { reason: "FIN-5 book gebucht fuer export steuer test" },
+    });
+    expect(book.statusCode).toBe(200);
+    const exp = await app.inject({
+      method: "POST",
+      url: "/exports",
+      headers: buildHeaders(),
+      payload: { entityType: "INVOICE", entityId: invoiceId, format: "XRECHNUNG" },
+    });
+    expect(exp.statusCode).toBe(422);
+    const body = exp.json() as { code: string; details?: { validationErrors?: string[] } };
+    expect(body.code).toBe("EXPORT_PREFLIGHT_FAILED");
+    expect(body.details?.validationErrors).toContain("EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED");
   });
 
   it("POST /invoices/:id/book books seed draft then rejects second book (FIN-2)", async () => {

@@ -36,7 +36,7 @@ Tickets und Gates (z. B. FIN-2, QA §5a) stehen in `docs/tickets/` und `docs/con
 | Zweck | Befehl |
 |-------|--------|
 | CI-ähnliche Vorprüfung | `npm run verify:ci` |
-| **Vor Merge auf `main` (lokal, inkl. Finanz-E2E wie `e2e-smoke`)** | `npm run verify:pre-merge` (= `verify:ci` + Playwright [`e2e/login-finance-smoke.spec.ts`](./e2e/login-finance-smoke.spec.ts)) |
+| **Vor Merge auf `main` (lokal, inkl. E2E wie Job `e2e-smoke`)** | `npm run verify:pre-merge` (= `verify:ci` + Playwright [`e2e/login-finance-smoke.spec.ts`](./e2e/login-finance-smoke.spec.ts) und [`e2e/app-shell-smoke.spec.ts`](./e2e/app-shell-smoke.spec.ts)) |
 | **Vor Merge auf `main` (lokal)** | `npm run verify:ci` (entspricht Erwartung GitHub-Job `backend`); bei Touch von `docs/api-contract.yaml` / `info.version`: [`FIN4-external-client-integration.md`](./docs/contracts/FIN4-external-client-integration.md), [`src/domain/openapi-contract-version.ts`](./src/domain/openapi-contract-version.ts) synchron zu `info.version`, P1-3-Notiz in [`P1-3-DOCS-MILESTONE-WAVE3.md`](./docs/tickets/P1-3-DOCS-MILESTONE-WAVE3.md) prüfen |
 | Mit DB-Migration wie Deploy-Pfad | `npm run verify:ci:with-migrate` (lokal `DATABASE_URL` setzen) |
 | Persistenz-Suite wie CI (lokal) | `npm run verify:ci:local-db` (siehe README) |
