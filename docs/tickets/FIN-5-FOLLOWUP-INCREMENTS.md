@@ -88,7 +88,19 @@
 3. **D** (kleiner Bug-Fix-Charakter, hängt nicht von A/B ab).
 4. **C** zuletzt (größter Aufwand, fachliche XRechnung-Klärung nötig).
 
+**Alternative Reihenfolge:** Wenn Mandanten- oder Projekt-Steuerprofil **ohne** externen API-Client gepflegt werden muss (Operativrisiko „nur Backend“), **Paket A vor B** ziehen — sonst bleibt die obige Empfehlung für schnelle Sichtbarkeit der Pflicht-Hinweise im UI.
+
 Keine Pflicht-Reihenfolge — kleine, einzeln verifizierte PRs sind das Ziel.
+
+## Risiken und Mitigation
+
+| Risiko | Mitigation |
+|--------|------------|
+| **Keine PWA-Schreib-UI** nach #86: Profil/Override nur über HTTP-API änderbar | Vertrag und Integratoren: [`docs/api-contract.yaml`](../api-contract.yaml) (`/finance/invoice-tax-profile…`), [`FIN4-external-client-integration.md`](../contracts/FIN4-external-client-integration.md). Ohne Integrator: **Paket A** priorisieren (siehe **Alternative Reihenfolge** oben). |
+| **XRechnung** bei nicht-Standard-Regime bleibt fail-closed bis **Paket C** | Operativ keinen XRechnung-Export für Sonderregime erwarten, bis Mapping und Tests vorliegen; Fehlercode `EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED` bleibt bis dahin kanonisch. |
+| **HTTP 409** `INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT` ohne geführte UX bis **Paket D** | Nutzerhinweis: neuen Rechnungsentwurf mit gleicher LV-/Angebots-Version anlegen; Umsetzung in Paket D. |
+| **CodeQL „Missing rate limiting“** bei neuen Routen | Locales `config.rateLimit` pro Route wie in [`finance-invoice-tax-routes.ts`](../../src/api/finance-invoice-tax-routes.ts) und [`user-account-routes.ts`](../../src/api/user-account-routes.ts) (read/write getrennt). |
+| **Namenskollision „Option B“** | In [`NEXT-INCREMENT-FINANCE-WAVE3.md`](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) bezeichnet **Option B** eine **Wellen-Alternative** (8.4-Motor) — **nicht** das historische FIN-5-Gate [`FIN-5-GATE-816-FAIL-CLOSED.md`](./FIN-5-GATE-816-FAIL-CLOSED.md) (Fail-Closed §8.16; durch ADR-0015 superseded). |
 
 ## Non-Goals
 
