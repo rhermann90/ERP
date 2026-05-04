@@ -13,6 +13,8 @@ function makeClient(): ApiClient {
     getPaymentTermsByProject: vi.fn(),
     createInvoiceDraft: vi.fn(),
     getInvoice: vi.fn(),
+    listExportRuns: vi.fn(),
+    getExportRun: vi.fn(),
     listInvoicePaymentIntakes: vi.fn(),
     listInvoiceDunningReminders: vi.fn(),
     getDunningReminderConfig: vi.fn(),

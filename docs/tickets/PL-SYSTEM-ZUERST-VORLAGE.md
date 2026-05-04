@@ -52,6 +52,6 @@
 | Persistenz-CI / Runbook | [`docs/runbook/ci-and-persistence-tests.md`](../runbook/ci-and-persistence-tests.md) |
 | Repo-Einstieg | [`README.md`](../../README.md) |
 | GitHub-Review-Vorlage (Gate) | [`GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](./GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md) |
-| Multi-Agent-Kernregeln | [`.cursor/rules/erp-multi-agent.mdc`](../../.cursor/rules/erp-multi-agent.mdc) |
+| Projektregeln (cursor-stack) | [`.cursor/rules/cursor-stack.mdc`](../../.cursor/rules/cursor-stack.mdc) |
 | Domänenquelle MVP | [`docs/ERP-Systembeschreibung.md`](../ERP-Systembeschreibung.md) |
 | Produktiv-Go Finanz (fachlich, neben CI) | [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) |

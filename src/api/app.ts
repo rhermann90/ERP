@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import Fastify, { FastifyInstance } from "fastify";
 import rateLimit from "@fastify/rate-limit";
 import { assertSystemTextNotInUpdatePayload } from "../domain/lv-text-structure-policy.js";
+import type { ExportFormat, ExportRun } from "../domain/types.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import { AuditService } from "../services/audit-service.js";
 import { AuthorizationService } from "../services/authorization-service.js";
@@ -28,6 +29,8 @@ import {
   createMeasurementVersionSchema,
   createSupplementSchema,
   createOfferVersionSchema,
+  exportRunListQuerySchema,
+  exportRunIdParamsSchema,
   patchLvPositionSchema,
   prepareExportSchema,
   transitionLvVersionStatusSchema,
@@ -102,6 +105,11 @@ import {
   PrismaDunningEmailSendPersistence,
   type DunningEmailSendPersistencePort,
 } from "../persistence/dunning-email-send-persistence.js";
+import {
+  noopExportRunPersistence,
+  PrismaExportRunPersistence,
+  type ExportRunPersistencePort,
+} from "../persistence/export-run-persistence.js";
 import {
   MemoryDunningReminderRunIntentPersistence,
   PrismaDunningReminderRunIntentPersistence,
@@ -206,6 +214,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   let dunningTemplatePersistence: DunningTemplatePersistencePort = noopDunningTemplatePersistence;
   let dunningEmailFooterPersistence: DunningEmailFooterPersistencePort = noopDunningEmailFooterPersistence;
   let dunningEmailSendPersistence: DunningEmailSendPersistencePort = noopDunningEmailSendPersistence;
+  let exportRunPersistence: ExportRunPersistencePort = noopExportRunPersistence;
   let dunningTenantAutomationPersistence = noopDunningTenantAutomationPersistence;
 
   if (repositoryMode === "postgres") {
@@ -222,6 +231,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     dunningTemplatePersistence = new PrismaDunningTemplatePersistence(prisma);
     dunningEmailFooterPersistence = new PrismaDunningEmailFooterPersistence(prisma);
     dunningEmailSendPersistence = new PrismaDunningEmailSendPersistence(prisma);
+    exportRunPersistence = new PrismaExportRunPersistence(prisma);
     dunningTenantAutomationPersistence = new PrismaDunningTenantAutomationPersistence(prisma);
     if (options?.seedDemoData ?? true) {
       seedDemoData(repos);
@@ -233,6 +243,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       await paymentIntakePersistence.hydrateIntoMemory(repos);
       await dunningReminderPersistence.hydrateIntoMemory(repos);
       await dunningEmailSendPersistence.hydrateIntoMemory(repos);
+      await exportRunPersistence.hydrateIntoMemory(repos);
     } else {
       await lvMeasurementPersistence.hydrateIntoMemory(repos);
       await offerPersistence.hydrateOffersIntoMemory(repos);
@@ -242,12 +253,13 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       await paymentIntakePersistence.hydrateIntoMemory(repos);
       await dunningReminderPersistence.hydrateIntoMemory(repos);
       await dunningEmailSendPersistence.hydrateIntoMemory(repos);
+      await exportRunPersistence.hydrateIntoMemory(repos);
     }
     app.addHook("onClose", async () => {
       await prisma?.$disconnect();
     });
     app.log.info(
-      "Persistenz: Postgres LV+Aufmass (ADR-0004/0005) + Offer+OfferVersion (ADR-0006) + Supplement (ADR-0002 D5) + Zahlungsbedingungen (FIN-1) + Rechnungen (FIN-2) + Zahlungseingang (FIN-3) + Mahn-Ereignisse (FIN-4) + Mahnstufen-Konfig + Mahn-Vorlagen Lesepfad (FIN-4/M4) + E-Mail-Footer-Stammdaten (M4 Slice 3); übrige Entitäten weiter In-Memory.",
+      "Persistenz: Postgres LV+Aufmass (ADR-0004/0005) + Offer+OfferVersion (ADR-0006) + Supplement (ADR-0002 D5) + Zahlungsbedingungen (FIN-1) + Rechnungen (FIN-2) + Zahlungseingang (FIN-3) + Mahn-Ereignisse (FIN-4) + Mahnstufen-Konfig + Mahn-Vorlagen Lesepfad (FIN-4/M4) + E-Mail-Footer-Stammdaten (M4 Slice 3) + Exportläufe (`export_runs`); übrige Entitäten weiter In-Memory.",
     );
   } else {
     if (options?.seedDemoData ?? true) {
@@ -342,7 +354,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   const measurementService = new MeasurementService(repos, audit, lvRef, lvMeasurementPersistence);
   const lvService = new LvService(repos, audit, lvMeasurementPersistence, authorizationService);
   const lvHierarchyService = new LvHierarchyService(lvService);
-  const exportService = new ExportService(repos, audit);
+  const exportService = new ExportService(repos, audit, prisma);
 
   registerPasswordResetRoutes(app, { getPrisma: () => prisma, audit });
 
@@ -711,6 +723,55 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
         tenantId: auth.tenantId,
         actorUserId: auth.userId,
         ...body,
+      });
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.get("/exports/:exportRunId", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      authorizationService.assertCanListExportRuns(auth.role);
+      const params = exportRunIdParamsSchema.parse(request.params);
+      const run = await exportService.getExportRunByTenant({
+        tenantId: auth.tenantId,
+        exportRunId: params.exportRunId,
+      });
+      if (!run) {
+        throw new DomainError("EXPORT_RUN_NOT_FOUND", "Exportlauf nicht gefunden", 404);
+      }
+      authorizationService.assertExportRunListEntityTypeAllowed(auth.role, run.entityType);
+      return reply.status(200).send(run);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.get("/exports", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      authorizationService.assertCanListExportRuns(auth.role);
+      const query = exportRunListQuerySchema.parse(request.query);
+      if (query.entityType !== undefined) {
+        authorizationService.assertExportRunListEntityTypeAllowed(auth.role, query.entityType);
+      }
+      const allowedEntityTypes = authorizationService.allowedExportEntityTypesForRole(auth.role);
+      const filter: {
+        entityType?: ExportRun["entityType"];
+        status?: ExportRun["status"];
+        format?: ExportFormat;
+      } = {};
+      if (query.entityType !== undefined) filter.entityType = query.entityType;
+      if (query.status !== undefined) filter.status = query.status;
+      if (query.format !== undefined) filter.format = query.format;
+      const result = await exportService.listExportRuns({
+        tenantId: auth.tenantId,
+        allowedEntityTypes,
+        page: query.page,
+        pageSize: query.pageSize,
+        filter: Object.keys(filter).length > 0 ? filter : undefined,
       });
       return reply.status(200).send(result);
     } catch (error) {

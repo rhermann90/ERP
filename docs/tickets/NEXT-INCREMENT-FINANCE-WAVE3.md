@@ -1,6 +1,6 @@
 # Nächstes Inkrement — Finanz Welle 3
 
-**Stand (2026-04-27):** **FIN-4 Konfig** vollständig (Slices 3–8): `GET|PUT /finance/dunning-reminder-config`, `PATCH|DELETE …/stages/{stageOrdinal}`, Soft-Delete, Audit+Tx — siehe [`WAVE3-FIN4-PHASE3-DUNNING-CONFIG-READ-2026-04-22.md`](./WAVE3-FIN4-PHASE3-DUNNING-CONFIG-READ-2026-04-22.md); Mahn-`POST` (Pfad B), B2-1a, Stubs/Matrix historisch darunter. PWA: Hash-Kanon + Quick-Nav laut [`FOLLOWUP-M4-DUNNING-UX-GRUNDEINSTELLUNGEN-TAB.md`](./FOLLOWUP-M4-DUNNING-UX-GRUNDEINSTELLUNGEN-TAB.md) im Umsetzungs-Backlog **erledigt**; optionaler Tab-Umzug „Grundeinstellungen“ bleibt separates UX-Slice nach Team-Priorität.
+**Stand (2026-05-04):** **FIN-4 Konfig** vollständig (Slices 3–8): `GET|PUT /finance/dunning-reminder-config`, `PATCH|DELETE …/stages/{stageOrdinal}`, Soft-Delete, Audit+Tx — siehe [`WAVE3-FIN4-PHASE3-DUNNING-CONFIG-READ-2026-04-22.md`](./WAVE3-FIN4-PHASE3-DUNNING-CONFIG-READ-2026-04-22.md); Mahn-`POST` (Pfad B), B2-1a, Stubs/Matrix historisch darunter. PWA: Hash-Kanon + Quick-Nav laut [`FOLLOWUP-M4-DUNNING-UX-GRUNDEINSTELLUNGEN-TAB.md`](./FOLLOWUP-M4-DUNNING-UX-GRUNDEINSTELLUNGEN-TAB.md) im Umsetzungs-Backlog **erledigt**; optionaler Tab-Umzug „Grundeinstellungen“ bleibt separates UX-Slice nach Team-Priorität. **Spur A — Shell Lesen:** Haupt-Shell **INVOICE** um **`GET /exports`** (Liste) und **`GET /exports/{exportRunId}`** (Detail) für Export-Preflight-Protokoll ergänzt (`export_runs` in Postgres); siehe [`docs/CODEMAPS/overview.md`](../CODEMAPS/overview.md).
 
 ## Gewählter Strang (Release)
 

@@ -113,6 +113,8 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     const invoiceDetail = page.getByTestId("invoice-shell-detail");
     await expect(invoiceDetail).toBeVisible({ timeout: 15_000 });
     await expect(invoiceDetail).toContainText(SEED_INVOICE_ID);
+    await expect(page.getByTestId("shell-invoice-trace-lv")).toContainText(SEED_LV_VERSION_ID);
+    await expect(page.getByTestId("shell-invoice-trace-measurement")).toContainText(SEED_MEASUREMENT_ID);
 
     const subreads = page.getByTestId("shell-invoice-readonly-subreads");
     await subreads.getByRole("button", { name: "Zahlungseingänge (GET)" }).click();
@@ -136,6 +138,13 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
       timeout: 15_000,
     });
     await expect(page.getByTestId("shell-invoice-allowed-actions-json")).toContainText("allowedActions");
+
+    await subreads.getByRole("button", { name: /Export-Preflight-Protokoll für diese Rechnung laden \(GET\)/ }).click();
+    await expect(page.getByRole("heading", { name: "Antwort GET /exports (INVOICE, gefiltert)" })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("shell-invoice-export-runs-json")).toContainText("runsForInvoice");
+    await expect(page.getByTestId("shell-invoice-export-runs-json")).toContainText(SEED_INVOICE_ID);
   });
 
   test("Haupt-Shell: MEASUREMENT_VERSION GET-Detail", async ({ page }) => {

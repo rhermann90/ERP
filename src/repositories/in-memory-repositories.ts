@@ -111,6 +111,10 @@ export class InMemoryRepositories {
     this.paymentIntakeByIdempotencyKey.set(`${row.tenantId}:${row.idempotencyKey}`, row.id);
   }
 
+  public putExportRun(row: ExportRun): void {
+    this.exportRuns.set(row.id, row);
+  }
+
   /** Rollback bei fehlgeschlagener DB-Persistenz (FIN-3). */
   public removePaymentIntake(row: PaymentIntake): void {
     this.paymentIntakes.delete(row.id);

@@ -66,6 +66,7 @@
     "DUNNING_TEMPLATE_PLACEHOLDERS_INVALID",
     "EXPORT_ENTITY_NOT_FOUND",
     "EXPORT_PREFLIGHT_FAILED",
+    "EXPORT_RUN_NOT_FOUND",
     "FOLLOWUP_DOCUMENT_REQUIRED",
     "FORBIDDEN_AUDIT_READ",
     "INVOICE_DRAFT_INCOMPLETE",
@@ -537,6 +538,13 @@
           "retryable": false,
           "blocking": true,
           "uiReaction": "Show not-found state for export target."
+        },
+        {
+          "code": "EXPORT_RUN_NOT_FOUND",
+          "httpStatus": 404,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Show not-found state for export run."
         },
         {
           "code": "OFFER_NOT_FOUND",

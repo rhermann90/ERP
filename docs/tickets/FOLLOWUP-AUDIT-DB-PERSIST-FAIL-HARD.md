@@ -1,6 +1,8 @@
 # FOLLOWUP — Audit DB-Dual-Write: Fail-hard (Option B)
 
 **Status:** Option **B** umgesetzt (2026-04-19). Historischer Ist-Zustand (Memory-first + `.catch`) unten dokumentiert; aktuelles Verhalten siehe Abschnitt **„Aktueller Stand“**.  
+**FIN-6 / Gate 15:** Abnahme-Stichprobe — [`docs/contracts/qa-fin-mvp-gate-15-abnahme.md`](../contracts/qa-fin-mvp-gate-15-abnahme.md).
+
 **Bezug:** [`FOLLOWUP-AUDIT-PERSISTENCE.md`](./FOLLOWUP-AUDIT-PERSISTENCE.md) (Dual-Write umgesetzt), Implementierung `src/services/audit-service.ts`.
 
 > **Entwicklungsphase:** Audit-Gate-Eintrag und „Merge-Sperre“-Formulierungen unten sind **Empfehlung** vor PRs, die `AuditService` / Dual-Write / Transaktionsgrenze **bewusst** ändern. **Kein** automatischer Merge-Stopper durch leere Zellen; technische Blocker: rote CI, OpenAPI-Drift, Tenant-Bruch, fehlende §5a-Evidence ([AGENTS.md](../../AGENTS.md) Punkt 6).

@@ -18,8 +18,7 @@ Eine Seite für **Orientierung**: wohin mit Fragen zu PWA-Oberfläche, Theming u
 
 | Thema | Datei |
 |--------|--------|
-| Regel nur für `apps/web/**` | [`.cursor/rules/erp-web-ui.mdc`](../.cursor/rules/erp-web-ui.mdc) |
-| Repo-weite Agenten-Regeln | [`.cursor/rules/erp-multi-agent.mdc`](../.cursor/rules/erp-multi-agent.mdc) |
+| Projektregeln (Domäne, Lieferformat, Web-UI für `apps/web/**`) | [`.cursor/rules/cursor-stack.mdc`](../.cursor/rules/cursor-stack.mdc) |
 
 ## Code (Theming)
 

@@ -21,7 +21,7 @@
 - Der sichtbare Check-Name kann je nach GitHub-UI leicht abweichen — in der **Actions**-Ansicht des grünen Runs den genauen Namen übernehmen.
 - Ohne Org-Rechte: Ticket an Admin mit Verweis auf diese Datei und auf **QA**-Pflicht §5a in `qa-fin-0-gate-readiness.md`.
 
-**Ersetzt nicht:** menschliche Code-Reviews oder dokumentierte Gates (`FIN-2-START-GATE.md`).
+**Ersetzt nicht:** dokumentierte technische Gates im Repo (z. B. `FIN-2-START-GATE.md`). Ob zusätzliche Code-Reviews verlangt werden, ist **Organisationssache** und nicht Teil dieser technischen Absicherung.
 
 ## Team / QA: Nachweis zur Pflicht für `e2e-smoke`
 

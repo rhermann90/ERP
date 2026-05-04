@@ -454,6 +454,23 @@ model PasswordResetChallenge {
   @@map("password_reset_challenges")
 }
 
+/// Export-Preflight-Lauf (`POST /exports`); bei Postgres in einer Tx mit dem zugehörigen `audit_events`-Eintrag geschrieben.
+model ExportRunRow {
+  tenantId          String   @map("tenant_id") @db.Uuid
+  id                String   @db.Uuid
+  entityType        String   @map("entity_type")
+  entityId          String   @map("entity_id") @db.Uuid
+  format            String
+  status            String
+  validationErrors  Json     @map("validation_errors")
+  createdAt         DateTime @map("created_at")
+  createdBy         String   @map("created_by") @db.Uuid
+
+  @@id([tenantId, id])
+  @@index([tenantId, createdAt])
+  @@map("export_runs")
+}
+
 /// Persistente Audit-Zeile; Lesepfad API bleibt DSGVO-minimiert (kein before/after in GET).
 model AuditEvent {
   id          String   @id @db.Uuid

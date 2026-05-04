@@ -1,10 +1,10 @@
 # MVP Finanz (v1.3) — Phasen, Meilensteine und Arbeitsablauf
 
-**Stand:** 2026-05-01 — Zusammenführung der vormals getrennten Dokumente *Entwicklungsphasen MVP* und *Phasenarbeitsplan MVP Finanz*; Kurz-Iststand und technischer Index mit [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) (Stand 2026-04-27) sowie [`README.md`](../README.md) (Persistenz) abgeglichen.
+**Stand:** 2026-05-04 — Zusammenführung der vormals getrennten Dokumente *Entwicklungsphasen MVP* und *Phasenarbeitsplan MVP Finanz*; Kurz-Iststand und technischer Index mit [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) sowie [`README.md`](../README.md) (Persistenz) abgeglichen. **FIN-2 Micro-Reihenfolge:** [`docs/tickets/FIN-2-NEXT-SUBPROJECT-GATE.md`](./tickets/FIN-2-NEXT-SUBPROJECT-GATE.md).
 
 **Zielgruppe:** Produkt/Release-Verantwortliche, Entwicklung, Code Review, QA
 
-**Verbindliche Domänenquelle:** [`docs/ERP-Systembeschreibung.md`](./ERP-Systembeschreibung.md) (vgl. [`.cursor/rules/erp-multi-agent.mdc`](../.cursor/rules/erp-multi-agent.mdc))
+**Verbindliche Domänenquelle:** [`docs/ERP-Systembeschreibung.md`](./ERP-Systembeschreibung.md) (vgl. [`.cursor/rules/cursor-stack.mdc`](../.cursor/rules/cursor-stack.mdc))
 
 **Kanonisches FIN-2-Start-Gate:** [`docs/tickets/FIN-2-START-GATE.md`](./tickets/FIN-2-START-GATE.md) — binäre Kriterien **G1–G10** (historisch vor FIN-2-Implementierung; aktuelle Grenzen siehe Gate-Dokument und Teil 7).
 
@@ -18,8 +18,8 @@
 
 | Bereich | Stand (hochlevel) |
 |--------|-------------------|
-| **Persistenz** | Postgres + Prisma u. a. für **Offer** / **OfferVersion**, **AuditEvent** (ADR-0006), **invoices**, **payment_intakes**, **dunning_reminders**, **dunning_tenant_stage_config**, **dunning_tenant_stage_templates**, **dunning_tenant_email_footer**, **dunning_email_sends** (FIN-4 M4), **payment_terms_heads** / **payment_terms_versions** (FIN-1); Arbeits-Cache weiterhin **In-Memory** im Prozess mit Write-Through — siehe [`README.md`](../README.md) Abschnitt „Hinweis zur Persistenz“. |
-| **Kerndomäne (Code)** | Angebot, Nachtrag/Supplement, LV-/Aufmass-/Export-/Traceability-Services; **Rechnung** (Entwurf, Buchung, SoT **BOOK_INVOICE**) und **Zahlungseingang** (Intake, Idempotenz, Status TEILBEZAHLT/BEZAHLT); **8.4:** Schritt 1 + USt/Brutto (7–8); **B2-1a:** optionaler Skonto-Anteil (`skontoBps`); Schritte 3–6 weiterhin in `netCentsAfterStep84_6Mvp` (ADR-0007) — **kein** vollständiger 8.4(2–6)-Motor; **FIN-4:** Mahn-Ereignisse, Mandanten-Stufen-Konfig (**GET|PUT|PATCH|DELETE**, Soft-Delete, Audit in Transaktion, ADR-0009), Vorlagen/Footer, Mahnlauf **5b-0/5b-1**, **`GET|PATCH /finance/dunning-reminder-automation`** (**OFF**/**SEMI**, ADR-0011; kein Cron), **`POST /finance/dunning-reminder-run`** fail-closed bei **OFF** (409 `DUNNING_REMINDER_RUN_DISABLED`). Verbleibend z. B. Massen-E-Mail / UX nach Team-Priorität — [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md). |
+| **Persistenz** | Postgres + Prisma u. a. für **Offer** / **OfferVersion**, **AuditEvent** (ADR-0006), **invoices**, **payment_intakes**, **export_runs** (Export-Preflight-Protokoll **GET /exports** / **GET /exports/{id}**), **dunning_reminders**, **dunning_tenant_stage_config**, **dunning_tenant_stage_templates**, **dunning_tenant_email_footer**, **dunning_email_sends** (FIN-4 M4), **payment_terms_heads** / **payment_terms_versions** (FIN-1); Arbeits-Cache weiterhin **In-Memory** im Prozess mit Write-Through — siehe [`README.md`](../README.md) Abschnitt „Hinweis zur Persistenz“. |
+| **Kerndomäne (Code)** | Angebot, Nachtrag/Supplement, LV-/Aufmass-/Export-/Traceability-Services; **Rechnung** (Entwurf, Buchung, SoT **BOOK_INVOICE**) und **Zahlungseingang** (Intake, Idempotenz, Status TEILBEZAHLT/BEZAHLT); **8.4:** Schritt 1 + USt/Brutto (7–8); **B2-1a:** optionaler Skonto-Anteil (`skontoBps`); Schritte 3–6 weiterhin in `netCentsAfterStep84_6Mvp` (ADR-0007) — **kein** vollständiger 8.4(2–6)-Motor; **FIN-4:** Mahn-Ereignisse, Mandanten-Stufen-Konfig (**GET|PUT|PATCH|DELETE**, Soft-Delete, Audit in Transaktion, ADR-0009), Vorlagen/Footer, Mahnlauf **5b-0/5b-1**, Massen-E-Mail **5c** (`POST …/send-emails`), **`GET|PATCH /finance/dunning-reminder-automation`** (**OFF**/**SEMI**, ADR-0011; kein Cron), **`POST /finance/dunning-reminder-run`** fail-closed bei **OFF** (409 `DUNNING_REMINDER_RUN_DISABLED`). Optional kleine UX/Shell-Follow-ups — [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md). |
 | **PWA** | `apps/web`: Shell, `allowedActions`-gekoppelte Schreibpfade (inkl. **BOOK_INVOICE**), Tenant-Session; Finanz-Vorbereitung (FIN-3 Intake, FIN-4 Mahn/Konfig/Vorlagen/Footer, Batch-Vorschau/Ausführung); Deep-Link `#/finanz-vorbereitung`, Alias `#/finanz-grundeinstellungen`; bei Mandant **OFF** blockiert die Shell **Dry-Run**/**EXECUTE**, nicht **GET** Kandidaten; strukturierte Server-Fehleranzeige (**OFF-1a**). |
 | **Spezifikation** | Finanz-Submodell **§8** inkl. Mahnwesen **8.10**, EUR/Steuer **8.16**, Quality Gate **15** in der konsolidierten Systembeschreibung. |
 
@@ -217,7 +217,7 @@
 1. **Vorbedingung** (Abschnitt B) prüfen — ohne dokumentierten Sprint-Kontext keine größeren Architektur-/Finanz-Merges laut [`qa-fin-0-gate-readiness.md`](./contracts/qa-fin-0-gate-readiness.md).
 2. **Master-Tabelle** (Abschnitt D) aktualisieren, wenn sich der Ist-Stand ändert.
 3. Pro **Kapitel FIN-x** (Abschnitt F): nummerierte **Arbeitsschritte** ausführen → **QA** (Vorlage Abschnitt E1) → **Review** (Vorlage E2) → **Evidenz** eintragen → Checkboxen **DoD** setzen.
-4. **Kein Mandanten-Go** aus dieser Datei ableiten — fachliche Abnahme: [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md).
+4. **Kein Mandanten-Go** aus dieser Datei ableiten — optionaler Kontext: Stub [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md), Archiv [`docs/_archiv/checklisten-compliance-human-workflow/README.md`](../docs/_archiv/checklisten-compliance-human-workflow/README.md).
 
 ---
 
@@ -239,9 +239,9 @@
 
 - [ ] Aktueller **Sprint-/Prioritäts-Snapshot** liegt vor (z. B. [`PL-SYSTEM-ZUERST-2026-04-14.md`](./tickets/PL-SYSTEM-ZUERST-2026-04-14.md) *(Pfad historisch)*; Vorlage: [`PL-SYSTEM-ZUERST-VORLAGE.md`](./tickets/PL-SYSTEM-ZUERST-VORLAGE.md)).
 - [ ] **Nächstes technisches Inkrement** ist benannt (z. B. [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) oder Nachfolger).
-- [ ] Multi-Agent-Regeln bekannt: [`.cursor/rules/erp-multi-agent.mdc`](../.cursor/rules/erp-multi-agent.mdc).
+- [ ] Projektregeln (cursor-stack) bekannt: [`.cursor/rules/cursor-stack.mdc`](../.cursor/rules/cursor-stack.mdc).
 
-**Technischer Index-Sync (2026-05-01, kein Ersatz für manuelle Checklisten oben):** Abgleich mit **Teil 1** und [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md): **Pfad A / B2-1a** umgesetzt; **FIN-4** Konfig/Vorlagen/Footer/Mahnlauf **5b-0/5b-1**, Automation **OFF/SEMI** (ADR-0011), **`POST /finance/dunning-reminder-run`** bei **OFF** → 409; PWA **OFF-1a** / Deep-Link Grundeinstellungen umgesetzt. **Nächster Default:** M4-Rest nach Team-Priorität (u. a. Massen-E-Mail); keine Parallele zu **8.4(2–6)** oder **Pfad C** ohne Gate.
+**Technischer Index-Sync (2026-05-04, kein Ersatz für manuelle Checklisten oben):** Abgleich mit **Teil 1** und [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md): **Pfad A / B2-1a** umgesetzt; **FIN-4** Konfig/Vorlagen/Footer/Mahnlauf **5b-0/5b-1** und **5c**; Automation **OFF/SEMI** (ADR-0011); Export-Protokoll **`export_runs`** / Shell-**GET /exports**; PWA **OFF-1a** / Deep-Link Grundeinstellungen umgesetzt. **FIN-2** nächste Teilprojekte: [`FIN-2-NEXT-SUBPROJECT-GATE.md`](./tickets/FIN-2-NEXT-SUBPROJECT-GATE.md). **FIN-5** technische Fail-Closed-Haltung: [`adr/0014-fin5-mvp-tax-fail-closed.md`](./adr/0014-fin5-mvp-tax-fail-closed.md) bis Gate [`FIN-5-GATE-816-FAIL-CLOSED.md`](./tickets/FIN-5-GATE-816-FAIL-CLOSED.md). Keine Parallele zu **8.4(2–6)** oder **Pfad C** ohne Gate.
 
 ---
 
@@ -256,17 +256,17 @@
 
 ### D — Master-Tabelle: FIN-Phasen × Ist × Lücke × Nächster Schritt
 
-*Ist-Stand an **Teil 1** angelehnt; FIN-1-M1-Zeile und DoD zuletzt **2026-04-25**; QA lokal `verify:ci` + `verify:ci:local-db` auf Commit [`b31c1b4`](https://github.com/rhermann90/ERP/commit/b31c1b4693724d1b8394183c7f00b19b9a969ea7). Nach größeren Releases diese Tabelle und den Anker-Commit oben aktualisieren.*
+*Ist-Stand an **Teil 1** angelehnt; Micro-Schritte-Batch **2026-05-04**: QA lokal `verify:ci` + `verify:pre-merge` + `verify:ci:local-db` auf Commit [`1621636b8204e04ce6fa4c8344ce2198e0afd277`](https://github.com/rhermann90/ERP/commit/1621636b8204e04ce6fa4c8344ce2198e0afd277) (Arbeitsbaum; Remote ersetzt nicht). Nach größeren Releases diese Tabelle und den Anker-Commit oben aktualisieren.*
 
 | Phase | Meilenstein | DoD-Kern (Kurz) | Ist (Repo, hochlevel) | Lücke / Risiko | Nächster sinnvoller Schritt |
 |-------|-------------|-----------------|------------------------|----------------|----------------------------|
 | **FIN-0** | M0 | ADR + OpenAPI + Test-/Gate-Strategie | Verträge, ADRs 0007–0009 (+ **0010** M4 E-Mail/Vorlagen, **0011** SEMI), Stub-Matrix, Gate-Readiness | Phantom-Codes, Drift OpenAPI ↔ Implementierung | Bei jedem API-Change: G8-Bündel + Matrix; §5a-Evidenz im PR |
 | **FIN-1** | M1 | Versionierte Konditionen, append-only | `payment_terms_*` in Postgres, APIs; PWA-Demo angebunden; **M1-DoD:** Persistenz-`it` „FIN-1 M1: zwei Zahlungsbedingungs-Versionen …“ in [`test/persistence.integration.test.ts`](../test/persistence.integration.test.ts) (zwei Versionen, Rechnung auf **v1**, Buchung behält **v1**) | Rest optional: UX/Copy in Finanz-Vorbereitung zu PT; §8.5 | Nach Ticket-Priorität: nächster Strang laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) (Default **A**); kein Mix mit 8.4(2–6)/Pfad C ohne Gate |
-| **FIN-2** | M2 | Gebuchte Rechnung, 8.4-Kette, E2E aus LV-Kette | Entwurf, Buchung `BOOK_INVOICE`, 8.4(1)+USt/Brutto, **B2-1a** `skontoBps` (Wave3 Pfad A laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md)); PWA Shell + Finanz-Vorbereitung (SoT, Skonto optional API-first) | **8.4(2–6)**-Motor; Pfad GEPRUEFT/FREIGEGEBEN (**Pfad C**, eigenes Gate); belastbarer **LV→Rechnung**-E2E | Nach Wave3 **nicht** parallel 8.4-Tiefe + Pfad C mischen; nächste Priorität **M4-Rest** *oder* bewusst 8.4(2–6) / Konvergenz — siehe Wave3-Non-Goals |
+| **FIN-2** | M2 | Gebuchte Rechnung, 8.4-Kette, E2E aus LV-Kette | Entwurf, Buchung `BOOK_INVOICE`, 8.4(1)+USt/Brutto, **B2-1a** `skontoBps`; PWA Shell inkl. **lvVersionId**-Traceability-Zeile + `GET /exports` Protokoll; Unit-Test `GET /invoices/{id}` ↔ Seed-LV ([`FIN-2-NEXT-SUBPROJECT-GATE.md`](./tickets/FIN-2-NEXT-SUBPROJECT-GATE.md) Priorität 1) | **8.4(2–6)**-Motor; **Pfad C**; belastbarer End-to-End-Lesepfad aus **Phase-2-LV** produktiv | Reihenfolge und Non-Goals: [`FIN-2-NEXT-SUBPROJECT-GATE.md`](./tickets/FIN-2-NEXT-SUBPROJECT-GATE.md), Wave3-Non-Goals |
 | **FIN-3** | M3 | Zahlung, Status, Idempotenz 8.7 | Intake POST, Liste GET, SoT, Status TEILBEZAHLT/BEZAHLT; PWA SoT-gekoppelt | **Bankfile** und vollständige **8.8–8.9** bewusst out of scope (ADR-0007); Intake: Überzahlung als Domainfehler **`PAYMENT_EXCEEDS_OPEN_AMOUNT`**, Audit + zentrale Domainfälle in Tests | Backlog 8.8–8.9 / PSP gesondert; optional Review Randfälle (z. B. Replay/Parallelität) |
-| **FIN-4** | M4 | Mahnwesen 8.10 inkl. Konfig, Vorlagen, E-Mail | `dunning_reminders`, Konfig inkl. Soft-Delete, Vorlagen/Footer, Mahnlauf **5b**, Automation **OFF/SEMI**, Run-API — ADR-0009/0010/0011 | Rest **M4** (z. B. Massen-E-Mail) nach Ticket-Priorität | **Nächster Schritt:** laut [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) — Default **A**; kein Mix mit 8.4(2–6) oder Pfad C |
-| **FIN-5** | M5 | Steuer-Sonderfall 8.16 oder Fail-Closed | In Teil 1 nicht als erledigt geführt | Entscheidung + ADR/Flag | Ein Sonderfall produktiv **oder** Fail-Closed dokumentieren |
-| **FIN-6** | M6 | Härtung 8.14, 12, 15; PWA-Regeln | Audit fail-hard, README zu 8.14/PWA | Feldklassifikation §8.14; Gesamt-QA §15 | [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md); Compliance-Vorbereitung |
+| **FIN-4** | M4 | Mahnwesen 8.10 inkl. Konfig, Vorlagen, E-Mail | Kern wie zuvor; **5c** Massen-E-Mail technisch im Repo — ADR-0009/0010/0011 | Operatives Mandanten-Go 5c außerhalb Repo; optionale UX-Tickets | Optional kleine Spur-A-Follow-ups; kein Mix mit 8.4(2–6) oder Pfad C |
+| **FIN-5** | M5 | Steuer-Sonderfall 8.16 oder Fail-Closed | Standard-USt-Pfad aktiv; **Fail-Closed** bis Team-Gate dokumentiert — [`adr/0014-fin5-mvp-tax-fail-closed.md`](./adr/0014-fin5-mvp-tax-fail-closed.md) | Menschliche Ausfüllung [`FIN-5-GATE-816-FAIL-CLOSED.md`](./tickets/FIN-5-GATE-816-FAIL-CLOSED.md); danach Spur **B** und ggf. Flag/Code | Gate ausfüllen; bei Option A Feature-Implementierung in eigenem PR |
+| **FIN-6** | M6 | Härtung 8.14, 12, 15; PWA-Regeln | Audit fail-hard; Logging-Hinweise §8.14 — [`contracts/fin6-logging-privacy-814.md`](./contracts/fin6-logging-privacy-814.md); Abnahme-Skeleton Gate 15 — [`contracts/qa-fin-mvp-gate-15-abnahme.md`](./contracts/qa-fin-mvp-gate-15-abnahme.md) | Vollständige Feldklassifikation; Gesamt-QA §15 Evidenz auf `main` | [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md); Gate-15-Checkliste abarbeiten |
 
 ### D1 — Merge-Evidenz GitHub Actions
 
@@ -298,6 +298,7 @@
 | 2026-04-22 | GitHub Actions **workflow `ci.yml`**, Run auf `main` (Job `backend`) | **success** (`gh run list --workflow=ci.yml --branch=main`; Job per `gh run view 24792922353 --json jobs`) | [Run 24792922353](https://github.com/rhermann90/ERP/actions/runs/24792922353), Job [backend](https://github.com/rhermann90/ERP/actions/runs/24792922353/job/72555004789) — Merge-SHA [`900ec2f3…`](https://github.com/rhermann90/ERP/commit/900ec2f3408be60ec788724130b1e7436b22bc87) |
 | 2026-04-25 | `npm run verify:ci` + `npm run verify:ci:local-db` (Repo-Root, Compose **15432**) | Exit 0; **257** Tests (Persistenzsuite inkl. FIN-1 M1-`it`) | Historisch: [`b31c1b4…`](https://github.com/rhermann90/ERP/commit/b31c1b4693724d1b8394183c7f00b19b9a969ea7) |
 | 2026-04-25 | `npm run verify:ci` + `npm run verify:ci:local-db` + `npx playwright test e2e/login-finance-smoke.spec.ts` (FIN-4 SEMI / ADR-0011) | Exit 0; Root-Suite inkl. Persistenz grün; E2E **1** bestanden | **§5a (Remote, PR-Head):** [PR #40](https://github.com/rhermann90/ERP/pull/40), Tip [`e346fa9…`](https://github.com/rhermann90/ERP/commit/e346fa9ef10f0b9cdd6176ef7673743f4c587215) — GitHub Actions **backend** + **e2e-smoke** **success** ([CI workflow run](https://github.com/rhermann90/ERP/actions/runs/24919930108), UTC 2026-04-25). Feature-Bundle: [`32dfc73…`](https://github.com/rhermann90/ERP/commit/32dfc73ff79f49c214272aaf6bbe1d281d847439). [`qa-fin-0-gate-readiness.md`](./contracts/qa-fin-0-gate-readiness.md) §5a. |
+| 2026-05-04 | `npm run verify:ci` + `npm run verify:pre-merge` + `npm run verify:ci:local-db` (Micro-Schritte Finanz-MVP) | Exit 0; Root **298** Tests mit Persistenz; Playwright **13** bestanden | Lokaler Arbeits-Commit [`1621636b…`](https://github.com/rhermann90/ERP/commit/1621636b8204e04ce6fa4c8344ce2198e0afd277); nach Commit dieses Pakets SHA aktualisieren; Remote-Evidenz nach Merge separat |
 
 *Hinweis: Root-`npm test` inkl. Postgres-Persistenz (`PERSISTENCE_DB_TEST_URL`) vor Merge-PR zusätzlich laut [`ci-and-persistence-tests.md`](./runbook/ci-and-persistence-tests.md) / `verify:ci` ausführen — nicht durch die beiden Zeilen oben ersetzt.*
 
@@ -490,7 +491,7 @@
 ### G — Release-, Compliance- und Mandanten-Go (außerhalb reiner Software-QA)
 
 1. **Software:** grüne CI-Evidenz auf `main` (§5a), Review ohne blocking (E2).
-2. **Fachlich / Mandant:** [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) mit StB/DSB/Release-Verantwortliche — **zusätzlich** zu CI, kein Ersatz für separates Release-GO ([`README.md`](../README.md)).
+2. **Fachlich / Mandant (extern):** operative Bewertung **außerhalb** des Repo-Prozesses; optional [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) und Archiv ([`README.md`](../README.md), [`AGENTS.md`](../AGENTS.md)).
 
 **Abschluss-Checkbox:**
 
@@ -509,7 +510,7 @@
 | Finanz-PR technisch | [`review-checklist-finanz-pr.md`](./contracts/review-checklist-finanz-pr.md) |
 | Nächstes Inkrement | [`NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) |
 | CI / Persistenz lokal | [`ci-and-persistence-tests.md`](./runbook/ci-and-persistence-tests.md) |
-| Multi-Agent | [`.cursor/rules/erp-multi-agent.mdc`](../.cursor/rules/erp-multi-agent.mdc) |
+| Projektregeln (cursor-stack) | [`.cursor/rules/cursor-stack.mdc`](../.cursor/rules/cursor-stack.mdc) |
 | Archiv: historische MVP-Finanz-Dateinamen | [`mvp-finanz-legacy-stubs/README.md`](./_archiv/mvp-finanz-legacy-stubs/README.md) · Weiterleitung `docs/ENTWICKLUNGSPHASEN-*` / `docs/PHASENARBEITSPLAN-*` |
 
 ---
@@ -518,7 +519,7 @@
 
 **Technisch:** Umsetzung und Priorisierung **Finanz Welle 3** — [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md); Vorherige Welle: [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE2.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE2.md); Gate-Stand: [`docs/tickets/FIN-2-START-GATE.md`](./tickets/FIN-2-START-GATE.md); PR-Review: [`docs/contracts/review-checklist-finanz-pr.md`](./contracts/review-checklist-finanz-pr.md); Audit-/GoBD-Abstimmung: [`docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md).
 
-**Fachlich vor Mandanten-Go:** [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) mit StB/DSB/Release-Verantwortliche — **zusätzlich** zu Software- und CI-Abnahme ([`README.md`](../README.md)).
+**Fachlich vor Mandanten-Go (extern):** nicht durch dieses Repo verpflichtend; optional Stub/Archiv wie oben — **zusätzlich** zu Software- und CI ([`README.md`](../README.md)).
 
-**Koordination / Gates:** [`docs/contracts/qa-fin-0-gate-readiness.md`](./contracts/qa-fin-0-gate-readiness.md) (Merge-Evidence §5a/§5b, **Rückmeldung ans Team / Review**), [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](./tickets/PL-SYSTEM-ZUERST-VORLAGE.md) *(Dateiname historisch)*, [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](./tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md); **Rückmeldung für die nächste Arbeitsplanung** verbindlich nur vom **Code Reviewer** (wortgleiches **blocking** wie im GitHub-Review). Team-Clone mit kanonischem Remote `rhermann90/ERP`; Multi-Agent-Regeln [`.cursor/rules/erp-multi-agent.mdc`](../.cursor/rules/erp-multi-agent.mdc).
+**Koordination / Gates:** [`docs/contracts/qa-fin-0-gate-readiness.md`](./contracts/qa-fin-0-gate-readiness.md) (Merge-Evidence §5a/§5b, **Rückmeldung ans Team / Review**), [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](./tickets/PL-SYSTEM-ZUERST-VORLAGE.md) *(Dateiname historisch)*, [`docs/tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md`](./tickets/GITHUB-REVIEW-FIN0-FIN2-GATE-VORLAGE.md); **Rückmeldung für die nächste Arbeitsplanung** verbindlich nur vom **Code Reviewer** (wortgleiches **blocking** wie im GitHub-Review). Team-Clone mit kanonischem Remote `rhermann90/ERP`; Projektregeln [`.cursor/rules/cursor-stack.mdc`](../.cursor/rules/cursor-stack.mdc).
 
