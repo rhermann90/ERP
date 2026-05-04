@@ -297,4 +297,89 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await page.getByRole("button", { name: "Audit-Ereignisse laden (letzte 15)" }).click();
     await expect(page.getByText("Rohantwort GET /audit-events (JSON)", { exact: true })).toBeVisible({ timeout: 15_000 });
   });
+
+  test("Finanz-Vorbereitung: unbekannte Rechnungs-ID → strukturierter API-Fehler (Rechnung laden)", async ({ page }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+
+    await page.goto("/#/finanz-vorbereitung?tab=rechnung");
+
+    await expect(page.locator("section.finance-prep")).toBeVisible({ timeout: 15_000 });
+    await page.getByLabel("Rechnungs-ID für GET").fill("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee");
+    await page.getByRole("button", { name: "Rechnung laden" }).click();
+
+    await expect(page.getByTestId("finance-structured-api-error-disclaimer")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("finance-prep-notice")).toContainText("DOCUMENT_NOT_FOUND");
+  });
+
+  test("Finanz-Vorbereitung: Tenant-Mismatch (GET Rechnung) → strukturierter API-Fehler", async ({ page }) => {
+    await page.route("**/invoices/**", async (route, request) => {
+      if (request.method() !== "GET") {
+        await route.continue();
+        return;
+      }
+      const headers = { ...request.headers() };
+      headers["x-tenant-id"] = "22222222-2222-4222-8222-222222222222";
+      await route.continue({ headers });
+    });
+
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+
+    await page.getByRole("link", { name: "Finanz (Vorbereitung)" }).click();
+    await expect(page.locator("section.finance-prep")).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("tab", { name: /Rechnung & Zahlung/i }).click();
+    await page.getByRole("button", { name: "Rechnung laden" }).click();
+
+    await expect(page.getByTestId("finance-prep-notice")).toContainText("TENANT_SCOPE_VIOLATION", { timeout: 20_000 });
+  });
+
+  test("Finanz-Vorbereitung: Tastatur — Tab erreicht Schritt-Schaltflächen nacheinander", async ({ page }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+
+    await page.getByRole("link", { name: "Finanz (Vorbereitung)" }).click();
+    await expect(page.locator("section.finance-prep")).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole("tab", { name: /Rechnung & Zahlung/i }).click();
+    const b1 = page.getByRole("button", { name: "GET Konditionen laden" });
+    const b2 = page.getByRole("button", { name: "Rechnungsentwurf anlegen" });
+    const b3 = page.getByRole("button", { name: "Rechnung laden" });
+
+    await b1.focus();
+    await expect(b1).toBeFocused();
+
+    const tabUntil = async (locator: ReturnType<typeof page.getByRole>) => {
+      for (let i = 0; i < 28; i++) {
+        if (await locator.evaluate((el) => el === document.activeElement)) return;
+        await page.keyboard.press("Tab");
+      }
+      throw new Error("Tab-Runde erreichte Ziel-Button nicht");
+    };
+
+    await tabUntil(page.getByRole("button", { name: "POST neue Version" }));
+    await expect(page.getByRole("button", { name: "POST neue Version" })).toBeFocused();
+
+    await tabUntil(b2);
+    await expect(b2).toBeFocused();
+
+    await tabUntil(b3);
+    await expect(b3).toBeFocused();
+  });
 });
+

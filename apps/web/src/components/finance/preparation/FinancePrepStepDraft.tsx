@@ -1,10 +1,14 @@
 import { memo } from "react";
 import { FinanceCollapsibleJson } from "../FinanceCollapsibleJson.js";
+import { FinancePrepNotice } from "../FinancePrepNotice.js";
 import { FinancePrepPanel } from "../FinancePrepPanel.js";
+import type { FinNotice } from "../finance-prep-types.js";
 import { FIN_PREP_A11Y } from "../finance-preparation-meta.js";
 
 export type FinancePrepStepDraftProps = {
   busy: boolean;
+  liveStatus: string;
+  stepNotice: FinNotice | null;
   draftSkontoBps: string;
   setDraftSkontoBps: (v: string) => void;
   draftSummary: string | null;
@@ -14,6 +18,8 @@ export type FinancePrepStepDraftProps = {
 
 function FinancePrepStepDraftInner({
   busy,
+  liveStatus,
+  stepNotice,
   draftSkontoBps,
   setDraftSkontoBps,
   draftSummary,
@@ -21,7 +27,8 @@ function FinancePrepStepDraftInner({
   onCreateInvoiceDraft,
 }: FinancePrepStepDraftProps) {
   return (
-    <FinancePrepPanel step={2} title="Rechnungsentwurf (FIN-2)">
+    <FinancePrepPanel step={2} title="Rechnungsentwurf (FIN-2)" liveStatus={liveStatus}>
+      <FinancePrepNotice notice={stepNotice} structuredAnnouncementRole="status" />
       <p id={FIN_PREP_A11Y.draftIntro} style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
         Erzeugt einen Entwurf mit Seed-LV/Angebot, sofern Traceability im Backend erfüllt ist. Optional: Skonto in Basispunkten (B2-1a), z. B.{" "}
         <strong>200</strong> = 2 % Abzug auf das LV-Netto nach Schritt 1 vor USt.

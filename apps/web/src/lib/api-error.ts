@@ -105,3 +105,31 @@ function normalizeEnvelope(raw: unknown, status: number, init?: ApiErrorInitOpti
 
   return { code, message, correlationId, retryable, blocking, details };
 }
+
+/**
+ * Extrahiert ein API-Envelope aus `unknown` (z. B. Catch-Block), ohne `ApiError` zu werfen.
+ */
+export function extractStructuredError(raw: unknown, init?: ApiErrorInitOptions): ApiErrorEnvelope | null {
+  if (raw instanceof ApiError) {
+    return raw.envelope;
+  }
+  if (!raw || typeof raw !== "object") {
+    return null;
+  }
+  const r = raw as Record<string, unknown>;
+  if (typeof r.status === "number" && "body" in r) {
+    return normalizeEnvelope(r.body, r.status as number, init);
+  }
+  const nested = r.errors;
+  if (Array.isArray(nested) && nested.length > 0 && nested[0] && typeof nested[0] === "object") {
+    const first = nested[0] as Record<string, unknown>;
+    const merged = { ...r, ...first };
+    const st = typeof r.status === "number" ? (r.status as number) : 400;
+    return normalizeEnvelope(merged, st, init);
+  }
+  if (typeof r.code === "string" && typeof r.message === "string") {
+    const st = typeof r.status === "number" ? (r.status as number) : 400;
+    return normalizeEnvelope(raw, st, init);
+  }
+  return null;
+}

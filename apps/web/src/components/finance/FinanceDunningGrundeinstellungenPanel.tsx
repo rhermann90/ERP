@@ -36,6 +36,7 @@ function dunningCandidateRowTitle(
 
 export type FinanceDunningGrundeinstellungenPanelProps = {
   busy: boolean;
+  liveStatus: string;
   serverAutomationRunMode: "OFF" | "SEMI" | null;
   dunningAutomationJson: string;
   dunningAutomationRunMode: "OFF" | "SEMI";
@@ -86,6 +87,7 @@ function parseCandidatesResponse(raw: string): DunningReminderCandidatesReadResp
 
 function FinanceDunningGrundeinstellungenPanelInner({
   busy,
+  liveStatus,
   serverAutomationRunMode,
   dunningAutomationJson,
   dunningAutomationRunMode,
@@ -122,7 +124,7 @@ function FinanceDunningGrundeinstellungenPanelInner({
   const batchMahnlaufDisabled = serverAutomationRunMode === "OFF";
 
   return (
-    <FinancePrepPanel step={5} title="Grundeinstellungen Mahnlauf (SEMI, ADR-0011)">
+    <FinancePrepPanel step={8} title="Grundeinstellungen Mahnlauf (SEMI, ADR-0011)" liveStatus={liveStatus}>
       <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginTop: 0 }}>
         Mandantenzeit, optional DE-Bundesland für Feiertage, Kalender- vs. Werktage und Kanalvorgabe steuern <strong>Kandidaten</strong>,{" "}
         <code>DRY_RUN</code>/<code>EXECUTE</code> und dieselbe Frist (<code>stageDeadlineIso</code>) wie die Engine — siehe{" "}

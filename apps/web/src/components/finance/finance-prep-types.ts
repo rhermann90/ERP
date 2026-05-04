@@ -1,3 +1,6 @@
 import type { ApiError } from "../../lib/api-error.js";
 
-export type FinNotice = { kind: "api"; error: ApiError } | { kind: "text"; text: string };
+/** Optional `sourceStep` ordnet die Meldung einem Finanz-Vorbereitungs-Schritt zu (Panel `step={n}`). */
+export type FinNotice =
+  | { kind: "api"; error: ApiError; sourceStep?: number }
+  | { kind: "text"; text: string; sourceStep?: number };

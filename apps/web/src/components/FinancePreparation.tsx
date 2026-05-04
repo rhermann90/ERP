@@ -32,6 +32,8 @@ import {
   DEMO_INVOICE_ID,
   DEMO_PROJECT_ID,
   DOC_LINKS,
+  FIN_PREP_ERROR_COPY,
+  finPrepStepLiveStatus,
   formatEurFromCents,
   openAmountCents,
   type SotEntityType,
@@ -41,7 +43,7 @@ import { FinancePrepStepDraft } from "./finance/preparation/FinancePrepStepDraft
 import { FinancePrepStepInvoice } from "./finance/preparation/FinancePrepStepInvoice.js";
 import { FinancePrepStepSot } from "./finance/preparation/FinancePrepStepSot.js";
 import { FinancePrepStepTerms } from "./finance/preparation/FinancePrepStepTerms.js";
-import { formatSkontoDisplay, isUuidShape } from "./finance/finance-prep-helpers.js";
+import { financePrepStepAriaLive, finNoticeFromUnknown, formatSkontoDisplay, isUuidShape } from "./finance/finance-prep-helpers.js";
 
 const FINANCE_PREP_MAIN_TABS: FinancePrepMainTab[] = ["rechnung", "grundeinstellungen", "mahnwesen", "fortgeschritten"];
 
@@ -163,6 +165,7 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
   const [paymentIntakes, setPaymentIntakes] = useState<PaymentIntakeReadRow[] | null>(null);
   const [dunningReminders, setDunningReminders] = useState<DunningReminderReadRow[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [busyStep, setBusyStep] = useState<number | null>(null);
   const [notice, setNotice] = useState<FinNotice | null>(null);
   const [issueDateBook, setIssueDateBook] = useState("");
   const [paymentPanelError, setPaymentPanelError] = useState<FinNotice | null>(null);
@@ -221,23 +224,34 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
     void loadDunningReads();
   }, [loadDunningReads]);
 
-  const loadPaymentTerms = useCallback(async () => {
-    setNotice(null);
-    setBusy(true);
-    try {
-      const data = await api.getPaymentTermsByProject(projectId.trim());
-      setListJson(JSON.stringify(data, null, 2));
-    } catch (e) {
-      setListJson("");
-      setNotice(e instanceof ApiError ? { kind: "api", error: e } : { kind: "text", text: String(e) });
-    } finally {
-      setBusy(false);
-    }
-  }, [api, projectId]);
+  const loadPaymentTerms = useCallback(
+    async (opts?: { manageBusy?: boolean }) => {
+      const manageBusy = opts?.manageBusy !== false;
+      if (manageBusy) {
+        setNotice(null);
+        setBusy(true);
+        setBusyStep(1);
+      }
+      try {
+        const data = await api.getPaymentTermsByProject(projectId.trim());
+        setListJson(JSON.stringify(data, null, 2));
+      } catch (e) {
+        if (manageBusy) setListJson("");
+        setNotice(finNoticeFromUnknown(e, { sourceStep: 1 }));
+      } finally {
+        if (manageBusy) {
+          setBusy(false);
+          setBusyStep(null);
+        }
+      }
+    },
+    [api, projectId],
+  );
 
   const createPaymentTermsVersion = useCallback(async () => {
     setNotice(null);
     setBusy(true);
+    setBusyStep(1);
     try {
       await api.requestJson("POST", "/finance/payment-terms/versions", {
         projectId: projectId.trim(),
@@ -245,11 +259,12 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
         termsLabel: termsLabel.trim() || "Kondition",
         reason: "Demo aus Finanz-Vorbereitung (FIN-1)",
       });
-      await loadPaymentTerms();
+      await loadPaymentTerms({ manageBusy: false });
     } catch (e) {
-      setNotice(e instanceof ApiError ? { kind: "api", error: e } : { kind: "text", text: String(e) });
+      setNotice(finNoticeFromUnknown(e, { sourceStep: 1 }));
     } finally {
       setBusy(false);
+      setBusyStep(null);
     }
   }, [api, projectId, termsLabel, loadPaymentTerms]);
 
@@ -257,10 +272,11 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
     setNotice(null);
     const bps = Number.parseInt(draftSkontoBps.trim(), 10);
     if (!Number.isFinite(bps) || bps < 0 || bps > 10_000) {
-      setNotice({ kind: "text", text: "Skonto (Basispunkte): ganze Zahl von 0 bis 10_000 (z. B. 200 = 2 %)." });
+      setNotice({ kind: "text", text: FIN_PREP_ERROR_COPY.skontoBasispunkteRange, sourceStep: 2 });
       return;
     }
     setBusy(true);
+    setBusyStep(2);
     try {
       const data = await api.createInvoiceDraft({
         lvVersionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001",
@@ -280,40 +296,51 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
     } catch (e) {
       setDraftJson("");
       setDraftSummary(null);
-      setNotice(e instanceof ApiError ? { kind: "api", error: e } : { kind: "text", text: String(e) });
+      setNotice(finNoticeFromUnknown(e, { sourceStep: 2 }));
     } finally {
       setBusy(false);
+      setBusyStep(null);
     }
   }, [api, draftSkontoBps]);
 
-  const loadInvoice = useCallback(async (overrideInvoiceId?: string) => {
-    setNotice(null);
-    setPaymentPanelError(null);
-    setDunningPanelError(null);
-    setBookPanelError(null);
-    setBusy(true);
-    try {
-      const id = (overrideInvoiceId ?? invoiceIdRead).trim();
-      const data = await api.getInvoice(id);
-      setInvoiceOverview(data);
-      const [sot, payList, dunList] = await Promise.all([
-        api.getAllowedActions(id, "INVOICE"),
-        api.listInvoicePaymentIntakes(id),
-        api.listInvoiceDunningReminders(id),
-      ]);
-      setInvoiceAllowedActions(sot.allowedActions);
-      setPaymentIntakes(payList.data);
-      setDunningReminders(dunList.data);
-    } catch (e) {
-      setInvoiceOverview(null);
-      setInvoiceAllowedActions(null);
-      setPaymentIntakes(null);
-      setDunningReminders(null);
-      setNotice(e instanceof ApiError ? { kind: "api", error: e } : { kind: "text", text: String(e) });
-    } finally {
-      setBusy(false);
-    }
-  }, [api, invoiceIdRead]);
+  const loadInvoice = useCallback(
+    async (overrideInvoiceId?: string, opts?: { manageBusy?: boolean }) => {
+      const manageBusy = opts?.manageBusy !== false;
+      if (manageBusy) {
+        setNotice(null);
+        setPaymentPanelError(null);
+        setDunningPanelError(null);
+        setBookPanelError(null);
+        setBusy(true);
+        setBusyStep(3);
+      }
+      try {
+        const id = (overrideInvoiceId ?? invoiceIdRead).trim();
+        const data = await api.getInvoice(id);
+        setInvoiceOverview(data);
+        const [sot, payList, dunList] = await Promise.all([
+          api.getAllowedActions(id, "INVOICE"),
+          api.listInvoicePaymentIntakes(id),
+          api.listInvoiceDunningReminders(id),
+        ]);
+        setInvoiceAllowedActions(sot.allowedActions);
+        setPaymentIntakes(payList.data);
+        setDunningReminders(dunList.data);
+      } catch (e) {
+        setInvoiceOverview(null);
+        setInvoiceAllowedActions(null);
+        setPaymentIntakes(null);
+        setDunningReminders(null);
+        setNotice(finNoticeFromUnknown(e, { sourceStep: 3 }));
+      } finally {
+        if (manageBusy) {
+          setBusy(false);
+          setBusyStep(null);
+        }
+      }
+    },
+    [api, invoiceIdRead],
+  );
 
   useEffect(() => {
     if (invoiceOverview) {
@@ -324,19 +351,20 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
   const submitEntwurfSkontoRecalc = useCallback(async () => {
     setNotice(null);
     if (!invoiceOverview || invoiceOverview.status !== "ENTWURF") {
-      setNotice({ kind: "text", text: "Nur für Rechnungen im Status ENTWURF." });
+      setNotice({ kind: "text", text: FIN_PREP_ERROR_COPY.entwurfOnly, sourceStep: 3 });
       return;
     }
     if (!invoiceOverview.offerVersionId) {
-      setNotice({ kind: "text", text: "Rechnung ohne offerVersionId — Traceability unvollständig." });
+      setNotice({ kind: "text", text: FIN_PREP_ERROR_COPY.offerTraceabilityMissing, sourceStep: 3 });
       return;
     }
     const bps = Number.parseInt(draftSkontoBps.trim(), 10);
     if (!Number.isFinite(bps) || bps < 0 || bps > 10_000) {
-      setNotice({ kind: "text", text: "Skonto (Basispunkte): ganze Zahl von 0 bis 10_000." });
+      setNotice({ kind: "text", text: FIN_PREP_ERROR_COPY.skontoBasispunkteRangeShort, sourceStep: 3 });
       return;
     }
     setBusy(true);
+    setBusyStep(3);
     try {
       const data = await api.createInvoiceDraft({
         lvVersionId: invoiceOverview.lvVersionId,
@@ -350,11 +378,12 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
       setDraftSummary(
         `Skonto ${formatSkontoDisplay(data.skontoBps)} — Netto (nach 8.4) ${formatEurFromCents(data.lvNetCents)} · USt ${formatEurFromCents(data.vatCents)} · Brutto ${formatEurFromCents(data.totalGrossCents)}`,
       );
-      await loadInvoice(data.invoiceId);
+      await loadInvoice(data.invoiceId, { manageBusy: false });
     } catch (e) {
-      setNotice(e instanceof ApiError ? { kind: "api", error: e } : { kind: "text", text: String(e) });
+      setNotice(finNoticeFromUnknown(e, { sourceStep: 3 }));
     } finally {
       setBusy(false);
+      setBusyStep(null);
     }
   }, [api, draftSkontoBps, invoiceOverview, loadInvoice]);
 
@@ -378,30 +407,34 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
       return;
     }
     setBusy(true);
+    setBusyStep(3);
     try {
       await api.requestJson("POST", `/invoices/${encodeURIComponent(invoiceIdRead.trim())}/book`, {
         reason: "Rechnungsbuchung aus Finanz-Vorbereitung (FIN-2 Demo)",
         ...(d ? { issueDate: d } : {}),
       });
-      await loadInvoice();
+      await loadInvoice(undefined, { manageBusy: false });
     } catch (e) {
-      setBookPanelError(e instanceof ApiError ? { kind: "api", error: e } : { kind: "text", text: String(e) });
+      setBookPanelError(finNoticeFromUnknown(e));
     } finally {
       setBusy(false);
+      setBusyStep(null);
     }
   }, [api, canBookInvoice, invoiceIdLooksValid, invoiceIdRead, issueDateBook, loadInvoice]);
 
   const loadSotAllowedActions = useCallback(async () => {
     setNotice(null);
     setBusy(true);
+    setBusyStep(4);
     try {
       const res = await api.getAllowedActions(sotDocumentId.trim(), sotEntityType);
       setSotJson(JSON.stringify(res, null, 2));
     } catch (e) {
       setSotJson("");
-      setNotice(e instanceof ApiError ? { kind: "api", error: e } : { kind: "text", text: String(e) });
+      setNotice(finNoticeFromUnknown(e, { sourceStep: 4 }));
     } finally {
       setBusy(false);
+      setBusyStep(null);
     }
   }, [api, sotDocumentId, sotEntityType]);
 
@@ -1066,14 +1099,16 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
   const loadAuditEvents = useCallback(async () => {
     setNotice(null);
     setBusy(true);
+    setBusyStep(7);
     try {
       const data = await api.getAuditEvents(1, 15);
       setAuditJson(JSON.stringify(data, null, 2));
     } catch (e) {
       setAuditJson("");
-      setNotice(e instanceof ApiError ? { kind: "api", error: e } : { kind: "text", text: String(e) });
+      setNotice(finNoticeFromUnknown(e, { sourceStep: 7 }));
     } finally {
       setBusy(false);
+      setBusyStep(null);
     }
   }, [api]);
 
@@ -1129,6 +1164,17 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
   }, [submitEmailSend]);
 
   const openCents = openAmountCents(invoiceOverview);
+
+  const noticeStep1 = notice?.sourceStep === 1 ? notice : null;
+  const noticeStep2 = notice?.sourceStep === 2 ? notice : null;
+  const noticeStep3 = notice?.sourceStep === 3 ? notice : null;
+  const noticeStep4 = notice?.sourceStep === 4 ? notice : null;
+  const noticeStep7 = notice?.sourceStep === 7 ? notice : null;
+  const liveStep1 = financePrepStepAriaLive(1, busy, busyStep, notice);
+  const liveStep2 = financePrepStepAriaLive(2, busy, busyStep, notice);
+  const liveStep3 = financePrepStepAriaLive(3, busy, busyStep, notice, { extraActionOpen: bookPanelError != null });
+  const liveStep4 = financePrepStepAriaLive(4, busy, busyStep, notice);
+  const liveStep7 = financePrepStepAriaLive(7, busy, busyStep, notice);
 
   const financePrepPageTitle =
     financePrepMainTab === "grundeinstellungen"
@@ -1307,6 +1353,8 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
         >
         <FinancePrepStepTerms
           busy={busy}
+          liveStatus={liveStep1}
+          stepNotice={noticeStep1}
           projectId={projectId}
           setProjectId={setProjectId}
           termsLabel={termsLabel}
@@ -1318,6 +1366,8 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
 
         <FinancePrepStepDraft
           busy={busy}
+          liveStatus={liveStep2}
+          stepNotice={noticeStep2}
           draftSkontoBps={draftSkontoBps}
           setDraftSkontoBps={setDraftSkontoBps}
           draftSummary={draftSummary}
@@ -1327,6 +1377,8 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
 
         <FinancePrepStepInvoice
           busy={busy}
+          liveStatus={liveStep3}
+          stepNotice={noticeStep3}
           invoiceIdRead={invoiceIdRead}
           onInvoiceIdInputChange={onInvoiceIdInputChange}
           invoiceIdLooksValid={invoiceIdLooksValid}
@@ -1348,6 +1400,7 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
 
         <FinancePreparationPaymentPanel
           busy={busy}
+          liveStatus={finPrepStepLiveStatus("Schritt 5 Zahlungseingang (FIN-3)", busy)}
           openCents={openCents}
           intakeAmountCents={intakeAmountCents}
           setIntakeAmountCents={setIntakeAmountCents}
@@ -1370,6 +1423,7 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
         >
           <FinanceDunningGrundeinstellungenPanel
             busy={busy}
+            liveStatus={finPrepStepLiveStatus("Schritt 8 Grundeinstellungen Mahnlauf (SEMI)", busy)}
             serverAutomationRunMode={dunningAutomationServerRunMode}
             dunningAutomationJson={dunningAutomationJson}
             dunningAutomationRunMode={dunningAutomationRunMode}
@@ -1412,6 +1466,7 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
         >
         <FinancePreparationDunningPanel
           busy={busy}
+          liveStatus={finPrepStepLiveStatus("Schritt 6 Mahn-Ereignis (FIN-4)", busy)}
           dunningReminderConfigJson={dunningReminderConfigJson}
           dunningTemplatesJson={dunningTemplatesJson}
           dunningEmailFooterJson={dunningEmailFooterJson}
@@ -1496,6 +1551,8 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
         >
         <FinancePrepStepSot
           busy={busy}
+          liveStatus={liveStep4}
+          stepNotice={noticeStep4}
           invoiceIdRead={invoiceIdRead}
           sotEntityType={sotEntityType}
           setSotEntityType={setSotEntityType}
@@ -1505,13 +1562,16 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
           onLoadSotAllowedActions={loadSotAllowedActions}
         />
 
-        <FinancePrepStepAudit busy={busy} auditJson={auditJson} onLoadAuditEvents={loadAuditEvents} />
+        <FinancePrepStepAudit
+          busy={busy}
+          liveStatus={liveStep7}
+          stepNotice={noticeStep7}
+          auditJson={auditJson}
+          onLoadAuditEvents={loadAuditEvents}
+        />
 
         </div>
 
-        <div aria-live="polite" aria-relevant="additions text">
-          <FinancePrepNotice notice={notice} structuredAnnouncementRole="status" />
-        </div>
       </div>
 
       <h3 className="visually-hidden">Referenzdokumente im Repository</h3>

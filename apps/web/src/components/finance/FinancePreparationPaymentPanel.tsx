@@ -8,6 +8,7 @@ import { RECORD_PAYMENT_INTAKE_ACTION_ID } from "../../lib/finance-sot.js";
 
 export type FinancePreparationPaymentPanelProps = {
   busy: boolean;
+  liveStatus: string;
   openCents: number | null;
   intakeAmountCents: string;
   setIntakeAmountCents: (v: string) => void;
@@ -23,6 +24,7 @@ export type FinancePreparationPaymentPanelProps = {
 
 function FinancePreparationPaymentPanelInner({
   busy,
+  liveStatus,
   openCents,
   intakeAmountCents,
   setIntakeAmountCents,
@@ -36,7 +38,7 @@ function FinancePreparationPaymentPanelInner({
   onSubmitPaymentIntake,
 }: FinancePreparationPaymentPanelProps) {
   return (
-    <FinancePrepPanel step={5} title="Zahlungseingang (FIN-3)">
+    <FinancePrepPanel step={5} title="Zahlungseingang (FIN-3)" liveStatus={liveStatus}>
       <ol id={FIN_PREP_A11Y.fin3Steps} style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginTop: 0, paddingLeft: "1.2rem" }}>
         <li>
           Rechnung laden (Schritt 3: <strong>Rechnung laden</strong>) — lädt automatisch <code>allowed-actions</code> für SoT{" "}

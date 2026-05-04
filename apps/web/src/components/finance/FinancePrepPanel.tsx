@@ -11,12 +11,15 @@ const panelStyle: CSSProperties = {
 export function FinancePrepPanel(props: {
   title: string;
   step?: number;
+  /** Kurzstatus für Screenreader (`aria-live="polite"`). */
+  liveStatus: string;
   children: ReactNode;
   footer?: ReactNode;
 }) {
+  const headingId = props.step != null ? `fin-step-${props.step}-h` : undefined;
   return (
-    <section style={panelStyle} aria-labelledby={props.step != null ? `fin-step-${props.step}-h` : undefined}>
-      <h3 id={props.step != null ? `fin-step-${props.step}-h` : undefined} style={{ fontSize: "1rem", margin: "0 0 0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+    <section style={panelStyle} aria-labelledby={headingId}>
+      <h3 id={headingId} style={{ fontSize: "1rem", margin: "0 0 0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
         {props.step != null ? (
           <span
             aria-hidden
@@ -38,6 +41,11 @@ export function FinancePrepPanel(props: {
         ) : null}
         <span>{props.title}</span>
       </h3>
+      {props.step != null ? (
+        <div aria-live="polite" aria-atomic="true" data-testid={`finance-prep-step-status-${props.step}`} className="visually-hidden">
+          {props.liveStatus}
+        </div>
+      ) : null}
       {props.children}
       {props.footer ? <div style={{ marginTop: "0.65rem" }}>{props.footer}</div> : null}
     </section>

@@ -15,6 +15,8 @@ import { DEMO_INVOICE_ID, FIN_PREP_A11Y, formatEurFromCents } from "../finance-p
 
 export type FinancePrepStepInvoiceProps = {
   busy: boolean;
+  liveStatus: string;
+  stepNotice: FinNotice | null;
   invoiceIdRead: string;
   onInvoiceIdInputChange: (value: string) => void;
   invoiceIdLooksValid: boolean;
@@ -36,6 +38,8 @@ export type FinancePrepStepInvoiceProps = {
 
 function FinancePrepStepInvoiceInner({
   busy,
+  liveStatus,
+  stepNotice,
   invoiceIdRead,
   onInvoiceIdInputChange,
   invoiceIdLooksValid,
@@ -55,7 +59,8 @@ function FinancePrepStepInvoiceInner({
   onSubmitEntwurfSkontoRecalc,
 }: FinancePrepStepInvoiceProps) {
   return (
-    <FinancePrepPanel step={3} title="Rechnung laden, Beträge & Buchung">
+    <FinancePrepPanel step={3} title="Rechnung laden, Beträge & Buchung" liveStatus={liveStatus}>
+      <FinancePrepNotice notice={stepNotice} structuredAnnouncementRole="status" />
       <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
         Live-Prüfung <code>GET /invoices/:invoiceId</code> — Netto/USt/Brutto wie vom Server berechnet (Kernrechnung 8.4 MVP).
       </p>

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ApiError } from "./api-error.js";
+import { ApiError, extractStructuredError } from "./api-error.js";
 
 describe("ApiError envelope passthrough", () => {
   it("keeps correlationId/retryable/blocking from backend response", () => {
@@ -66,5 +66,68 @@ describe("ApiError envelope passthrough", () => {
     });
     expect(e2.envelope.retryable).toBe(true);
     expect(e2.envelope.blocking).toBe(false);
+  });
+});
+
+describe("extractStructuredError", () => {
+  it("returns envelope from ApiError instance", () => {
+    const ae = new ApiError(404, {
+      code: "DOCUMENT_NOT_FOUND",
+      message: "gone",
+      correlationId: "c",
+      retryable: false,
+      blocking: true,
+    });
+    expect(extractStructuredError(ae)).toEqual(ae.envelope);
+  });
+
+  it("unwraps first nested errors[] entry", () => {
+    const env = extractStructuredError({
+      status: 422,
+      errors: [{ code: "VALIDATION_FAILED", message: "bad", correlationId: "n1", retryable: true, blocking: false }],
+    });
+    expect(env?.code).toBe("VALIDATION_FAILED");
+    expect(env?.correlationId).toBe("n1");
+  });
+
+  it("reads body + status shape", () => {
+    const env = extractStructuredError({
+      status: 403,
+      body: { code: "AUTH_ROLE_FORBIDDEN", message: "no", correlationId: "b1", retryable: false, blocking: true },
+    });
+    expect(env?.code).toBe("AUTH_ROLE_FORBIDDEN");
+  });
+
+  it("returns null for non-objects", () => {
+    expect(extractStructuredError("x")).toBeNull();
+    expect(extractStructuredError(null)).toBeNull();
+    expect(extractStructuredError(undefined)).toBeNull();
+  });
+
+  it("maps plain { code, message } without status to default 400", () => {
+    const env = extractStructuredError({ code: "VALIDATION_FAILED", message: "fail", correlationId: "c2", retryable: true, blocking: false });
+    expect(env?.code).toBe("VALIDATION_FAILED");
+    expect(env?.message).toBe("fail");
+  });
+
+  it("returns null when errors[] is empty (no merge)", () => {
+    expect(
+      extractStructuredError({
+        status: 422,
+        errors: [],
+      }),
+    ).toBeNull();
+  });
+
+  it("passes requestIdFromHeader through body+status shape", () => {
+    const env = extractStructuredError(
+      {
+        status: 503,
+        body: { code: "EXPORT_CHANNEL_UNAVAILABLE", message: "down" },
+      },
+      { requestIdFromHeader: "gw-req-99" },
+    );
+    expect(env?.correlationId).toBe("gw-req-99");
+    expect(env?.code).toBe("EXPORT_CHANNEL_UNAVAILABLE");
   });
 });
