@@ -285,6 +285,9 @@ model Invoice {
   paymentTermsVersionId   String?  @map("payment_terms_version_id") @db.Uuid
   // B2-1a / 8.4(2): Skonto in Basispunkten (0–10_000) auf LV-Netto nach Schritt 1 vor USt.
   skontoBps                 Int      @default(0) @map("skonto_bps")
+  invoiceTaxRegime          String   @default("STANDARD_VAT_19") @map("invoice_tax_regime") @db.VarChar(64)
+  vatRateBpsEffective       Int      @default(1900) @map("vat_rate_bps_effective")
+  taxReasonCode             String?  @map("tax_reason_code") @db.VarChar(128)
 
   paymentIntakes PaymentIntake[]
   dunningReminders DunningReminder[]
@@ -295,6 +298,27 @@ model Invoice {
   /// Gebuchte Rechnungsnummern je Mandant eindeutig (NULL fuer Entwuerfe ohne Nummer — Postgres erlaubt mehrere NULLs).
   @@unique([tenantId, invoiceNumber], map: "invoices_tenant_invoice_number_key")
   @@map("invoices")
+}
+
+/// FIN-5: Mandanten-Default Steuerregime; ohne Zeile gilt im Resolver STANDARD_VAT_19.
+model TenantInvoiceTaxProfile {
+  tenantId                String  @id @map("tenant_id") @db.Uuid
+  defaultInvoiceTaxRegime String  @default("STANDARD_VAT_19") @map("default_invoice_tax_regime") @db.VarChar(64)
+  construction13bConfigJson Json? @map("construction_13b_config_json")
+
+  @@map("tenant_invoice_tax_profiles")
+}
+
+/// FIN-5: Projekt-Override (schlägt Mandanten-Default).
+model ProjectInvoiceTaxOverride {
+  tenantId                String  @map("tenant_id") @db.Uuid
+  projectId               String  @map("project_id") @db.Uuid
+  invoiceTaxRegime        String  @map("invoice_tax_regime") @db.VarChar(64)
+  taxReasonCode           String? @map("tax_reason_code") @db.VarChar(128)
+  construction13bConfigJson Json? @map("construction_13b_config_json")
+
+  @@id([tenantId, projectId])
+  @@map("project_invoice_tax_overrides")
 }
 
 /// FIN-3: Zahlungseingang; Idempotenz (tenant_id, idempotency_key).
