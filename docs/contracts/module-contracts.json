@@ -19,6 +19,8 @@
       "POST /lv/catalogs",
       "POST /lv/catalogs/{lvCatalogId}/version",
       "GET /lv/versions/{lvVersionId}",
+      "GET /lv/versions/{lvVersionId}/structure",
+      "GET /lv/versions/{lvVersionId}/positions/{positionId}",
       "POST /lv/versions/{lvVersionId}/status",
       "POST /lv/versions/{lvVersionId}/nodes",
       "PATCH /lv/nodes/{nodeId}/editing-text",
@@ -66,7 +68,13 @@
       "TEILBEZAHLT",
       "STORNIERT"
     ],
-    "measurementVersion": ["ENTWURF", "GEPRUEFT", "FREIGEGEBEN", "ABGERECHNET", "ARCHIVIERT"],
+    "measurementVersion": [
+      "ENTWURF",
+      "GEPRUEFT",
+      "FREIGEGEBEN",
+      "ABGERECHNET",
+      "ARCHIVIERT"
+    ],
     "supplementVersion": [
       "ENTWURF",
       "IN_FREIGABE",
@@ -76,22 +84,55 @@
       "ABGELEHNT",
       "ARCHIVIERT"
     ],
-    "lvVersion": ["ENTWURF", "FREIGEGEBEN", "ARCHIVIERT"]
+    "lvVersion": [
+      "ENTWURF",
+      "FREIGEGEBEN",
+      "ARCHIVIERT"
+    ]
   },
   "modules": [
     {
       "moduleId": "offerVersionEditor",
       "entityType": "OFFER_VERSION",
-      "requiredFields": ["id", "tenantId", "offerId", "versionNumber", "status", "lvVersionId", "systemText", "editingText"],
-      "immutableFields": ["id", "tenantId", "offerId", "versionNumber", "systemText"],
+      "requiredFields": [
+        "id",
+        "tenantId",
+        "offerId",
+        "versionNumber",
+        "status",
+        "lvVersionId",
+        "systemText",
+        "editingText"
+      ],
+      "immutableFields": [
+        "id",
+        "tenantId",
+        "offerId",
+        "versionNumber",
+        "systemText"
+      ],
       "readonlyByStatus": {
-        "ENTWURF": ["systemText"],
-        "IN_FREIGABE": ["*"],
-        "FREIGEGEBEN": ["*"],
-        "VERSENDET": ["*"],
-        "ANGENOMMEN": ["*"],
-        "ABGELEHNT": ["*"],
-        "ARCHIVIERT": ["*"]
+        "ENTWURF": [
+          "systemText"
+        ],
+        "IN_FREIGABE": [
+          "*"
+        ],
+        "FREIGEGEBEN": [
+          "*"
+        ],
+        "VERSENDET": [
+          "*"
+        ],
+        "ANGENOMMEN": [
+          "*"
+        ],
+        "ABGELEHNT": [
+          "*"
+        ],
+        "ARCHIVIERT": [
+          "*"
+        ]
       },
       "criticalMarkers": {
         "systemTextVsEditingText": {
@@ -99,51 +140,112 @@
           "editingText": "editable_only_when_status=ENTWURF"
         },
         "offerCreateVersionPolicyV12": {
-          "allowedForCreateVersion": ["ENTWURF", "IN_FREIGABE", "FREIGEGEBEN", "VERSENDET"],
-          "blockedForCreateVersion": ["ANGENOMMEN", "ABGELEHNT", "ARCHIVIERT"],
+          "allowedForCreateVersion": [
+            "ENTWURF",
+            "IN_FREIGABE",
+            "FREIGEGEBEN",
+            "VERSENDET"
+          ],
+          "blockedForCreateVersion": [
+            "ANGENOMMEN",
+            "ABGELEHNT",
+            "ARCHIVIERT"
+          ],
           "blockedCode": "FOLLOWUP_DOCUMENT_REQUIRED"
         },
         "immutableLegalAreas": [
           "VERSENDET: keine In-Place-Aenderung der bestehenden Version; Anpassung nur nicht-destruktiv ueber neue Angebotsversion (OFFER_CREATE_VERSION).",
           "ANGENOMMEN: OFFER_CREATE_VERSION gesperrt; Nachtragspfad erfolgt ueber OFFER_CREATE_SUPPLEMENT (POST /offers/{offerId}/supplements)."
         ],
-        "statusLocks": ["only backend-allowed status actions are rendered"]
+        "statusLocks": [
+          "only backend-allowed status actions are rendered"
+        ]
       }
     },
     {
       "moduleId": "supplementLifecycle",
       "entityType": "SUPPLEMENT_VERSION",
-      "requiredFields": ["id", "tenantId", "supplementOfferId", "status", "lvVersionId", "systemText", "editingText"],
-      "immutableFields": ["id", "tenantId", "supplementOfferId", "systemText"],
+      "requiredFields": [
+        "id",
+        "tenantId",
+        "supplementOfferId",
+        "status",
+        "lvVersionId",
+        "systemText",
+        "editingText"
+      ],
+      "immutableFields": [
+        "id",
+        "tenantId",
+        "supplementOfferId",
+        "systemText"
+      ],
       "readonlyByStatus": {
-        "ENTWURF": ["systemText"],
-        "IN_FREIGABE": ["*"],
-        "FREIGEGEBEN": ["*"],
-        "VERSENDET": ["*"],
-        "BEAUFTRAGT": ["*"],
-        "ABGELEHNT": ["*"],
-        "ARCHIVIERT": ["*"]
+        "ENTWURF": [
+          "systemText"
+        ],
+        "IN_FREIGABE": [
+          "*"
+        ],
+        "FREIGEGEBEN": [
+          "*"
+        ],
+        "VERSENDET": [
+          "*"
+        ],
+        "BEAUFTRAGT": [
+          "*"
+        ],
+        "ABGELEHNT": [
+          "*"
+        ],
+        "ARCHIVIERT": [
+          "*"
+        ]
       },
       "criticalMarkers": {
         "offerToSupplementEntry": [
           "OFFER_CREATE_SUPPLEMENT is entered from OFFER_VERSION status ANGENOMMEN via allowedActions SoT.",
           "No local fallback action may be shown if OFFER_CREATE_SUPPLEMENT is absent."
         ],
-        "billingImpactGate": ["before BEAUFTRAGT -> no billing impact API"],
-        "statusLocks": ["only backend-allowed supplement actions are rendered"]
+        "billingImpactGate": [
+          "before BEAUFTRAGT -> no billing impact API"
+        ],
+        "statusLocks": [
+          "only backend-allowed supplement actions are rendered"
+        ]
       }
     },
     {
       "moduleId": "measurementLifecycle",
       "entityType": "MEASUREMENT_VERSION",
-      "requiredFields": ["id", "tenantId", "measurementId", "versionNumber", "status"],
-      "immutableFields": ["id", "tenantId", "measurementId", "versionNumber"],
+      "requiredFields": [
+        "id",
+        "tenantId",
+        "measurementId",
+        "versionNumber",
+        "status"
+      ],
+      "immutableFields": [
+        "id",
+        "tenantId",
+        "measurementId",
+        "versionNumber"
+      ],
       "readonlyByStatus": {
         "ENTWURF": [],
-        "GEPRUEFT": ["*"],
-        "FREIGEGEBEN": ["*"],
-        "ABGERECHNET": ["*"],
-        "ARCHIVIERT": ["*"]
+        "GEPRUEFT": [
+          "*"
+        ],
+        "FREIGEGEBEN": [
+          "*"
+        ],
+        "ABGERECHNET": [
+          "*"
+        ],
+        "ARCHIVIERT": [
+          "*"
+        ]
       },
       "criticalMarkers": {
         "v12_section_5_4": [
@@ -152,18 +254,35 @@
         "traceabilityHead": [
           "Measurement aggregate holds projectId, customerId, lvVersionId for invoice traceability checks."
         ],
-        "statusLocks": ["only backend-allowed measurement actions are rendered; non-current versions => empty allowedActions"]
+        "statusLocks": [
+          "only backend-allowed measurement actions are rendered; non-current versions => empty allowedActions"
+        ]
       }
     },
     {
       "moduleId": "lvCatalogHierarchy",
       "entityType": "LV_VERSION",
-      "requiredFields": ["id", "tenantId", "lvCatalogId", "status", "versionNumber"],
-      "immutableFields": ["id", "tenantId", "lvCatalogId", "versionNumber"],
+      "requiredFields": [
+        "id",
+        "tenantId",
+        "lvCatalogId",
+        "status",
+        "versionNumber"
+      ],
+      "immutableFields": [
+        "id",
+        "tenantId",
+        "lvCatalogId",
+        "versionNumber"
+      ],
       "readonlyByStatus": {
         "ENTWURF": [],
-        "FREIGEGEBEN": ["*"],
-        "ARCHIVIERT": ["*"]
+        "FREIGEGEBEN": [
+          "*"
+        ],
+        "ARCHIVIERT": [
+          "*"
+        ]
       },
       "criticalMarkers": {
         "v12_section_9": [
@@ -174,7 +293,9 @@
         "traceability": [
           "Angebot, Aufmass, Rechnung referenzieren lvVersionId/lvPositionId; LvReferenceValidator prüft Tenant und Versionskonsistenz."
         ],
-        "statusLocks": ["only backend-allowed LV actions; non-current lvVersion => empty allowedActions"]
+        "statusLocks": [
+          "only backend-allowed LV actions; non-current lvVersion => empty allowedActions"
+        ]
       }
     },
     {
@@ -190,19 +311,44 @@
         "offerId",
         "status"
       ],
-      "immutableFields": ["id", "tenantId", "projectId", "customerId", "measurementId", "lvId", "offerId", "immutableFromStatus"],
+      "immutableFields": [
+        "id",
+        "tenantId",
+        "projectId",
+        "customerId",
+        "measurementId",
+        "lvId",
+        "offerId",
+        "immutableFromStatus"
+      ],
       "readonlyByStatus": {
-        "ENTWURF": ["invoiceNumber", "issueDate", "totalGrossCents"],
+        "ENTWURF": [
+          "invoiceNumber",
+          "issueDate",
+          "totalGrossCents"
+        ],
         "GEPRUEFT": [],
         "FREIGEGEBEN": [],
-        "GEBUCHT_VERSENDET": ["*"],
-        "TEILBEZAHLT": ["*"],
-        "BEZAHLT": ["*"],
-        "STORNIERT": ["*"]
+        "GEBUCHT_VERSENDET": [
+          "*"
+        ],
+        "TEILBEZAHLT": [
+          "*"
+        ],
+        "BEZAHLT": [
+          "*"
+        ],
+        "STORNIERT": [
+          "*"
+        ]
       },
       "criticalMarkers": {
-        "immutableLegalAreas": ["status>=GEBUCHT_VERSENDET => immutable legal document core"],
-        "statusLocks": ["export only after backend preflight pass"],
+        "immutableLegalAreas": [
+          "status>=GEBUCHT_VERSENDET => immutable legal document core"
+        ],
+        "statusLocks": [
+          "export only after backend preflight pass"
+        ],
         "invoiceExportSoT": [
           "Kanonische actionId fuer Rechnungsexport: EXPORT_INVOICE (Format XRECHNUNG im POST /exports Body).",
           "Kein EXPORT_INVOICE_XRECHNUNG in allowedActions — Legacy, nicht verwenden."
@@ -212,14 +358,29 @@
     {
       "moduleId": "auditTimeline",
       "entityType": "AUDIT_EVENT_VIEW",
-      "requiredFields": ["id", "entityType", "entityId", "action", "timestamp", "actorUserId"],
-      "immutableFields": ["*"],
+      "requiredFields": [
+        "id",
+        "entityType",
+        "entityId",
+        "action",
+        "timestamp",
+        "actorUserId"
+      ],
+      "immutableFields": [
+        "*"
+      ],
       "readonlyByStatus": {
-        "VIEW": ["*"]
+        "VIEW": [
+          "*"
+        ]
       },
       "criticalMarkers": {
-        "leastPrivilege": ["roles ADMIN|BUCHHALTUNG|GESCHAEFTSFUEHRUNG only"],
-        "dataMinimization": ["beforeState/afterState not exposed in read API"]
+        "leastPrivilege": [
+          "roles ADMIN|BUCHHALTUNG|GESCHAEFTSFUEHRUNG only"
+        ],
+        "dataMinimization": [
+          "beforeState/afterState not exposed in read API"
+        ]
       }
     }
   ],
@@ -230,7 +391,9 @@
       "responseShape": {
         "documentId": "uuid",
         "entityType": "OFFER_VERSION|SUPPLEMENT_VERSION|MEASUREMENT_VERSION|LV_VERSION|LV_STRUCTURE_NODE|LV_POSITION|INVOICE",
-        "allowedActions": ["string"]
+        "allowedActions": [
+          "string"
+        ]
       },
       "uiRule": "Only actions included in allowedActions can be enabled/executed."
     },

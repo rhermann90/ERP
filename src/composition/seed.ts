@@ -28,6 +28,9 @@ export const SEED_IDS = {
   measurementId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb001",
   measurementVersionId: "cccccccc-cccc-4ccc-8ccc-cccccccc0001",
   lvPositionSeedA: "dddddddd-dddd-4ddd-8ddd-dddddddd0001",
+  /** Zusätzliche Seed-Positionen §9 (Hierarchie-API / Tests). */
+  lvPositionSeedB: "dddddddd-dddd-4ddd-8ddd-dddddddd0002",
+  lvPositionSeedC: "dddddddd-dddd-4ddd-8ddd-dddddddd0003",
   lvCatalogId: "fafa0000-0000-4000-8000-000000000001",
   lvBereichId: "ee101010-1010-4101-81ee-101010101010",
   lvTitelId: "ee202020-2020-4202-82ee-202020202020",
@@ -130,6 +133,32 @@ export function seedDemoData(repos: InMemoryRepositories): void {
     kind: "NORMAL",
     systemText: "Positions-Systemtext Seed",
     editingText: "Positions-Bearbeitung Seed",
+  };
+  const lvPositionSeedB: LvPosition = {
+    id: SEED_IDS.lvPositionSeedB,
+    tenantId: SEED_IDS.tenantId,
+    lvVersionId: SEED_IDS.lvVersionId,
+    parentNodeId: SEED_IDS.lvUntertitelId,
+    sortOrdinal: "1.1.1.2",
+    quantity: 1,
+    unit: "Stk",
+    unitPriceCents: 5000,
+    kind: "ALTERNATIV",
+    systemText: "Alternativ-Pos System",
+    editingText: "Alternativ-Pos Bearbeitung",
+  };
+  const lvPositionSeedC: LvPosition = {
+    id: SEED_IDS.lvPositionSeedC,
+    tenantId: SEED_IDS.tenantId,
+    lvVersionId: SEED_IDS.lvVersionId,
+    parentNodeId: SEED_IDS.lvUntertitelId,
+    sortOrdinal: "1.1.1.3",
+    quantity: 0,
+    unit: "Stk",
+    unitPriceCents: 0,
+    kind: "EVENTUAL",
+    systemText: "Eventual-Pos System",
+    editingText: "Eventual-Pos Bearbeitung",
   };
   const measurement: Measurement = {
     id: SEED_IDS.measurementId,
@@ -260,6 +289,8 @@ export function seedDemoData(repos: InMemoryRepositories): void {
   repos.lvStructureNodes.set(lvTitel.id, lvTitel);
   repos.lvStructureNodes.set(lvUntertitel.id, lvUntertitel);
   repos.lvPositions.set(lvPositionSeed.id, lvPositionSeed);
+  repos.lvPositions.set(lvPositionSeedB.id, lvPositionSeedB);
+  repos.lvPositions.set(lvPositionSeedC.id, lvPositionSeedC);
   repos.measurements.set(measurement.id, measurement);
   repos.measurementVersions.set(measurementVersion.id, measurementVersion);
   repos.measurementPositions.set(measurementPosition.id, measurementPosition);

@@ -46,3 +46,4 @@ Read-only **Haupt-Shell**-Panels für weitere `entityType`-Werte (z. B. `LV_VERS
 - `docs/tickets/PHASE-2-STARTAUFTRAG.md`
 - `docs/tickets/PHASE-2-PRIORISIERUNG-INCREMENT-1.md` (Vorgänger)
 - `docs/adr/0004-measurement-lifecycle-phase2-inc1.md` (Kontext Aufmass ↔ LV)
+- `docs/adr/0013-lv-section9-hierarchy-and-text-separation.md` (§9 Hierarchie-Lesepfade, Texttrennung `editableText`)

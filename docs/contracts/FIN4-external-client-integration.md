@@ -40,6 +40,10 @@ Server-zu-Server: Header direkt lesen. **Browser + CORS:** nur sichtbar, wenn di
 
 Vollständige Schemas: `docs/api-contract.yaml`. Mapping: `docs/contracts/finance-fin0-openapi-mapping.md`.
 
+## Neu ab `1.28.1` (Phase 2 — LV §9 Hierarchie-Lesepfad, Contract-Klarstellung)
+
+- **`GET /lv/versions/{lvVersionId}/structure`**, **`GET /lv/versions/{lvVersionId}/positions/{positionId}`:** Projektion wie Snapshot-Knoten/-Positionen (`editingText`); OpenAPI-Schemata **`LvStructureNode`** / **`LvPositionV2`** sind Aliase zu **`LvStructureNodeResource`** / **`LvPositionResource`**. **`LvHierarchySnapshot`** ohne eingebettete `allowedActions` — SoT weiterhin über **`GET /documents/{id}/allowed-actions`**.
+
 ## Neu ab `1.27.0` (Phase 2 — LV §9 Lesepfad)
 
 - **`GET /lv/versions/{lvVersionId}`:** Snapshot mit Katalogkurzinfo (nullable), Version, `structureNodes[]`, `positions[]` — nicht Teil der FIN-4-Pfade; `info.version`-Bump für Integratoren mit gebündeltem OpenAPI.
