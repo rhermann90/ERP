@@ -10,8 +10,11 @@ describe("isFin4OpenApiContractResponsePath", () => {
     expect(isFin4OpenApiContractResponsePath("/finance/dunning-reminder-config")).toBe(true);
     expect(isFin4OpenApiContractResponsePath("/finance/dunning-reminder-run")).toBe(true);
     expect(isFin4OpenApiContractResponsePath("/finance/dunning-reminder-run/send-emails")).toBe(true);
+    expect(isFin4OpenApiContractResponsePath("/finance/dunning-reminder-candidates")).toBe(true);
+    expect(isFin4OpenApiContractResponsePath("/finance/dunning-reminder-candidates?stageOrdinal=1")).toBe(true);
     expect(isFin4OpenApiContractResponsePath("/finance/dunning-email-footer")).toBe(true);
     expect(isFin4OpenApiContractResponsePath("/finance/dunning-email-footer?x=1")).toBe(true);
+    expect(isFin4OpenApiContractResponsePath("/finance/e-invoice-parties/tenant")).toBe(true);
     expect(isFin4OpenApiContractResponsePath("/tenant/pwa-display-settings")).toBe(true);
   });
   it("does not match invoice-scoped dunning routes", () => {

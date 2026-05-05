@@ -52,7 +52,7 @@ export type PaymentIntakeReadRow = {
   createdAt: string;
 };
 
-/** Lesepfad FIN-4 (Stub): Mahn-Ereignisse je Rechnung. */
+/** Lesepfad FIN-4: Mahn-Ereignisse je Rechnung (Leselogik über Repos/Persistenz). */
 export type DunningReminderReadRow = {
   dunningReminderId: UUID;
   stageOrdinal: number;
@@ -405,7 +405,7 @@ export class InvoiceService {
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
-  /** FIN-4 Stub: gleiche Leserolle wie Rechnung; sortiert nach `createdAt`. */
+  /** FIN-4: Mahn-Ereignisse lesen — gleiche Leserolle wie Rechnung; sortiert nach `createdAt`. */
   public listDunningRemindersForInvoiceRead(tenantId: TenantId, invoiceId: UUID): DunningReminderReadRow[] {
     const inv = this.repos.getInvoiceByTenant(tenantId, invoiceId);
     if (!inv) {

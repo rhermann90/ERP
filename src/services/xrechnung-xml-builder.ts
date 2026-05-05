@@ -1,4 +1,4 @@
-import type { Invoice } from "../domain/types.js";
+import type { EInvoicePartySnapshot, Invoice, XrechnungInvoiceXmlContext } from "../domain/types.js";
 import {
   getXrechnungInvoiceTaxSemantics,
   parseFin5InvoiceTaxRegimeOrUndefined,
@@ -25,11 +25,94 @@ function eurFromCents(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
+function renderPartyTaxScheme(vatId: string | undefined): string {
+  if (!vatId) return "";
+  return `<cac:PartyTaxScheme>
+      <cbc:CompanyID schemeID="VA">${escapeXmlText(vatId)}</cbc:CompanyID>
+      <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>
+    </cac:PartyTaxScheme>`;
+}
+
+function renderPartyLegalEntity(p: EInvoicePartySnapshot): string {
+  if (!p.companyId) return "";
+  const scheme = p.companyIdSchemeId ? ` schemeID="${escapeXmlText(p.companyIdSchemeId)}"` : "";
+  return `<cac:PartyLegalEntity>
+      <cbc:RegistrationName>${escapeXmlText(p.legalName)}</cbc:RegistrationName>
+      <cbc:CompanyID${scheme}>${escapeXmlText(p.companyId)}</cbc:CompanyID>
+    </cac:PartyLegalEntity>`;
+}
+
+function renderContact(email: string | undefined): string {
+  if (!email) return "";
+  return `<cac:Contact>
+      <cbc:ElectronicMail>${escapeXmlText(email)}</cbc:ElectronicMail>
+    </cac:Contact>`;
+}
+
+function renderAccountingSupplierParty(p: EInvoicePartySnapshot): string {
+  const tax = renderPartyTaxScheme(p.vatId);
+  const legal = renderPartyLegalEntity(p);
+  const contact = renderContact(p.email);
+  const legalOrName =
+    legal ||
+    `<cac:PartyLegalEntity>
+      <cbc:RegistrationName>${escapeXmlText(p.legalName)}</cbc:RegistrationName>
+    </cac:PartyLegalEntity>`;
+  return `<cac:AccountingSupplierParty>
+    <cac:Party>
+      <cac:PartyName><cbc:Name>${escapeXmlText(p.legalName)}</cbc:Name></cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>${escapeXmlText(p.streetName)}</cbc:StreetName>
+        <cbc:CityName>${escapeXmlText(p.cityName)}</cbc:CityName>
+        <cbc:PostalZone>${escapeXmlText(p.postalZone)}</cbc:PostalZone>
+        <cac:Country><cbc:IdentificationCode>${escapeXmlText(p.countryCode)}</cbc:IdentificationCode></cac:Country>
+      </cac:PostalAddress>
+      ${tax}
+      ${legalOrName}
+      ${contact}
+    </cac:Party>
+  </cac:AccountingSupplierParty>`;
+}
+
+function renderAccountingCustomerParty(p: EInvoicePartySnapshot, buyerEndpointId: string): string {
+  const tax = renderPartyTaxScheme(p.vatId);
+  const legal = renderPartyLegalEntity(p);
+  const contact = renderContact(p.email);
+  const legalOrName =
+    legal ||
+    `<cac:PartyLegalEntity>
+      <cbc:RegistrationName>${escapeXmlText(p.legalName)}</cbc:RegistrationName>
+    </cac:PartyLegalEntity>`;
+  return `<cac:AccountingCustomerParty>
+    <cac:Party>
+      <cac:PartyIdentification><cbc:ID>${escapeXmlText(buyerEndpointId)}</cbc:ID></cac:PartyIdentification>
+      <cac:PartyName><cbc:Name>${escapeXmlText(p.legalName)}</cbc:Name></cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>${escapeXmlText(p.streetName)}</cbc:StreetName>
+        <cbc:CityName>${escapeXmlText(p.cityName)}</cbc:CityName>
+        <cbc:PostalZone>${escapeXmlText(p.postalZone)}</cbc:PostalZone>
+        <cac:Country><cbc:IdentificationCode>${escapeXmlText(p.countryCode)}</cbc:IdentificationCode></cac:Country>
+      </cac:PostalAddress>
+      ${tax}
+      ${legalOrName}
+      ${contact}
+    </cac:Party>
+  </cac:AccountingCustomerParty>`;
+}
+
+/** FIN-1 `terms_label` als freien Zahlungsbedingungstext (ohne dediziertes Bankkonto im Datenmodell). */
+function renderPaymentTermsNote(note: string | undefined): string {
+  if (!note) return "";
+  return `<cac:PaymentTerms>
+    <cbc:Note>${escapeXmlText(note)}</cbc:Note>
+  </cac:PaymentTerms>`;
+}
+
 /**
- * Minimal UBL 2.1 Invoice-XML fuer XRechnung-Pfad (FIN-5 Paket C).
- * Kein vollstaendiger Validator-Ersatz; Snapshot- und Substring-Tests im Repo.
+ * UBL 2.1 Invoice-XML für XRechnung-Pfad (FIN-5 Paket C).
+ * Stammdaten aus `context`; keine vollständige Validator-Ersatzfunktion.
  */
-export function buildXrechnungInvoiceXml(invoice: Invoice): string {
+export function buildXrechnungInvoiceXml(invoice: Invoice, context: XrechnungInvoiceXmlContext): string {
   const regime = parseFin5InvoiceTaxRegimeOrUndefined(invoice.invoiceTaxRegime);
   if (!regime) {
     throw new Error("buildXrechnungInvoiceXml: regime not mapped");
@@ -72,6 +155,10 @@ export function buildXrechnungInvoiceXml(invoice: Invoice): string {
         <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>
       </cac:ClassifiedTaxCategory>`;
 
+  const supplierXml = renderAccountingSupplierParty(context.seller);
+  const customerXml = renderAccountingCustomerParty(context.buyer, invoice.customerId);
+  const paymentBlock = renderPaymentTermsNote(context.paymentTermsNote);
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice xmlns="${NS_INVOICE}" xmlns:cac="${NS_CAC}" xmlns:cbc="${NS_CBC}">
   <cbc:UBLVersionID>2.1</cbc:UBLVersionID>
@@ -82,26 +169,9 @@ export function buildXrechnungInvoiceXml(invoice: Invoice): string {
   <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>
   <cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>
   ${notes}
-  <cac:AccountingSupplierParty>
-    <cac:Party>
-      <cac:PartyName><cbc:Name>Seed-Unternehmen (Demo)</cbc:Name></cac:PartyName>
-      <cac:PostalAddress>
-        <cbc:StreetName>Seed-Strasse 1</cbc:StreetName>
-        <cbc:CityName>Berlin</cbc:CityName>
-        <cbc:PostalZone>10115</cbc:PostalZone>
-        <cac:Country><cbc:IdentificationCode>DE</cbc:IdentificationCode></cac:Country>
-      </cac:PostalAddress>
-    </cac:Party>
-  </cac:AccountingSupplierParty>
-  <cac:AccountingCustomerParty>
-    <cac:Party>
-      <cac:PartyIdentification><cbc:ID>${escapeXmlText(invoice.customerId)}</cbc:ID></cac:PartyIdentification>
-      <cac:PartyName><cbc:Name>Seed-Kunde (Demo)</cbc:Name></cac:PartyName>
-      <cac:PostalAddress>
-        <cac:Country><cbc:IdentificationCode>DE</cbc:IdentificationCode></cac:Country>
-      </cac:PostalAddress>
-    </cac:Party>
-  </cac:AccountingCustomerParty>
+  ${supplierXml}
+  ${customerXml}
+  ${paymentBlock}
   <cac:TaxTotal>
     <cbc:TaxAmount currencyID="EUR">${eurFromCents(vat)}</cbc:TaxAmount>
     ${taxSubtotal}

@@ -19,7 +19,9 @@ import {
   OfferVersion,
   SupplementOffer,
   SupplementVersion,
+  CustomerEInvoicePartyRow,
   ProjectInvoiceTaxOverride,
+  TenantEInvoicePartyRow,
   TenantInvoiceTaxProfile,
   TenantId,
   TraceabilityLink,
@@ -54,6 +56,10 @@ export class InMemoryRepositories {
 
   /** FIN-5: ein Profil je Mandant (Postgres `tenant_invoice_tax_profiles`). */
   public tenantInvoiceTaxProfiles = new Map<TenantId, TenantInvoiceTaxProfile>();
+  /** XRechnung Seller-Stammdaten je Mandant (`tenant_e_invoice_parties`). */
+  public tenantEInvoiceParties = new Map<TenantId, TenantEInvoicePartyRow>();
+  /** XRechnung Buyer-Stammdaten; Schlüssel `${tenantId}:${customerId}` (`customer_e_invoice_parties`). */
+  public customerEInvoiceParties = new Map<string, CustomerEInvoicePartyRow>();
   /** Schlüssel `${tenantId}:${projectId}` → Override */
   public projectInvoiceTaxOverrides = new Map<string, ProjectInvoiceTaxOverride>();
 
@@ -63,6 +69,34 @@ export class InMemoryRepositories {
 
   public putTenantInvoiceTaxProfile(profile: TenantInvoiceTaxProfile): void {
     this.tenantInvoiceTaxProfiles.set(profile.tenantId, profile);
+  }
+
+  public getTenantEInvoiceParty(tenantId: TenantId): TenantEInvoicePartyRow | undefined {
+    return this.tenantEInvoiceParties.get(tenantId);
+  }
+
+  public putTenantEInvoiceParty(row: TenantEInvoicePartyRow): void {
+    this.tenantEInvoiceParties.set(row.tenantId, row);
+  }
+
+  public getCustomerEInvoiceParty(tenantId: TenantId, customerId: UUID): CustomerEInvoicePartyRow | undefined {
+    return this.customerEInvoiceParties.get(`${tenantId}:${customerId}`);
+  }
+
+  public putCustomerEInvoiceParty(row: CustomerEInvoicePartyRow): void {
+    this.customerEInvoiceParties.set(`${row.tenantId}:${row.customerId}`, row);
+  }
+
+  public deleteTenantEInvoiceParty(tenantId: TenantId): void {
+    this.tenantEInvoiceParties.delete(tenantId);
+  }
+
+  public deleteCustomerEInvoiceParty(tenantId: TenantId, customerId: UUID): void {
+    this.customerEInvoiceParties.delete(`${tenantId}:${customerId}`);
+  }
+
+  public listCustomerEInvoicePartiesForTenant(tenantId: TenantId): CustomerEInvoicePartyRow[] {
+    return [...this.customerEInvoiceParties.values()].filter((r) => r.tenantId === tenantId);
   }
 
   public getProjectInvoiceTaxOverride(tenantId: TenantId, projectId: UUID): ProjectInvoiceTaxOverride | undefined {
@@ -293,6 +327,17 @@ export class InMemoryRepositories {
 
   public putPaymentTermsVersion(version: PaymentTermsVersion): void {
     this.paymentTermsVersions.set(version.id, version);
+  }
+
+  /** Höchste `versionNumber` zum Projekt-Kopf (FIN-1); nur tenant-scope. */
+  public getLatestPaymentTermsVersionForProject(tenantId: TenantId, projectId: UUID): PaymentTermsVersion | undefined {
+    const head = this.getPaymentTermsHeadByTenantProject(tenantId, projectId);
+    if (!head) return undefined;
+    const versions = [...this.paymentTermsVersions.values()].filter(
+      (v) => v.tenantId === tenantId && v.headId === head.id,
+    );
+    if (versions.length === 0) return undefined;
+    return versions.reduce((a, b) => (a.versionNumber >= b.versionNumber ? a : b));
   }
 
 }

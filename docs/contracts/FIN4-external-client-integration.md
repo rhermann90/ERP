@@ -63,6 +63,7 @@ Vollständige Schemas: `docs/api-contract.yaml`. Mapping: `docs/contracts/financ
 ## Neu ab `1.29.2` (FIN-5 Paket C — XRechnung-XML je Regime)
 
 - **`POST /exports`** mit **`entityType=INVOICE`** und **`format=XRECHNUNG`:** erfolgreiche **201**-Antwort nutzt Schema **`ExportRun`** und kann **`xrechnungXml`** (UBL 2.1, UTF-8) enthalten — technische Abbildung der Steuerregime siehe [`xrechnung-tax-regime-mapping.md`](./xrechnung-tax-regime-mapping.md). Fehlercode **`EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED`** nur noch bei Rechnungen mit Regime-String ausserhalb der geschlossenen FIN-5-Enum.
+- Pflicht: persistierter **Seller** (`tenant_e_invoice_parties`); bei Fehlen **`XRECHNUNG_SELLER_PARTY_MISSING`** in `details.validationErrors`. **Buyer** optional (`customer_e_invoice_parties`); sonst dokumentierter Platzhalter im XML. Profil-/Pflichtfeld-Gap-Liste: [`xrechnung-profile-scope-and-gaps.md`](./xrechnung-profile-scope-and-gaps.md).
 
 ## Neu ab `1.28.2` (Phase 2 — LV §9 Einzelknoten-Lesepfad)
 
@@ -105,4 +106,10 @@ Vollständige Schemas: `docs/api-contract.yaml`. Mapping: `docs/contracts/financ
 ## Entfernt (kein technischer Ersatz im Produktcode)
 
 Hintergrund-Cron und Mandantenmodus **AUTO** — [`docs/adr/0011-fin4-semi-dunning-context.md`](../adr/0011-fin4-semi-dunning-context.md); Archiv-Hinweis [`docs/runbooks/dunning-automation-cron.md`](../runbooks/dunning-automation-cron.md).
+
+## Neu ab `1.29.4` (XRechnung Seller/Buyer Stammdaten API)
+
+- **`GET|PUT|DELETE /finance/e-invoice-parties/tenant`**: Mandanten-Seller für XRechnung (`tenant_e_invoice_parties`). Lesen wie Steuerprofil; Schreiben wie `MANAGE_INVOICE_TAX_SETTINGS`. Ohne Seller verbleibt **`XRECHNUNG_SELLER_PARTY_MISSING`** beim Export.
+- **`GET /finance/e-invoice-parties/customers`**, **`GET|PUT|DELETE /finance/e-invoice-parties/customers/{customerId}`**: optionale Buyer-Stammdaten (`customer_e_invoice_parties`). Ohne Eintrag nutzt der Export den dokumentierten Platzhalter im XML.
+- Contract-Header **`x-erp-openapi-contract-version`** wie bei anderen FIN-Leitpfaden.
 

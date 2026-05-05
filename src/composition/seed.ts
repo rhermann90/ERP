@@ -209,6 +209,7 @@ export function seedDemoData(repos: InMemoryRepositories): void {
     skontoBps: 0,
     invoiceTaxRegime: "STANDARD_VAT_19",
     vatRateBpsEffective: 1900,
+    paymentTermsVersionId: SEED_IDS.paymentTermsVersionId,
   };
   const draftInvoice: Invoice = {
     id: SEED_IDS.draftInvoiceId,
@@ -329,6 +330,27 @@ export function seedDemoData(repos: InMemoryRepositories): void {
   repos.putTenantInvoiceTaxProfile({
     tenantId: SEED_IDS.tenantId,
     defaultInvoiceTaxRegime: "STANDARD_VAT_19",
+  });
+  repos.putTenantEInvoiceParty({
+    tenantId: SEED_IDS.tenantId,
+    legalName: "Seed-Unternehmen GmbH",
+    streetName: "Seed-Strasse 1",
+    cityName: "Berlin",
+    postalZone: "10115",
+    countryCode: "DE",
+    vatId: "DE999999999",
+    email: "buchhaltung@seed-unternehmen.example",
+  });
+  repos.putCustomerEInvoiceParty({
+    tenantId: SEED_IDS.tenantId,
+    customerId: SEED_IDS.customerId,
+    legalName: "Seed-Kunde GmbH",
+    streetName: "Kundenallee 7",
+    cityName: "München",
+    postalZone: "80331",
+    countryCode: "DE",
+    vatId: "DE888888888",
+    email: "einkauf@seed-kunde.example",
   });
   repos.traceabilityLinks.set(invoice.id, {
     tenantId: SEED_IDS.tenantId,

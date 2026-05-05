@@ -165,6 +165,13 @@ export type LvVersionSnapshot = {
   }>;
 };
 
+/** Antwort `GET /lv/versions/:lvVersionId/structure` (§9-Projektion ohne Katalog/Versionskopf). */
+export type LvHierarchySnapshot = {
+  lvVersionId: string;
+  structureNodes: LvVersionSnapshot["structureNodes"];
+  positions: LvVersionSnapshot["positions"];
+};
+
 /** FIN-5 §8.16 — effektives Regime auf der Rechnung (Server-Snapshot). */
 export type InvoiceTaxRegimeApi =
   | "STANDARD_VAT_19"
@@ -232,6 +239,40 @@ export type ProjectInvoiceTaxOverrideRead = {
   construction13bConfig?: Record<string, unknown>;
 };
 
+/** XRechnung UBL Party (Seller/Buyer), siehe OpenAPI `EInvoicePartySnapshot`. */
+export type EInvoicePartySnapshot = {
+  legalName: string;
+  streetName: string;
+  cityName: string;
+  postalZone: string;
+  countryCode: string;
+  vatId?: string;
+  companyId?: string;
+  companyIdSchemeId?: string;
+  email?: string;
+};
+
+/** Antwort `GET /finance/e-invoice-parties/tenant`. */
+export type TenantEInvoicePartyReadResponse = {
+  configured: boolean;
+  party: EInvoicePartySnapshot | null;
+};
+
+/** Zeile in `GET /finance/e-invoice-parties/customers`. */
+export type CustomerEInvoicePartyListRow = EInvoicePartySnapshot & { customerId: string };
+
+/** Antwort `GET /finance/e-invoice-parties/customers`. */
+export type CustomerEInvoicePartyListResponse = {
+  customers: CustomerEInvoicePartyListRow[];
+};
+
+/** Antwort `GET /finance/e-invoice-parties/customers/:customerId`. */
+export type CustomerEInvoicePartyReadResponse = {
+  configured: boolean;
+  customerId: string;
+  party: EInvoicePartySnapshot | null;
+};
+
 /** Antwort `POST /finance/payments/intake` (FIN-3). */
 export type PaymentIntakeRecordResponse = {
   replay?: boolean;
@@ -251,7 +292,7 @@ export type PaymentIntakeReadRow = {
   createdAt: string;
 };
 
-/** Zeile `GET /invoices/:invoiceId/dunning-reminders` (FIN-4 Stub). */
+/** Zeile `GET /invoices/:invoiceId/dunning-reminders` (FIN-4 Lesepfad, gebuchte Mahn-Ereignisse). */
 export type DunningReminderReadRow = {
   dunningReminderId: string;
   stageOrdinal: number;
@@ -405,6 +446,7 @@ export type ApiClient = {
   getAllowedActions(documentId: string, entityType: string): Promise<AllowedActionsResponse>;
   getOfferVersion(offerVersionId: string): Promise<OfferVersionDetail>;
   getLvVersionSnapshot(lvVersionId: string): Promise<LvVersionSnapshot>;
+  getLvVersionStructure(lvVersionId: string): Promise<LvHierarchySnapshot>;
   getMeasurementVersion(measurementVersionId: string): Promise<unknown>;
   getSupplementVersion(supplementVersionId: string): Promise<unknown>;
   getPaymentTermsByProject(projectId: string): Promise<unknown>;
@@ -515,6 +557,9 @@ export type ApiClient = {
     },
   ): Promise<{ projectId: string; invoiceTaxRegime: InvoiceTaxRegimeApi }>;
   deleteProjectInvoiceTaxOverride(projectId: string, body: { reason: string }): Promise<void>;
+  getTenantEInvoiceParty(): Promise<TenantEInvoicePartyReadResponse>;
+  listCustomerEInvoiceParties(): Promise<CustomerEInvoicePartyListResponse>;
+  getCustomerEInvoiceParty(customerId: string): Promise<CustomerEInvoicePartyReadResponse>;
   getAuditEvents(page?: number, pageSize?: number): Promise<AuditEventsListResponse>;
 };
 
@@ -580,6 +625,13 @@ export function createApiClient(options: {
     getLvVersionSnapshot(lvVersionId) {
       assertUuidKey(lvVersionId.trim(), "lvVersionId");
       return requestJson<LvVersionSnapshot>("GET", `/lv/versions/${encodeURIComponent(lvVersionId.trim())}`);
+    },
+    getLvVersionStructure(lvVersionId) {
+      assertUuidKey(lvVersionId.trim(), "lvVersionId");
+      return requestJson<LvHierarchySnapshot>(
+        "GET",
+        `/lv/versions/${encodeURIComponent(lvVersionId.trim())}/structure`,
+      );
     },
     getMeasurementVersion(measurementVersionId) {
       return requestJson("GET", `/measurements/${encodeURIComponent(measurementVersionId)}`);
@@ -832,6 +884,20 @@ export function createApiClient(options: {
         "DELETE",
         `/finance/invoice-tax-profile/projects/${encodeURIComponent(id)}`,
         body,
+      );
+    },
+    getTenantEInvoiceParty() {
+      return requestJson<TenantEInvoicePartyReadResponse>("GET", "/finance/e-invoice-parties/tenant");
+    },
+    listCustomerEInvoiceParties() {
+      return requestJson<CustomerEInvoicePartyListResponse>("GET", "/finance/e-invoice-parties/customers");
+    },
+    getCustomerEInvoiceParty(customerId) {
+      const id = customerId.trim();
+      assertUuidKey(id, "customerId");
+      return requestJson<CustomerEInvoicePartyReadResponse>(
+        "GET",
+        `/finance/e-invoice-parties/customers/${encodeURIComponent(id)}`,
       );
     },
     getAuditEvents(page = 1, pageSize = 15) {

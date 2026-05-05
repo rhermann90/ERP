@@ -1,7 +1,28 @@
 import { describe, expect, it } from "vitest";
 import type { InvoiceTaxRegime } from "../src/domain/invoice-tax-regime.js";
-import type { Invoice } from "../src/domain/types.js";
+import type { Invoice, XrechnungInvoiceXmlContext } from "../src/domain/types.js";
 import { buildXrechnungInvoiceXml } from "../src/services/xrechnung-xml-builder.js";
+
+const snapshotContext: XrechnungInvoiceXmlContext = {
+  seller: {
+    legalName: "Snapshot GmbH",
+    streetName: "Testweg 1",
+    cityName: "Berlin",
+    postalZone: "10115",
+    countryCode: "DE",
+    vatId: "DE111111111",
+    email: "snap@example.org",
+  },
+  buyer: {
+    legalName: "Kunde AG",
+    streetName: "Käuferstr. 2",
+    cityName: "Hamburg",
+    postalZone: "20095",
+    countryCode: "DE",
+    vatId: "DE222222222",
+  },
+  paymentTermsNote: "14 Tage netto",
+};
 
 function testInvoice(regime: InvoiceTaxRegime, amounts: { net: number; vat: number; gross: number; vatBps: number }): Invoice {
   return {
@@ -31,6 +52,7 @@ describe("buildXrechnungInvoiceXml (FIN-5 Paket C)", () => {
     expect(
       buildXrechnungInvoiceXml(
         testInvoice("STANDARD_VAT_19", { net: 10_000, vat: 1900, gross: 11_900, vatBps: 1900 }),
+        snapshotContext,
       ),
     ).toMatchSnapshot();
   });
@@ -39,6 +61,7 @@ describe("buildXrechnungInvoiceXml (FIN-5 Paket C)", () => {
     expect(
       buildXrechnungInvoiceXml(
         testInvoice("SMALL_BUSINESS_19", { net: 10_000, vat: 0, gross: 10_000, vatBps: 0 }),
+        snapshotContext,
       ),
     ).toMatchSnapshot();
   });
@@ -47,6 +70,7 @@ describe("buildXrechnungInvoiceXml (FIN-5 Paket C)", () => {
     expect(
       buildXrechnungInvoiceXml(
         testInvoice("REVERSE_CHARGE", { net: 10_000, vat: 0, gross: 10_000, vatBps: 0 }),
+        snapshotContext,
       ),
     ).toMatchSnapshot();
   });
@@ -55,6 +79,7 @@ describe("buildXrechnungInvoiceXml (FIN-5 Paket C)", () => {
     expect(
       buildXrechnungInvoiceXml(
         testInvoice("CONSTRUCTION_13B", { net: 10_000, vat: 0, gross: 10_000, vatBps: 0 }),
+        snapshotContext,
       ),
     ).toMatchSnapshot();
   });

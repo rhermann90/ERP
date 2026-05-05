@@ -728,7 +728,7 @@
         "STORNIERT"
       ],
       "validationSchema": {
-        "endpoint": "PATCH /finance/invoice-tax-profile | PUT /finance/invoice-tax-profile/projects/{projectId} | DELETE /finance/invoice-tax-profile/projects/{projectId}",
+        "endpoint": "PATCH /finance/invoice-tax-profile | PUT /finance/invoice-tax-profile/projects/{projectId} | DELETE /finance/invoice-tax-profile/projects/{projectId} | PUT|DELETE /finance/e-invoice-parties/tenant | PUT|DELETE /finance/e-invoice-parties/customers/{customerId}",
         "requiredFields": [
           "reason"
         ],
@@ -751,7 +751,8 @@
         "source": "AuthorizationService.assertCanManageInvoiceTaxSettings + allowedInvoiceActionsByStatus",
         "sourceOfTruthEndpoint": "GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE",
         "canonicalActionId": "MANAGE_INVOICE_TAX_SETTINGS"
-      }
+      },
+      "endpoint": ""
     },
     {
       "actionId": "EXPORT_OFFER_VERSION",

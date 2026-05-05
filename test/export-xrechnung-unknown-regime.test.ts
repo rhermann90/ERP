@@ -36,3 +36,28 @@ describe("ExportService XRechnung — unbekanntes Steuerregime", () => {
     });
   });
 });
+
+describe("ExportService XRechnung — Seller-Stammdaten", () => {
+  it("liefert XRECHNUNG_SELLER_PARTY_MISSING ohne tenant_e_invoice_party", async () => {
+    const repos = new InMemoryRepositories();
+    seedDemoData(repos);
+    repos.tenantEInvoiceParties.delete(SEED_IDS.tenantId);
+
+    const exportService = new ExportService(repos, new AuditService(repos, null));
+    await expect(
+      exportService.prepareExport({
+        tenantId: SEED_IDS.tenantId,
+        format: "XRECHNUNG",
+        entityType: "INVOICE",
+        entityId: SEED_IDS.invoiceId,
+        actorUserId: SEED_IDS.seedAdminUserId,
+      }),
+    ).rejects.toSatisfy((e: unknown) => {
+      if (!(e instanceof DomainError)) return false;
+      if (e.code !== "EXPORT_PREFLIGHT_FAILED") return false;
+      const ve = e.details?.validationErrors as string[] | undefined;
+      return Array.isArray(ve) && ve.includes("XRECHNUNG_SELLER_PARTY_MISSING");
+    });
+  });
+});
+

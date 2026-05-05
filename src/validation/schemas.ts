@@ -91,6 +91,31 @@ export const deleteProjectInvoiceTaxOverrideSchema = z.object({
   reason: z.string().min(5),
 });
 
+/** XRechnung Seller/Buyer Stammdaten (UBL Party). */
+const eInvoicePartyFieldsSchema = z.object({
+  legalName: z.string().min(1).max(512),
+  streetName: z.string().min(1).max(512),
+  cityName: z.string().min(1).max(256),
+  postalZone: z.string().min(1).max(32),
+  countryCode: z.string().length(2).transform((s) => s.toUpperCase()),
+  vatId: z.string().max(64).optional(),
+  companyId: z.string().max(128).optional(),
+  companyIdSchemeId: z.string().max(64).optional(),
+  email: z.string().email().max(320).optional(),
+});
+
+export const putTenantEInvoicePartySchema = eInvoicePartyFieldsSchema.extend({
+  reason: z.string().min(5),
+});
+
+export const putCustomerEInvoicePartySchema = eInvoicePartyFieldsSchema.extend({
+  reason: z.string().min(5),
+});
+
+export const deleteEInvoicePartySchema = z.object({
+  reason: z.string().min(5),
+});
+
 /** FIN-4: manuelles Mahn-Ereignis protokollieren (kein E-Mail-/Lauf). */
 export const createDunningReminderSchema = z.object({
   stageOrdinal: z.number().int().min(1).max(9),

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  SEED_CUSTOMER_ID,
   SEED_INVOICE_ID,
   SEED_LV_VERSION_ID,
   SEED_MEASUREMENT_ID,
@@ -28,6 +29,13 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await expect(page.getByTestId("lv-shell-detail")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("lv-shell-detail")).toContainText("structureNodes");
     await expect(page.getByTestId("lv-shell-detail")).toContainText(SEED_LV_VERSION_ID);
+
+    await page.getByTestId("shell-lv-structure-fetch").click();
+    await expect(page.getByRole("heading", { name: /Antwort GET \/lv\/versions\/.+\/structure/ })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("shell-lv-structure-json")).toContainText('"lvVersionId"');
+    await expect(page.getByTestId("shell-lv-structure-json")).toContainText(SEED_LV_VERSION_ID);
   });
 
   test("Haupt-Shell: GET /finance/dunning-reminder-config (read-only)", async ({ page }) => {
@@ -69,6 +77,11 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await page.getByTestId("shell-dunning-automation-fetch").click();
     await expect(page.getByTestId("shell-dunning-automation-json")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("shell-dunning-automation-json")).toContainText("runMode");
+
+    await page.getByTestId("shell-dunning-candidates-fetch").click();
+    await expect(page.getByTestId("shell-dunning-candidates-json")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("shell-dunning-candidates-json")).toContainText("eligibilityContext");
+    await expect(page.getByTestId("shell-dunning-candidates-json")).toContainText("candidates");
   });
 
   test("Haupt-Shell: OFFER_VERSION GET-Detail", async ({ page }) => {
@@ -134,6 +147,52 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
       timeout: 15_000,
     });
     await expect(page.getByTestId("shell-invoice-allowed-actions-json")).toContainText("allowedActions");
+
+    await page.getByTestId("shell-invoice-e-invoice-tenant-fetch").click();
+    await expect(page.getByRole("heading", { name: "Antwort GET /finance/e-invoice-parties/tenant" })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("shell-invoice-e-invoice-tenant-json")).toContainText('"configured"');
+
+    await page.getByTestId("shell-invoice-e-invoice-customers-fetch").click();
+    await expect(page.getByRole("heading", { name: "Antwort GET /finance/e-invoice-parties/customers" })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("shell-invoice-e-invoice-customers-json")).toContainText('"customers"');
+
+    await page.getByTestId("shell-invoice-e-invoice-buyer-fetch").click();
+    await expect(
+      page.getByRole("heading", { name: "Antwort GET /finance/e-invoice-parties/customers/{customerId}" }),
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("shell-invoice-e-invoice-buyer-json")).toContainText(SEED_CUSTOMER_ID);
+
+    await page.getByTestId("shell-invoice-invoice-tax-profile-fetch").click();
+    await expect(page.getByRole("heading", { name: "Antwort GET /finance/invoice-tax-profile (Mandant)" })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("shell-invoice-invoice-tax-profile-json")).toContainText("defaultInvoiceTaxRegime");
+
+    await page.getByTestId("shell-invoice-project-tax-override-fetch").click();
+    await expect(
+      page.getByRole("heading", {
+        name: new RegExp(`Antwort GET /finance/invoice-tax-profile/projects/${SEED_PROJECT_ID}`),
+      }),
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("shell-invoice-project-tax-override-json")).toContainText(SEED_PROJECT_ID);
+
+    await page.getByTestId("shell-invoice-lv-version-fetch").click();
+    await expect(
+      page.getByRole("heading", { name: new RegExp(`Antwort GET /lv/versions/${SEED_LV_VERSION_ID}`) }),
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("shell-invoice-lv-version-json")).toContainText(SEED_LV_VERSION_ID);
+    await expect(page.getByTestId("shell-invoice-lv-version-json")).toContainText("structureNodes");
+
+    await page.getByTestId("shell-invoice-audit-events-fetch").click();
+    await expect(page.getByRole("heading", { name: "Antwort GET /audit-events (Seite 1)" })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("shell-invoice-audit-events-json")).toContainText('"data"');
+    await expect(page.getByTestId("shell-invoice-audit-events-json")).toContainText('"total"');
   });
 
   test("Haupt-Shell: MEASUREMENT_VERSION GET-Detail", async ({ page }) => {

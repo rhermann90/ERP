@@ -1,16 +1,55 @@
 import { randomUUID } from "node:crypto";
 import { DomainError } from "../errors/domain-error.js";
 import { isFin5InvoiceTaxRegimeMappedForXrechnung } from "../domain/xrechnung-invoice-tax-mapping.js";
-import { ExportFormat, ExportRun, Invoice, TenantId, UserId, UUID } from "../domain/types.js";
+import {
+  EInvoicePartySnapshot,
+  ExportFormat,
+  ExportRun,
+  Invoice,
+  TenantId,
+  UserId,
+  UUID,
+  XrechnungInvoiceXmlContext,
+} from "../domain/types.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import { AuditService } from "./audit-service.js";
 import { buildXrechnungInvoiceXml } from "./xrechnung-xml-builder.js";
+
+function buyerEInvoicePartyFallback(): EInvoicePartySnapshot {
+  return {
+    legalName: "Kunde — Stammdaten nicht gepflegt",
+    streetName: "—",
+    cityName: "—",
+    postalZone: "00000",
+    countryCode: "DE",
+  };
+}
 
 export class ExportService {
   constructor(
     private readonly repos: InMemoryRepositories,
     private readonly auditService: AuditService,
   ) {}
+
+  private buildXrechnungXmlContext(invoice: Invoice): XrechnungInvoiceXmlContext {
+    const sellerRow = this.repos.getTenantEInvoiceParty(invoice.tenantId);
+    if (!sellerRow) {
+      throw new Error("buildXrechnungXmlContext: seller missing (preflight should block)");
+    }
+    const buyerRow = this.repos.getCustomerEInvoiceParty(invoice.tenantId, invoice.customerId);
+    const buyer: EInvoicePartySnapshot = buyerRow ?? buyerEInvoicePartyFallback();
+    let paymentTermsNote: string | undefined;
+    if (invoice.paymentTermsVersionId) {
+      const v = this.repos.getPaymentTermsVersionByTenant(invoice.tenantId, invoice.paymentTermsVersionId);
+      paymentTermsNote = v?.termsLabel;
+    }
+    if (!paymentTermsNote) {
+      const latest = this.repos.getLatestPaymentTermsVersionForProject(invoice.tenantId, invoice.projectId);
+      paymentTermsNote = latest?.termsLabel;
+    }
+    const { tenantId: _sellerTenantId, ...seller } = sellerRow;
+    return { seller, buyer, paymentTermsNote };
+  }
 
   public async prepareExport(input: {
     tenantId: TenantId;
@@ -64,6 +103,9 @@ export class ExportService {
         if (!isFin5InvoiceTaxRegimeMappedForXrechnung(invoice.invoiceTaxRegime)) {
           validationErrors.push("EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED");
         }
+        if (!this.repos.getTenantEInvoiceParty(invoice.tenantId)) {
+          validationErrors.push("XRECHNUNG_SELLER_PARTY_MISSING");
+        }
       }
     }
     if (input.entityType === "SUPPLEMENT_VERSION") {
@@ -87,7 +129,7 @@ export class ExportService {
       input.entityType === "INVOICE" &&
       input.format === "XRECHNUNG" &&
       invoiceForXml
-        ? buildXrechnungInvoiceXml(invoiceForXml)
+        ? buildXrechnungInvoiceXml(invoiceForXml, this.buildXrechnungXmlContext(invoiceForXml))
         : undefined;
 
     const run: ExportRun = {
