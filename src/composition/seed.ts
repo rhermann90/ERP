@@ -23,6 +23,8 @@ export const SEED_IDS = {
   offerVersionId: "33333333-3333-4333-8333-333333333333",
   invoiceId: "44444444-4444-4444-8444-444444444444",
   draftInvoiceId: "55555555-5555-4555-8555-555555555555",
+  /** ENTWURF mit SMALL_BUSINESS_19 — Pflicht-Hinweiszeilen ≠ leer (FIN-5 Paket B / E2E). */
+  invoiceDraftSmallBusinessId: "57575757-5757-4575-8575-575757575757",
   inconsistentInvoiceId: "66666666-6666-4666-8666-666666666666",
   lvVersionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001",
   measurementId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb001",
@@ -226,6 +228,24 @@ export function seedDemoData(repos: InMemoryRepositories): void {
     invoiceTaxRegime: "STANDARD_VAT_19",
     vatRateBpsEffective: 1900,
   };
+  const draftInvoiceSmallBusiness: Invoice = {
+    id: SEED_IDS.invoiceDraftSmallBusinessId,
+    tenantId: SEED_IDS.tenantId,
+    projectId: offer.projectId,
+    customerId: offer.customerId,
+    measurementId: SEED_IDS.measurementId,
+    lvId: SEED_IDS.lvVersionId,
+    offerId: offer.id,
+    offerVersionId: SEED_IDS.offerVersionId,
+    status: "ENTWURF",
+    immutableFromStatus: "GEBUCHT_VERSENDET",
+    lvNetCents: 8000,
+    vatCents: 0,
+    totalGrossCents: 8000,
+    skontoBps: 0,
+    invoiceTaxRegime: "SMALL_BUSINESS_19",
+    vatRateBpsEffective: 0,
+  };
   const supplementOffer: SupplementOffer = {
     id: SEED_IDS.supplementOfferId,
     tenantId: SEED_IDS.tenantId,
@@ -304,6 +324,7 @@ export function seedDemoData(repos: InMemoryRepositories): void {
   repos.putSupplementVersion(supplementVersion);
   repos.invoices.set(invoice.id, invoice);
   repos.invoices.set(draftInvoice.id, draftInvoice);
+  repos.invoices.set(draftInvoiceSmallBusiness.id, draftInvoiceSmallBusiness);
   repos.invoices.set(inconsistentInvoice.id, inconsistentInvoice);
   repos.putTenantInvoiceTaxProfile({
     tenantId: SEED_IDS.tenantId,
@@ -326,6 +347,15 @@ export function seedDemoData(repos: InMemoryRepositories): void {
     offerId: draftInvoice.offerId,
     projectId: draftInvoice.projectId,
     customerId: draftInvoice.customerId,
+  });
+  repos.traceabilityLinks.set(draftInvoiceSmallBusiness.id, {
+    tenantId: SEED_IDS.tenantId,
+    invoiceId: draftInvoiceSmallBusiness.id,
+    measurementId: draftInvoiceSmallBusiness.measurementId,
+    lvId: draftInvoiceSmallBusiness.lvId,
+    offerId: draftInvoiceSmallBusiness.offerId,
+    projectId: draftInvoiceSmallBusiness.projectId,
+    customerId: draftInvoiceSmallBusiness.customerId,
   });
   repos.traceabilityLinks.set(inconsistentInvoice.id, {
     tenantId: SEED_IDS.tenantId,

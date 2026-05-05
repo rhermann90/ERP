@@ -4,6 +4,8 @@ export const DEMO_SEED_IDS = {
   offerId: "22222222-2222-4222-8222-222222222222",
   offerVersionId: "33333333-3333-4333-8333-333333333333",
   invoiceId: "44444444-4444-4444-8444-444444444444",
+  /** ENTWURF SMALL_BUSINESS_19 — Pflicht-Hinweise (FIN-5); siehe `src/composition/seed.ts`. */
+  invoiceDraftSmallBusinessId: "57575757-5757-4575-8575-575757575757",
   lvVersionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001",
   measurementVersionId: "cccccccc-cccc-4ccc-8ccc-cccccccc0001",
   supplementVersionId: "91919191-9191-4191-8191-919191919191",

@@ -56,6 +56,10 @@ Vollständige Schemas: `docs/api-contract.yaml`. Mapping: `docs/contracts/financ
 - **`GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE`** kann zusätzlich **`MANAGE_INVOICE_TAX_SETTINGS`** liefern (Rollen wie Zahlungseingang, alle Rechnungsstatus) — kanonisch für PWA/Clients vor **PATCH** Mandanten-Steuerprofil bzw. **PUT|DELETE** Projekt-Override. Contract: [`action-contracts.json`](./action-contracts.json); Mapping: [`finance-fin0-openapi-mapping.md`](./finance-fin0-openapi-mapping.md).
 
 
+## Neu ab `1.29.2` (FIN-5 Paket C — XRechnung-XML je Regime)
+
+- **`POST /exports`** mit **`entityType=INVOICE`** und **`format=XRECHNUNG`:** erfolgreiche **201**-Antwort nutzt Schema **`ExportRun`** und kann **`xrechnungXml`** (UBL 2.1, UTF-8) enthalten — technische Abbildung der Steuerregime siehe [`xrechnung-tax-regime-mapping.md`](./xrechnung-tax-regime-mapping.md). Fehlercode **`EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED`** nur noch bei Rechnungen mit Regime-String ausserhalb der geschlossenen FIN-5-Enum.
+
 ## Neu ab `1.28.2` (Phase 2 — LV §9 Einzelknoten-Lesepfad)
 
 - **`GET /lv/versions/{lvVersionId}/nodes/{nodeId}`:** ein Strukturknoten wie in `structureNodes[]` / Snapshot; **404** `LV_NODE_NOT_FOUND`, wenn die ID keine Knoten-ID dieser Version ist (z. B. Positions-ID übergeben).

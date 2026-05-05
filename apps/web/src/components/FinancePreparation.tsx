@@ -443,6 +443,41 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
     }
   }, [api, canBookInvoice, invoiceIdLooksValid, invoiceIdRead, issueDateBook, loadInvoice]);
 
+  const recreateInvoiceDraftFromRegimeDrift = useCallback(async () => {
+    const regimeConflict =
+      bookPanelError?.kind === "api" && bookPanelError.error.envelope.code === "INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT";
+    if (
+      !invoiceOverview ||
+      invoiceOverview.status !== "ENTWURF" ||
+      invoiceIdRead.trim() !== invoiceOverview.invoiceId ||
+      !invoiceOverview.offerVersionId ||
+      !regimeConflict
+    ) {
+      return;
+    }
+    setNotice(null);
+    setBusy(true);
+    setBusyStep(3);
+    try {
+      const data = await api.createInvoiceDraft({
+        lvVersionId: invoiceOverview.lvVersionId,
+        offerVersionId: invoiceOverview.offerVersionId,
+        invoiceCurrencyCode: "EUR",
+        paymentTermsVersionId: invoiceOverview.paymentTermsVersionId,
+        skontoBps: invoiceOverview.skontoBps,
+        reason: "FIN-5 §8.16 Regime-Drift: Entwurf neu erzeugt aus Buchungs-Pfad",
+      });
+      setInvoiceIdRead(data.invoiceId);
+      setBookPanelError(null);
+      await loadInvoice(data.invoiceId, { manageBusy: false });
+    } catch (e) {
+      setBookPanelError(finNoticeFromUnknown(e));
+    } finally {
+      setBusy(false);
+      setBusyStep(null);
+    }
+  }, [api, bookPanelError, invoiceIdRead, invoiceOverview, loadInvoice]);
+
   const loadSotAllowedActions = useCallback(async () => {
     setNotice(null);
     setBusy(true);
@@ -1310,6 +1345,13 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
 
   const openCents = openAmountCents(invoiceOverview);
 
+  const canRecreateDraftAfterRegimeDrift =
+    bookPanelError?.kind === "api" &&
+    bookPanelError.error.envelope.code === "INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT" &&
+    invoiceOverview?.status === "ENTWURF" &&
+    invoiceIdRead.trim() === invoiceOverview?.invoiceId &&
+    Boolean(invoiceOverview?.offerVersionId);
+
   const noticeStep1 = notice?.sourceStep === 1 ? notice : null;
   const noticeStep2 = notice?.sourceStep === 2 ? notice : null;
   const noticeStep3 = notice?.sourceStep === 3 ? notice : null;
@@ -1541,6 +1583,8 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
           bookPanelError={bookPanelError}
           onBookInvoice={bookInvoice}
           onSubmitEntwurfSkontoRecalc={submitEntwurfSkontoRecalc}
+          canRecreateDraftAfterRegimeDrift={canRecreateDraftAfterRegimeDrift}
+          onRecreateInvoiceDraftFromRegimeDrift={recreateInvoiceDraftFromRegimeDrift}
         />
 
         <FinancePreparationPaymentPanel

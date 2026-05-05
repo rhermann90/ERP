@@ -51,7 +51,7 @@ Traceability-Prüfungen für Rechnungsentwurf und **Buchung**: `src/services/inv
 | Rechnung buchen, Rechnungsnummer-Kollision (DB-Unique) | 409 | `INVOICE_NUMBER_CONFLICT` | Retry mit neuem Nummernkreis |
 | Rechnung buchen, Steuerregime seit Entwurf geändert | 409 | `INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT` | Neuen Entwurf erzeugen |
 | Ungültiges Steuerregime in Profil/Override | 400 | `INVOICE_TAX_REGIME_INVALID` | |
-| XRechnung-Preflight, Rechnung nicht Standard-USt | 422 | `EXPORT_PREFLIGHT_FAILED` | `details.validationErrors` enthält `EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED` |
+| XRechnung-Preflight, Rechnung mit unbekanntem / nicht gemapptem `invoice_tax_regime` (außerhalb FIN-5-Option-A-Enum) | 422 | `EXPORT_PREFLIGHT_FAILED` | `details.validationErrors` enthält `EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED` |
 | Zahlungseingang, Rechnung unbekannt / falscher Mandant | 404 | `DOCUMENT_NOT_FOUND` | |
 | Zahlungseingang, Rechnung nicht zahlbar (z. B. `ENTWURF`) | 400 | `PAYMENT_INVOICE_NOT_PAYABLE` | |
 | Zahlungseingang, Rechnung ohne `totalGrossCents` / 8.4-Felder | 400 | `PAYMENT_INVOICE_AMOUNT_MISSING` | |

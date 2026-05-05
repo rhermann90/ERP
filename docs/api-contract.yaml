@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-1/2/3/4 Finance)
-  version: 1.29.1-fin5-manage-tax-settings-sot
+  version: 1.29.2-fin5-xrechnung-regime-xml
   description: |
     **PWA / Browser-Anbindung**
     - **CORS**: Umgebungsvariable `CORS_ORIGINS` — kommagetrennte, exakte Origins (z. B. `https://app.example.com,http://localhost:5173`). Leer oder unset: keine `Access-Control-*`-Header (gleiche Origin oder Server-zu-Server).
@@ -1627,6 +1627,52 @@ components:
         format:
           type: string
           enum: [XRECHNUNG, GAEB]
+    ExportRun:
+      type: object
+      required:
+        - id
+        - tenantId
+        - entityType
+        - entityId
+        - format
+        - status
+        - validationErrors
+        - createdAt
+        - createdBy
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        entityType:
+          type: string
+          enum: [OFFER_VERSION, SUPPLEMENT_VERSION, INVOICE]
+        entityId:
+          type: string
+          format: uuid
+        format:
+          type: string
+          enum: [XRECHNUNG, GAEB]
+        status:
+          type: string
+          enum: [PENDING, FAILED, SUCCEEDED]
+        validationErrors:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+          format: uuid
+        xrechnungXml:
+          type: string
+          description: >
+            UBL 2.1 Rechnungs-XML (UTF-8) nur wenn `status=SUCCEEDED`, `entityType=INVOICE` und `format=XRECHNUNG`
+            (FIN-5 Paket C). Fehlt bei GAEB oder fehlgeschlagenem Preflight.
     TenantUser:
       type: object
       required: [id, email, role, active, createdAt]
@@ -2698,6 +2744,10 @@ paths:
       responses:
         '201':
           description: Exportlauf erfolgreich
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportRun'
         '422':
           description: EXPORT_PREFLIGHT_FAILED oder TRACEABILITY_LINK_MISSING oder TRACEABILITY_FIELD_MISMATCH
         '403':

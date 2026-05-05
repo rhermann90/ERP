@@ -43,7 +43,7 @@ Server liefert `mandatoryTaxNoticeLines` auf Entwurf und GET aus stabilen Muster
 
 ### Export / XRechnung
 
-`POST /exports` mit `XRECHNUNG` und Rechnung: wenn Regime nicht `STANDARD_VAT_19`, Preflight mit `EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED` (**fail-closed**), bis Mapping implementiert ist.
+`POST /exports` mit `XRECHNUNG` und Rechnung: bei den vier Option-A-Regimen liefert der Server nach erfolgreichem Preflight **UBL-2.1-XML** im Feld `xrechnungXml` (siehe Paket C / [`docs/contracts/xrechnung-tax-regime-mapping.md`](../contracts/xrechnung-tax-regime-mapping.md)). `EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED` gilt **nur** noch, wenn das Rechnungs-`invoice_tax_regime` **kein** gültiger FIN-5-Regime-Code ist (Dateninkonsistenz oder künftige Erweiterung ohne Mapping).
 
 ### Audit
 

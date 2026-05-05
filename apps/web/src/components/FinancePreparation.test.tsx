@@ -445,6 +445,94 @@ describe("FinancePreparation", () => {
     await waitFor(() => expect(getInvoice).toHaveBeenCalledWith(newInvoiceId));
   });
 
+  it("409 INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT beim Buchen: Hinweis, CTA und neuen Entwurf laden", async () => {
+    const oldInvoiceId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+    const newInvoiceId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+    const lvVersionId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001";
+    const offerVersionId = "33333333-3333-4333-8333-333333333333";
+    const entwurfOverviewOld = {
+      invoiceId: oldInvoiceId,
+      projectId: "10101010-1010-4010-8010-101010101010",
+      customerId: "20202020-2020-4020-8020-202020202020",
+      measurementId: "m0000000-0000-4000-8000-000000000001",
+      lvVersionId,
+      offerId: "o0000000-0000-4000-8000-000000000002",
+      offerVersionId,
+      status: "ENTWURF" as const,
+      skontoBps: 200,
+      lvNetCents: 100_000,
+      vatRateBps: 1900,
+      vatCents: 19_000,
+      totalGrossCents: 119_000,
+      totalPaidCents: 0,
+      invoiceTaxRegime: "STANDARD_VAT_19" as const,
+    };
+    const entwurfOverviewNew = {
+      ...entwurfOverviewOld,
+      invoiceId: newInvoiceId,
+      invoiceTaxRegime: "SMALL_BUSINESS_19" as const,
+    };
+    const getInvoice = vi.fn(async (id: string) => {
+      if (id === newInvoiceId) return entwurfOverviewNew;
+      return entwurfOverviewOld;
+    });
+    const requestJson = vi.fn(async (method: string, path: string) => {
+      if (method === "POST" && /\/invoices\/.+\/book$/u.test(path)) {
+        throw new ApiError(409, {
+          code: "INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT",
+          message: "Steuerregime seit Entwurf geaendert — Entwurf verwerfen und neu anlegen",
+          correlationId: "00000000-0000-4000-8000-0000000000dr",
+          retryable: false,
+          blocking: true,
+        });
+      }
+      return {};
+    });
+    const createInvoiceDraft = vi.fn().mockResolvedValue({
+      ...draftResponse,
+      invoiceId: newInvoiceId,
+      invoiceTaxRegime: "SMALL_BUSINESS_19",
+      mandatoryTaxNoticeLines: ["Kleinunternehmer §19 UStG"],
+    });
+    const api = { ...noopApi, getInvoice, requestJson, createInvoiceDraft } as unknown as ApiClient;
+
+    await act(async () => {
+      render(<FinancePreparation api={api} />);
+    });
+    fireEvent.change(screen.getByLabelText(/Rechnungs-ID für GET/i), { target: { value: oldInvoiceId } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Rechnung laden$/i }));
+    });
+    await waitFor(() => expect(getInvoice).toHaveBeenCalledWith(oldInvoiceId));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Rechnung buchen$/i }));
+    });
+    await waitFor(() => expect(requestJson).toHaveBeenCalled());
+
+    expect(screen.getByTestId("finance-invoice-recreate-draft-cta")).not.toBeNull();
+    expect(screen.getByText(/Steuerregime hat sich seit dem Entwurf geändert \(FIN-5 §8\.16\)/i)).not.toBeNull();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("finance-invoice-recreate-draft-cta"));
+    });
+    await waitFor(() => expect(createInvoiceDraft).toHaveBeenCalled());
+    expect(createInvoiceDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lvVersionId,
+        offerVersionId,
+        invoiceCurrencyCode: "EUR",
+        skontoBps: 200,
+        reason: expect.stringContaining("Regime-Drift"),
+      }),
+    );
+    await waitFor(() => {
+      expect((screen.getByLabelText(/Rechnungs-ID für GET/i) as HTMLInputElement).value).toBe(newInvoiceId);
+    });
+    await waitFor(() => expect(screen.getByText("SMALL_BUSINESS_19")).not.toBeNull());
+    expect(screen.queryByTestId("finance-prep-notice")).toBeNull();
+  });
+
   it("disables Rechnung laden until invoice id looks like a UUID", async () => {
     await act(async () => {
       render(<FinancePreparation api={noopApi} />);
@@ -872,6 +960,40 @@ describe("FinancePreparation", () => {
     await waitFor(() => expect(getInvoice).toHaveBeenCalled());
     await waitFor(() => expect(live.textContent).toContain("bereit"));
   });
+
+  it("Schritt 3 zeigt Pflicht-Hinweise wenn GET Rechnung mandatoryTaxNoticeLines liefert (FIN-5)", async () => {
+    const invoiceId = "57575757-5757-4575-8575-575757575757";
+    const line = "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet (Kleinunternehmerregelung).";
+    const getInvoice = vi.fn().mockResolvedValue({
+      invoiceId,
+      projectId: "10101010-1010-4010-8010-101010101010",
+      customerId: "20202020-2020-4020-8020-202020202020",
+      measurementId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb001",
+      lvVersionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001",
+      offerId: "22222222-2222-4222-8222-222222222222",
+      offerVersionId: "33333333-3333-4333-8333-333333333333",
+      status: "ENTWURF",
+      skontoBps: 0,
+      lvNetCents: 8000,
+      vatRateBps: 0,
+      vatCents: 0,
+      totalGrossCents: 8000,
+      invoiceTaxRegime: "SMALL_BUSINESS_19" as const,
+      mandatoryTaxNoticeLines: [line],
+    });
+    const api = { ...noopApi, getInvoice } as unknown as ApiClient;
+    await act(async () => {
+      render(<FinancePreparation api={api} />);
+    });
+    fireEvent.change(screen.getByLabelText(/Rechnungs-ID für GET/i), { target: { value: invoiceId } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Rechnung laden$/i }));
+    });
+    await waitFor(() => expect(getInvoice).toHaveBeenCalledWith(invoiceId));
+    await screen.findByTestId("finance-invoice-mandatory-tax-notices");
+    expect(screen.getByText(line)).not.toBeNull();
+  });
+
 
 });
 

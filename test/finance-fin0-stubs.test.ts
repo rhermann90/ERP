@@ -349,7 +349,7 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     expect(draft.mandatoryTaxNoticeLines.length).toBeGreaterThan(0);
   });
 
-  it("FIN-5: XRechnung-Preflight fail-closed bei nicht gemapptem Steuerregime", async () => {
+  it("FIN-5 Paket C: XRechnung-Export liefert XML bei REVERSE_CHARGE (gemapptes Regime)", async () => {
     const patch = await app.inject({
       method: "PATCH",
       url: "/finance/invoice-tax-profile",
@@ -386,10 +386,13 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
       headers: buildHeaders(),
       payload: { entityType: "INVOICE", entityId: invoiceId, format: "XRECHNUNG" },
     });
-    expect(exp.statusCode).toBe(422);
-    const body = exp.json() as { code: string; details?: { validationErrors?: string[] } };
-    expect(body.code).toBe("EXPORT_PREFLIGHT_FAILED");
-    expect(body.details?.validationErrors).toContain("EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED");
+    expect(exp.statusCode).toBe(201);
+    const body = exp.json() as { status: string; xrechnungXml?: string };
+    expect(body.status).toBe("SUCCEEDED");
+    expect(body.xrechnungXml).toBeDefined();
+    expect(body.xrechnungXml).toContain("UNCL5305");
+    expect(body.xrechnungXml).toContain(">AE<");
+    expect(body.xrechnungXml).toContain("Reverse Charge");
   });
 
   it("POST /invoices/:id/book books seed draft then rejects second book (FIN-2)", async () => {
@@ -420,6 +423,53 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     });
     expect(again.statusCode).toBe(409);
     expect((again.json() as { code: string }).code).toBe("INVOICE_NOT_BOOKABLE");
+  });
+
+  it("POST /invoices/:id/book → 409 INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT bei Regime-Drift (FIN-5 Paket D)", async () => {
+    const patchStandard = await app.inject({
+      method: "PATCH",
+      url: "/finance/invoice-tax-profile",
+      headers: buildHeaders(),
+      payload: {
+        defaultInvoiceTaxRegime: "STANDARD_VAT_19",
+        reason: "Paket-D Drift Setup STANDARD",
+      },
+    });
+    expect(patchStandard.statusCode).toBe(200);
+
+    const draftRes = await app.inject({
+      method: "POST",
+      url: "/invoices",
+      headers: buildHeaders(),
+      payload: {
+        lvVersionId: SEED_IDS.lvVersionId,
+        offerVersionId: SEED_IDS.offerVersionId,
+        invoiceCurrencyCode: "EUR",
+        reason: "Paket-D Drift Entwurf",
+      },
+    });
+    expect(draftRes.statusCode).toBe(201);
+    const invoiceId = (draftRes.json() as { invoiceId: string }).invoiceId;
+
+    const patchSmall = await app.inject({
+      method: "PATCH",
+      url: "/finance/invoice-tax-profile",
+      headers: buildHeaders(),
+      payload: {
+        defaultInvoiceTaxRegime: "SMALL_BUSINESS_19",
+        reason: "Paket-D Drift Profil Aenderung",
+      },
+    });
+    expect(patchSmall.statusCode).toBe(200);
+
+    const book = await app.inject({
+      method: "POST",
+      url: `/invoices/${invoiceId}/book`,
+      headers: buildHeaders(),
+      payload: { reason: "Paket-D Drift Buchung muss 409 werfen" },
+    });
+    expect(book.statusCode).toBe(409);
+    expect((book.json() as { code: string }).code).toBe("INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT");
   });
 
   it("POST /invoices/:id/book rejects VIEWER (403)", async () => {

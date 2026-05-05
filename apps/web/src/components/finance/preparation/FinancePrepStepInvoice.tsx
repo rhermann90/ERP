@@ -34,6 +34,8 @@ export type FinancePrepStepInvoiceProps = {
   bookPanelError: FinNotice | null;
   onBookInvoice: () => void;
   onSubmitEntwurfSkontoRecalc: () => void;
+  canRecreateDraftAfterRegimeDrift: boolean;
+  onRecreateInvoiceDraftFromRegimeDrift: () => void;
 };
 
 function FinancePrepStepInvoiceInner({
@@ -57,6 +59,8 @@ function FinancePrepStepInvoiceInner({
   bookPanelError,
   onBookInvoice,
   onSubmitEntwurfSkontoRecalc,
+  canRecreateDraftAfterRegimeDrift,
+  onRecreateInvoiceDraftFromRegimeDrift,
 }: FinancePrepStepInvoiceProps) {
   return (
     <FinancePrepPanel step={3} title="Rechnung laden, Beträge & Buchung" liveStatus={liveStatus}>
@@ -178,7 +182,9 @@ function FinancePrepStepInvoiceInner({
               <>
                 <dt style={{ color: "var(--text-secondary)", alignSelf: "start" }}>Pflicht-Hinweise</dt>
                 <dd style={{ margin: 0 }}>
-                  <ul style={{ margin: 0, paddingLeft: "1.1rem", fontSize: "0.82rem" }}>
+                  <ul
+                    data-testid="finance-invoice-mandatory-tax-notices"
+                    style={{ margin: 0, paddingLeft: "1.1rem", fontSize: "0.82rem" }}>
                     {invoiceOverview.mandatoryTaxNoticeLines.map((line) => (
                       <li key={line}>{line}</li>
                     ))}
@@ -248,6 +254,27 @@ function FinancePrepStepInvoiceInner({
                 Rechnung buchen
               </button>
               <FinancePrepNotice notice={bookPanelError} />
+              {bookPanelError?.kind === "api" &&
+              bookPanelError.error.envelope.code === "INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT" ? (
+                <div style={{ marginTop: "0.5rem" }}>
+                  <p style={{ fontSize: "0.82rem", color: "var(--text-primary)", margin: "0 0 0.35rem" }}>
+                    Steuerregime-Drift: bitte mit demselben LV- und Angebotsstand einen neuen Rechnungsentwurf anlegen, dann buchen.
+                  </p>
+                  <button
+                    type="button"
+                    data-testid="finance-invoice-recreate-draft-cta"
+                    onClick={() => void onRecreateInvoiceDraftFromRegimeDrift()}
+                    disabled={busy || !canRecreateDraftAfterRegimeDrift}
+                    title={
+                      !canRecreateDraftAfterRegimeDrift
+                        ? "Angebots-Version fehlt im Snapshot — manuell neuen Entwurf in Schritt 2 anlegen."
+                        : "POST /invoices mit gleicher LV-/Angebotsversion — neue Entwurfs-ID laden"
+                    }
+                  >
+                    Neuen Entwurf laden
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : null}
           {paymentIntakes != null ? (

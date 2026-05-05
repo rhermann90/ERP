@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { DomainError } from "../errors/domain-error.js";
-import { ExportFormat, ExportRun, TenantId, UserId, UUID } from "../domain/types.js";
+import { isFin5InvoiceTaxRegimeMappedForXrechnung } from "../domain/xrechnung-invoice-tax-mapping.js";
+import { ExportFormat, ExportRun, Invoice, TenantId, UserId, UUID } from "../domain/types.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import { AuditService } from "./audit-service.js";
+import { buildXrechnungInvoiceXml } from "./xrechnung-xml-builder.js";
 
 export class ExportService {
   constructor(
@@ -18,6 +20,7 @@ export class ExportService {
     actorUserId: UserId;
   }): Promise<ExportRun> {
     const validationErrors: string[] = [];
+    let invoiceForXml: Invoice | undefined;
     const formatPolicy: Record<"OFFER_VERSION" | "SUPPLEMENT_VERSION" | "INVOICE", Array<"XRECHNUNG" | "GAEB">> = {
       OFFER_VERSION: ["GAEB"],
       SUPPLEMENT_VERSION: ["GAEB"],
@@ -46,6 +49,7 @@ export class ExportService {
       if (!invoice) {
         throw new DomainError("EXPORT_ENTITY_NOT_FOUND", "Rechnung nicht gefunden", 404);
       }
+      invoiceForXml = invoice;
       const allowedStatuses = new Set(["FREIGEGEBEN", "GEBUCHT_VERSENDET", "TEILBEZAHLT", "BEZAHLT"]);
       if (!allowedStatuses.has(invoice.status)) {
         validationErrors.push("INVOICE_STATUS_NOT_EXPORTABLE");
@@ -57,8 +61,7 @@ export class ExportService {
         validationErrors.push("INVOICE_REQUIRED_FIELDS_MISSING");
       }
       if (input.format === "XRECHNUNG") {
-        const regime = invoice.invoiceTaxRegime ?? "STANDARD_VAT_19";
-        if (regime !== "STANDARD_VAT_19") {
+        if (!isFin5InvoiceTaxRegimeMappedForXrechnung(invoice.invoiceTaxRegime)) {
           validationErrors.push("EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED");
         }
       }
@@ -79,6 +82,14 @@ export class ExportService {
       }
     }
 
+    const xrechnungXml =
+      validationErrors.length === 0 &&
+      input.entityType === "INVOICE" &&
+      input.format === "XRECHNUNG" &&
+      invoiceForXml
+        ? buildXrechnungInvoiceXml(invoiceForXml)
+        : undefined;
+
     const run: ExportRun = {
       id: randomUUID(),
       tenantId: input.tenantId,
@@ -89,6 +100,7 @@ export class ExportService {
       validationErrors,
       createdAt: new Date(),
       createdBy: input.actorUserId,
+      ...(xrechnungXml !== undefined ? { xrechnungXml } : {}),
     };
     this.repos.exportRuns.set(run.id, run);
     await this.auditService.append({
