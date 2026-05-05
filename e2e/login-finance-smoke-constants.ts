@@ -10,6 +10,8 @@ export const SEED_SUPPLEMENT_VERSION_ID = "91919191-9191-4191-8191-919191919191"
 export const SEED_MEASUREMENT_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb001";
 /** Seed-Projekt der gebuchten Demo-Rechnung (`src/composition/seed.ts` SEED_IDS.projectId). */
 export const SEED_PROJECT_ID = "10101010-1010-4010-8010-101010101010";
+/** Seed-Kunde der Demo-Rechnung SEED_INVOICE_ID (`src/composition/seed.ts` SEED_IDS.customerId). */
+export const SEED_CUSTOMER_ID = "20202020-2020-4020-8020-202020202020";
 /** Nur E2E-Route-Mock (Paket D Recreate) — keine Backend-Seed-ID. */
 export const E2E_RECREATE_INVOICE_ID = "fafafaaf-fafa-4afa-8afa-fafafafafafa";
 

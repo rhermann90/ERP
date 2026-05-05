@@ -458,6 +458,42 @@ model TenantPwaDisplaySettings {
   @@map("tenant_pwa_display_settings")
 }
 
+/// Mandanten-Stammdaten für XRechnung (Seller / AccountingSupplierParty).
+model TenantEInvoiceParty {
+  tenantId          String   @id @map("tenant_id") @db.Uuid
+  legalName         String   @map("legal_name")
+  streetName        String   @map("street_name")
+  cityName          String   @map("city_name")
+  postalZone        String   @map("postal_zone")
+  countryCode       String   @map("country_code") @db.Char(2)
+  vatId             String?  @map("vat_id")
+  companyId         String?  @map("company_id")
+  companyIdSchemeId String?  @map("company_id_scheme_id")
+  email             String?
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("tenant_e_invoice_parties")
+}
+
+/// Kunden-Stammdaten für XRechnung (Buyer); Schlüssel tenant + customer_id wie bei Offers/Rechnungen.
+model CustomerEInvoiceParty {
+  tenantId          String   @map("tenant_id") @db.Uuid
+  customerId        String   @map("customer_id") @db.Uuid
+  legalName         String   @map("legal_name")
+  streetName        String   @map("street_name")
+  cityName          String   @map("city_name")
+  postalZone        String   @map("postal_zone")
+  countryCode       String   @map("country_code") @db.Char(2)
+  vatId             String?  @map("vat_id")
+  companyId         String?  @map("company_id")
+  companyIdSchemeId String?  @map("company_id_scheme_id")
+  email             String?
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@id([tenantId, customerId])
+  @@map("customer_e_invoice_parties")
+}
+
 /// Anmeldekonto pro Mandant; E-Mail nur innerhalb des Mandanten eindeutig (Multi-Tenant-Scope).
 model User {
   tenantId     String   @map("tenant_id") @db.Uuid

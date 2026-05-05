@@ -15,6 +15,7 @@ import { SupplementService } from "../services/supplement-service.js";
 import { PaymentTermsService } from "../services/payment-terms-service.js";
 import { InvoiceService } from "../services/invoice-service.js";
 import { InvoiceTaxSettingsService } from "../services/invoice-tax-settings-service.js";
+import { EInvoicePartySettingsService } from "../services/e-invoice-party-settings-service.js";
 import { TraceabilityService } from "../services/traceability-service.js";
 import {
   addLvPositionSchema,
@@ -73,6 +74,12 @@ import {
   PrismaInvoiceTaxProfilePersistence,
   type InvoiceTaxProfilePersistencePort,
 } from "../persistence/invoice-tax-profile-persistence.js";
+import {
+  noopEInvoicePartyPersistence,
+  PrismaEInvoicePartyPersistence,
+  type EInvoicePartyPersistencePort,
+} from "../persistence/e-invoice-party-persistence.js";
+
 import {
   noopLvMeasurementPersistence,
   PrismaLvMeasurementPersistence,
@@ -137,6 +144,7 @@ import { registerPaymentTermsRoutes } from "./finance-payment-terms-routes.js";
 import { registerDunningReminderConfigRoutes } from "./finance-dunning-config-routes.js";
 import { registerInvoiceFinanceRoutes } from "./finance-invoice-routes.js";
 import { registerFinanceInvoiceTaxRoutes } from "./finance-invoice-tax-routes.js";
+import { registerFinanceEInvoicePartyRoutes } from "./finance-e-invoice-party-routes.js";
 import { registerAuthLoginRoutes } from "./auth-login-routes.js";
 import { registerPasswordResetRoutes } from "./password-reset-routes.js";
 import { registerUserAccountRoutes } from "./user-account-routes.js";
@@ -231,6 +239,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   let paymentTermsPersistence: PaymentTermsPersistencePort = noopPaymentTermsPersistence;
   let invoicePersistence: InvoicePersistencePort = noopInvoicePersistence;
   let invoiceTaxProfilePersistence: InvoiceTaxProfilePersistencePort = noopInvoiceTaxProfilePersistence;
+  let eInvoicePartyPersistence: EInvoicePartyPersistencePort = noopEInvoicePartyPersistence;
   let paymentIntakePersistence: PaymentIntakePersistencePort = noopPaymentIntakePersistence;
   let dunningReminderPersistence: DunningReminderPersistencePort = noopDunningReminderPersistence;
   let dunningStageConfigPersistence: DunningStageConfigPersistencePort = noopDunningStageConfigPersistence;
@@ -249,6 +258,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     paymentTermsPersistence = new PrismaPaymentTermsPersistence(prisma);
     invoicePersistence = new PrismaInvoicePersistence(prisma);
     invoiceTaxProfilePersistence = new PrismaInvoiceTaxProfilePersistence(prisma);
+    eInvoicePartyPersistence = new PrismaEInvoicePartyPersistence(prisma);
     paymentIntakePersistence = new PrismaPaymentIntakePersistence(prisma);
     dunningReminderPersistence = new PrismaDunningReminderPersistence(prisma);
     dunningStageConfigPersistence = new PrismaDunningStageConfigPersistence(prisma);
@@ -265,6 +275,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       await paymentTermsPersistence.syncAllPaymentTermsFromMemory(repos);
       await invoicePersistence.syncAllInvoicesFromMemory(repos);
       await invoiceTaxProfilePersistence.upsertTenantProfileFromMemory(repos, SEED_IDS.tenantId);
+      await eInvoicePartyPersistence.syncAllFromMemory(repos);
       await paymentIntakePersistence.hydrateIntoMemory(repos);
       await dunningReminderPersistence.hydrateIntoMemory(repos);
       await dunningEmailSendPersistence.hydrateIntoMemory(repos);
@@ -278,6 +289,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       await dunningReminderPersistence.hydrateIntoMemory(repos);
       await dunningEmailSendPersistence.hydrateIntoMemory(repos);
       await invoiceTaxProfilePersistence.hydrateIntoMemory(repos);
+      await eInvoicePartyPersistence.hydrateIntoMemory(repos);
     }
     app.addHook("onClose", async () => {
       await prisma?.$disconnect();
@@ -336,6 +348,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   const paymentTermsService = new PaymentTermsService(repos, audit, paymentTermsPersistence);
   const invoiceService = new InvoiceService(repos, audit, invoicePersistence, traceabilityService);
   const invoiceTaxSettingsService = new InvoiceTaxSettingsService(repos, audit, invoiceTaxProfilePersistence);
+  const eInvoicePartySettingsService = new EInvoicePartySettingsService(repos, audit, eInvoicePartyPersistence);
   const paymentIntakeService = new PaymentIntakeService(repos, audit, invoicePersistence, paymentIntakePersistence);
   const dunningReminderService = new DunningReminderService(repos, audit, dunningReminderPersistence);
   const dunningReminderConfigService = new DunningReminderConfigService(dunningStageConfigPersistence, audit, prisma);
@@ -830,6 +843,11 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   registerFinanceInvoiceTaxRoutes(app, {
     authorizationService,
     invoiceTaxSettingsService,
+  });
+
+  registerFinanceEInvoicePartyRoutes(app, {
+    authorizationService,
+    eInvoicePartySettingsService,
   });
 
   registerDunningReminderConfigRoutes(app, {

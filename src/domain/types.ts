@@ -234,6 +234,36 @@ export interface Invoice {
   taxReasonCode?: string;
 }
 
+/** Stammdaten für XRechnung-UBL (Seller/Buyer); keine juristische Konformitätszusage. */
+export interface EInvoicePartySnapshot {
+  legalName: string;
+  streetName: string;
+  cityName: string;
+  postalZone: string;
+  /** ISO 3166-1 alpha-2 */
+  countryCode: string;
+  /** USt-IdNr. (UBL scheme „VA“). */
+  vatId?: string;
+  /** Optional z. B. Handelsregisternummer mit eigenem Scheme. */
+  companyId?: string;
+  companyIdSchemeId?: string;
+  email?: string;
+}
+
+export type TenantEInvoicePartyRow = EInvoicePartySnapshot & { tenantId: TenantId };
+
+export type CustomerEInvoicePartyRow = EInvoicePartySnapshot & {
+  tenantId: TenantId;
+  customerId: UUID;
+};
+
+/** Kontext für XRechnung-UBL (Stammdaten + FIN-1-Zahlungsbedingungstext). */
+export interface XrechnungInvoiceXmlContext {
+  seller: EInvoicePartySnapshot;
+  buyer: EInvoicePartySnapshot;
+  paymentTermsNote?: string;
+}
+
 /** FIN-5: Mandanten-Default für Rechnungs-Steuerregime. */
 export interface TenantInvoiceTaxProfile {
   tenantId: TenantId;
@@ -301,6 +331,8 @@ export interface AuditEvent {
     | "TENANT_PWA_DISPLAY_SETTINGS"
     | "TENANT_INVOICE_TAX_PROFILE"
     | "PROJECT_INVOICE_TAX_OVERRIDE"
+    | "TENANT_E_INVOICE_PARTY"
+    | "CUSTOMER_E_INVOICE_PARTY"
     | "USER";
   entityId: UUID;
   action:
@@ -326,7 +358,11 @@ export interface AuditEvent {
     | "TENANT_PWA_DISPLAY_SETTINGS_PATCHED"
     | "TENANT_INVOICE_TAX_PROFILE_PATCHED"
     | "PROJECT_INVOICE_TAX_OVERRIDE_UPSERTED"
-    | "PROJECT_INVOICE_TAX_OVERRIDE_DELETED";
+    | "PROJECT_INVOICE_TAX_OVERRIDE_DELETED"
+    | "TENANT_E_INVOICE_PARTY_UPSERTED"
+    | "TENANT_E_INVOICE_PARTY_DELETED"
+    | "CUSTOMER_E_INVOICE_PARTY_UPSERTED"
+    | "CUSTOMER_E_INVOICE_PARTY_DELETED";
   timestamp: Date;
   actorUserId: UserId;
   reason?: string;

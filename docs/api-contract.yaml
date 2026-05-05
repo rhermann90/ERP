@@ -1,14 +1,14 @@
 openapi: 3.0.3
 info:
   title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-1/2/3/4 Finance)
-  version: 1.29.3-tenant-pwa-expert-mode
+  version: 1.29.4-e-invoice-party-api
   description: |
     **PWA / Browser-Anbindung**
     - **CORS**: Umgebungsvariable `CORS_ORIGINS` — kommagetrennte, exakte Origins (z. B. `https://app.example.com,http://localhost:5173`). Leer oder unset: keine `Access-Control-*`-Header (gleiche Origin oder Server-zu-Server).
     - **Auth**: `Authorization: Bearer <signed-v1-token>` (siehe `bearerToken`); optionaler Header `X-Tenant-Id` muss zum Tenant im Token passen, sonst `TENANT_SCOPE_VIOLATION`. **Passwort-Login:** `POST /auth/login` mit JSON `{ tenantId, email, password }` — siehe `docs/authentication-login.md`. **Passwort vergessen (öffentlich):** `POST /auth/request-password-reset`, `POST /auth/confirm-password-reset` — nur mit Postgres; Link `#/password-reset?token=…` (Basis `ERP_PUBLIC_APP_BASE_URL`); Produktion: SMTP + Basis-URL Pflicht. **Benutzerverwaltung:** `GET|POST /users`, `PATCH /users/{userId}` inkl. optional **E-Mail** (nur Rolle **ADMIN**, nur mit Postgres) — Audit-Ereignisse `USER` / `USER_CREATED` / `USER_UPDATED`. **Betrieb:** `AUTH_TOKEN_SECRET` (min. 32 Zeichen bei `NODE_ENV=production`); ohne Secret kein Start — siehe Repo-`.env.example`. Nur lokaler Demo-Modus: `ERP_ALLOW_INSECURE_DEV_AUTH=1` und nicht `production` (niemals deployen).
     - **Logs**: Strukturierte Fastify-Request-Logs enthalten keine `Authorization`- oder `Cookie`-Werte (`LOG_LEVEL`, `LOG_DISABLE=1` siehe Betrieb).
     - **Fehler**: Antwort-JSON gemäß Schema `Error` — Felder `code`, `message`, `correlationId`, `retryable`, `blocking`, optional `details` (Frontend-Passthrough laut `docs/contracts/decision-log-phase1-frontend.md`). **Header:** `x-correlation-id` und `x-request-id` sind gleich der Request-ID (`request.id`) und entsprechen `correlationId` im Body bei Fehlerantworten.
-    - **FIN-4 / Integratoren:** Auf Pfaden unter **`/finance/dunning-reminder…`**, **`/finance/dunning-reminder-automation`**, **`/finance/dunning-email-footer`** und **`/finance/invoice-tax-profile…`** sendet der Server zusätzlich **`x-erp-openapi-contract-version`** (Wert identisch zu `info.version` dieser Datei). Laufzeit-Abgleich und Breaking-Notes: `docs/contracts/FIN4-external-client-integration.md`. Browser-Cross-Origin: Header steht in `Access-Control-Expose-Headers`, wenn CORS aktiv ist (`CORS_ORIGINS`).
+    - **FIN-4 / Integratoren:** Auf Pfaden unter **`/finance/dunning-reminder…`**, **`/finance/dunning-reminder-automation`**, **`/finance/dunning-email-footer`** und **`/finance/invoice-tax-profile…`**, **`/finance/e-invoice-parties…`** sendet der Server zusätzlich **`x-erp-openapi-contract-version`** (Wert identisch zu `info.version` dieser Datei). Laufzeit-Abgleich und Breaking-Notes: `docs/contracts/FIN4-external-client-integration.md`. Browser-Cross-Origin: Header steht in `Access-Control-Expose-Headers`, wenn CORS aktiv ist (`CORS_ORIGINS`).
 servers:
   - url: http://localhost:3000
 tags:
@@ -89,7 +89,7 @@ components:
             entityType=MEASUREMENT_VERSION: Aktionen gemäß §5.4 v1.2 (z. B. MEASUREMENT_CREATE_VERSION nur nach FREIGEGEBEN/ABGERECHNET;
             historische Versionen: leere allowedActions).
             entityType=LV_VERSION|LV_STRUCTURE_NODE|LV_POSITION: gemäß §9 v1.2 und ADR-0005 (Text/Struktur nur ENTWURF aktuelle Version).
-            entityType=INVOICE: **BOOK_INVOICE** (ENTWURF, Rollen ADMIN|GESCHAEFTSFUEHRUNG|BUCHHALTUNG) → POST /invoices/{id}/book; kanonische Export-Aktion **EXPORT_INVOICE** (Format `XRECHNUNG` nur im Body von POST /exports); **RECORD_PAYMENT_INTAKE** nur GEBUCHT_VERSENDET|TEILBEZAHLT; **RECORD_DUNNING_REMINDER** dieselben Status/Rollen → POST /invoices/{id}/dunning-reminders; **MANAGE_INVOICE_TAX_SETTINGS** alle Rechnungsstatus, Rollen wie Zahlungseingang → PATCH /finance/invoice-tax-profile bzw. PUT|DELETE /finance/invoice-tax-profile/projects/{projectId}; kein separates actionId-Suffix pro Exportformat.
+            entityType=INVOICE: **BOOK_INVOICE** (ENTWURF, Rollen ADMIN|GESCHAEFTSFUEHRUNG|BUCHHALTUNG) → POST /invoices/{id}/book; kanonische Export-Aktion **EXPORT_INVOICE** (Format `XRECHNUNG` nur im Body von POST /exports); **RECORD_PAYMENT_INTAKE** nur GEBUCHT_VERSENDET|TEILBEZAHLT; **RECORD_DUNNING_REMINDER** dieselben Status/Rollen → POST /invoices/{id}/dunning-reminders; **MANAGE_INVOICE_TAX_SETTINGS** alle Rechnungsstatus, Rollen wie Zahlungseingang → PATCH /finance/invoice-tax-profile bzw. PUT|DELETE /finance/invoice-tax-profile/projects/{projectId} sowie PUT|DELETE /finance/e-invoice-parties/tenant und PUT|DELETE /finance/e-invoice-parties/customers/{customerId}; kein separates actionId-Suffix pro Exportformat.
     MeasurementPosition:
       type: object
       required: [lvPositionId, quantity, unit]
@@ -736,6 +736,123 @@ components:
         reason:
           type: string
           minLength: 5
+    EInvoicePartySnapshot:
+      type: object
+      description: XRechnung UBL Party-Daten (Seller/Buyer), ohne Tenant-/Customer-Schlüssel.
+      required: [legalName, streetName, cityName, postalZone, countryCode]
+      properties:
+        legalName:
+          type: string
+          maxLength: 512
+        streetName:
+          type: string
+          maxLength: 512
+        cityName:
+          type: string
+          maxLength: 256
+        postalZone:
+          type: string
+          maxLength: 32
+        countryCode:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: ISO 3166-1 alpha-2
+        vatId:
+          type: string
+          maxLength: 64
+        companyId:
+          type: string
+          maxLength: 128
+        companyIdSchemeId:
+          type: string
+          maxLength: 64
+        email:
+          type: string
+          format: email
+          maxLength: 320
+    PutTenantEInvoicePartyRequest:
+      allOf:
+        - $ref: '#/components/schemas/EInvoicePartySnapshot'
+        - type: object
+          required: [reason]
+          properties:
+            reason:
+              type: string
+              minLength: 5
+    PutCustomerEInvoicePartyRequest:
+      allOf:
+        - $ref: '#/components/schemas/EInvoicePartySnapshot'
+        - type: object
+          required: [reason]
+          properties:
+            reason:
+              type: string
+              minLength: 5
+    DeleteEInvoicePartyRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 5
+    TenantEInvoicePartyReadResponse:
+      type: object
+      required: [configured]
+      properties:
+        configured:
+          type: boolean
+        party:
+          allOf:
+            - $ref: '#/components/schemas/EInvoicePartySnapshot'
+          nullable: true
+    TenantEInvoicePartyPutResponse:
+      type: object
+      required: [configured, party]
+      properties:
+        configured:
+          type: boolean
+        party:
+          $ref: '#/components/schemas/EInvoicePartySnapshot'
+    CustomerEInvoicePartyReadResponse:
+      type: object
+      required: [configured, customerId]
+      properties:
+        configured:
+          type: boolean
+        customerId:
+          type: string
+          format: uuid
+        party:
+          allOf:
+            - $ref: '#/components/schemas/EInvoicePartySnapshot'
+          nullable: true
+    CustomerEInvoicePartyPutResponse:
+      type: object
+      required: [configured, customerId, party]
+      properties:
+        configured:
+          type: boolean
+        customerId:
+          type: string
+          format: uuid
+        party:
+          $ref: '#/components/schemas/EInvoicePartySnapshot'
+    CustomerEInvoicePartyListResponse:
+      type: object
+      required: [customers]
+      properties:
+        customers:
+          type: array
+          items:
+            allOf:
+              - type: object
+                required: [customerId]
+                properties:
+                  customerId:
+                    type: string
+                    format: uuid
+              - $ref: '#/components/schemas/EInvoicePartySnapshot'
     PaymentIntakeRequest:
       type: object
       description: Zahlungseingang **8.7** — nur bei gebuchter/versendeter oder teilbezahlter Rechnung mit 8.4-Beträgen.
@@ -3669,6 +3786,184 @@ paths:
           description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
         '401':
           description: UNAUTHORIZED
+
+  /finance/e-invoice-parties/tenant:
+    get:
+      tags: [Finance (FIN-5)]
+      operationId: finEInvoicePartyTenantGet
+      summary: XRechnung Seller-Stammdaten lesen (Mandant)
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      responses:
+        '200':
+          description: Konfiguriert oder nicht
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantEInvoicePartyReadResponse'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+    put:
+      tags: [Finance (FIN-5)]
+      operationId: finEInvoicePartyTenantPut
+      summary: XRechnung Seller-Stammdaten speichern (Mandant)
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutTenantEInvoicePartyRequest'
+      responses:
+        '200':
+          description: Gespeichert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantEInvoicePartyPutResponse'
+        '400':
+          description: VALIDATION_FAILED
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+    delete:
+      tags: [Finance (FIN-5)]
+      operationId: finEInvoicePartyTenantDelete
+      summary: XRechnung Seller-Stammdaten entfernen (Export fail-closed ohne Seller)
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteEInvoicePartyRequest'
+      responses:
+        '204':
+          description: Gelöscht oder noop wenn nicht konfiguriert
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+
+  /finance/e-invoice-parties/customers:
+    get:
+      tags: [Finance (FIN-5)]
+      operationId: finEInvoicePartyCustomersList
+      summary: XRechnung Buyer-Stammdaten — Liste je Mandant
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      responses:
+        '200':
+          description: Alle gepflegten Kundenzeilen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerEInvoicePartyListResponse'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+
+  /finance/e-invoice-parties/customers/{customerId}:
+    get:
+      tags: [Finance (FIN-5)]
+      operationId: finEInvoicePartyCustomerGet
+      summary: XRechnung Buyer-Stammdaten lesen
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: customerId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Konfiguriert oder Platzhalter-Pfad bis CRM
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerEInvoicePartyReadResponse'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+    put:
+      tags: [Finance (FIN-5)]
+      operationId: finEInvoicePartyCustomerPut
+      summary: XRechnung Buyer-Stammdaten speichern
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: customerId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutCustomerEInvoicePartyRequest'
+      responses:
+        '200':
+          description: Gespeichert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerEInvoicePartyPutResponse'
+        '400':
+          description: VALIDATION_FAILED
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+    delete:
+      tags: [Finance (FIN-5)]
+      operationId: finEInvoicePartyCustomerDelete
+      summary: XRechnung Buyer-Stammdaten entfernen (Fallback Platzhalter im Export)
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: customerId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteEInvoicePartyRequest'
+      responses:
+        '204':
+          description: Gelöscht oder noop
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+
 
   /invoices:
     post:

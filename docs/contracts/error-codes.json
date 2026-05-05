@@ -130,6 +130,13 @@
       "httpStatus": 422,
       "source": "src/services/export-service.ts validationErrors",
       "note": "Kein eigenständiger top-level DomainError-Code; erscheint in details.validationErrors bei fehlendem LV-Kontext im Export-Preflight."
+    },
+    {
+      "token": "XRECHNUNG_SELLER_PARTY_MISSING",
+      "parentCode": "EXPORT_PREFLIGHT_FAILED",
+      "httpStatus": 422,
+      "source": "src/services/export-service.ts validationErrors",
+      "note": "Kein Mandanten-E-Rechnungs-Stammdatensatz (tenant_e_invoice_parties); XRechnung-Export fail-closed."
     }
   ],
   "frontendNormalizedEnvelope": {

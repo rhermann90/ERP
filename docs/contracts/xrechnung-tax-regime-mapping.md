@@ -24,3 +24,4 @@ Wird nur noch geliefert, wenn das auf der Rechnung gespeicherte Regime **nicht**
 - Ticket-Paket C: [FIN-5-FOLLOWUP-INCREMENTS.md](../tickets/FIN-5-FOLLOWUP-INCREMENTS.md)
 - OpenAPI / Fehler: [api-contract.yaml](../api-contract.yaml), [error-codes.json](./error-codes.json)
 - Mapping-Tabelle QA: [finance-fin0-openapi-mapping.md](./finance-fin0-openapi-mapping.md)
+- Profil-Scope und Pflichtfeld-Gaps (MVP): [xrechnung-profile-scope-and-gaps.md](./xrechnung-profile-scope-and-gaps.md)

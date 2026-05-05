@@ -8,6 +8,7 @@ function makeClient(): ApiClient {
     getAllowedActions: vi.fn(),
     getOfferVersion: vi.fn(),
     getLvVersionSnapshot: vi.fn(),
+    getLvVersionStructure: vi.fn(),
     getMeasurementVersion: vi.fn(),
     getSupplementVersion: vi.fn(),
     getPaymentTermsByProject: vi.fn(),
@@ -41,6 +42,9 @@ function makeClient(): ApiClient {
     deleteProjectInvoiceTaxOverride: vi.fn(),
     getTenantPwaDisplaySettings: vi.fn(),
     patchTenantPwaDisplaySettings: vi.fn(),
+    getTenantEInvoiceParty: vi.fn(),
+    listCustomerEInvoiceParties: vi.fn(),
+    getCustomerEInvoiceParty: vi.fn(),
     getAuditEvents: vi.fn(),
   };
 }

@@ -64,6 +64,7 @@ export function registerPwaHttpHooks(app: FastifyInstance, corsAllowlist: Set<st
       pathOnly.startsWith("/finance/dunning-reminder") ||
       pathOnly.startsWith("/finance/dunning-email-footer") ||
       pathOnly.startsWith("/finance/invoice-tax-profile") ||
+      pathOnly.startsWith("/finance/e-invoice-parties") ||
       pathOnly.startsWith("/tenant/pwa-display-settings")
     ) {
       reply.header("x-erp-openapi-contract-version", ERP_OPENAPI_INFO_VERSION);
@@ -92,13 +93,29 @@ type FastifyLoggerOpts = false | {
   };
 };
 
+/** Strip query string from logged URL on payment paths (§8.14 — reduce accidental PII in query params). */
+export function sanitizeFinanceRequestUrlForLogs(rawUrl: string): string {
+  const q = rawUrl.indexOf("?");
+  const pathOnly = q >= 0 ? rawUrl.slice(0, q) : rawUrl;
+  if (pathOnly.includes("/finance/payments")) {
+    return pathOnly;
+  }
+  return rawUrl;
+}
+
 function sanitizeHeaders(
   headers: Record<string, unknown>,
 ): Record<string, string | string[] | undefined> {
   const out: Record<string, string | string[] | undefined> = {};
   const drop = new Set(["authorization", "cookie", "set-cookie"]);
+  const redactValue = new Set(["idempotency-key", "x-idempotency-key"]);
   for (const [k, v] of Object.entries(headers)) {
-    if (drop.has(k.toLowerCase())) continue;
+    const kl = k.toLowerCase();
+    if (drop.has(kl)) continue;
+    if (redactValue.has(kl)) {
+      out[k] = "[redacted]";
+      continue;
+    }
     if (typeof v === "string" || Array.isArray(v)) out[k] = v;
   }
   return out;
@@ -112,7 +129,7 @@ export function buildFastifyLoggerOptions(): FastifyLoggerOpts {
       req(req) {
         return {
           method: req.method,
-          url: req.url,
+          url: sanitizeFinanceRequestUrlForLogs(req.url),
           headers: sanitizeHeaders(req.headers as Record<string, unknown>),
         };
       },
