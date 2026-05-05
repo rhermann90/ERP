@@ -87,6 +87,8 @@ Wann **nach** dem Merge auf `main` ausfüllen (noch in derselben Session oder di
 
 **Fortschreibung (Team-Entscheid, offene Frage geklärt):** Nach vollständiger Belegung der Zeilen **1–3** gilt **weiterhin Fortschreibung in derselben Tabelle** — unter die bestehende Tabelle **weitere Zeilen** im gleichen Spaltenformat anhängen (# 4, 5, …), solange das für Nachvollziehbarkeit sinnvoll ist. **Nur** wenn das Team ausdrücklich einen Schnitt wünscht (z. B. neues Release-Train): archivierte Kopie des „Einträge“-Blocks plus **neue** leere Tabelle starten; nicht der Default.
 
+**Hinweis (Agent, 2026-05-05):** **Zeile 10** ist nach qualifiziertem Merge des Tenant-PWA-Expertenmodus (OpenAPI `info.version` **1.29.3-tenant-pwa-expert-mode**, `prisma`-Migration `tenant_pwa_display_settings`, PWA Mandanten-Schalter + Shell-Roh-JSON) mit **echtem** PR-Link und Merge-Datum **UTC** zu befüllen — keine Agent-Fiktion. Vor Merge empfohlen: `npm run verify:ci:local-db` (Persistenz inkl. `GET|PATCH /tenant/pwa-display-settings`).
+
 | # | Merge-Datum (UTC) | PR / Referenz | Notiz |
 |---|-------------------|----------------|-------|
 | 1 | 2026-04-26 | https://github.com/rhermann90/ERP/pull/42 | FIN4 OpenAPI 5c + `FIN4-external-client-integration.md`; PWA Finanz-Vorbereitung; PR-Punkt5/RELEASE-Verweise in PR #42 |

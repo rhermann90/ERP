@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactElement, type ReactNode } from "react";
 import { AppShell } from "./components/AppShell.js";
 import { DocumentTextPanels } from "./components/DocumentTextPanels.js";
 import { FinancePreparation } from "./components/FinancePreparation.js";
@@ -24,7 +24,8 @@ import {
 } from "./lib/action-executor.js";
 import type { QuickPreset } from "./lib/role-quick-actions.js";
 import { decodeTokenPayload, roleForQuickNav } from "./lib/token-payload.js";
-import { ApiError } from "./lib/api-error.js";
+import { ApiError, type ApiErrorEnvelope } from "./lib/api-error.js";
+import { FinanceStructuredApiError } from "./components/finance/FinanceStructuredApiError.js";
 import { createApiClient, resolveApiBaseUrl, type InvoiceOverview, type LvVersionSnapshot } from "./lib/api-client.js";
 import { formatSkontoDisplay } from "./components/finance/finance-prep-helpers.js";
 import {
@@ -52,6 +53,39 @@ function loadDocPrefs(tenantId: string): { documentId: string; entityType: Entit
 function saveDocPrefs(tenantId: string, documentId: string, entityType: EntityType): void {
   if (!tenantId) return;
   localStorage.setItem(storageKeyForTenant(tenantId, "docprefs"), JSON.stringify({ documentId, entityType }));
+}
+
+type AppBanner =
+  | { kind: "ok"; text: string }
+  | {
+      kind: "error";
+      text: string;
+      code?: string;
+      correlationId?: string;
+      structured?: { envelope: ApiErrorEnvelope; status: number };
+    };
+
+/** Haupt-Shell-Roh-JSON: in Produktion ohne Expertenmodus hinter Summary (E2E nutzt Vite-Dev → immer aufgeklappt). */
+function ShellExpertDiagnosticsJson(props: { showOpen: boolean; testId?: string; children: ReactNode }) {
+  const pre = (
+    <pre
+      className="system-block"
+      style={{ margin: 0 }}
+      {...(props.testId ? ({ "data-testid": props.testId } as const) : {})}
+    >
+      {props.children}
+    </pre>
+  );
+  if (props.showOpen) return pre;
+  return (
+    <details style={{ marginTop: "0.25rem" }}>
+      <summary style={{ cursor: "pointer", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+        Rohdaten anzeigen (Expertenmodus aus — Mandanten-Schalter unter „Sitzung &amp; API“,{" "}
+        <code>VITE_PWA_EXPERT_UI=1</code> oder Vite-Dev)
+      </summary>
+      {pre}
+    </details>
+  );
 }
 
 export default function App() {
@@ -89,9 +123,7 @@ export default function App() {
   const [allowedActions, setAllowedActions] = useState<string[] | null>(null);
   const [allowedMeta, setAllowedMeta] = useState<{ documentId: string; entityType: string } | null>(null);
   const [busy, setBusy] = useState(false);
-  const [banner, setBanner] = useState<{ kind: "error" | "ok"; text: string; code?: string; correlationId?: string } | null>(
-    null,
-  );
+  const [banner, setBanner] = useState<AppBanner | null>(null);
 
   const [measurementDetail, setMeasurementDetail] = useState<{
     measurementId: string;
@@ -112,6 +144,11 @@ export default function App() {
   const [shellDunningTemplatesJson, setShellDunningTemplatesJson] = useState("");
   const [shellDunningFooterJson, setShellDunningFooterJson] = useState("");
   const [shellDunningAutomationJson, setShellDunningAutomationJson] = useState("");
+  /** Shell read-only GET /tenant/pwa-display-settings (Integrations-/Experten-Sicht). */
+  const [shellTenantPwaDisplayJson, setShellTenantPwaDisplayJson] = useState("");
+  /** Mandantenweit (Server); siehe GET/PATCH `/tenant/pwa-display-settings`. */
+  const [tenantPwaExpertModeEnabled, setTenantPwaExpertModeEnabled] = useState(false);
+  const [tenantPwaExpertModeBusy, setTenantPwaExpertModeBusy] = useState(false);
 
   const [modalAction, setModalAction] = useState<string | null>(null);
   const [form, setForm] = useState<ActionFormFields>({
@@ -161,6 +198,15 @@ export default function App() {
   const quickNavRole = roleForQuickNav(tokenRole);
   const tenantMismatch = tokenTenant && tenantId && tokenTenant !== tenantId;
 
+  const vitePwaExpertUi =
+    typeof import.meta.env.VITE_PWA_EXPERT_UI === "string" && import.meta.env.VITE_PWA_EXPERT_UI.trim() === "1";
+  const showExpertUi =
+    (typeof import.meta !== "undefined" && Boolean(import.meta.env.DEV)) ||
+    vitePwaExpertUi ||
+    tenantPwaExpertModeEnabled;
+  const canManageTenantPwaExpertMode =
+    tokenRole === "ADMIN" || tokenRole === "GESCHAEFTSFUEHRUNG" || tokenRole === "BUCHHALTUNG";
+
   const hashPath = useHashRoute();
   const hashQuery = readHashQuery();
   const showFinancePrep = isFinancePrepHashPath(hashPath);
@@ -174,6 +220,25 @@ export default function App() {
     if (!showFinancePrep) return;
     normalizeFinancePrepHashToCanon();
   }, [showFinancePrep, hashPath]);
+
+  useEffect(() => {
+    if (!token?.trim() || !tenantId?.trim() || tenantMismatch) {
+      setTenantPwaExpertModeEnabled(false);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const r = await client.getTenantPwaDisplaySettings();
+        if (!cancelled) setTenantPwaExpertModeEnabled(Boolean(r.data?.pwaExpertModeEnabled));
+      } catch {
+        if (!cancelled) setTenantPwaExpertModeEnabled(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, tenantId, tenantMismatch, client]);
 
   useEffect(() => {
     if (tenantId !== prevTenant) {
@@ -193,6 +258,7 @@ export default function App() {
       setShellDunningTemplatesJson("");
       setShellDunningFooterJson("");
       setShellDunningAutomationJson("");
+      setShellTenantPwaDisplayJson("");
       setBanner(null);
       const p = loadDocPrefs(tenantId);
       setDocumentId(p.documentId);
@@ -503,6 +569,26 @@ export default function App() {
     }
   }, [client]);
 
+  const loadShellTenantPwaDisplaySettings = useCallback(async () => {
+    setBusy(true);
+    setBanner(null);
+    try {
+      const r = await client.getTenantPwaDisplaySettings();
+      setShellTenantPwaDisplayJson(JSON.stringify(r, null, 2));
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setBanner({
+          kind: "error",
+          text: e.envelope.message,
+          code: e.envelope.code,
+          correlationId: e.envelope.correlationId,
+        });
+      } else setBanner({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [client]);
+
   const openAction = (actionId: string) => {
     if (!allowedActions?.includes(actionId)) return;
     setModalAction(actionId);
@@ -687,16 +773,20 @@ export default function App() {
         />
       ) : null}
       {banner?.kind === "error" ? (
-        <div className="error-banner" role="alert">
-          <strong>{banner.code ? `${banner.code}: ` : ""}</strong>
-          {banner.text}
-          {banner.correlationId ? (
-            <>
-              {" "}
-              <code>correlationId={banner.correlationId}</code>
-            </>
-          ) : null}
-        </div>
+        banner.structured ? (
+          <FinanceStructuredApiError envelope={banner.structured.envelope} status={banner.structured.status} />
+        ) : (
+          <div className="error-banner" role="alert">
+            <strong>{banner.code ? `${banner.code}: ` : ""}</strong>
+            {banner.text}
+            {banner.correlationId ? (
+              <>
+                {" "}
+                <code>correlationId={banner.correlationId}</code>
+              </>
+            ) : null}
+          </div>
+        )
       ) : null}
       {banner?.kind === "ok" ? (
         <div className="success-banner">
@@ -712,7 +802,12 @@ export default function App() {
       ) : null}
 
       {showFinancePrep ? (
-        <FinancePreparation key={financePrepMountKey} api={client} initialMainTab={financePrepInitialMainTab} />
+        <FinancePreparation
+          key={financePrepMountKey}
+          api={client}
+          initialMainTab={financePrepInitialMainTab}
+          showExpertIntegratorNav={showExpertUi}
+        />
       ) : null}
 
       {showLogin ? (
@@ -790,6 +885,72 @@ export default function App() {
           <p style={{ fontSize: "0.78rem", color: "var(--danger)", marginBottom: 0 }}>
             Warnung: SessionStorage ist weniger sicher als Memory-only und nur für explizite Dev-Zwecke gedacht.
           </p>
+        ) : null}
+        {token?.trim() && !tenantMismatch && canManageTenantPwaExpertMode ? (
+          <div
+            className="field"
+            style={{ marginTop: "0.75rem" }}
+            data-testid="tenant-pwa-expert-mode-toggle"
+            aria-busy={tenantPwaExpertModeBusy}
+          >
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                minHeight: "44px",
+                cursor: tenantPwaExpertModeBusy ? "wait" : "pointer",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={tenantPwaExpertModeEnabled}
+                disabled={tenantPwaExpertModeBusy}
+                aria-describedby="tenant-pwa-expert-mode-hint"
+                onChange={async (e) => {
+                  const next = e.target.checked;
+                  setTenantPwaExpertModeBusy(true);
+                  setBanner(null);
+                  try {
+                    await client.patchTenantPwaDisplaySettings({
+                      pwaExpertModeEnabled: next,
+                      reason: next
+                        ? "Mandanten-Expertenmodus aktivieren (Hash-Hilfen Finanz-Vorbereitung)"
+                        : "Mandanten-Expertenmodus deaktivieren",
+                    });
+                    setTenantPwaExpertModeEnabled(next);
+                    setBanner({
+                      kind: "ok",
+                      text: next
+                        ? "Mandanten-Expertenmodus aktiv — Finanz-Vorbereitung zeigt Integrations-Hilfen."
+                        : "Mandanten-Expertenmodus aus.",
+                    });
+                  } catch (err) {
+                    if (err instanceof ApiError) {
+                      setBanner({
+                        kind: "error",
+                        text: err.envelope.message,
+                        code: err.envelope.code,
+                        correlationId: err.envelope.correlationId,
+                        structured: { envelope: err.envelope, status: err.status },
+                      });
+                    } else {
+                      setBanner({
+                        kind: "error",
+                        text: err instanceof Error ? err.message : String(err),
+                      });
+                    }
+                  } finally {
+                    setTenantPwaExpertModeBusy(false);
+                  }
+                }}
+              />
+              <span>Mandanten-Expertenmodus (Finanz-Vorbereitung: Hash-/Tab-Hilfen für alle Nutzer dieses Mandanten)</span>
+            </label>
+            <p id="tenant-pwa-expert-mode-hint" style={{ fontSize: "0.78rem", color: "var(--text-secondary)", margin: "0.35rem 0 0" }}>
+              Zusätzlich: Vite-Dev oder <code>VITE_PWA_EXPERT_UI=1</code> blendet dieselben Hilfen ohne Server-Flag ein.
+            </p>
+          </div>
         ) : null}
       </section>
 
@@ -882,9 +1043,9 @@ export default function App() {
             <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
               Antwort GET /finance/dunning-reminder-config
             </h3>
-            <pre className="system-block" style={{ margin: 0 }} data-testid="shell-dunning-config-json">
+            <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-dunning-config-json">
               {shellDunningConfigJson}
-            </pre>
+            </ShellExpertDiagnosticsJson>
           </>
         ) : null}
       </section>
@@ -932,9 +1093,9 @@ export default function App() {
             <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
               Antwort GET /finance/dunning-reminder-templates
             </h3>
-            <pre className="system-block" style={{ margin: 0 }} data-testid="shell-dunning-templates-json">
+            <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-dunning-templates-json">
               {shellDunningTemplatesJson}
-            </pre>
+            </ShellExpertDiagnosticsJson>
           </>
         ) : null}
         {shellDunningFooterJson ? (
@@ -942,9 +1103,9 @@ export default function App() {
             <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
               Antwort GET /finance/dunning-email-footer
             </h3>
-            <pre className="system-block" style={{ margin: 0 }} data-testid="shell-dunning-footer-json">
+            <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-dunning-footer-json">
               {shellDunningFooterJson}
-            </pre>
+            </ShellExpertDiagnosticsJson>
           </>
         ) : null}
         {shellDunningAutomationJson ? (
@@ -952,9 +1113,36 @@ export default function App() {
             <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
               Antwort GET /finance/dunning-reminder-automation
             </h3>
-            <pre className="system-block" style={{ margin: 0 }} data-testid="shell-dunning-automation-json">
+            <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-dunning-automation-json">
               {shellDunningAutomationJson}
-            </pre>
+            </ShellExpertDiagnosticsJson>
+          </>
+        ) : null}
+      </section>
+
+      <section className="panel" data-testid="shell-tenant-pwa-display-panel">
+        <h2>Mandanten-PWA-Anzeige (Shell, read-only)</h2>
+        <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: 0 }}>
+          <code>GET /tenant/pwa-display-settings</code> — Expertenmodus-Flag mandantenweit; gleicher Contract-Header wie FIN-4-Leitpfade.
+        </p>
+        <div className="actions-row">
+          <button
+            type="button"
+            className="btn secondary"
+            data-testid="shell-tenant-pwa-display-fetch"
+            disabled={busy}
+            aria-label="Mandanten-PWA-Anzeige laden (GET)"
+            onClick={() => void loadShellTenantPwaDisplaySettings()}
+          >
+            PWA-Anzeige Mandant (GET)
+          </button>
+        </div>
+        {shellTenantPwaDisplayJson ? (
+          <>
+            <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>Antwort GET /tenant/pwa-display-settings</h3>
+            <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-tenant-pwa-display-json">
+              {shellTenantPwaDisplayJson}
+            </ShellExpertDiagnosticsJson>
           </>
         ) : null}
       </section>
@@ -1095,9 +1283,9 @@ export default function App() {
               <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
                 Antwort GET /finance/payment-terms (Projekt)
               </h3>
-              <pre className="system-block" style={{ margin: 0 }} data-testid="shell-invoice-payment-terms-json">
+              <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-invoice-payment-terms-json">
                 {invoicePaymentTermsJson}
-              </pre>
+              </ShellExpertDiagnosticsJson>
             </>
           ) : null}
           {invoiceAllowedActionsShellJson ? (
@@ -1105,9 +1293,9 @@ export default function App() {
               <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
                 Antwort allowed-actions (INVOICE)
               </h3>
-              <pre className="system-block" style={{ margin: 0 }} data-testid="shell-invoice-allowed-actions-json">
+              <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-invoice-allowed-actions-json">
                 {invoiceAllowedActionsShellJson}
-              </pre>
+              </ShellExpertDiagnosticsJson>
             </>
           ) : null}
         </section>

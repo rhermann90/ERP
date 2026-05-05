@@ -116,6 +116,10 @@ import {
   noopDunningTenantAutomationPersistence,
   PrismaDunningTenantAutomationPersistence,
 } from "../persistence/dunning-tenant-automation-persistence.js";
+import {
+  noopTenantPwaDisplaySettingsPersistence,
+  PrismaTenantPwaDisplaySettingsPersistence,
+} from "../persistence/tenant-pwa-display-settings-persistence.js";
 import { createSmtpMailTransportFromEnv, type MailTransportPort } from "../integrations/smtp-mail-transport.js";
 import { DunningReminderCandidatesService } from "../services/dunning-reminder-candidates-service.js";
 import { DunningReminderConfigService } from "../services/dunning-reminder-config-service.js";
@@ -126,6 +130,7 @@ import { DunningReminderBatchEmailService } from "../services/dunning-reminder-b
 import { DunningReminderRunService } from "../services/dunning-reminder-run-service.js";
 import { DunningReminderService } from "../services/dunning-reminder-service.js";
 import { DunningTenantAutomationService } from "../services/dunning-tenant-automation-service.js";
+import { TenantPwaDisplaySettingsService } from "../services/tenant-pwa-display-settings-service.js";
 import { PaymentIntakeService } from "../services/payment-intake-service.js";
 import { registerPaymentIntakeRoutes } from "./finance-payment-intake-routes.js";
 import { registerPaymentTermsRoutes } from "./finance-payment-terms-routes.js";
@@ -135,8 +140,25 @@ import { registerFinanceInvoiceTaxRoutes } from "./finance-invoice-tax-routes.js
 import { registerAuthLoginRoutes } from "./auth-login-routes.js";
 import { registerPasswordResetRoutes } from "./password-reset-routes.js";
 import { registerUserAccountRoutes } from "./user-account-routes.js";
+import { registerTenantPwaDisplaySettingsRoutes } from "./tenant-pwa-display-settings-routes.js";
 import { DomainError } from "../errors/domain-error.js";
 import { handleHttpError, parseAuthContext } from "./http-response.js";
+
+/**
+ * Globales `@fastify/rate-limit` (Standard 100/min pro IP).
+ * Playwright-E2E und ähnliche Suites erzeugen sehr viele Requests von `127.0.0.1` — Override via Env.
+ */
+function defaultGlobalHttpRateLimit(): { max: number; timeWindow: number | string } {
+  const raw = process.env.ERP_HTTP_GLOBAL_RATE_LIMIT_MAX?.trim();
+  if (raw) {
+    const max = Number.parseInt(raw, 10);
+    if (Number.isFinite(max) && max >= 1) {
+      const timeWindow = process.env.ERP_HTTP_GLOBAL_RATE_LIMIT_WINDOW?.trim() || "1 minute";
+      return { max, timeWindow };
+    }
+  }
+  return { max: 100, timeWindow: "1 minute" };
+}
 
 export type BuildAppOptions = {
   seedDemoData?: boolean;
@@ -181,10 +203,11 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   // Code scanning: Die Regel `js/missing-rate-limiting` erkennt dieses globale Fastify-Muster nicht
   // zuverlaessig; die Repo-Konfiguration liegt unter `.github/codeql/codeql-config.yml` (in GitHub
   // unter Code scanning als Custom configuration file verknuepfen, wenn Default setup genutzt wird).
+  const globalRl = defaultGlobalHttpRateLimit();
   await app.register(rateLimit, {
     global: true,
-    max: options?.rateLimit?.max ?? 100,
-    timeWindow: options?.rateLimit?.timeWindow ?? "1 minute",
+    max: options?.rateLimit?.max ?? globalRl.max,
+    timeWindow: options?.rateLimit?.timeWindow ?? globalRl.timeWindow,
   });
 
   app.get(
@@ -215,6 +238,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   let dunningEmailFooterPersistence: DunningEmailFooterPersistencePort = noopDunningEmailFooterPersistence;
   let dunningEmailSendPersistence: DunningEmailSendPersistencePort = noopDunningEmailSendPersistence;
   let dunningTenantAutomationPersistence = noopDunningTenantAutomationPersistence;
+  let tenantPwaDisplaySettingsPersistence = noopTenantPwaDisplaySettingsPersistence;
 
   if (repositoryMode === "postgres") {
     assertDatabaseUrlForPostgresMode(repositoryMode);
@@ -232,6 +256,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     dunningEmailFooterPersistence = new PrismaDunningEmailFooterPersistence(prisma);
     dunningEmailSendPersistence = new PrismaDunningEmailSendPersistence(prisma);
     dunningTenantAutomationPersistence = new PrismaDunningTenantAutomationPersistence(prisma);
+    tenantPwaDisplaySettingsPersistence = new PrismaTenantPwaDisplaySettingsPersistence(prisma);
     if (options?.seedDemoData ?? true) {
       seedDemoData(repos);
       await lvMeasurementPersistence.syncAllFromMemory(repos);
@@ -316,6 +341,11 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   const dunningReminderConfigService = new DunningReminderConfigService(dunningStageConfigPersistence, audit, prisma);
   const dunningTenantAutomationService = new DunningTenantAutomationService(
     dunningTenantAutomationPersistence,
+    audit,
+    prisma,
+  );
+  const tenantPwaDisplaySettingsService = new TenantPwaDisplaySettingsService(
+    tenantPwaDisplaySettingsPersistence,
     audit,
     prisma,
   );
@@ -785,6 +815,11 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     getPrisma: () => prisma,
     audit,
     authorizationService,
+  });
+
+  registerTenantPwaDisplaySettingsRoutes(app, {
+    authorizationService,
+    tenantPwaDisplaySettingsService,
   });
 
   registerPaymentTermsRoutes(app, {

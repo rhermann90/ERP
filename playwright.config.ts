@@ -25,6 +25,8 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL: e2eWebOrigin,
     trace: "on-first-retry",
+    /** PWA `generateSW` sonst cacht API-GETs mandantenübergreifend — E2E-Reihenfolge würde Flakes erzeugen. */
+    serviceWorkers: "block",
   },
   webServer: [
     {
@@ -36,6 +38,8 @@ export default defineConfig({
       env: {
         ...process.env,
         NODE_ENV: "development",
+        /** Viele parallele Shell-/Finanz-Requests von 127.0.0.1 — globales Fastify-Limit sonst 429. */
+        ERP_HTTP_GLOBAL_RATE_LIMIT_MAX: "50000",
         ERP_HTTP_PORT: E2E_API_PORT,
         /** Browser-Origin der Vite-PWA im E2E (127.0.0.1 ≠ localhost für CORS). */
         CORS_ORIGINS: `${e2eWebOrigin},http://localhost:${E2E_WEB_PORT}`,

@@ -290,6 +290,20 @@ const noopApi = {
     invoiceTaxRegime: body.invoiceTaxRegime as "REVERSE_CHARGE",
   }),
   deleteProjectInvoiceTaxOverride: async () => undefined,
+  getTenantPwaDisplaySettings: async () => ({
+    data: {
+      settingsSource: "NOT_CONFIGURED" as const,
+      tenantId: "00000000-0000-4000-8000-000000000001",
+      pwaExpertModeEnabled: false,
+    },
+  }),
+  patchTenantPwaDisplaySettings: async (body: { pwaExpertModeEnabled: boolean; reason: string }) => ({
+    data: {
+      settingsSource: "TENANT_DATABASE" as const,
+      tenantId: "00000000-0000-4000-8000-000000000001",
+      pwaExpertModeEnabled: body.pwaExpertModeEnabled,
+    },
+  }),
 } as unknown as ApiClient;
 
 describe("FinancePreparation", () => {

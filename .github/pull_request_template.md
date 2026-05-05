@@ -43,7 +43,7 @@ Siehe [`docs/contracts/qa-fin-0-gate-readiness.md`](docs/contracts/qa-fin-0-gate
 npm run verify:pre-merge
 ```
 
-Enthält `npm run verify:ci` und anschließend Playwright für [`e2e/login-finance-smoke.spec.ts`](../e2e/login-finance-smoke.spec.ts) und [`e2e/app-shell-smoke.spec.ts`](../e2e/app-shell-smoke.spec.ts) (Ports **13000** / **15173** wie in [`playwright.config.ts`](../playwright.config.ts)).
+Enthält `npm run verify:ci` und anschließend Playwright für [`e2e/login-finance-smoke.spec.ts`](../e2e/login-finance-smoke.spec.ts), [`e2e/login-finance-smoke-fin5-tail.spec.ts`](../e2e/login-finance-smoke-fin5-tail.spec.ts) und [`e2e/app-shell-smoke.spec.ts`](../e2e/app-shell-smoke.spec.ts) (Ports **13000** / **15173** wie in [`playwright.config.ts`](../playwright.config.ts)).
 
 Nur die schnelle Backend/Web-Unit-Kette ohne Playwright:
 

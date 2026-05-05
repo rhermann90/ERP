@@ -44,6 +44,8 @@ const STRUCTURED_ERROR_HINTS: Partial<Record<string, string>> = {
   DUNNING_EMAIL_STAGE_INVALID: "Mahn-Stufe für E-Mail-Vorschau oder Versand passt nicht zur Konfiguration.",
   DUNNING_EMAIL_TEMPLATE_NOT_FOUND: "Keine Vorlage für diese Stufe/Kanal — Vorlagen-GET und Konfig prüfen.",
   DUNNING_EMAIL_STAGE_CONFIG_NOT_FOUND: "Keine aktive Stufen-Zeile für diese Ordinal — Konfiguration prüfen.",
+  PWA_DISPLAY_SETTINGS_NOT_PERSISTABLE:
+    "Mandanten-PWA-Einstellungen sind nur mit Postgres-Persistenz schreibbar — Backend nicht im In-Memory-Modus betreiben oder Migration/deploy mit DB ausführen.",
 };
 
 function structuredDetailLines(details: unknown): string[] {

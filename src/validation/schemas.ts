@@ -472,3 +472,8 @@ export const confirmPasswordResetSchema = z.object({
   token: z.string().min(20).max(500),
   password: z.string().min(12).max(2000),
 });
+
+export const patchTenantPwaDisplaySettingsSchema = z.object({
+  pwaExpertModeEnabled: z.boolean(),
+  reason: z.string().min(5).max(500),
+});

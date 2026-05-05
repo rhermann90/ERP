@@ -70,7 +70,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     });
     const cleanup = createPrismaClient(dbUrl!);
     await cleanup.$executeRawUnsafe(
-      `TRUNCATE TABLE dunning_reminder_run_intents, dunning_reminders, dunning_email_sends, dunning_tenant_automation, dunning_tenant_stage_config, dunning_tenant_stage_templates, dunning_tenant_email_footer, payment_intakes, invoices, project_invoice_tax_overrides, tenant_invoice_tax_profiles, payment_terms_versions, payment_terms_heads, supplement_versions, supplement_offers, measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, audit_events, offer_versions, offers, password_reset_challenges, users RESTART IDENTITY CASCADE`,
+      `TRUNCATE TABLE dunning_reminder_run_intents, dunning_reminders, dunning_email_sends, dunning_tenant_automation, dunning_tenant_stage_config, dunning_tenant_stage_templates, dunning_tenant_email_footer, tenant_pwa_display_settings, payment_intakes, invoices, project_invoice_tax_overrides, tenant_invoice_tax_profiles, payment_terms_versions, payment_terms_heads, supplement_versions, supplement_offers, measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, audit_events, offer_versions, offers, password_reset_challenges, users RESTART IDENTITY CASCADE`,
     );
     await cleanup.$disconnect();
 
@@ -714,6 +714,52 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     const body = res.json() as { data: { configSource: string; stages: { label: string }[] } };
     expect(body.data.configSource).toBe("MVP_STATIC_DEFAULTS");
     expect(body.data.stages[0]!.label).toMatch(/MVP-Default/);
+  });
+
+  it("GET/PATCH /tenant/pwa-display-settings: Default NOT_CONFIGURED, Patch persistiert + Audit", async () => {
+    const g0 = await app.inject({
+      method: "GET",
+      url: "/tenant/pwa-display-settings",
+      headers: adminHeaders(),
+    });
+    expect(g0.statusCode).toBe(200);
+    const b0 = g0.json() as { data: { settingsSource: string; pwaExpertModeEnabled: boolean; tenantId: string } };
+    expect(b0.data.settingsSource).toBe("NOT_CONFIGURED");
+    expect(b0.data.pwaExpertModeEnabled).toBe(false);
+    expect(b0.data.tenantId).toBe(SEED_IDS.tenantId);
+
+    const patch = await app.inject({
+      method: "PATCH",
+      url: "/tenant/pwa-display-settings",
+      headers: adminHeaders(),
+      payload: {
+        pwaExpertModeEnabled: true,
+        reason: "Persistenztest Mandanten-Expertenmodus aktivieren",
+      },
+    });
+    expect(patch.statusCode).toBe(200);
+    const pb = patch.json() as { data: { settingsSource: string; pwaExpertModeEnabled: boolean } };
+    expect(pb.data.settingsSource).toBe("TENANT_DATABASE");
+    expect(pb.data.pwaExpertModeEnabled).toBe(true);
+
+    const g1 = await app.inject({
+      method: "GET",
+      url: "/tenant/pwa-display-settings",
+      headers: adminHeaders(),
+    });
+    expect(g1.statusCode).toBe(200);
+    expect((g1.json() as { data: { pwaExpertModeEnabled: boolean } }).data.pwaExpertModeEnabled).toBe(true);
+
+    const ev = await prisma.auditEvent.findFirst({
+      where: {
+        tenantId: SEED_IDS.tenantId,
+        entityType: "TENANT_PWA_DISPLAY_SETTINGS",
+        action: "TENANT_PWA_DISPLAY_SETTINGS_PATCHED",
+      },
+      orderBy: { timestamp: "desc" },
+    });
+    expect(ev).toBeTruthy();
+    expect(ev!.entityId).toBe(SEED_IDS.tenantId);
   });
 
   it("GET /finance/dunning-reminder-templates: MVP_STATIC ohne Mandanten-Vorlagen-Zeilen", async () => {

@@ -104,7 +104,12 @@ function FinancePrepStepInvoiceInner({
       ) : null}
       {invoiceOverview ? (
         <div style={{ marginTop: "0.75rem", fontSize: "0.85rem" }}>
-          <div className="finance-prep-metric-grid" role="group" aria-label="Kernzahlen Rechnung">
+          <div
+            className="finance-prep-metric-grid"
+            role="group"
+            aria-label="Kernzahlen Rechnung"
+            data-testid="finance-invoice-kernzahlen"
+          >
             <div className="metric-card">
               <p className="metric-card__label">Status</p>
               <p className="metric-card__value">{invoiceOverview.status}</p>
@@ -161,7 +166,12 @@ function FinancePrepStepInvoiceInner({
               {invoiceOverview.status === "ENTWURF" ? (
                 <span>
                   Wert auch in Schritt 2;{" "}
-                  <button type="button" disabled={busy} onClick={() => void onSubmitEntwurfSkontoRecalc()}>
+                  <button
+                    type="button"
+                    data-testid="finance-prep-skonto-recalc-button"
+                    disabled={busy}
+                    onClick={() => void onSubmitEntwurfSkontoRecalc()}
+                  >
                     Skonto mit POST /invoices neu berechnen
                   </button>
                 </span>

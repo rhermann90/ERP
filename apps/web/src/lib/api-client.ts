@@ -210,6 +210,13 @@ export type CreateInvoiceDraftResponse = {
   mandatoryTaxNoticeLines: string[];
 };
 
+/** Antwort `GET /tenant/pwa-display-settings` (Mandanten-Expertenmodus). */
+export type TenantPwaDisplaySettingsRead = {
+  settingsSource: "NOT_CONFIGURED" | "TENANT_DATABASE";
+  tenantId: string;
+  pwaExpertModeEnabled: boolean;
+};
+
 /** Antwort `GET /finance/invoice-tax-profile` (FIN-5). */
 export type TenantInvoiceTaxProfileRead = {
   tenantId: string;
@@ -486,6 +493,11 @@ export type ApiClient = {
     confirmBatchSend?: true;
     items: Array<{ invoiceId: string; toEmail: string; idempotencyKey?: string }>;
   }): Promise<DunningReminderBatchEmailResponse>;
+  getTenantPwaDisplaySettings(): Promise<{ data: TenantPwaDisplaySettingsRead }>;
+  patchTenantPwaDisplaySettings(body: {
+    pwaExpertModeEnabled: boolean;
+    reason: string;
+  }): Promise<{ data: TenantPwaDisplaySettingsRead }>;
   getTenantInvoiceTaxProfile(): Promise<TenantInvoiceTaxProfileRead>;
   patchTenantInvoiceTaxProfile(body: {
     defaultInvoiceTaxRegime: InvoiceTaxRegimeApi;
@@ -779,6 +791,12 @@ export function createApiClient(options: {
         });
       }
       return parsed as PaymentIntakeRecordResponse;
+    },
+    getTenantPwaDisplaySettings() {
+      return requestJson<{ data: TenantPwaDisplaySettingsRead }>("GET", "/tenant/pwa-display-settings");
+    },
+    patchTenantPwaDisplaySettings(body) {
+      return requestJson<{ data: TenantPwaDisplaySettingsRead }>("PATCH", "/tenant/pwa-display-settings", body);
     },
     getTenantInvoiceTaxProfile() {
       return requestJson<TenantInvoiceTaxProfileRead>("GET", "/finance/invoice-tax-profile");

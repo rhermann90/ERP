@@ -63,7 +63,8 @@ export function registerPwaHttpHooks(app: FastifyInstance, corsAllowlist: Set<st
     if (
       pathOnly.startsWith("/finance/dunning-reminder") ||
       pathOnly.startsWith("/finance/dunning-email-footer") ||
-      pathOnly.startsWith("/finance/invoice-tax-profile")
+      pathOnly.startsWith("/finance/invoice-tax-profile") ||
+      pathOnly.startsWith("/tenant/pwa-display-settings")
     ) {
       reply.header("x-erp-openapi-contract-version", ERP_OPENAPI_INFO_VERSION);
     }
