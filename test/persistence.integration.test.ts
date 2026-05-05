@@ -433,6 +433,69 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
       },
     });
     expect(res.statusCode).toBe(201);
+    const body = res.json() as { xrechnungXml?: string };
+    expect(body.xrechnungXml).toBeDefined();
+    expect(body.xrechnungXml).toContain(">S<");
+  });
+
+  it("FIN-5 Paket C: POST /exports XRECHNUNG liefert xrechnungXml je weiterem Steuerregime (Postgres)", async () => {
+    const cases = [
+      { regime: "SMALL_BUSINESS_19" as const, expectCat: ">E<" },
+      { regime: "REVERSE_CHARGE" as const, expectCat: ">AE<" },
+      { regime: "CONSTRUCTION_13B" as const, expectCat: ">AE<" },
+    ];
+    for (const { regime, expectCat } of cases) {
+      const patch = await app.inject({
+        method: "PATCH",
+        url: "/finance/invoice-tax-profile",
+        headers: adminHeaders(),
+        payload: {
+          defaultInvoiceTaxRegime: regime,
+          reason: `FIN-5 Paket C persistence export test ${regime}`,
+        },
+      });
+      expect(patch.statusCode).toBe(200);
+      const draftRes = await app.inject({
+        method: "POST",
+        url: "/invoices",
+        headers: adminHeaders(),
+        payload: {
+          lvVersionId: SEED_IDS.lvVersionId,
+          offerVersionId: SEED_IDS.offerVersionId,
+          invoiceCurrencyCode: "EUR",
+          reason: `FIN-5 Paket C draft ${regime}`,
+        },
+      });
+      expect(draftRes.statusCode).toBe(201);
+      const invoiceId = (draftRes.json() as { invoiceId: string }).invoiceId;
+      const book = await app.inject({
+        method: "POST",
+        url: `/invoices/${invoiceId}/book`,
+        headers: adminHeaders(),
+        payload: { reason: `FIN-5 Paket C book ${regime}` },
+      });
+      expect(book.statusCode).toBe(200);
+      const exp = await app.inject({
+        method: "POST",
+        url: "/exports",
+        headers: adminHeaders(),
+        payload: { entityType: "INVOICE", entityId: invoiceId, format: "XRECHNUNG" },
+      });
+      expect(exp.statusCode).toBe(201);
+      const body = exp.json() as { xrechnungXml?: string };
+      expect(body.xrechnungXml).toBeDefined();
+      expect(body.xrechnungXml).toContain(expectCat);
+    }
+    const reset = await app.inject({
+      method: "PATCH",
+      url: "/finance/invoice-tax-profile",
+      headers: adminHeaders(),
+      payload: {
+        defaultInvoiceTaxRegime: "STANDARD_VAT_19",
+        reason: "FIN-5 Paket C persistence reset tenant profile to standard VAT",
+      },
+    });
+    expect(reset.statusCode).toBe(200);
   });
 
   it("FIN-1 M1: zwei Zahlungsbedingungs-Versionen; Rechnung bleibt auf alter Version (Postgres); Buchung ändert PT-Referenz nicht", async () => {

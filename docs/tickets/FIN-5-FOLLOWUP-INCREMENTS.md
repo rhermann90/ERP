@@ -46,16 +46,19 @@
 
 ### Paket B — Pflicht-Hinweise im Rechnungsausweis (PWA Read-Only)
 
+**Status:** erledigt (Repo). Smoke nutzt Seed-Rechnung `SEED_IDS.invoiceDraftSmallBusinessId` (`SMALL_BUSINESS_19`) — Hinweis zum Ticket-Wording: Das kanonische Regime-Enum ist [`src/domain/invoice-tax-regime.ts`](../../src/domain/invoice-tax-regime.ts) (`STANDARD_VAT_19`, `SMALL_BUSINESS_19`, `REVERSE_CHARGE`, `CONSTRUCTION_13B`), nicht die ältere Platzhalter-Bezeichnung „EXPORT_NON_TAXABLE“.
+
 **Zweck:** Server liefert `mandatoryTaxNoticeLines` auf Entwurf und GET (ADR-0015 §8.10). PWA muss diese im Rechnungs-Snapshot anzeigen — Darstellung, **kein** Rechtshinweis.
 
 **Lieferung:**
 
-- [`apps/web/src/components/finance/preparation/FinancePrepStepInvoice.tsx`](../../apps/web/src/components/finance/preparation/FinancePrepStepInvoice.tsx) ergänzen: Liste `mandatoryTaxNoticeLines` rendern (lesbarer Block am Rechnungs-Footer; A11y wie restliche Step-UI).
-- Tests + E2E-Smoke (1 Assertion: bei Test-Regime `EXPORT_NON_TAXABLE` mind. ein Pflicht-Hinweis sichtbar).
+- [`apps/web/src/components/finance/preparation/FinancePrepStepInvoice.tsx`](../../apps/web/src/components/finance/preparation/FinancePrepStepInvoice.tsx): Liste `mandatoryTaxNoticeLines` im Kernzahlen-Block; `data-testid="finance-invoice-mandatory-tax-notices"` für Smoke.
+- Memory-Seed [`src/composition/seed.ts`](../../src/composition/seed.ts): zusätzlicher ENTWURF `invoiceDraftSmallBusinessId` für E2E/API.
+- [`apps/web/src/components/FinancePreparation.test.tsx`](../../apps/web/src/components/FinancePreparation.test.tsx) + [`e2e/login-finance-smoke.spec.ts`](../../e2e/login-finance-smoke.spec.ts).
 
 **Akzeptanz:** Bei Regime ≠ `STANDARD_VAT_19` werden die vom Server gelieferten Pflicht-Hinweise sichtbar; bei Standard keine Anzeige.
 
-**Aufwand:** klein; **kein** Backend.
+**Aufwand:** klein; **kein** Backend-Vertrags-Bump.
 
 ### Paket C — XRechnung-Mapping für nicht-Standard-Regime
 
@@ -73,17 +76,20 @@
 
 ### Paket D — Buchungs-Recreate-Flow bei Regime-Drift
 
+**Status:** erledigt (Repo).
+
 **Zweck:** Wenn beim Buchen `INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT` (HTTP 409) zurückkommt, soll PWA klar führen.
 
 **Lieferung:**
 
-- Strukturierter Fehler in [`apps/web/src/lib/api-error.ts`](../../apps/web/src/lib/api-error.ts) (Code-Erkennung + Aufbereitung).
-- UI-Flow in [`FinancePrepStepInvoice.tsx`](../../apps/web/src/components/finance/preparation/FinancePrepStepInvoice.tsx): Warnung + Button „Neuen Entwurf laden" → `POST /invoices` mit gleichem `lvVersionId`/`offerVersionId`.
-- Web-Test + E2E-Erweiterung (gemockter 409 → UI-Erholung).
+- Nutzerhinweis zum Code in [`FinanceStructuredApiError.tsx`](../../apps/web/src/components/finance/FinanceStructuredApiError.tsx); strukturierte Fehler weiterhin über bestehendes [`ApiError`](../../apps/web/src/lib/api-error.ts)-Envelope.
+- Recreate-Callback + Guard (inkl. Status **ENTWURF**) in [`FinancePreparation.tsx`](../../apps/web/src/components/FinancePreparation.tsx); CTA in [`FinancePrepStepInvoice.tsx`](../../apps/web/src/components/finance/preparation/FinancePrepStepInvoice.tsx) → `POST /invoices` mit gleichem `lvVersionId`/`offerVersionId` (optional `paymentTermsVersionId`, `skontoBps`).
+- Kontraktabgleich: [`docs/contracts/error-codes.json`](../../docs/contracts/error-codes.json) Klasse `invoice_book`.
+- Backend-Regression: [`test/finance-fin0-stubs.test.ts`](../../test/finance-fin0-stubs.test.ts) (409 bei Profil-Drift vor Buchung); Web-Test + E2E [`e2e/login-finance-smoke.spec.ts`](../../e2e/login-finance-smoke.spec.ts).
 
 **Akzeptanz:** Drift-Szenario manuell reproduzierbar; PWA verlässt sich nicht auf alte Draft-ID.
 
-**Aufwand:** klein-mittel; **kein** Backend (nur PWA + ggf. ApiClient).
+**Aufwand:** klein-mittel; **Backend:** nur Regressionstest (Service-Verhalten unverändert).
 
 ## Reihenfolge / Empfehlung
 
@@ -102,7 +108,7 @@ Keine Pflicht-Reihenfolge — kleine, einzeln verifizierte PRs sind das Ziel.
 |--------|------------|
 | **Keine PWA-Schreib-UI** nach #86: Profil/Override nur über HTTP-API änderbar | Vertrag und Integratoren: [`docs/api-contract.yaml`](../api-contract.yaml) (`/finance/invoice-tax-profile…`), [`FIN4-external-client-integration.md`](../contracts/FIN4-external-client-integration.md). Ohne Integrator: **Paket A** priorisieren (siehe **Alternative Reihenfolge** oben). |
 | **XRechnung** bei nicht-Standard-Regime bleibt fail-closed bis **Paket C** | Operativ keinen XRechnung-Export für Sonderregime erwarten, bis Mapping und Tests vorliegen; Fehlercode `EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED` bleibt bis dahin kanonisch. |
-| **HTTP 409** `INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT` ohne geführte UX bis **Paket D** | Nutzerhinweis: neuen Rechnungsentwurf mit gleicher LV-/Angebots-Version anlegen; Umsetzung in Paket D. |
+| **HTTP 409** `INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT` | **Paket D** umgesetzt: PWA mit strukturiertem Hinweis und CTA „Neuen Entwurf laden"; Backend-Regression sichert 409-Envelope. |
 | **CodeQL „Missing rate limiting“** bei neuen Routen | Locales `config.rateLimit` pro Route wie in [`finance-invoice-tax-routes.ts`](../../src/api/finance-invoice-tax-routes.ts) und [`user-account-routes.ts`](../../src/api/user-account-routes.ts) (read/write getrennt). |
 | **Namenskollision „Option B“** | In [`NEXT-INCREMENT-FINANCE-WAVE3.md`](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) bezeichnet **Option B** eine **Wellen-Alternative** (8.4-Motor) — **nicht** das historische FIN-5-Gate [`FIN-5-GATE-816-FAIL-CLOSED.md`](./FIN-5-GATE-816-FAIL-CLOSED.md) (Fail-Closed §8.16; durch ADR-0015 superseded). |
 

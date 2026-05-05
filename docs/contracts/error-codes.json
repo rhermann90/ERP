@@ -342,6 +342,39 @@
       ]
     },
     {
+      "classId": "invoice_book",
+      "codes": [
+        {
+          "code": "INVOICE_NOT_BOOKABLE",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Rechnung nicht im Status ENTWURF oder bereits gebucht — Status und SoT prüfen."
+        },
+        {
+          "code": "INVOICE_NUMBER_CONFLICT",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Rechnungsnummer vergeben — Buchung erneut auslösen."
+        },
+        {
+          "code": "INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Steuerregime seit Entwurf geändert — neuen Entwurf mit gleicher LV-/Angebotsversion anlegen."
+        },
+        {
+          "code": "INVOICE_DRAFT_INCOMPLETE",
+          "httpStatus": 422,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Entwurf ohne 8.4-Beträge — Entwurf neu erzeugen."
+        }
+      ]
+    },
+    {
       "classId": "payment_intake",
       "codes": [
         {

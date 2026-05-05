@@ -25,6 +25,7 @@
 - Validierungen: Format enum (`XRECHNUNG`, `GAEB`), Source-Entitaet vorhanden, fachliche Exportreadiness.
 - Fehlerfaelle: Quellentitaet fehlt, Dokument nicht rechtlich freigegeben.
 - INVOICE-Preflight: Existenz, gueltiger Rechnungsstatus, Pflichtfelder und Unveraenderbarkeit; fail-closed via `EXPORT_PREFLIGHT_FAILED`.
+- INVOICE + `XRECHNUNG` bei gueltigem FIN-5-Regime: zusaetzliches Feld `xrechnungXml` (UBL 2.1, MVP-Minimalstruktur) im `ExportRun` — siehe `docs/contracts/xrechnung-tax-regime-mapping.md`.
 - Tests: Negativfall fuer Export von Entwurfsdokument.
 
 ## Feature 4 - Traceability-Pruefung vor Rechnungs-Export
@@ -38,6 +39,6 @@
 ## Explizite Annahmen
 - Dieses Inkrement ist ein bewusst kleiner, lauffaehiger Vertical Slice auf In-Memory-Storage.
 - Authentifizierung/Rollenpruefung sind als naechster Schritt vorgesehen; aktuell wird `x-user-id` vertraut.
-- Export ist als fachliche Vorpruefung modelliert, nicht als finale XML/PDF-Dateigenerierung.
+- Export-Preflight bleibt; fuer Rechnungen + XRechnung liefert der Slice zusaetzlich serialisiertes UBL-XML im API-Body (kein separates Datei-Artefakt).
 - Persistenz, Transaktionen, DSGVO-Vorgaenge und echte Rechnungslogik folgen in den naechsten Phasen.
 - Rollen kommen aktuell ueber Header und werden in Phase 2 durch AuthN/AuthZ-Claims ersetzt.

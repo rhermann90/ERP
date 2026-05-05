@@ -11,6 +11,8 @@ const STRUCTURED_ERROR_HINTS: Partial<Record<string, string>> = {
     "Derselbe Idempotency-Key wurde mit anderem Payload wiederverwendet. Neuen Key erzeugen oder den ursprünglichen Request wiederholen.",
   INVOICE_TAX_REGIME_INVALID:
     "Steuerregime-Code wird vom Server nicht akzeptiert — gültige Enum-Werte aus OpenAPI/API-Doku verwenden.",
+  INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT:
+    "Steuerregime hat sich seit dem Entwurf geändert (FIN-5 §8.16). Der bestehende Entwurf kann nicht gebucht werden — bitte unten „Neuen Entwurf laden“ wählen, um mit demselben Angebot/LV einen aktualisierten Entwurf zu erzeugen.",
   VALIDATION_FAILED:
     "Eingaben entsprechen nicht der API-Validierung. Pflichtfelder, Formate und Grenzwerte prüfen (Details ggf. im Backend-Log).",
   UNAUTHORIZED: "Sitzung fehlt oder ist abgelaufen — neu anmelden.",

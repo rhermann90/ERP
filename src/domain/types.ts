@@ -353,4 +353,6 @@ export interface ExportRun {
   validationErrors: string[];
   createdAt: Date;
   createdBy: UserId;
+  /** FIN-5 Paket C: UBL 2.1 XRechnung-XML nur bei `SUCCEEDED` + `INVOICE` + `XRECHNUNG`. */
+  xrechnungXml?: string;
 }
