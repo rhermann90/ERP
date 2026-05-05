@@ -5,9 +5,12 @@ function normalizePath(path: string): string {
   return path.startsWith("/") ? path : `/${path}`;
 }
 
-/** True für Pfade, auf denen das Backend den Contract-Version-Header setzt (FIN-4). */
+/** True für Pfade, auf denen das Backend den Contract-Version-Header setzt (FIN-4 und Tenant-PWA-Vertragspfad). */
 export function isFin4OpenApiContractResponsePath(path: string): boolean {
   const p = normalizePath(path);
+  if (p.startsWith("/tenant/pwa-display-settings")) {
+    return true;
+  }
   if (p === "/finance/dunning-email-footer" || p.startsWith("/finance/dunning-email-footer?")) {
     return true;
   }

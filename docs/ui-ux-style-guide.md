@@ -35,7 +35,7 @@ Verbindliche Produkt- und Oberflächenrichtlinien für [`apps/web/`](../apps/web
 ## Icons
 
 - **Ein** Outline-Icon-Set von **einem** Anbieter; **tree-shakeable** Einzelimports.
-- Bibliothek ist **Team-Wahl** — sobald festgelegt, hier den **Namen** ergänzen: *(noch nicht festgelegt)*.
+- **Festlegung (Repo):** [**Lucide**](https://lucide.dev/) für künftige Outline-Icons im Web-Workspace — vor Nutzung `npm install lucide-react` unter `apps/web/`; die aktuelle PWA nutzt überwiegend Text und Semantik-Markup ohne Icon-Bibliothek.
 
 ## Layout und Tablet
 

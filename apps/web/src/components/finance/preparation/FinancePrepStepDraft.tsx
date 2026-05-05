@@ -38,6 +38,7 @@ function FinancePrepStepDraftInner({
         <input
           type="text"
           inputMode="numeric"
+          data-testid="finance-prep-skonto-bps-input"
           value={draftSkontoBps}
           onChange={(e) => setDraftSkontoBps(e.target.value)}
           aria-label="Skonto in Basispunkten für neuen Rechnungsentwurf"

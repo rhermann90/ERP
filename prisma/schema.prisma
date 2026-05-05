@@ -449,6 +449,15 @@ model DunningTenantAutomation {
   @@map("dunning_tenant_automation")
 }
 
+/// Mandantenweite PWA-Anzeige (z. B. Experten-Navigation in der Finanz-Vorbereitung).
+model TenantPwaDisplaySettings {
+  tenantId             String   @id @map("tenant_id") @db.Uuid
+  pwaExpertModeEnabled Boolean  @default(false) @map("pwa_expert_mode_enabled")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("tenant_pwa_display_settings")
+}
+
 /// Anmeldekonto pro Mandant; E-Mail nur innerhalb des Mandanten eindeutig (Multi-Tenant-Scope).
 model User {
   tenantId     String   @map("tenant_id") @db.Uuid

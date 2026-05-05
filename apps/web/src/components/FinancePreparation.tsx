@@ -52,7 +52,18 @@ import { financePrepStepAriaLive, finNoticeFromUnknown, formatSkontoDisplay, isU
 
 const FINANCE_PREP_MAIN_TABS: FinancePrepMainTab[] = ["rechnung", "grundeinstellungen", "mahnwesen", "fortgeschritten"];
 
-export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; initialMainTab?: FinancePrepMainTab }) {
+export function FinancePreparation({
+  api,
+  initialMainTab,
+  showExpertIntegratorNav,
+}: {
+  api: ApiClient;
+  initialMainTab?: FinancePrepMainTab;
+  /** Hash-/Query-Hilfen in der Meta-Zeile; Standard wie bisher: nur im Vite-Dev-Build sichtbar. */
+  showExpertIntegratorNav?: boolean;
+}) {
+  const showIntegratorNavRow =
+    showExpertIntegratorNav ?? (typeof import.meta !== "undefined" && Boolean(import.meta.env.DEV));
   const [projectId, setProjectId] = useState(DEMO_PROJECT_ID);
   const [termsLabel, setTermsLabel] = useState("14 Tage netto");
   const [listJson, setListJson] = useState<string>("");
@@ -338,15 +349,22 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
       try {
         const id = (overrideInvoiceId ?? invoiceIdRead).trim();
         const data = await api.getInvoice(id);
-        const [sot, payList, dunList] = await Promise.all([
-          api.getAllowedActions(id, "INVOICE"),
-          api.listInvoicePaymentIntakes(id),
-          api.listInvoiceDunningReminders(id),
-        ]);
         setInvoiceOverview(data);
-        setInvoiceAllowedActions(sot.allowedActions);
-        setPaymentIntakes(payList.data);
-        setDunningReminders(dunList.data);
+        try {
+          const [sot, payList, dunList] = await Promise.all([
+            api.getAllowedActions(id, "INVOICE"),
+            api.listInvoicePaymentIntakes(id),
+            api.listInvoiceDunningReminders(id),
+          ]);
+          setInvoiceAllowedActions(sot.allowedActions);
+          setPaymentIntakes(payList.data);
+          setDunningReminders(dunList.data);
+        } catch (subErr) {
+          setInvoiceAllowedActions(null);
+          setPaymentIntakes(null);
+          setDunningReminders(null);
+          setNotice(finNoticeFromUnknown(subErr, { sourceStep: 3 }));
+        }
       } catch (e) {
         setInvoiceOverview(null);
         setInvoiceAllowedActions(null);
@@ -1391,18 +1409,24 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
         automatisch mit „GET Rechnung laden“ geholt). Nach Buchungen hilft <strong>Audit</strong> (<code>GET /audit-events</code>) zur
         Nachvollziehbarkeit im Mandanten. Tab <strong>Grundeinstellungen Mahnlauf</strong>: Mandanten-Automation <strong>OFF</strong> oder <strong>SEMI</strong>, Kandidaten-GET mit <code>eligibilityContext</code> und <code>stageDeadlineIso</code> (ADR-0011). Tab <strong>Mahnwesen</strong>: Konfiguration, E-Mail, Einzel-Mahnung — kein Hintergrund-Cron; keine juristische Mahnung — Massen-E-Mail nur nach PL/Compliance (Einzelversand Slice 5a).
       </p>
-      <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-        <a href="#/">Zurück zur Shell (Start)</a>
-        {" · "}
-        <span style={{ color: "var(--text-secondary)" }}>Basis-URL: </span>
-        <code>{FINANCE_PREP_HASH}</code>
-        {" · "}
-        <span style={{ color: "var(--text-secondary)" }}>Tab per Query: </span>
-        <code>{financePrepHashWithTab("grundeinstellungen")}</code>
-        {" · "}
-        <span style={{ color: "var(--text-secondary)" }}>Alias Grundeinstellungen: </span>
-        <code>{FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH}</code>
-      </p>
+      {showIntegratorNavRow ? (
+        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+          <a href="#/">Zurück zur Shell (Start)</a>
+          {" · "}
+          <span style={{ color: "var(--text-secondary)" }}>Basis-URL: </span>
+          <code>{FINANCE_PREP_HASH}</code>
+          {" · "}
+          <span style={{ color: "var(--text-secondary)" }}>Tab per Query: </span>
+          <code>{financePrepHashWithTab("grundeinstellungen")}</code>
+          {" · "}
+          <span style={{ color: "var(--text-secondary)" }}>Alias Grundeinstellungen: </span>
+          <code>{FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH}</code>
+        </p>
+      ) : (
+        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+          <a href="#/">Zurück zur Shell (Start)</a>
+        </p>
+      )}
 
       <FinanceFeatureMatrix />
       <p
@@ -1438,6 +1462,7 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
             type="button"
             role="tab"
             id="finance-prep-tab-rechnung"
+            data-testid="finance-prep-tab-rechnung"
             ref={(el) => {
               financePrepTabButtonRefs.current[0] = el;
             }}
@@ -1450,6 +1475,7 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
               fontWeight: financePrepMainTab === "rechnung" ? 700 : 400,
               borderBottom: financePrepMainTab === "rechnung" ? "2px solid var(--accent)" : "2px solid transparent",
               marginBottom: "-1px",
+              minHeight: "44px",
               padding: "0.35rem 0.6rem",
               background: "transparent",
               cursor: "pointer",
@@ -1461,6 +1487,7 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
             type="button"
             role="tab"
             id="finance-prep-tab-grundeinstellungen"
+            data-testid="finance-prep-tab-grundeinstellungen"
             ref={(el) => {
               financePrepTabButtonRefs.current[1] = el;
             }}
@@ -1473,6 +1500,7 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
               fontWeight: financePrepMainTab === "grundeinstellungen" ? 700 : 400,
               borderBottom: financePrepMainTab === "grundeinstellungen" ? "2px solid var(--accent)" : "2px solid transparent",
               marginBottom: "-1px",
+              minHeight: "44px",
               padding: "0.35rem 0.6rem",
               background: "transparent",
               cursor: "pointer",
@@ -1484,6 +1512,7 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
             type="button"
             role="tab"
             id="finance-prep-tab-mahnwesen"
+            data-testid="finance-prep-tab-mahnwesen"
             ref={(el) => {
               financePrepTabButtonRefs.current[2] = el;
             }}
@@ -1496,6 +1525,7 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
               fontWeight: financePrepMainTab === "mahnwesen" ? 700 : 400,
               borderBottom: financePrepMainTab === "mahnwesen" ? "2px solid var(--accent)" : "2px solid transparent",
               marginBottom: "-1px",
+              minHeight: "44px",
               padding: "0.35rem 0.6rem",
               background: "transparent",
               cursor: "pointer",
@@ -1507,6 +1537,7 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
             type="button"
             role="tab"
             id="finance-prep-tab-fortgeschritten"
+            data-testid="finance-prep-tab-fortgeschritten"
             ref={(el) => {
               financePrepTabButtonRefs.current[3] = el;
             }}
@@ -1519,6 +1550,7 @@ export function FinancePreparation({ api, initialMainTab }: { api: ApiClient; in
               fontWeight: financePrepMainTab === "fortgeschritten" ? 700 : 400,
               borderBottom: financePrepMainTab === "fortgeschritten" ? "2px solid var(--accent)" : "2px solid transparent",
               marginBottom: "-1px",
+              minHeight: "44px",
               padding: "0.35rem 0.6rem",
               background: "transparent",
               cursor: "pointer",

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-1/2/3/4 Finance)
-  version: 1.29.2-fin5-xrechnung-regime-xml
+  version: 1.29.3-tenant-pwa-expert-mode
   description: |
     **PWA / Browser-Anbindung**
     - **CORS**: Umgebungsvariable `CORS_ORIGINS` — kommagetrennte, exakte Origins (z. B. `https://app.example.com,http://localhost:5173`). Leer oder unset: keine `Access-Control-*`-Header (gleiche Origin oder Server-zu-Server).
@@ -19,6 +19,9 @@ tags:
   - name: Users (Admin)
     description: |
       Mandanten-isolierte Benutzerverwaltung (Tabelle `users`). Schreibzugriff nur mit Rolle **ADMIN**; ohne Postgres antwortet die API mit `503` / `USER_MANAGEMENT_REQUIRES_DB`.
+  - name: Tenant (PWA)
+    description: |
+      Mandantenweite PWA-Anzeige (Expertenmodus Finanz-Vorbereitung): `GET|PATCH /tenant/pwa-display-settings`. Lesen wie Rechnungs-Lesepfad; Schreiben wie Mandanten-Steuer-/Mahneinstellungen. Auf diesen Pfaden sendet der Server **`x-erp-openapi-contract-version`** wie bei den FIN-4-Leitpfaden.
   - name: Finance (FIN-0)
     description: |
       Historisch: Contract-Stubs / Mapping-Dokument (`finance-fin0-openapi-mapping.md`). Produktiver Zahlungseingang: **Finance (FIN-3)**.
@@ -1691,6 +1694,34 @@ components:
         createdAt:
           type: string
           format: date-time
+    TenantPwaDisplaySettingsRead:
+      type: object
+      required: [settingsSource, tenantId, pwaExpertModeEnabled]
+      properties:
+        settingsSource:
+          type: string
+          enum: [NOT_CONFIGURED, TENANT_DATABASE]
+        tenantId:
+          type: string
+          format: uuid
+        pwaExpertModeEnabled:
+          type: boolean
+    TenantPwaDisplaySettingsEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/TenantPwaDisplaySettingsRead'
+    PatchTenantPwaDisplaySettingsRequest:
+      type: object
+      required: [pwaExpertModeEnabled, reason]
+      properties:
+        pwaExpertModeEnabled:
+          type: boolean
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 500
     TenantUserListResponse:
       type: object
       required: [data, page, pageSize, total]
@@ -2006,6 +2037,67 @@ paths:
                 $ref: '#/components/schemas/Error'
         '503':
           description: USER_MANAGEMENT_REQUIRES_DB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /tenant/pwa-display-settings:
+    get:
+      tags: [Tenant (PWA)]
+      operationId: tenantPwaDisplaySettingsGet
+      summary: Mandanten-PWA-Anzeige lesen (Expertenmodus)
+      description: |
+        Rolle mindestens Rechnung lesen (`assertCanReadInvoice`). Ohne Zeile in `tenant_pwa_display_settings`: `settingsSource` **NOT_CONFIGURED**, `pwaExpertModeEnabled` **false**.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantPwaDisplaySettingsEnvelope'
+        '401':
+          description: UNAUTHORIZED
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+    patch:
+      tags: [Tenant (PWA)]
+      operationId: tenantPwaDisplaySettingsPatch
+      summary: Mandanten-PWA-Anzeige patchen (Expertenmodus)
+      description: |
+        Nur Rollen mit Mandanten-Steuer-/Mahneinstellungen (`assertCanManageInvoiceTaxSettings`). Ohne Postgres-Persistenz `503` / `PWA_DISPLAY_SETTINGS_NOT_PERSISTABLE`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchTenantPwaDisplaySettingsRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantPwaDisplaySettingsEnvelope'
+        '400':
+          description: VALIDATION_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: UNAUTHORIZED
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+        '503':
+          description: PWA_DISPLAY_SETTINGS_NOT_PERSISTABLE
           content:
             application/json:
               schema:

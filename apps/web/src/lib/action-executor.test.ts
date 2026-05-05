@@ -39,6 +39,8 @@ function makeClient(): ApiClient {
     getProjectInvoiceTaxOverride: vi.fn(),
     putProjectInvoiceTaxOverride: vi.fn(),
     deleteProjectInvoiceTaxOverride: vi.fn(),
+    getTenantPwaDisplaySettings: vi.fn(),
+    patchTenantPwaDisplaySettings: vi.fn(),
     getAuditEvents: vi.fn(),
   };
 }
