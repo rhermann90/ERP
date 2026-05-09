@@ -57,9 +57,11 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await expect(page.getByTestId("shell-dunning-config-panel")).toBeVisible({ timeout: 20_000 });
 
     await page.getByTestId("shell-dunning-config-fetch").click();
-    await expect(page.getByTestId("shell-dunning-config-json")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByTestId("shell-dunning-config-json")).toContainText('"stages"');
-    await expect(page.getByTestId("shell-dunning-config-json")).toContainText("MVP_STATIC_DEFAULTS");
+    const dunningCfgJson = page.getByTestId("shell-dunning-config-json");
+    await expect(dunningCfgJson).toBeVisible({ timeout: 15_000 });
+    await expect(dunningCfgJson).toContainText('"stages"');
+    // Memory-API und Postgres ohne Mandanten-Row: MVP_STATIC_DEFAULTS; Postgres mit Seed: oft TENANT_DATABASE.
+    await expect(dunningCfgJson).toContainText(/MVP_STATIC_DEFAULTS|TENANT_DATABASE/);
   });
 
   test("Haupt-Shell: FIN-4 weitere Lesepfade — Vorlagen/Footer/Automation (GET)", async ({ page }) => {
