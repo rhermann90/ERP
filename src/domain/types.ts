@@ -123,6 +123,23 @@ export interface MeasurementPosition {
   note?: string;
 }
 
+/** §5.4 / §8.6: persistierte Differenzbuchung (Aufmass-Korrektur nach Rechnung; Lesepfad-Slice). */
+export interface DifferenceBooking {
+  id: UUID;
+  tenantId: TenantId;
+  projectId: UUID;
+  customerId: UUID;
+  measurementId: UUID;
+  predecessorMeasurementVersionId: UUID;
+  subsequentMeasurementVersionId: UUID;
+  kind: "MEASUREMENT_CORRECTION_AFTER_INVOICE";
+  amountNetCents: number;
+  status: "OPEN" | "APPLIED_TO_DRAFT";
+  referenceInvoiceId?: UUID;
+  createdAt: Date;
+  createdBy: UserId;
+}
+
 /** §9 LV — Kopf (Katalog) */
 export interface LvCatalog {
   id: UUID;
@@ -333,7 +350,12 @@ export interface AuditEvent {
     | "PROJECT_INVOICE_TAX_OVERRIDE"
     | "TENANT_E_INVOICE_PARTY"
     | "CUSTOMER_E_INVOICE_PARTY"
-    | "USER";
+    | "USER"
+    | "CRM_CONSTRUCTION_SITE"
+    | "CRM_CUSTOMER"
+    | "CRM_PROJECT"
+    | "CRM_PROJECT_CONTACT"
+    | "DIFFERENCE_BOOKING";
   entityId: UUID;
   action:
     | "STATUS_CHANGED"
@@ -362,7 +384,17 @@ export interface AuditEvent {
     | "TENANT_E_INVOICE_PARTY_UPSERTED"
     | "TENANT_E_INVOICE_PARTY_DELETED"
     | "CUSTOMER_E_INVOICE_PARTY_UPSERTED"
-    | "CUSTOMER_E_INVOICE_PARTY_DELETED";
+    | "CUSTOMER_E_INVOICE_PARTY_DELETED"
+    | "CRM_CONSTRUCTION_SITE_CREATED"
+    | "CRM_CONSTRUCTION_SITE_PATCHED"
+    | "CRM_CUSTOMER_CREATED"
+    | "CRM_CUSTOMER_PATCHED"
+    | "CRM_PROJECT_CREATED"
+    | "CRM_PROJECT_PATCHED"
+    | "CRM_PROJECT_CONTACT_CREATED"
+    | "CRM_PROJECT_CONTACT_PATCHED"
+    | "DIFFERENCE_BOOKING_CREATED"
+    | "DIFFERENCE_BOOKING_AMOUNT_RECALCULATED";
   timestamp: Date;
   actorUserId: UserId;
   reason?: string;

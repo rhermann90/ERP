@@ -1,14 +1,14 @@
 openapi: 3.0.3
 info:
   title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-1/2/3/4 Finance)
-  version: 1.30.1-crm-stammdaten-option-c
+  version: 1.31.0-w2-difference-bookings-read
   description: |
     **PWA / Browser-Anbindung**
     - **CORS**: Umgebungsvariable `CORS_ORIGINS` — kommagetrennte, exakte Origins (z. B. `https://app.example.com,http://localhost:5173`). Leer oder unset: keine `Access-Control-*`-Header (gleiche Origin oder Server-zu-Server).
     - **Auth**: `Authorization: Bearer <signed-v1-token>` (siehe `bearerToken`); optionaler Header `X-Tenant-Id` muss zum Tenant im Token passen, sonst `TENANT_SCOPE_VIOLATION`. **Passwort-Login:** `POST /auth/login` mit JSON `{ tenantId, email, password }` — siehe `docs/authentication-login.md`. **Passwort vergessen (öffentlich):** `POST /auth/request-password-reset`, `POST /auth/confirm-password-reset` — nur mit Postgres; Link `#/password-reset?token=…` (Basis `ERP_PUBLIC_APP_BASE_URL`); Produktion: SMTP + Basis-URL Pflicht. **Benutzerverwaltung:** `GET|POST /users`, `PATCH /users/{userId}` inkl. optional **E-Mail** (nur Rolle **ADMIN**, nur mit Postgres) — Audit-Ereignisse `USER` / `USER_CREATED` / `USER_UPDATED`. **Betrieb:** `AUTH_TOKEN_SECRET` (min. 32 Zeichen bei `NODE_ENV=production`); ohne Secret kein Start — siehe Repo-`.env.example`. Nur lokaler Demo-Modus: `ERP_ALLOW_INSECURE_DEV_AUTH=1` und nicht `production` (niemals deployen).
     - **Logs**: Strukturierte Fastify-Request-Logs enthalten keine `Authorization`- oder `Cookie`-Werte (`LOG_LEVEL`, `LOG_DISABLE=1` siehe Betrieb).
     - **Fehler**: Antwort-JSON gemäß Schema `Error` — Felder `code`, `message`, `correlationId`, `retryable`, `blocking`, optional `details` (Frontend-Passthrough laut `docs/contracts/decision-log-phase1-frontend.md`). **Header:** `x-correlation-id` und `x-request-id` sind gleich der Request-ID (`request.id`) und entsprechen `correlationId` im Body bei Fehlerantworten.
-    - **FIN-4 / Integratoren:** Auf Pfaden unter **`/finance/dunning-reminder…`**, **`/finance/dunning-reminder-automation`**, **`/finance/dunning-email-footer`** und **`/finance/invoice-tax-profile…`**, **`/finance/e-invoice-parties…`**, **`/crm/…`** sendet der Server zusätzlich **`x-erp-openapi-contract-version`** (Wert identisch zu `info.version` dieser Datei). Laufzeit-Abgleich und Breaking-Notes: `docs/contracts/FIN4-external-client-integration.md`. Browser-Cross-Origin: Header steht in `Access-Control-Expose-Headers`, wenn CORS aktiv ist (`CORS_ORIGINS`).
+    - **FIN-4 / Integratoren:** Auf Pfaden unter **`/finance/dunning-reminder…`**, **`/finance/dunning-reminder-automation`**, **`/finance/dunning-email-footer`** und **`/finance/invoice-tax-profile…`**, **`/finance/e-invoice-parties…`**, **`/projects/…/difference-bookings`**, **`/crm/…`** sendet der Server zusätzlich **`x-erp-openapi-contract-version`** (Wert identisch zu `info.version` dieser Datei). Laufzeit-Abgleich und Breaking-Notes: `docs/contracts/FIN4-external-client-integration.md`. Browser-Cross-Origin: Header steht in `Access-Control-Expose-Headers`, wenn CORS aktiv ist (`CORS_ORIGINS`).
 servers:
   - url: http://localhost:3000
 tags:
@@ -73,11 +73,12 @@ components:
   schemas:
     CrmConstructionSite:
       type: object
-      required: [tenantId, id, label, street, postalCode, city, countryCode, createdAt, createdBy]
+      required: [tenantId, id, label, versionNumber, street, postalCode, city, countryCode, createdAt, createdBy]
       properties:
         tenantId: { type: string, format: uuid }
         id: { type: string, format: uuid }
         label: { type: string }
+        versionNumber: { type: integer, minimum: 1 }
         street: { type: string, nullable: true }
         postalCode: { type: string, nullable: true }
         city: { type: string, nullable: true }
@@ -125,7 +126,7 @@ components:
             $ref: '#/components/schemas/CrmProject'
     CrmConstructionSitePatchRequest:
       type: object
-      required: [reason]
+      required: [reason, versionNumber]
       properties:
         label:
           type: string
@@ -153,13 +154,17 @@ components:
           type: string
           minLength: 5
           maxLength: 500
+        versionNumber:
+          type: integer
+          minimum: 1
     CrmCustomer:
       type: object
-      required: [tenantId, id, legalName, street, postalCode, city, countryCode, createdAt, createdBy]
+      required: [tenantId, id, legalName, versionNumber, street, postalCode, city, countryCode, createdAt, createdBy]
       properties:
         tenantId: { type: string, format: uuid }
         id: { type: string, format: uuid }
         legalName: { type: string }
+        versionNumber: { type: integer, minimum: 1 }
         street: { type: string, nullable: true }
         postalCode: { type: string, nullable: true }
         city: { type: string, nullable: true }
@@ -191,7 +196,7 @@ components:
         reason: { type: string, minLength: 5, maxLength: 500 }
     CrmCustomerPatchRequest:
       type: object
-      required: [reason]
+      required: [reason, versionNumber]
       properties:
         legalName: { type: string, minLength: 1, maxLength: 500 }
         street: { type: string, maxLength: 500, nullable: true }
@@ -204,6 +209,7 @@ components:
           pattern: '^[A-Z]{2}$'
           nullable: true
         reason: { type: string, minLength: 5, maxLength: 500 }
+        versionNumber: { type: integer, minimum: 1 }
     CrmProjectCreateRequest:
       type: object
       required: [id, primaryCustomerId, constructionSiteId, reason]
@@ -216,7 +222,7 @@ components:
         reason: { type: string, minLength: 5, maxLength: 500 }
     CrmProjectPatchRequest:
       type: object
-      required: [reason]
+      required: [reason, versionNumber]
       properties:
         primaryCustomerId: { type: string, format: uuid }
         constructionSiteId: { type: string, format: uuid }
@@ -226,7 +232,7 @@ components:
         reason: { type: string, minLength: 5, maxLength: 500 }
     CrmProjectContact:
       type: object
-      required: [tenantId, id, projectId, role, displayName, email, phone, createdAt, createdBy]
+      required: [tenantId, id, projectId, role, displayName, versionNumber, email, phone, createdAt, createdBy]
       properties:
         tenantId: { type: string, format: uuid }
         id: { type: string, format: uuid }
@@ -234,6 +240,7 @@ components:
         customerId: { type: string, format: uuid, nullable: true }
         role: { type: string }
         displayName: { type: string }
+        versionNumber: { type: integer, minimum: 1 }
         email: { type: string, nullable: true }
         phone: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
@@ -259,7 +266,7 @@ components:
         reason: { type: string, minLength: 5, maxLength: 500 }
     CrmProjectContactPatchRequest:
       type: object
-      required: [reason]
+      required: [reason, versionNumber]
       properties:
         customerId: { type: string, format: uuid, nullable: true }
         role: { type: string, minLength: 1, maxLength: 120 }
@@ -267,6 +274,7 @@ components:
         email: { type: string, format: email, maxLength: 320, nullable: true }
         phone: { type: string, maxLength: 80, nullable: true }
         reason: { type: string, minLength: 5, maxLength: 500 }
+        versionNumber: { type: integer, minimum: 1 }
     AllowedActionsResponse:
       type: object
       required: [documentId, entityType, allowedActions]
@@ -1169,6 +1177,60 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DunningReminderReadRow'
+
+    DifferenceBookingReadRow:
+      type: object
+      required:
+        - id
+        - projectId
+        - measurementId
+        - predecessorMeasurementVersionId
+        - subsequentMeasurementVersionId
+        - kind
+        - amountNetCents
+        - status
+        - createdAt
+        - createdBy
+      properties:
+        id:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        measurementId:
+          type: string
+          format: uuid
+        predecessorMeasurementVersionId:
+          type: string
+          format: uuid
+        subsequentMeasurementVersionId:
+          type: string
+          format: uuid
+        kind:
+          type: string
+        amountNetCents:
+          type: integer
+        status:
+          type: string
+        referenceInvoiceId:
+          type: string
+          format: uuid
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+          format: uuid
+    DifferenceBookingListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/DifferenceBookingReadRow'
     CreateDunningReminderRequest:
       type: object
       required: [stageOrdinal, reason]
@@ -2955,7 +3017,7 @@ paths:
               $ref: '#/components/schemas/CreateMeasurementVersionRequest'
       responses:
         '201':
-          description: measurementVersionId, versionNumber
+          description: measurementVersionId, versionNumber, predecessorMeasurementVersionId
         '409':
           description: MEASUREMENT_NEW_VERSION_FORBIDDEN
         '403':
@@ -2964,6 +3026,35 @@ paths:
           description: MEASUREMENT_NOT_FOUND
         '401':
           description: Authentifizierung fehlgeschlagen
+  /projects/{projectId}/difference-bookings:
+    get:
+      description: |
+        Lesepfad §5.4/§8.6: Differenzbuchungen (Aufmassversionspaar, LV-Netto-Delta) je Projekt — Mandant strikt.
+        Rollen wie Rechnung lesen (`assertCanReadInvoice`).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Liste Differenzbuchungen (leer wenn keine Auslöser)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DifferenceBookingListResponse'
+        '404':
+          description: PROJECT_NOT_FOUND
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+        '401':
+          description: Authentifizierung fehlgeschlagen
+
   /measurements/{measurementVersionId}/positions:
     post:
       description: Ersetzt Positionen nur bei aktueller Version im Status ENTWURF (§5.4).

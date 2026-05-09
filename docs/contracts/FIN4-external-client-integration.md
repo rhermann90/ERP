@@ -65,6 +65,18 @@ Vollständige Schemas: `docs/api-contract.yaml`. Mapping: `docs/contracts/financ
 
 - Unter **`/crm/…`** sendet der Server weiterhin **`x-erp-openapi-contract-version`**. Ab **`1.30.1`** bildet [`docs/api-contract.yaml`](../api-contract.yaml) die **vollständige** HTTP-Oberfläche der CRM-Stamm-API ab: Baustellen (`GET|POST /crm/construction-sites`, `GET|PATCH /crm/construction-sites/{id}`), CRM-Kunden (`GET|POST /crm/customers`, `GET|PATCH /crm/customers/{id}`), Projekte (`GET|POST /crm/projects`, `GET|PATCH /crm/projects/{id}`), Projektkontakte (`GET /crm/projects/{projectId}/contacts`, `POST /crm/project-contacts`, `GET|PATCH /crm/project-contacts/{id}`) inklusive Request-Schemas für **POST** und **PATCH**. Lesepfad wie Rechnung; Schreiben wie FIN-1 Zahlungsbedingungen (**ADMIN**, **GESCHAEFTSFUEHRUNG**, **BUCHHALTUNG**). Ohne Postgres: **503** `CRM_PERSISTENCE_UNAVAILABLE`. ADR: [`docs/adr/0019-w1-stammdaten-project-customer-object-option-c.md`](../adr/0019-w1-stammdaten-project-customer-object-option-c.md).
 
+
+
+## Neu ab `1.31.0` (W2 — Differenzbuchungen Lesepfad)
+
+- **`GET /projects/{projectId}/difference-bookings`:** Liste persistierter Differenzbuchungen (Aufmassversionspaar, LV-Netto-Delta) je Projekt; gleiche Leserollen wie Rechnung (`assertCanReadInvoice`). Antwort `DifferenceBookingListResponse` mit `data[]` (`createdAt` ISO-8601).
+- **`POST /measurements/version`:** Antwort um **`predecessorMeasurementVersionId`** ergänzt (Vorgängerversion vor Korrekturversion); bei gebuchter Rechnung zur Messung kann der Server eine Differenzbuchung anlegen (siehe ADR-0020).
+
+## Neu ab `1.30.2` (CRM Stammdaten — Optimistic Locking + Audit)
+
+- **Breaking (PATCH):** Alle CRM-**PATCH**-Bodies verlangen jetzt **`versionNumber`** (Integer ≥ 1, erwarteter Stand) neben **`reason`**. Bei parallelem Schreiben antwortet die API mit **409** und Code **`CRM_STALE_VERSION`**. GET-Responses für Baustelle, CRM-Kunde, Projektkontakt und Projekt liefern jeweils **`versionNumber`**.
+- **Audit:** Jede CRM-**POST**/**PATCH**-Mutation schreibt ein **`audit_events`**-Ereignis (fail-hard bei Postgres wie andere Mandanten-Schreibpfade). Zusätzliche Fehlerdomäne: **`AUDIT_PERSIST_FAILED`** (500) bei Audit-Persistenzfehler.
+
 ## Neu ab `1.29.2` (FIN-5 Paket C — XRechnung-XML je Regime)
 
 - **`POST /exports`** mit **`entityType=INVOICE`** und **`format=XRECHNUNG`:** erfolgreiche **201**-Antwort nutzt Schema **`ExportRun`** und kann **`xrechnungXml`** (UBL 2.1, UTF-8) enthalten — technische Abbildung der Steuerregime siehe [`xrechnung-tax-regime-mapping.md`](./xrechnung-tax-regime-mapping.md). Fehlercode **`EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED`** nur noch bei Rechnungen mit Regime-String ausserhalb der geschlossenen FIN-5-Enum.

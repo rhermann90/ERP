@@ -1,6 +1,6 @@
 # PHASE-2-BACKLOG — Projekt-/Kunden-Stamm (Option C)
 
-**Status:** In Umsetzung (Spur B — Schema, APIs, PWA-Lesepfade gemäß ADR 0019).  
+**Status:** W1-Pilot technisch abgeschlossen (CRM Opt-Lock, Audit, PWA-Parität); Spur B / Phase-2 weiter für fachliche Go-Items und §18.1-Zielbild.  
 **Auslöser:** Offene Punkt „Projekt/Kunden-CRUD" — vgl. Charter [`PILOT-PRODUKTIV-GO-FIN-PHASE2-CHARTER.md`](./PILOT-PRODUKTIV-GO-FIN-PHASE2-CHARTER.md) und Klärung: aktuell nur UUIDs auf Aggregaten, **keine** Prisma-Root-Modelle `Project` / `Customer`.
 
 **Umsetzungsentscheid (W1):** Pilot-Inkremente (PWA `#/stammdaten`, Lesepfade FIN-5/FIN-1) bleiben parallel nutzbar. Vor Merge der ersten Stammdaten-Migration: Checkliste [`docs/plans/w1-option-c-pre-migration-review.md`](../plans/w1-option-c-pre-migration-review.md) fachlich abarbeiten.
@@ -27,9 +27,18 @@
 3. OpenAPI + `action-contracts` / SoT wo nötig.
 4. PWA: Auswahl/Anlage im Wizard oder Shell — weiterhin **keine** parallele AuthZ.
 
+
+## DoD W1 Pilot (Repo — technische Abnahme)
+
+- [x] **Optimistic Locking:** Alle CRM-PATCH-Endpunkte verlangen `versionNumber`; bei Konflikt HTTP **409** mit `CRM_STALE_VERSION`; erfolgreiches Update inkrementiert Version atomar (`updateMany` + `increment`).
+- [x] **Audit fail-hard:** `CrmStammdatenService` schreibt Audit-Events für Create/Patch (Domänentypen `CRM_*`); Verhalten wie bestehende Finanz-Services bei Persistenzfehler.
+- [x] **PWA-Parität:** `ApiClient` deckt CRM POST/PATCH/GET ab; `#/stammdaten` CRUD für Baustelle, CRM-Kunde, Projekt, Projektkontakt; Konfliktmeldung nutzerfreundlich.
+- [x] **Tests:** `test/persistence.integration.test.ts` Nachweise Opt-Lock + Audit; Vitest Hub/Executor-Stubs.
+- [ ] **Vor Mandanten-Produktivität (fachlich):** Domänen-Review Checkliste [`w1-option-c-pre-migration-review.md`](../plans/w1-option-c-pre-migration-review.md) Abschnitt 1; §18.1 Historie/DMS ausdrücklich **außerhalb** W1 (Roadmap W3).
+
 ## Verweise
 
 - [`docs/ERP-Systembeschreibung.md`](../ERP-Systembeschreibung.md)
 - **Architektur-Leitplan Option C:** [`docs/adr/0019-w1-stammdaten-project-customer-object-option-c.md`](../adr/0019-w1-stammdaten-project-customer-object-option-c.md)
 - [`docs/adr/0018-pilot-lv-aufmass-invoice-convergence.md`](../adr/0018-pilot-lv-aufmass-invoice-convergence.md)
-- [`prisma/schema.prisma`](../../prisma/schema.prisma) (Ist: keine dedizierten Stammtabellen für Projekt/Kunde als Root)
+- [`prisma/schema.prisma`](../../prisma/schema.prisma) (`crm_*` Stammtabellen ADR 0019; Root-Modelle `Project`/`Customer` weiterhin nicht als Ziel von Option C)

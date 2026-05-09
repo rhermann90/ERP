@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as hashRoute from "../../lib/hash-route.js";
 import { DEMO_SEED_IDS as SEED } from "../../lib/demo-seed-ids.js";
@@ -222,36 +222,81 @@ describe("StammdatenHubPage", () => {
   });
 
   it("CRM Pilot-PATCH Panel bei Schreibrolle und Pilot-Projekt", async () => {
+    const siteRow = {
+      tenantId: SEED.tenantId,
+      id: SEED.crmConstructionSiteId,
+      label: "Demo-Baustelle",
+      versionNumber: 1,
+      street: null,
+      postalCode: null,
+      city: null,
+      countryCode: null,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      createdBy: "44444444-4444-4444-8444-444444444444",
+    };
+    const customerRow = {
+      tenantId: SEED.tenantId,
+      id: SEED.customerId,
+      legalName: "Demo-Kunde",
+      versionNumber: 1,
+      street: null,
+      postalCode: null,
+      city: null,
+      countryCode: null,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      createdBy: "44444444-4444-4444-8444-444444444444",
+    };
     const pilotRow = {
       tenantId: SEED.tenantId,
       id: SEED.projectId,
       primaryCustomerId: SEED.customerId,
       constructionSiteId: SEED.crmConstructionSiteId,
-      status: "ACTIVE",
+      status: "AKTIV",
       versionNumber: 1,
       label: "Pilot",
       createdAt: "2026-01-01T00:00:00.000Z",
       createdBy: "44444444-4444-4444-8444-444444444444",
     };
-    const patchCrmProject = vi.fn().mockResolvedValue({ ...pilotRow, label: "Neu" });
+    const patchCrmProject = vi.fn().mockResolvedValue({ ...pilotRow, label: "Neu", versionNumber: 2 });
     const api = {
       listCustomerEInvoiceParties: vi.fn().mockResolvedValue({ customers: [] }),
       getTenantEInvoiceParty: vi.fn().mockResolvedValue({ configured: false, party: null }),
       getPaymentTermsByProject: vi.fn(),
-      listCrmConstructionSites: vi.fn().mockResolvedValue({ data: [] }),
-      listCrmCustomers: vi.fn().mockResolvedValue({ data: [] }),
+      listCrmConstructionSites: vi.fn().mockResolvedValue({ data: [siteRow] }),
+      listCrmCustomers: vi.fn().mockResolvedValue({ data: [customerRow] }),
       listCrmProjects: vi.fn().mockResolvedValue({ data: [pilotRow] }),
       listCrmProjectContacts: vi.fn().mockResolvedValue({ data: [] }),
       getCrmProject: vi.fn(),
+      postCrmConstructionSite: vi.fn(),
+      patchCrmConstructionSite: vi.fn(),
+      postCrmCustomer: vi.fn(),
+      patchCrmCustomer: vi.fn(),
+      postCrmProject: vi.fn(),
+      postCrmProjectContact: vi.fn(),
+      patchCrmProjectContact: vi.fn(),
+      getCrmConstructionSite: vi.fn(),
+      getCrmCustomer: vi.fn(),
+      getCrmProjectContact: vi.fn(),
       patchCrmProject,
     };
 
     render(<StammdatenHubPage api={api as never} hasSession canWriteCrmStammdaten />);
 
-    await waitFor(() => expect(screen.getByTestId("stamm-crm-pilot-patch")).toBeTruthy());
-    fireEvent.change(screen.getByLabelText("Label"), { target: { value: "Neu" } });
-    fireEvent.click(screen.getByTestId("stamm-crm-pilot-patch-submit"));
+    await waitFor(() => expect(screen.getByTestId("stamm-crm-panels")).toBeTruthy());
+    const projectsTable = screen.getByTestId("stamm-crm-projects-table");
+    const editProjectBtn = within(projectsTable).getByRole("button", { name: "Bearbeiten" });
+    fireEvent.click(editProjectBtn);
+    await waitFor(() => expect(screen.getByTestId("stamm-crm-edit-project")).toBeTruthy());
+    fireEvent.change(screen.getByLabelText(/Label \(leer = null\)/i), { target: { value: "Neu" } });
+    fireEvent.click(within(screen.getByTestId("stamm-crm-edit-project")).getByRole("button", { name: "Speichern" }));
     await waitFor(() => expect(patchCrmProject).toHaveBeenCalled());
-    expect(patchCrmProject).toHaveBeenCalledWith(SEED.projectId, { label: "Neu", reason: expect.any(String) });
+    expect(patchCrmProject).toHaveBeenCalledWith(SEED.projectId, {
+      label: "Neu",
+      reason: expect.any(String),
+      versionNumber: 1,
+      status: "AKTIV",
+      primaryCustomerId: SEED.customerId,
+      constructionSiteId: SEED.crmConstructionSiteId,
+    });
   });
 });

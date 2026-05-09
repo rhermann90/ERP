@@ -30,8 +30,9 @@ export async function seedAuthUsers(prisma: PrismaClient): Promise<void> {
   const hashViewer = bcrypt.hashSync(viewerPlain, BCRYPT_COST);
   const now = new Date();
 
+  /** PK ist `(tenantId, id)` — Upsert nur per E-Mail bricht, wenn dieselbe `id` schon mit anderer E-Mail existiert (z. B. E2E-Postgres mit abweichendem `ERP_SEED_ADMIN_EMAIL`). */
   await prisma.user.upsert({
-    where: { tenantId_emailNorm: { tenantId: SEED_IDS.tenantId, emailNorm: emailAdmin } },
+    where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.seedAdminUserId } },
     create: {
       tenantId: SEED_IDS.tenantId,
       id: SEED_IDS.seedAdminUserId,
@@ -41,11 +42,11 @@ export async function seedAuthUsers(prisma: PrismaClient): Promise<void> {
       active: true,
       createdAt: now,
     },
-    update: { passwordHash: hashAdmin, role: "ADMIN", active: true },
+    update: { emailNorm: emailAdmin, passwordHash: hashAdmin, role: "ADMIN", active: true },
   });
 
   await prisma.user.upsert({
-    where: { tenantId_emailNorm: { tenantId: SEED_IDS.tenantId, emailNorm: emailViewer } },
+    where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.seedViewerUserId } },
     create: {
       tenantId: SEED_IDS.tenantId,
       id: SEED_IDS.seedViewerUserId,
@@ -55,6 +56,6 @@ export async function seedAuthUsers(prisma: PrismaClient): Promise<void> {
       active: true,
       createdAt: now,
     },
-    update: { passwordHash: hashViewer, role: "VIEWER", active: true },
+    update: { emailNorm: emailViewer, passwordHash: hashViewer, role: "VIEWER", active: true },
   });
 }

@@ -32,4 +32,15 @@
 
 **Option-C-Go** ist im Ticket [`PHASE-2-BACKLOG-PROJECT-CUSTOMER-STAMM.md`](../tickets/PHASE-2-BACKLOG-PROJECT-CUSTOMER-STAMM.md) dokumentiert (Abschnitt „Option-C-Go“). Schema-, Migrations- und Stammdaten-API-Code setzen diese Checkliste voraus; fachliche Checkboxen dort bleiben Review-Pflicht vor Mandanten-Produktivität, sind aber **kein** technischer Merge-Blocker im Repo. Pilot-W1 (`#/stammdaten`) bleibt parallel nutzbar (XRechnung/FIN-1 Lesepfade).
 
+## Repo erfüllt (technisch, Stand Implementierung)
+
+Die folgenden Punkte sind **im Code/OpenAPI/Tests** umgesetzt und in CI prüfbar (`npm run verify:ci`). **Fachliche** Checkboxen in Abschnitt 1 (Domänen-Review, Threat Model, Mandanten-Go) bleiben Team-Pflicht vor Produktivität — nicht automatisch erfüllt.
+
+| Checkliste-Abschnitt | Im Repo erfüllt (Kurznachweis) |
+|----------------------|--------------------------------|
+| §2 Identitäten / Seeds | Migration `version_number` auf CRM-Baustelle/Kunde/Projektkontakt; Seeds `seed-crm-stammdaten-prisma` mit `versionNumber`; Pilot-UUIDs unverändert (ADR 0019). |
+| §3 API / Verträge | OpenAPI `info.version` = `openapi-contract-version.ts`; CRM-PATCH mit Pflicht `reason` + `versionNumber`; Fehlercode `CRM_STALE_VERSION` (409); FIN4-Dokument „Neu ab …“. |
+| §3 keine zweite AuthZ PWA | Schreibrollen wie bisher; Guards nur Backend. |
+| §4 PWA | `ApiClient`: alle CRM GET/POST/PATCH; Hub `#/stammdaten` geführt CRUD + 409-UX; Link aus Geschäftsprozess-Wizard zu `#/stammdaten`. |
+| §5 Qualität | Persistenz-Integrationstests: Opt-Lock 409 + Audit-Zeile bei erfolgreichem PATCH; Web-Unit-Tests Hub/Client angepasst. |
 

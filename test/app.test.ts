@@ -4,6 +4,7 @@ import { FastifyInstance } from "fastify";
 import { buildApp } from "../src/api/app.js";
 import { SEED_IDS } from "../src/composition/seed.js";
 import { createSignedToken } from "../src/auth/token-auth.js";
+import { ERP_OPENAPI_INFO_VERSION } from "../src/domain/openapi-contract-version.js";
 
 /** Tests aligned with docs/ERP-Systembeschreibung.md (Angebot: Anpassung vor Annahme, nach ANGENOMMEN nur Nachtrag). */
 describe("ERP domain slice (Teil I Domäne)", () => {
@@ -1697,6 +1698,61 @@ describe("ERP domain slice (Teil I Domäne)", () => {
         /TRACEABILITY_FIELD_MISMATCH|Aufmass/,
       );
     });
+
+    it("W2-DOM86: GET difference-bookings and LV-Netto-Delta after new measurement version (seed)", async () => {
+      const list0 = await app.inject({
+        method: "GET",
+        url: `/projects/${SEED_IDS.projectId}/difference-bookings`,
+        headers: buildHeaders("VIEWER"),
+      });
+      expect(list0.statusCode).toBe(200);
+      expect(Array.isArray((list0.json() as { data: unknown[] }).data)).toBe(true);
+
+      const ver = await app.inject({
+        method: "POST",
+        url: "/measurements/version",
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
+        payload: {
+          measurementId: SEED_IDS.measurementId,
+          reason: "W2-DOM86 neue Aufmassversion nach gebuchter Rechnung",
+        },
+      });
+      expect(ver.statusCode).toBe(201);
+      const body = ver.json() as { measurementVersionId: string; predecessorMeasurementVersionId: string };
+      expect(body.predecessorMeasurementVersionId).toBe(SEED_IDS.measurementVersionId);
+
+      const list1 = await app.inject({
+        method: "GET",
+        url: `/projects/${SEED_IDS.projectId}/difference-bookings`,
+        headers: buildHeaders("VIEWER"),
+      });
+      expect(list1.statusCode).toBe(200);
+      const data1 = (list1.json() as { data: Array<{ amountNetCents: number }> }).data;
+      expect(data1.length).toBe(1);
+      expect(data1[0]?.amountNetCents).toBe(0);
+
+      const pos = await app.inject({
+        method: "POST",
+        url: `/measurements/${body.measurementVersionId}/positions`,
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
+        payload: {
+          positions: [
+            { lvPositionId: SEED_IDS.lvPositionSeedA, quantity: 20, unit: "m2", note: "W2-DOM86 korrigiert" },
+          ],
+          reason: "W2-DOM86 Mengenanpassung auf Korrekturversion",
+        },
+      });
+      expect(pos.statusCode).toBe(200);
+
+      const list2 = await app.inject({
+        method: "GET",
+        url: `/projects/${SEED_IDS.projectId}/difference-bookings`,
+        headers: buildHeaders("VIEWER"),
+      });
+      expect(list2.statusCode).toBe(200);
+      const data2 = (list2.json() as { data: Array<{ amountNetCents: number }> }).data;
+      expect(data2[0]?.amountNetCents).toBe(9375);
+    });
   });
 
   describe("Phase 2 Inc2 — LV §9", () => {
@@ -1987,6 +2043,12 @@ describe("CRM Stammdaten (ADR 0019) — Memory-Modus", () => {
     });
     expect(res.statusCode).toBe(503);
     expect((res.json() as { code: string }).code).toBe("CRM_PERSISTENCE_UNAVAILABLE");
+  });
+
+  it("GET /crm/customers ist registriert (kein Fastify-404; ohne Auth -> 4xx)", async () => {
+    const res = await app.inject({ method: "GET", url: "/crm/customers" });
+    expect(res.statusCode).not.toBe(404);
+    expect(res.headers["x-erp-openapi-contract-version"]).toBe(ERP_OPENAPI_INFO_VERSION);
   });
 });
 

@@ -6,7 +6,7 @@ import type {
   DunningReminderRunResponse,
 } from "./finance-dunning-api-types.js";
 
-/** Vite: leere `VITE_API_BASE_URL=""` bleibt leer → relative URLs auf :5173. Default wie Backend-Port 3000. */
+/** Unset oder nur Whitespace → Backend-Default Port 3000 (kein relativer Aufruf auf den Vite-Dev-Server). */
 export const DEFAULT_API_BASE_URL = "http://localhost:3000";
 
 export function resolveApiBaseUrl(baseUrl: string | undefined): string {
@@ -204,6 +204,25 @@ export type InvoiceOverview = {
   taxReasonCode?: string;
   /** §8.10 Pflicht-Hinweise bei Sonderregime; optional/leer bei Standard. */
   mandatoryTaxNoticeLines?: string[];
+};
+
+/** Antwort `GET /projects/:projectId/difference-bookings` (§5.4/§8.6 Lesepfad). */
+export type DifferenceBookingReadRow = {
+  id: string;
+  projectId: string;
+  measurementId: string;
+  predecessorMeasurementVersionId: string;
+  subsequentMeasurementVersionId: string;
+  kind: string;
+  amountNetCents: number;
+  status: string;
+  referenceInvoiceId?: string;
+  createdAt: string;
+  createdBy: string;
+};
+
+export type DifferenceBookingListResponse = {
+  data: DifferenceBookingReadRow[];
 };
 
 export type CreateInvoiceDraftResponse = {
@@ -509,6 +528,7 @@ export type CrmConstructionSiteRow = {
   tenantId: string;
   id: string;
   label: string;
+  versionNumber: number;
   street: string | null;
   postalCode: string | null;
   city: string | null;
@@ -536,6 +556,7 @@ export type CrmProjectContactRow = {
   customerId: string | null;
   role: string;
   displayName: string;
+  versionNumber: number;
   email: string | null;
   phone: string | null;
   createdAt: string;
@@ -546,6 +567,7 @@ export type CrmCustomerRow = {
   tenantId: string;
   id: string;
   legalName: string;
+  versionNumber: number;
   street: string | null;
   postalCode: string | null;
   city: string | null;
@@ -581,6 +603,7 @@ export type ApiClient = {
     reason: string;
   }): Promise<CreateOfferResponse>;
   getInvoice(invoiceId: string): Promise<InvoiceOverview>;
+  listProjectDifferenceBookings(projectId: string): Promise<DifferenceBookingListResponse>;
   listInvoicePaymentIntakes(invoiceId: string): Promise<{ data: PaymentIntakeReadRow[] }>;
   listInvoiceDunningReminders(invoiceId: string): Promise<{ data: DunningReminderReadRow[] }>;
   getDunningReminderConfig(): Promise<DunningReminderConfigReadResponse>;
@@ -683,19 +706,91 @@ export type ApiClient = {
   listCustomerEInvoiceParties(): Promise<CustomerEInvoicePartyListResponse>;
   getCustomerEInvoiceParty(customerId: string): Promise<CustomerEInvoicePartyReadResponse>;
   listCrmConstructionSites(): Promise<{ data: CrmConstructionSiteRow[] }>;
+  getCrmConstructionSite(id: string): Promise<CrmConstructionSiteRow>;
+  postCrmConstructionSite(body: {
+    label: string;
+    reason: string;
+    street?: string | null;
+    postalCode?: string | null;
+    city?: string | null;
+    countryCode?: string | null;
+  }): Promise<CrmConstructionSiteRow>;
+  patchCrmConstructionSite(
+    id: string,
+    body: {
+      reason: string;
+      versionNumber: number;
+      label?: string;
+      street?: string | null;
+      postalCode?: string | null;
+      city?: string | null;
+      countryCode?: string | null;
+    },
+  ): Promise<CrmConstructionSiteRow>;
   listCrmProjects(): Promise<{ data: CrmProjectRow[] }>;
   getCrmProject(projectId: string): Promise<CrmProjectRow>;
+  postCrmProject(body: {
+    id: string;
+    primaryCustomerId: string;
+    constructionSiteId: string;
+    reason: string;
+    status?: string;
+    label?: string | null;
+  }): Promise<CrmProjectRow>;
   listCrmProjectContacts(projectId: string): Promise<{ data: CrmProjectContactRow[] }>;
+  getCrmProjectContact(id: string): Promise<CrmProjectContactRow>;
+  postCrmProjectContact(body: {
+    projectId: string;
+    reason: string;
+    customerId?: string | null;
+    role: string;
+    displayName: string;
+    email?: string | null;
+    phone?: string | null;
+  }): Promise<CrmProjectContactRow>;
+  patchCrmProjectContact(
+    id: string,
+    body: {
+      reason: string;
+      versionNumber: number;
+      customerId?: string | null;
+      role?: string;
+      displayName?: string;
+      email?: string | null;
+      phone?: string | null;
+    },
+  ): Promise<CrmProjectContactRow>;
   listCrmCustomers(): Promise<{ data: CrmCustomerRow[] }>;
+  getCrmCustomer(id: string): Promise<CrmCustomerRow>;
+  postCrmCustomer(body: {
+    legalName: string;
+    reason: string;
+    street?: string | null;
+    postalCode?: string | null;
+    city?: string | null;
+    countryCode?: string | null;
+  }): Promise<CrmCustomerRow>;
+  patchCrmCustomer(
+    id: string,
+    body: {
+      reason: string;
+      versionNumber: number;
+      legalName?: string;
+      street?: string | null;
+      postalCode?: string | null;
+      city?: string | null;
+      countryCode?: string | null;
+    },
+  ): Promise<CrmCustomerRow>;
   patchCrmProject(
     projectId: string,
     body: {
       reason: string;
+      versionNumber: number;
       label?: string | null;
       primaryCustomerId?: string;
       constructionSiteId?: string;
       status?: string;
-      versionNumber?: number;
     },
   ): Promise<CrmProjectRow>;
   getAuditEvents(page?: number, pageSize?: number): Promise<AuditEventsListResponse>;
@@ -792,6 +887,14 @@ export function createApiClient(options: {
     },
     getInvoice(invoiceId) {
       return requestJson<InvoiceOverview>("GET", `/invoices/${encodeURIComponent(invoiceId)}`);
+    },
+    listProjectDifferenceBookings(projectId) {
+      const id = projectId.trim();
+      assertUuidKey(id, "projectId");
+      return requestJson<DifferenceBookingListResponse>(
+        "GET",
+        `/projects/${encodeURIComponent(id)}/difference-bookings`,
+      );
     },
     listInvoicePaymentIntakes(invoiceId) {
       return requestJson<{ data: PaymentIntakeReadRow[] }>(
@@ -1047,6 +1150,19 @@ export function createApiClient(options: {
     listCrmConstructionSites() {
       return requestJson<{ data: CrmConstructionSiteRow[] }>("GET", "/crm/construction-sites");
     },
+    getCrmConstructionSite(constructionSiteId) {
+      const id = constructionSiteId.trim();
+      assertUuidKey(id, "constructionSiteId");
+      return requestJson<CrmConstructionSiteRow>("GET", `/crm/construction-sites/${encodeURIComponent(id)}`);
+    },
+    postCrmConstructionSite(body) {
+      return requestJson<CrmConstructionSiteRow>("POST", "/crm/construction-sites", body);
+    },
+    patchCrmConstructionSite(constructionSiteId, body) {
+      const id = constructionSiteId.trim();
+      assertUuidKey(id, "constructionSiteId");
+      return requestJson<CrmConstructionSiteRow>("PATCH", `/crm/construction-sites/${encodeURIComponent(id)}`, body);
+    },
     listCrmProjects() {
       return requestJson<{ data: CrmProjectRow[] }>("GET", "/crm/projects");
     },
@@ -1054,6 +1170,9 @@ export function createApiClient(options: {
       const id = projectId.trim();
       assertUuidKey(id, "projectId");
       return requestJson<CrmProjectRow>("GET", `/crm/projects/${encodeURIComponent(id)}`);
+    },
+    postCrmProject(body) {
+      return requestJson<CrmProjectRow>("POST", "/crm/projects", body);
     },
     listCrmProjectContacts(projectId) {
       const id = projectId.trim();
@@ -1063,8 +1182,34 @@ export function createApiClient(options: {
         `/crm/projects/${encodeURIComponent(id)}/contacts`,
       );
     },
+    getCrmProjectContact(contactId) {
+      const id = contactId.trim();
+      assertUuidKey(id, "contactId");
+      return requestJson<CrmProjectContactRow>("GET", `/crm/project-contacts/${encodeURIComponent(id)}`);
+    },
+    postCrmProjectContact(body) {
+      return requestJson<CrmProjectContactRow>("POST", "/crm/project-contacts", body);
+    },
+    patchCrmProjectContact(contactId, body) {
+      const id = contactId.trim();
+      assertUuidKey(id, "contactId");
+      return requestJson<CrmProjectContactRow>("PATCH", `/crm/project-contacts/${encodeURIComponent(id)}`, body);
+    },
     listCrmCustomers() {
       return requestJson<{ data: CrmCustomerRow[] }>("GET", "/crm/customers");
+    },
+    getCrmCustomer(customerId) {
+      const id = customerId.trim();
+      assertUuidKey(id, "customerId");
+      return requestJson<CrmCustomerRow>("GET", `/crm/customers/${encodeURIComponent(id)}`);
+    },
+    postCrmCustomer(body) {
+      return requestJson<CrmCustomerRow>("POST", "/crm/customers", body);
+    },
+    patchCrmCustomer(customerId, body) {
+      const id = customerId.trim();
+      assertUuidKey(id, "customerId");
+      return requestJson<CrmCustomerRow>("PATCH", `/crm/customers/${encodeURIComponent(id)}`, body);
     },
     patchCrmProject(projectId, body) {
       const id = projectId.trim();

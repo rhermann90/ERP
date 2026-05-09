@@ -61,10 +61,11 @@ export function registerCrmStammdatenRoutes(
         const auth = parseAuthContext(request.headers);
         authz.assertCanWriteCrmStammdaten(auth.role);
         const body = createCrmConstructionSiteSchema.parse(request.body);
-        const { reason: _r, ...rest } = body;
+        const { reason, ...rest } = body;
         const result = await crm.createConstructionSite({
           tenantId: auth.tenantId,
           actorUserId: auth.userId,
+          reason,
           ...rest,
         });
         return reply.status(201).send(result);
@@ -83,8 +84,15 @@ export function registerCrmStammdatenRoutes(
         authz.assertCanWriteCrmStammdaten(auth.role);
         const { id } = request.params as { id: string };
         const body = patchCrmConstructionSiteSchema.parse(request.body);
-        const { reason: _r, ...patch } = body;
-        const result = await crm.patchConstructionSite(auth.tenantId, id, patch);
+        const { reason, versionNumber, ...patch } = body;
+        const result = await crm.patchConstructionSite(
+          auth.tenantId,
+          id,
+          auth.userId,
+          reason,
+          versionNumber,
+          patch,
+        );
         return reply.status(200).send(result);
       } catch (error) {
         return handleHttpError(error, request, reply);
@@ -120,10 +128,11 @@ export function registerCrmStammdatenRoutes(
       const auth = parseAuthContext(request.headers);
       authz.assertCanWriteCrmStammdaten(auth.role);
       const body = createCrmCustomerSchema.parse(request.body);
-      const { reason: _r, ...rest } = body;
+      const { reason, ...rest } = body;
       const result = await crm.createCustomer({
         tenantId: auth.tenantId,
         actorUserId: auth.userId,
+        reason,
         ...rest,
       });
       return reply.status(201).send(result);
@@ -138,8 +147,8 @@ export function registerCrmStammdatenRoutes(
       authz.assertCanWriteCrmStammdaten(auth.role);
       const { id } = request.params as { id: string };
       const body = patchCrmCustomerSchema.parse(request.body);
-      const { reason: _r, ...patch } = body;
-      const result = await crm.patchCustomer(auth.tenantId, id, patch);
+      const { reason, versionNumber, ...patch } = body;
+      const result = await crm.patchCustomer(auth.tenantId, id, auth.userId, reason, versionNumber, patch);
       return reply.status(200).send(result);
     } catch (error) {
       return handleHttpError(error, request, reply);
@@ -174,10 +183,11 @@ export function registerCrmStammdatenRoutes(
       const auth = parseAuthContext(request.headers);
       authz.assertCanWriteCrmStammdaten(auth.role);
       const body = createCrmProjectSchema.parse(request.body);
-      const { reason: _r, ...rest } = body;
+      const { reason, ...rest } = body;
       const result = await crm.createProject({
         tenantId: auth.tenantId,
         actorUserId: auth.userId,
+        reason,
         ...rest,
       });
       return reply.status(201).send(result);
@@ -192,8 +202,8 @@ export function registerCrmStammdatenRoutes(
       authz.assertCanWriteCrmStammdaten(auth.role);
       const { id } = request.params as { id: string };
       const body = patchCrmProjectSchema.parse(request.body);
-      const { reason: _r, ...patch } = body;
-      const result = await crm.patchProject(auth.tenantId, id, patch);
+      const { reason, versionNumber, ...patch } = body;
+      const result = await crm.patchProject(auth.tenantId, id, auth.userId, reason, versionNumber, patch);
       return reply.status(200).send(result);
     } catch (error) {
       return handleHttpError(error, request, reply);
@@ -236,10 +246,11 @@ export function registerCrmStammdatenRoutes(
         const auth = parseAuthContext(request.headers);
         authz.assertCanWriteCrmStammdaten(auth.role);
         const body = createCrmProjectContactSchema.parse(request.body);
-        const { reason: _r, ...rest } = body;
+        const { reason, ...rest } = body;
         const result = await crm.createProjectContact({
           tenantId: auth.tenantId,
           actorUserId: auth.userId,
+          reason,
           ...rest,
         });
         return reply.status(201).send(result);
@@ -258,8 +269,15 @@ export function registerCrmStammdatenRoutes(
         authz.assertCanWriteCrmStammdaten(auth.role);
         const { id } = request.params as { id: string };
         const body = patchCrmProjectContactSchema.parse(request.body);
-        const { reason: _r, ...patch } = body;
-        const result = await crm.patchProjectContact(auth.tenantId, id, patch);
+        const { reason, versionNumber, ...patch } = body;
+        const result = await crm.patchProjectContact(
+          auth.tenantId,
+          id,
+          auth.userId,
+          reason,
+          versionNumber,
+          patch,
+        );
         return reply.status(200).send(result);
       } catch (error) {
         return handleHttpError(error, request, reply);
