@@ -45,6 +45,7 @@
 
 - Nächster Persistenz-Slice nach **Team-Priorität** (Supplement vs. FIN-1); dieses Ticket kann **parallel** priorisiert werden, wenn Compliance P0 ist.
 - Formelle Mahnung **B5** ([`B5-FORMAL-DUNNING-PDF.md`](./B5-FORMAL-DUNNING-PDF.md)): eigenes Lieferobjekt; **kein** Audit-Transaktions-Refaktor im selben PR wie B5-PDF/UI (Wave3-Plan).
+- Option **A** (Audit + Domäne eine Transaktion): Stub-Checkliste [`FIN-AUDIT-TRANSACTION-OPTION-A-STUB.md`](./FIN-AUDIT-TRANSACTION-OPTION-A-STUB.md).
 
 ## Audit-Gate-Eintrag (**empfohlen**; **Maintainer:in** / designierte Review-Person; vor Audit-**Verhaltens**-PR ausfüllen)
 
@@ -104,7 +105,7 @@ Für die laufende **Finanz-Welle-3**-Planung ([`NEXT-INCREMENT-FINANCE-WAVE3.md`
 |-------|------------------------------|
 | M4 Slice **5c** vs. Audit | Unverändert: 5c nutzt **5a-Pipeline** und **Audit pro Versandzeile**; **keine** neue gemeinsame DB-Transaktion Domäne↔Audit (siehe Abschnitt **Wave 3 — Meilenstein 4** unten). |
 | Option **A** (Audit+Domäne eine Tx) | **Empfehlung:** erst nach dokumentierten vier Zellen der Tabelle „Audit-Gate-Eintrag“ umsetzen — keine Agenten-Vorausfüllung; kein automatischer Merge-Stopper in der Entwicklungsphase. |
-| Mandanten-Go | Produktiver Rechnungs-/Mahn-Go nur mit StB/DSB/Release-Verantwortlichen und [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md). |
+| Mandanten-Go | Produktiver Rechnungs-/Mahn-Go: **empfohlen** [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) inhaltlich bearbeiten und organisatorisch klären — **keine** Repo-Pflichtfreigabe für Merge ([`README.md`](../../README.md), [`AGENTS.md`](../../AGENTS.md) Punkt 6). |
 | **Follow-up** | Team **bestätigt oder korrigiert** das Doku-Protokoll 2026-04-26 in [`M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md`](./M4-MINI-SLICE-5B-ORCHESTRATION-2026-04-24.md) (Protokollzeile + Zeile 12). Optional: echtes Sitzungsprotokoll (Datum + Link) unten nachtragen. |
 
 ### Review-Protokoll (optional; echte URLs nur von Menschen)

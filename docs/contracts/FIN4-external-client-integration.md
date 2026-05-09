@@ -2,7 +2,7 @@
 
 **Zweck:** Release-Kommunikation und **laufzeitfähiger** Abgleich mit dem OpenAPI-Artefakt, ohne Domänenlogik zu duplizieren.
 
-## Keine fachliche Semantik (StB / Release / Compliance)
+## OpenAPI-Kontrakt ohne Mandanten-Go-Semantik
 
 **`info.version`**, **`x-erp-openapi-contract-version`** und die OpenAPI-Schemas beschreiben ausschließlich das **HTTP-/Datenkontrakt-Paket** (Felder, Typen, Fehlercodes). Sie belegen **nicht**:
 
@@ -10,7 +10,7 @@
 - Abnahme nach [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md),
 - eine formelle Mahnung / PDF (siehe [`docs/tickets/B5-FORMAL-DUNNING-PDF.md`](../tickets/B5-FORMAL-DUNNING-PDF.md)).
 
-Fachliche und go-live-relevante Entscheidungen bleiben bei **StB / DSB / Release-Verantwortlichen** und den verlinkten Checklisten; technischer Contract-Abgleich ersetzt das nicht. Fachlicher Kontext Mahn-Kontext und Fristlogik: [`docs/adr/0011-fin4-semi-dunning-context.md`](../adr/0011-fin4-semi-dunning-context.md).
+Fachliche und go-live-relevante Entscheidungen werden **in der Organisation** (und bei Bedarf mit externen Berater:innen) gegen die verlinkten Checklisten geklärt; technischer Contract-Abgleich ersetzt das nicht — siehe [`README.md`](../../README.md) („Compliance … (Empfehlungen)“). Fachlicher Kontext Mahn-Kontext und Fristlogik: [`docs/adr/0011-fin4-semi-dunning-context.md`](../adr/0011-fin4-semi-dunning-context.md).
 
 ## Contract-Version
 
@@ -31,6 +31,7 @@ Antworten unter:
 - `/finance/dunning-reminder…` (Vorlagen, Kandidaten, Konfig, Automation, Mahnlauf, …)
 - `/finance/dunning-email-footer`
 - `/finance/invoice-tax-profile` und Projekt-Override-Pfade (`…/projects/{projectId}`)
+- `/crm/…` (CRM-Stamm ADR 0019)
 
 Server-zu-Server: Header direkt lesen. **Browser + CORS:** nur sichtbar, wenn die Origin in `CORS_ORIGINS` steht; dann ist `x-erp-openapi-contract-version` in `Access-Control-Expose-Headers` enthalten (`src/http/pwa-http-layer.ts`).
 
@@ -59,6 +60,10 @@ Vollständige Schemas: `docs/api-contract.yaml`. Mapping: `docs/contracts/financ
 ## Neu ab `1.29.3` (Tenant PWA — Mandanten-Expertenmodus)
 
 - **`GET|PATCH /tenant/pwa-display-settings`:** Mandantenweiter Schalter für PWA-Expertenhilfen (Finanz-Vorbereitung). Auf diesen Pfaden sendet der Server **`x-erp-openapi-contract-version`** wie bei den FIN-4-/FIN-5-Leitpfaden — gebündeltes OpenAPI/`info.version`-Bump für Integratoren.
+
+## Neu ab `1.30.1` (CRM Stammdaten ADR 0019 — OpenAPI vervollständigt)
+
+- Unter **`/crm/…`** sendet der Server weiterhin **`x-erp-openapi-contract-version`**. Ab **`1.30.1`** bildet [`docs/api-contract.yaml`](../api-contract.yaml) die **vollständige** HTTP-Oberfläche der CRM-Stamm-API ab: Baustellen (`GET|POST /crm/construction-sites`, `GET|PATCH /crm/construction-sites/{id}`), CRM-Kunden (`GET|POST /crm/customers`, `GET|PATCH /crm/customers/{id}`), Projekte (`GET|POST /crm/projects`, `GET|PATCH /crm/projects/{id}`), Projektkontakte (`GET /crm/projects/{projectId}/contacts`, `POST /crm/project-contacts`, `GET|PATCH /crm/project-contacts/{id}`) inklusive Request-Schemas für **POST** und **PATCH**. Lesepfad wie Rechnung; Schreiben wie FIN-1 Zahlungsbedingungen (**ADMIN**, **GESCHAEFTSFUEHRUNG**, **BUCHHALTUNG**). Ohne Postgres: **503** `CRM_PERSISTENCE_UNAVAILABLE`. ADR: [`docs/adr/0019-w1-stammdaten-project-customer-object-option-c.md`](../adr/0019-w1-stammdaten-project-customer-object-option-c.md).
 
 ## Neu ab `1.29.2` (FIN-5 Paket C — XRechnung-XML je Regime)
 
@@ -102,6 +107,10 @@ Vollständige Schemas: `docs/api-contract.yaml`. Mapping: `docs/contracts/financ
 2. OpenAPI-Artefakt vom **deployten** Commit/Tag laden und `info.version` mit dem Header abgleichen.
 3. Client-Codegen / Zod / JSON-Schema **neu erzeugen** und Release koppeln (gleiche Version wie Backend).
 4. **Nicht** erwarten, dass das Backend „alte“ Antwortformen dauerhaft anbietet — Pflichtfelder wie `eligibilityContext` und `stageDeadlineIso` sind Teil der Traceability (ADR-0011); ein serverseitiges Abspecken würde die Nachvollziehbarkeit schwächen.
+
+## Neu ab `1.29.6` (FIN-2 — optionales `measurementId` beim Rechnungsentwurf)
+
+- **`POST /invoices`** (`CreateInvoiceDraftRequest`): optionales Feld **`measurementId`** (UUID). Wenn gesetzt, muss das Aufmass zum Projekt/Kunden/LV der gewählten Angebotsversion passen; sonst **`422`** `TRACEABILITY_FIELD_MISMATCH`. Unbekannte ID → **`404`** `MEASUREMENT_NOT_FOUND`. Ohne Feld wählt der Server deterministisch das **älteste** zur Kette passende Aufmass (`createdAt`, dann `id`).
 
 ## Entfernt (kein technischer Ersatz im Produktcode)
 

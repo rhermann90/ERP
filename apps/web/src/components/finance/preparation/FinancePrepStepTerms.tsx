@@ -37,7 +37,7 @@ function FinancePrepStepTermsInner({
         id={FIN_PREP_A11Y.termsIntro}
         style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}
       >
-        <code>GET /finance/payment-terms</code> und <code>POST …/versions</code> gelten je Projekt. Das Feld unten ist mit der Demo-Projekt-ID aus dem Memory-Seed vorbelegt (
+        <code>GET /finance/payment-terms</code> und <code>POST …/versions</code> gelten je Projekt; neue Versionen sind <strong>append-only</strong> (§8.5 — bestehende Rechnungen bleiben auf ihrer Version-ID). Das Feld unten ist mit der Demo-Projekt-ID aus dem Memory-Seed vorbelegt (
         <code>{DEMO_PROJECT_ID}</code>
         ).
       </p>

@@ -65,7 +65,8 @@ export function registerPwaHttpHooks(app: FastifyInstance, corsAllowlist: Set<st
       pathOnly.startsWith("/finance/dunning-email-footer") ||
       pathOnly.startsWith("/finance/invoice-tax-profile") ||
       pathOnly.startsWith("/finance/e-invoice-parties") ||
-      pathOnly.startsWith("/tenant/pwa-display-settings")
+      pathOnly.startsWith("/tenant/pwa-display-settings") ||
+      pathOnly.startsWith("/crm/")
     ) {
       reply.header("x-erp-openapi-contract-version", ERP_OPENAPI_INFO_VERSION);
     }
@@ -98,6 +99,12 @@ export function sanitizeFinanceRequestUrlForLogs(rawUrl: string): string {
   const q = rawUrl.indexOf("?");
   const pathOnly = q >= 0 ? rawUrl.slice(0, q) : rawUrl;
   if (pathOnly.includes("/finance/payments")) {
+    return pathOnly;
+  }
+  if (
+    pathOnly.includes("/invoices/") &&
+    (pathOnly.includes("/payment-intakes") || pathOnly.includes("/dunning-reminders"))
+  ) {
     return pathOnly;
   }
   return rawUrl;

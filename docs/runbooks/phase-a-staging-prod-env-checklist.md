@@ -2,6 +2,12 @@
 
 **Gate:** Deploy aus **frischem** Clone nur mit dokumentierten Variablen reproduzierbar (siehe auch Root-`.env.example`).
 
+## Release-Kandidat — Software-Evidenz (vor Erst-Deploy / vor Traffic)
+
+Auf dem **deployierten Commit** (oder dem PR davor) die Pflichtkette aus [`docs/contracts/qa-fin-mvp-gate-15-abnahme.md`](../contracts/qa-fin-mvp-gate-15-abnahme.md) dokumentieren (lokal oder CI). Für Merge auf `main`: Jobs **`backend`** und **`e2e-smoke`** grün — [`docs/contracts/qa-fin-0-gate-readiness.md`](../contracts/qa-fin-0-gate-readiness.md).
+
+**Reihenfolge zum Produktiv-Schema:** Build/Install mit `npm install` / `prisma generate`, dann auf der Ziel-DB **`npx prisma migrate deploy`** (siehe Root-[`README.md`](../../README.md) „Mandanten-Produktivsystem“).
+
 ## Vor dem ersten Deploy
 
 - [ ] **`NODE_ENV=production`**
@@ -17,10 +23,13 @@
 ## Smoke nach Deploy
 
 - [ ] `GET /health` → 200.
+- [ ] `GET /ready` → **200** mit `checks.database: ok` im Postgres-Betrieb (bei **503** keinen produktiven Traffic schalten — Root-[`README.md`](../../README.md)).
 - [ ] Login- und geschützte Routen mit gültigem Bearer + `X-Tenant-Id` (falls genutzt) wie in `docs/authentication-login.md`.
 - [ ] Keine Bearer- oder Klartext-Passwörter in zentralen Logs (Stichprobe).
 
 ## Referenzen
 
 - `docs/authentication-login.md`
+- [`docs/contracts/qa-fin-mvp-gate-15-abnahme.md`](../contracts/qa-fin-mvp-gate-15-abnahme.md) — Gate §15 / RC-Kommandos
+- Root-[`README.md`](../../README.md) — Mandanten-Produktivsystem (Persistenz, `/ready`, Qualität vor Release)
 - `docker-compose.yml` (nur **Entwicklung**, nicht 1:1 für Prod übernehmen)

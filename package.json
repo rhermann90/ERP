@@ -41,7 +41,9 @@
     "@rollup/plugin-terser@0.4.4": {
       "serialize-javascript": "7.0.5"
     },
-    "@hono/node-server": "1.19.13"
+    "@hono/node-server": "1.19.13",
+    "fast-uri": "3.1.2",
+    "hono": "4.12.18"
   },
   "keywords": [],
   "author": "",

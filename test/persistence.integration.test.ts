@@ -70,7 +70,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     });
     const cleanup = createPrismaClient(dbUrl!);
     await cleanup.$executeRawUnsafe(
-      `TRUNCATE TABLE dunning_reminder_run_intents, dunning_reminders, dunning_email_sends, dunning_tenant_automation, dunning_tenant_stage_config, dunning_tenant_stage_templates, dunning_tenant_email_footer, tenant_pwa_display_settings, customer_e_invoice_parties, tenant_e_invoice_parties, payment_intakes, invoices, project_invoice_tax_overrides, tenant_invoice_tax_profiles, payment_terms_versions, payment_terms_heads, supplement_versions, supplement_offers, measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, audit_events, offer_versions, offers, password_reset_challenges, users RESTART IDENTITY CASCADE`,
+      `TRUNCATE TABLE dunning_reminder_run_intents, dunning_reminders, dunning_email_sends, dunning_tenant_automation, dunning_tenant_stage_config, dunning_tenant_stage_templates, dunning_tenant_email_footer, tenant_pwa_display_settings, customer_e_invoice_parties, tenant_e_invoice_parties, payment_intakes, invoices, project_invoice_tax_overrides, tenant_invoice_tax_profiles, payment_terms_versions, payment_terms_heads, supplement_versions, supplement_offers, measurement_positions, measurement_versions, measurements, lv_positions, lv_structure_nodes, lv_versions, lv_catalogs, audit_events, offer_versions, offers, password_reset_challenges, crm_project_contacts, crm_projects, crm_customers, crm_construction_sites, users RESTART IDENTITY CASCADE`,
     );
     await cleanup.$disconnect();
 
@@ -498,7 +498,7 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     expect(reset.statusCode).toBe(200);
   });
 
-  it("FIN-1 M1: zwei Zahlungsbedingungs-Versionen; Rechnung bleibt auf alter Version (Postgres); Buchung ändert PT-Referenz nicht", async () => {
+  it("FIN-1 M1 (+ Pilot LV→Rechnung ADR-0018): zwei Zahlungsbedingungs-Versionen; Rechnung bleibt auf alter Version (Postgres); Buchung ändert PT-Referenz nicht", async () => {
     // Demo-Seed (`seedDemoData`) legt für dasselbe Projekt bereits PT v1 an — neue POSTs sind v2/v3.
     const seedPtV1Id = SEED_IDS.paymentTermsVersionId;
 
@@ -2011,5 +2011,32 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     expect(json.supplementOfferId).toBe(probe!.supplementOfferId);
     expect(json.baseOfferVersionId).toBe(SEED_IDS.offerVersionId);
     expect(json.tenantId).toBe(SEED_IDS.tenantId);
+  });
+
+  it("CRM Stammdaten (ADR 0019): Projekt-PK entspricht Pilot-projectId", async () => {
+    const row = await prisma.crmProject.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.projectId } },
+    });
+    expect(row).not.toBeNull();
+    expect(row?.primaryCustomerId).toBe(SEED_IDS.customerId);
+    expect(row?.constructionSiteId).toBe(SEED_IDS.crmConstructionSiteId);
+    const contact = await prisma.crmProjectContact.findFirst({
+      where: { tenantId: SEED_IDS.tenantId, projectId: SEED_IDS.projectId },
+    });
+    expect(contact?.id).toBe(SEED_IDS.crmProjectContactId);
+  });
+
+  it("CRM Stammdaten: kein fremder Mandant in crm_projects", async () => {
+    const foreign = "99999999-9999-4999-8999-999999999999";
+    expect(await prisma.crmProject.count({ where: { tenantId: SEED_IDS.tenantId } })).toBeGreaterThan(0);
+    expect(await prisma.crmProject.count({ where: { tenantId: foreign } })).toBe(0);
+  });
+
+  it("GET /crm/projects: liefert Pilot-Projekt (Auth + Mandant)", async () => {
+    const res = await app.inject({ method: "GET", url: "/crm/projects", headers: adminHeaders() });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: { id: string; primaryCustomerId: string }[] };
+    const hit = body.data.find((p) => p.id === SEED_IDS.projectId);
+    expect(hit?.primaryCustomerId).toBe(SEED_IDS.customerId);
   });
 });

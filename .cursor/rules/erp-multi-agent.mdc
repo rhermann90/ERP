@@ -5,7 +5,9 @@ alwaysApply: true
 
 # ERP Multi-Agent Core Rules
 
-Authoritative domain source is [`docs/ERP-Systembeschreibung.md`](../../docs/ERP-Systembeschreibung.md) (konsolidiert v2.0; Abschnitte 1–17 entsprechen der historischen v1.3-Struktur). Archivierte Einzelstände: `docs/_archiv/systembeschreibung-und-phasen-legacy/`. Repository-Orientierung für Agenten: [`AGENTS.md`](../../AGENTS.md).
+Authoritative domain source is [`docs/ERP-Systembeschreibung.md`](../../docs/ERP-Systembeschreibung.md) (konsolidiert **v3.0**; Abschnitte 1–17 historisch v1.3, **§18** Erweiterungen v3.0, **Teil V** PWA-Roadmap). **PWA MVP-Zielbild und Umsetzungsstand** (ohne Domänenersatz): [`docs/PWA-Entwicklungsreferenz.md`](../../docs/PWA-Entwicklungsreferenz.md). Archivierte Einzelstände: `docs/_archiv/systembeschreibung-und-phasen-legacy/`. Repository-Orientierung für Agenten: [`AGENTS.md`](../../AGENTS.md).
+
+**Fact-Forcing Gate (extern):** Wenn ein Hook `Write`/`StrReplace` blockiert, zuerst die geforderten Fakten in der Antwort liefern und die Operation wiederholen; Shell-Schreiben nur als dokumentierte Ausnahme (v. a. Doku); Team-Empfehlung Whitelist/Streng und Risiko-Tabelle — [`docs/runbook/agent-gateguard-workflow.md`](../../docs/runbook/agent-gateguard-workflow.md).
 
 Non-negotiable rules:
 - Do not simplify domain logic.
@@ -14,6 +16,8 @@ Non-negotiable rules:
 - Preserve end-to-end traceability: invoice -> measurement -> LV -> offer -> project -> customer.
 - Never mix immutable system text with editable business text.
 - When uncertain, state assumptions explicitly and request clarification.
+
+**Compliance / Produktiv-Go:** Nur **Empfehlungen** und CI-Formalchecks — siehe [`AGENTS.md`](../../AGENTS.md) und [`README.md`](../../README.md); keine im Repo definierte **Pflichtfreigabe** durch benannte externe Rollen.
 
 **Liefer-, Merge-, Review- und Ausgabeformat (vollständig):** gelten bei Arbeit unter den Pfaden der Regel [`erp-delivery-review.mdc`](./erp-delivery-review.mdc) (`src/`, `apps/web/`, `prisma/`, `README.md`, `Checklisten/`, `docs/contracts/`, `docs/api-contract.yaml`, `docs/adr/`, `docs/tickets/`, `docs/CODEMAPS/`). Für Aufgaben **außerhalb** dieser Pfade: weiterhin **result**, **rationale**, **risks**, **open questions** inhaltlich abdecken; Auswirkungsdimensionen (Compliance, Datenkonsistenz, Wartbarkeit, PWA) nur kurz oder „keine“, soweit nicht fachlich relevant.
 

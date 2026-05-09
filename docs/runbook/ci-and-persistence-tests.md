@@ -15,6 +15,8 @@
 
 5. **FIN-4 Mahn-API — Breaking- und Release-Notes:** Änderungen an [`docs/api-contract.yaml`](../../docs/api-contract.yaml) an `GET /finance/dunning-reminder-candidates`, `POST /finance/dunning-reminder-run` oder an `info.version` (z. B. neue **Pflichtfelder** wie `eligibilityContext`, `stageDeadlineIso` in Kandidaten- und `DRY_RUN.planned`-Payloads ab **1.25.x**) im PR oder in Release-Notes explizit nennen, damit externe Clients mit striktem OpenAPI-/JSON-Schema nachziehen können. **Technischer Abgleich:** Antwort-Header `x-erp-openapi-contract-version` (synchron zu `info.version` und [`src/domain/openapi-contract-version.ts`](../../src/domain/openapi-contract-version.ts)); Leitfaden [`docs/contracts/FIN4-external-client-integration.md`](../contracts/FIN4-external-client-integration.md) — insb. Abschnitt **„Strikte Response-Validierung (Client-seitig)“** bei Schema-Fehlern nach Deploy. **Cron/Monitoring:** [`docs/runbooks/dunning-cron-and-monitoring-inventory.md`](./dunning-cron-and-monitoring-inventory.md), `npm run check:dunning-inventory`; Produktions-Sign-off: [`docs/runbooks/dunning-production-infra-signoff.md`](./dunning-production-infra-signoff.md).
 
+**Cursor / KI-Agenten:** Bei Blockade von Dateizugriffen durch einen Fact-Forcing-Gate-Hook — Workflow [`agent-gateguard-workflow.md`](./agent-gateguard-workflow.md).
+
 Workflow: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)
 
 - **Postgres 16** als Service-Container auf Port **5432** (im Actions-Job: Host-Port 5432 → Container 5432).

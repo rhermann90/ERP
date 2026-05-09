@@ -19,8 +19,23 @@
 ## 2) PWA-Verhalten
 
 - **Schnellzugriff** priorisiert Kacheln nach **API-Rolle** aus dem Token (`decodeTokenPayload` in `apps/web/src/lib/token-payload.ts`).
+- **Globale Hauptnavigation** (`AppPrimaryNav`): operative Links (Stammdaten, LV & Aufmaß, …) nur mit gültiger Session; **Einstellungen**-Eintrag nur für `ADMIN`, `GESCHAEFTSFUEHRUNG`, `BUCHHALTUNG` (Anzeige — gleiche Grenzen wie Mandanten-Expertenmodus-Toggle). Start, Hilfe, Anmeldung und Passwort bleiben sichtbar.
+- **Stammdaten-Navigationspunkt:** Sichtbarkeit wie die übrigen operativen Domänen-Links — `isPrimaryNavLinkVisible("stammdaten", { hasSession, role })` in [`apps/web/src/lib/pwa-primary-nav-visibility.ts`](../../apps/web/src/lib/pwa-primary-nav-visibility.ts): bei gültiger Session für alle API-Rollen mit Datenzugang (`VIEWER` … `ADMIN`); ohne Session ausgeblendet.
 - Zeile **„v1.3-Bezug“** pro API-Rolle: `v13DomainRolesForApiRole` in `apps/web/src/lib/v13-domain-role-mapping.ts` (reine **Hinweis-Texte**, keine Rechteänderung).
 
 ## 3) Änderungen an dieser Tabelle
 
 Änderungen nur mit **PL-/ADR-Abstimmung**, wenn sich Mandanten-Policies oder das Backend-Rollenmodell ändern.
+
+## 4) Phase-2 Pilot: Offer-Stamm (`OFFER_CREATE`) vs. LV (`LV_*`)
+
+**Quelle der technischen Matrix:** [`src/services/authorization-service.ts`](../../src/services/authorization-service.ts) (`OFFER_STATUS_ACTION_BY_ROLE`, `LV_ACTION_BY_ROLE`, sowie `getAllowedActions` / projektbezogene Aktionen).
+
+| Thema | Verhalten |
+| --- | --- |
+| **Offer-Stamm anlegen** | `OFFER_CREATE` ist für **`ADMIN`** und **`VERTRIEB_BAULEITUNG`** vorgesehen (nicht für `GESCHAEFTSFUEHRUNG`, `BUCHHALTUNG`, `VIEWER`). HTTP: `POST /offers` nur nach erfolgreicher AuthZ-Assertion. |
+| **LV-Struktur bearbeiten** (`LV_ADD_*`, Updates am ENTWURF u. a.) | **`ADMIN`** und **`VERTRIEB_BAULEITUNG`**; **`GESCHAEFTSFUEHRUNG`** hat Freigabe-/Versions-Aktionen auf LV-Ebene (`LV_SET_FREIGEGEBEN`, `LV_CREATE_NEXT_VERSION`, …), aber **keine** `LV_ADD_*` gemäß `LV_ACTION_BY_ROLE`. |
+| **„Nur LV, nie Offer“ pro Benutzer** | Im Backend gibt es **keine** feinere Aufteilung innerhalb von `VERTRIEB_BAULEITUNG`. Trennung erfordert **separate Konten/Rollen** oder eine **bewusste Policy-Erweiterung** (Ticket + Anpassung von `action-contracts.json` / Backend — nicht Teil des MVP-Pilot-Defaults). |
+
+Die PWA zeigt Schreibaktionen **nur**, wenn sie in `GET /documents/:id/allowed-actions` stehen ([`docs/contracts/ui-action-executor-coverage.md`](./ui-action-executor-coverage.md)).
+

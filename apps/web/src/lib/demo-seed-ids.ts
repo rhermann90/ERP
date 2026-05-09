@@ -1,6 +1,11 @@
 /** Stabile Demo-UUIDs — im Einklang mit `src/composition/seed.ts` / Backend-Seed. */
 export const DEMO_SEED_IDS = {
   tenantId: "11111111-1111-4111-8111-111111111111",
+  /** Pilot-Demo: Projekt/Kunde wie Backend-Seed (`src/composition/seed.ts`). */
+  projectId: "10101010-1010-4010-8010-101010101010",
+  customerId: "20202020-2020-4020-8020-202020202020",
+  crmConstructionSiteId: "30303030-3030-4030-8030-303030303030",
+  measurementId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbb001",
   offerId: "22222222-2222-4222-8222-222222222222",
   offerVersionId: "33333333-3333-4333-8333-333333333333",
   invoiceId: "44444444-4444-4444-8444-444444444444",

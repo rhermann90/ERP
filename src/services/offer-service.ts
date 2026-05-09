@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { assertOfferCreateVersionAllowedForStatus } from "../domain/offer-create-version-policy.js";
 import { DomainError } from "../errors/domain-error.js";
-import { OfferStatus, OfferVersion, TenantId, UserId, UUID } from "../domain/types.js";
+import { Offer, OfferStatus, OfferVersion, TenantId, UserId, UUID } from "../domain/types.js";
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import type { OfferPersistencePort } from "../persistence/offer-persistence.js";
 import { noopOfferPersistence } from "../persistence/offer-persistence.js";
@@ -25,6 +25,77 @@ export class OfferService {
     private readonly lvRef: LvReferenceValidator,
     private readonly offerPersistence: OfferPersistencePort = noopOfferPersistence,
   ) {}
+
+  /** Neues Angebots-Aggregat mit erster Version (ENTWURF). */
+  public async createOfferWithInitialVersion(input: {
+    tenantId: TenantId;
+    actorUserId: UserId;
+    projectId: UUID;
+    customerId: UUID;
+    lvVersionId: UUID;
+    systemText: string;
+    editingText: string;
+    reason: string;
+  }): Promise<{ offerId: UUID; offerVersionId: UUID }> {
+    this.lvRef.assertLvVersionExists(input.tenantId, input.lvVersionId);
+    const lv = this.repos.getLvVersionByTenant(input.tenantId, input.lvVersionId);
+    if (!lv) {
+      throw new DomainError("LV_VERSION_NOT_FOUND", "LV-Version nicht gefunden", 404);
+    }
+    const catalog = this.repos.getLvCatalogByTenant(input.tenantId, lv.lvCatalogId);
+    if (catalog?.projectId != null && catalog.projectId !== input.projectId) {
+      throw new DomainError(
+        "LV_PROJECT_MISMATCH",
+        "LV-Katalog ist einem anderen Projekt zugeordnet als angegeben",
+        422,
+      );
+    }
+
+    const offerId = randomUUID();
+    const offerVersionId = randomUUID();
+    const now = new Date();
+
+    const version: OfferVersion = {
+      id: offerVersionId,
+      tenantId: input.tenantId,
+      offerId,
+      versionNumber: 1,
+      status: "ENTWURF",
+      lvVersionId: input.lvVersionId,
+      systemText: input.systemText,
+      editingText: input.editingText,
+      createdAt: now,
+      createdBy: input.actorUserId,
+    };
+
+    const offer: Offer = {
+      id: offerId,
+      tenantId: input.tenantId,
+      projectId: input.projectId,
+      customerId: input.customerId,
+      currentVersionId: offerVersionId,
+      createdAt: now,
+      createdBy: input.actorUserId,
+    };
+
+    this.repos.putOfferVersion(version);
+    this.repos.putOffer(offer);
+    await this.offerPersistence.syncOfferSubgraphFromMemory(this.repos, input.tenantId, offerId);
+    await this.auditService.append({
+      id: randomUUID(),
+      tenantId: input.tenantId,
+      entityType: "OFFER_VERSION",
+      entityId: offerVersionId,
+      action: "VERSION_CREATED",
+      actorUserId: input.actorUserId,
+      reason: input.reason,
+      timestamp: now,
+      beforeState: {},
+      afterState: { offerId, versionNumber: 1, status: "ENTWURF" },
+    });
+
+    return { offerId, offerVersionId };
+  }
 
   public async createVersion(input: {
     tenantId: TenantId;

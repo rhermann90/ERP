@@ -28,6 +28,7 @@ const OFFER_STATUS_ACTION_BY_ROLE: Record<UserRole, string[]> = {
     "OFFER_SET_VERSENDET",
     "OFFER_SET_ANGENOMMEN",
     "OFFER_SET_ABGELEHNT",
+    "OFFER_CREATE",
     "OFFER_CREATE_VERSION",
     "OFFER_CREATE_SUPPLEMENT",
   ],
@@ -43,6 +44,7 @@ const OFFER_STATUS_ACTION_BY_ROLE: Record<UserRole, string[]> = {
     "OFFER_SET_VERSENDET",
     "OFFER_SET_ANGENOMMEN",
     "OFFER_SET_ABGELEHNT",
+    "OFFER_CREATE",
     "OFFER_CREATE_VERSION",
     "OFFER_CREATE_SUPPLEMENT",
   ],
@@ -176,6 +178,16 @@ export class AuthorizationService {
     }
   }
 
+  /** ADR 0019 CRM-Stamm: Lesepfad wie Rechnung (Traceability / Shell). */
+  public assertCanReadCrmStammdaten(role: UserRole): void {
+    this.assertCanReadInvoice(role);
+  }
+
+  /** ADR 0019 CRM-Stamm: Schreiben wie Zahlungsbedingungen (Stammdaten-Pflege). */
+  public assertCanWriteCrmStammdaten(role: UserRole): void {
+    this.assertCanManagePaymentTerms(role);
+  }
+
   public assertCanCreateInvoiceDraft(role: UserRole): void {
     if (!new Set<UserRole>(["ADMIN", "GESCHAEFTSFUEHRUNG", "BUCHHALTUNG"]).has(role)) {
       throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Rechnungsentwurf", 403);
@@ -265,6 +277,12 @@ export class AuthorizationService {
   public assertCanCreateMeasurement(role: UserRole): void {
     if (!MEASUREMENT_ACTION_BY_ROLE[role].includes("MEASUREMENT_CREATE")) {
       throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Aufmass-Anlage", 403);
+    }
+  }
+
+  public assertCanCreateOffer(role: UserRole): void {
+    if (!OFFER_STATUS_ACTION_BY_ROLE[role].includes("OFFER_CREATE")) {
+      throw new DomainError("AUTH_ROLE_FORBIDDEN", "Keine Berechtigung fuer Angebots-Anlage", 403);
     }
   }
 
@@ -374,6 +392,7 @@ export class AuthorizationService {
   public getAllowedActions(
     tenantId: string,
     entityType:
+      | "PROJECT"
       | "OFFER_VERSION"
       | "SUPPLEMENT_VERSION"
       | "MEASUREMENT_VERSION"
@@ -384,6 +403,9 @@ export class AuthorizationService {
     entityId: string,
     role: UserRole,
   ): string[] {
+    if (entityType === "PROJECT") {
+      return this.allowedProjectScopedCreationActions(tenantId, entityId, role);
+    }
     if (entityType === "OFFER_VERSION") {
       const version = this.repos.getOfferVersionByTenant(tenantId, entityId);
       if (!version) {
@@ -432,6 +454,26 @@ export class AuthorizationService {
       throw new DomainError("DOCUMENT_NOT_FOUND", "Dokument nicht gefunden", 404);
     }
     return this.allowedInvoiceActionsByStatus(invoice.status, role);
+  }
+
+  /**
+   * Projektbezogene Anlageaktionen (kein bestehendes Dokument): LV-Katalog muss für das Projekt existieren.
+   */
+  private allowedProjectScopedCreationActions(tenantId: string, projectId: string, role: UserRole): string[] {
+    const hasLvCatalog = [...this.repos.lvCatalogs.values()].some(
+      (c) => c.tenantId === tenantId && c.projectId === projectId,
+    );
+    if (!hasLvCatalog) {
+      throw new DomainError("DOCUMENT_NOT_FOUND", "Kein LV-Katalog fuer dieses Projekt", 404);
+    }
+    const actions: string[] = [];
+    if (MEASUREMENT_ACTION_BY_ROLE[role].includes("MEASUREMENT_CREATE")) {
+      actions.push("MEASUREMENT_CREATE");
+    }
+    if (OFFER_STATUS_ACTION_BY_ROLE[role].includes("OFFER_CREATE")) {
+      actions.push("OFFER_CREATE");
+    }
+    return actions;
   }
 
   private allowedOfferActionsByStatus(status: OfferStatus, role: UserRole): string[] {

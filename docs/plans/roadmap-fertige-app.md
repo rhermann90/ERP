@@ -1,13 +1,13 @@
 # Roadmap: Weg zur fertigen App
 
-**Stand:** konsolidiert mit [nächste-schritte.md](./nächste-schritte.md), [MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md), [NEXT-INCREMENT-FINANCE-WAVE3.md](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md). Kein Ersatz für StB/DSB/Release bei Produktiv-Go.
+**Stand:** konsolidiert mit [nächste-schritte.md](./nächste-schritte.md), [MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md), [NEXT-INCREMENT-FINANCE-WAVE3.md](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md). Compliance-Empfehlungen und Checklisten im Repo ersetzen keine eigenständige organisatorische Bewertung vor Produktivnutzung — siehe [`README.md`](../../README.md).
 
 ## Zielbild
 
 „Fertig“ ist im Repo dreigeteilt:
 
 1. **Technische Lieferfähigkeit:** grünes CI (`backend`, `e2e-smoke`), kleine PRs, Verträge synchron ([nächste-schritte.md](./nächste-schritte.md), [AGENTS.md](../../AGENTS.md)).
-2. **Finanz-MVP v1.3:** Phasen FIN-0–FIN-6 laut [MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md); derzeit Schwerpunkt **Finanz Welle 3 / Option A** ([NEXT-INCREMENT-FINANCE-WAVE3.md](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md)).
+2. **Finanz-MVP v1.3:** Phasen FIN-0–FIN-6 laut [MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md); **FIN-5** Kern + Folgepakete im Repo umgesetzt ([ADR-0015](../adr/0015-fin5-invoice-tax-regimes-816.md), Archiv [FIN-5-FOLLOWUP-INCREMENTS.md](../tickets/FIN-5-FOLLOWUP-INCREMENTS.md)); nächster organisatorischer Schwerpunkt vor Produktivität: **Mandanten-Go** (README, Checklisten, Runbooks) bei weiterem optionalen M4-/Shell-Inkrement aus [NEXT-INCREMENT-FINANCE-WAVE3.md](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md).
 3. **Mandanten-Produktiv-Go:** menschliche Freigaben + [Checklisten/compliance-rechnung-finanz.md](../../Checklisten/compliance-rechnung-finanz.md); Agenda [m4-slice-5c-pl-mandanten-go.md](../runbooks/m4-slice-5c-pl-mandanten-go.md).
 
 ```mermaid
@@ -40,15 +40,15 @@ flowchart LR
 
 ## Phase B — Finanz Welle 3, Default Option A
 
-**Aktuelle Spur (Repo-Doku):** Spur **A** (Option A / M4-Rest) — siehe [nächste-schritte.md](./nächste-schritte.md) Abschnitt *Nächste Produktspur*; bei Team-Wechsel nach B–E dort anpassen.
+**Ist (Repo):** **FIN-5** §8.16 Option A inkl. Folgepakete **A–D erledigt** — [`FIN-5-FOLLOWUP-INCREMENTS.md`](../tickets/FIN-5-FOLLOWUP-INCREMENTS.md) (Archiv). **Aktuelle Spur für neue PRs:** optional Spur **A** (M4-Rest / kleine PWA) und/oder Spur **E** (Shell-read-only-`GET`) — siehe [nächste-schritte.md](./nächste-schritte.md) *Nächste Produktspur*; **nicht** ohne Gate mit B5-/Audit-/8.4/Pfad C mischen.
 
-**Option vs. Spur (Lesen):** Im Ticket [NEXT-INCREMENT-FINANCE-WAVE3.md](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) sind **Option A–D** (Tabelle) nicht dieselben Labels wie **Spur A–E** in [nächste-schritte.md](./nächste-schritte.md); kurz erklärt unter **Hinweis (Lesen)** direkt unter der Optionen-Tabelle — **Option B** = 8.4(2–6)-Motor, **Spur B** = FIN-5.
+**Option vs. Spur (Lesen):** Im Ticket [NEXT-INCREMENT-FINANCE-WAVE3.md](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) sind **Option A–D** (Tabelle) nicht dieselben Labels wie **Spur A–E** in [nächste-schritte.md](./nächste-schritte.md); **Option B** dort = 8.4(2–6)-Motor — **nicht** das historische FIN-5-Gate [`FIN-5-GATE-816-FAIL-CLOSED.md`](../tickets/FIN-5-GATE-816-FAIL-CLOSED.md) (Fail-Closed §8.16; Produktentscheid durch [ADR-0015](../adr/0015-fin5-invoice-tax-regimes-816.md) superseded).
 
-**Gewählt laut Ticket:** weiter [NEXT-INCREMENT-FINANCE-WAVE3.md](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) — nach technischem M4-Kern (inkl. **5c**): optional kleine UX-/Shell-Follow-ups unter Spur **A**; **FIN-5 (M5)** unter **Option B (Fail-Closed)** geschlossen — [`FIN-5-GATE-816-FAIL-CLOSED.md`](../tickets/FIN-5-GATE-816-FAIL-CLOSED.md); strategisch als Nächstes **FIN-6** mit Spur **C** in [nächste-schritte.md](./nächste-schritte.md), wenn priorisiert; keine parallele Option **B/C** (8.4(2–6), Zwischenstatus) ohne dokumentiertes Gate.
+**Vor Mandanten-Produktivität (organisatorisch + Betrieb):** [README.md](../../README.md), [Checklisten/README.md](../../Checklisten/README.md), [qa-fin-mvp-gate-15-abnahme.md](../contracts/qa-fin-mvp-gate-15-abnahme.md), [phase-a-staging-prod-env-checklist.md](../runbooks/phase-a-staging-prod-env-checklist.md).
 
 **Konkret nächste Umsetzungsschritte (Auswahl im Team, jeweils eigener PR):**
 
-- Rest-M4 / §8.10 gemäß Ticket („Nächster Strang“, Non-Goals beachten).
+- Optional: Rest-M4 / §8.10 gemäß [NEXT-INCREMENT-FINANCE-WAVE3.md](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) (Non-Goals beachten).
 - Optional: weitere Playwright-Journeys [login-finance-smoke.spec.ts](../../e2e/login-finance-smoke.spec.ts).
 - **Erledigt (Shell):** Invoice-Shell — `GET /finance/payment-terms`, `GET …/allowed-actions` (`INVOICE`), Memory-Seed FIN‑1, E2E — siehe [nächste-schritte.md](./nächste-schritte.md) Schritt 4 / „Nach Merge (optional Schritt 4 — Shell)“.
 - Optional: weitere Shell-read-only-`GET` nur nach OpenAPI + [api-client.ts](../../apps/web/src/lib/api-client.ts), getrennt von Schreibpfaden in [App.tsx](../../apps/web/src/App.tsx).
@@ -64,7 +64,7 @@ Mahn-IA/Routing: [FOLLOWUP-M4-DUNNING-UX-GRUNDEINSTELLUNGEN-TAB.md](../tickets/F
 
 | Phase | Inhalt | Quelle |
 |-------|--------|--------|
-| **FIN-5** | Steuern MVP: **Fail-Closed** (Option **B**, Gate geschlossen 2026-05-04) — [`FIN-5-GATE-816-FAIL-CLOSED.md`](../tickets/FIN-5-GATE-816-FAIL-CLOSED.md), [ADR-0014](../adr/0014-fin5-mvp-tax-fail-closed.md) | [MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md), Teil 3 |
+| **FIN-5** | Steuern MVP: **Option A live** — [ADR-0015](../adr/0015-fin5-invoice-tax-regimes-816.md) (supersede [ADR-0014](../adr/0014-fin5-mvp-tax-fail-closed.md)); historisches Gate-Dokument [`FIN-5-GATE-816-FAIL-CLOSED.md`](../tickets/FIN-5-GATE-816-FAIL-CLOSED.md); Folgepakete Archiv [`FIN-5-FOLLOWUP-INCREMENTS.md`](../tickets/FIN-5-FOLLOWUP-INCREMENTS.md) | [MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md](../MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md), Teil 3 |
 | **FIN-6** | Härtung und Abnahme MVP (u. a. 8.14, 12, 15; optional Export-Skeleton) | dortselbst |
 | **Audit / GoBD-Querschnitt** | eigenes Ticket, nicht mit Mahn-UI mischen | [FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md](../tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) |
 
@@ -81,4 +81,4 @@ Umsetzung in **eigenen Tickets/PRs** nach Abschluss der gewählten Welle-3-Inkre
 
 ## Team-Entscheidung
 
-Reihenfolge nach Phase B: weiter nur M4/UX, zügig FIN-5/FIN-6, oder Parallelstart Phase 2 mit eigenem Branch/Team — beeinflusst PR-Schnitt, nicht die kanonischen Qualitätsregeln.
+Nach abgeschlossenem FIN-5-Kern: **Mandanten-Go / Compliance** vs. optionale **M4-/Shell-PRs** vs. Vertiefung **FIN-6 / Audit-B5** (eigene Tickets) vs. **Phase 2 LV** — beeinflusst PR-Schnitt, nicht die kanonischen Qualitätsregeln ([AGENTS.md](../../AGENTS.md)).

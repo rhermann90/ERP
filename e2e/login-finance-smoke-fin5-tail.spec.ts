@@ -29,7 +29,7 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
     await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
 
-    await page.getByRole("link", { name: "Finanz (Vorbereitung)" }).click();
+    await page.getByTestId("primary-nav-finanz_prep").click();
     await expect(page.getByRole("heading", { name: /Finanz \(Vorbereitung\)/i })).toBeVisible({ timeout: 15_000 });
     await expect(page.locator("section.finance-prep")).toBeVisible({ timeout: 15_000 });
 
@@ -107,7 +107,7 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
 
     await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
 
-    await page.getByRole("link", { name: "Finanz (Vorbereitung)" }).click();
+    await page.getByTestId("primary-nav-finanz_prep").click();
     await expect(page.locator("section.finance-prep")).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole("tab", { name: /Rechnung & Zahlung/i }).click();
@@ -196,7 +196,7 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
 
       await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
 
-      await page.getByRole("link", { name: "Finanz (Vorbereitung)" }).click();
+      await page.getByTestId("primary-nav-finanz_prep").click();
       await expect(page.locator("section.finance-prep")).toBeVisible({ timeout: 15_000 });
       await page.getByRole("tab", { name: /Rechnung & Zahlung/i }).click();
 
@@ -224,7 +224,7 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
 
     await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
 
-    await page.getByRole("link", { name: "Finanz (Vorbereitung)" }).click();
+    await page.getByTestId("primary-nav-finanz_prep").click();
     await expect(page.locator("section.finance-prep")).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole("tab", { name: /Rechnung & Zahlung/i }).click();

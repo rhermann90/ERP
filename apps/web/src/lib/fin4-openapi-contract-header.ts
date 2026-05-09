@@ -17,7 +17,10 @@ export function isFin4OpenApiContractResponsePath(path: string): boolean {
   if (p.startsWith("/finance/invoice-tax-profile") || p.startsWith("/finance/e-invoice-parties")) {
     return true;
   }
-  return p.startsWith("/finance/dunning-reminder");
+  if (p.startsWith("/finance/dunning-reminder")) {
+    return true;
+  }
+  return p.startsWith("/crm/");
 }
 
 export function readExpectedOpenApiInfoVersionFromEnv(): string | undefined {

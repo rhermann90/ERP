@@ -49,6 +49,10 @@ export const SEED_IDS = {
   /** FIN-1 Konditionskopf für `projectId` (Memory-/E2E-Shell `GET /finance/payment-terms`). */
   paymentTermsHeadId: "50505050-5050-4050-8050-505050505050",
   paymentTermsVersionId: "51515151-5151-4151-8151-515151515151",
+  /** CRM Baustelle/Objekt — eigene UUID (ADR 0019); nicht identisch mit project/customer. */
+  crmConstructionSiteId: "30303030-3030-4030-8030-303030303030",
+  /** Demo-Projektkontakt (ADR 0019). */
+  crmProjectContactId: "60606060-6060-4060-8060-606060606060",
 } as const;
 
 export function seedDemoData(repos: InMemoryRepositories): void {

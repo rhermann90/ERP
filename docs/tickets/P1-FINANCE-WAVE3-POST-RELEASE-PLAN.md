@@ -14,7 +14,7 @@
 | **P1-1** | Bugfix-Pfad abgeschlossen und getestet. |
 | **P1-2** | M4-/FIN-4-**Pflicht**scope für diese Welle im Repo (inkl. 5c separater Endpoint) **und** Doku-Sync mit Koordinations-Tabelle (Zeile 12); verbleibendes **optionales** UX nur noch als Follow-up-Ticket(s), nicht als offener P1-2-Blocker. |
 | **P1-3** | Kein Gesamt-Ende — **laufende** PR-Disziplin; optional Meilenstein siehe [`P1-3-DOCS-MILESTONE-WAVE3.md`](./P1-3-DOCS-MILESTONE-WAVE3.md). |
-| **P1-4** | Querschnitts-**Protokoll** (Audit/B5/Liefergrenzen) schriftlich im Repo; **kein** Ersatz für Mandanten-Go oder StB-Freigabe. |
+| **P1-4** | Querschnitts-**Protokoll** (Audit/B5/Liefergrenzen) schriftlich im Repo; **kein** Ersatz für Mandanten-Go oder organisatorische Produktiv-Freigabe. |
 
 ## P1-1 — PWA-Korrektheit (bugfix)
 
@@ -53,14 +53,14 @@
 
 ## Mandanten-/Produktiv-Go (Checkliste)
 
-Vor produktivem Rechnungs-/Mahn-Go (inkl. Massen-E-Mail 5c): [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) mit **StB / DSB / Release-Owner** abarbeiten — **Mandanten-Produktiv-Go**, nicht Merge; ergänzend zu grünem CI (`backend`-Job), kein Ersatz für Mandanten-Freigabe.
+Vor produktivem Rechnungs-/Mahn-Go (inkl. Massen-E-Mail 5c): [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) **empfohlen** inhaltlich bearbeiten — **Mandanten-Produktiv-Go**, nicht Merge; ergänzend zu grünem CI (`backend`-Job); organisatorische Klärung siehe [`README.md`](../../README.md), [`AGENTS.md`](../../AGENTS.md) Punkt 6.
 
-**Repo-Abnahme (Agent, 2026-04-26):** Verweiskette README → [`AGENTS.md`](../../AGENTS.md) (Lesepunkt 6 + Tabelle §5) → diese Sektion → Checkliste ist konsistent; **fachliches** Durcharbeiten der Checklistenpunkte bleibt **StB / DSB / Release-Owner** (nicht automatisierbar).
+**Repo-Abnahme (Agent, 2026-04-26):** Verweiskette README → [`AGENTS.md`](../../AGENTS.md) (Lesepunkt 6 + Tabelle §5) → diese Sektion → Checkliste ist konsistent; **fachliches** Durcharbeiten der Checklistenpunkte bleibt **Team-/Mandantensache** — Begleitblatt-Kürzel, nicht automatisierbar.
 
-**Team-Nachweis (nach Workshop StB/DSB/Release-Owner):** Ergebnis, Datum und Verweis (internes Protokoll/Wiki — **keine** erfundenen URLs im Repo) dort dokumentieren, wo das Team Arbeitsnachweise führt; die Checkliste selbst bleibt die fachliche Vorlage ([`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) Abschnitt *Team-Dokumentation*).
+**Team-Nachweis (nach organisatorischer Klärung):** Ergebnis, Datum und Verweis (internes Protokoll/Wiki — **keine** erfundenen URLs im Repo) dort dokumentieren, wo das Team Arbeitsnachweise führt; die Checkliste selbst bleibt die fachliche Vorlage ([`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) Abschnitt *Team-Dokumentation*).
 
-**Wave3-10-Tool-Todos (Agent, 2026-04-27):** Workshop mit **StB / DSB / Release-Owner** und Durcharbeiten der Checkliste **nicht** durch Agent-Session ersetzbar; Repo bleibt bei Verweisen und *Team-Dokumentation*-Abschnitt der Checkliste; Ergebnis ausschließlich im Team-Wiki/Protokoll nachhalten.
+**Wave3-10-Tool-Todos (Agent, 2026-04-27):** Workshop zur Checkliste **nicht** durch Agent-Session ersetzbar; Repo bleibt bei Verweisen und *Team-Dokumentation*-Abschnitt der Checkliste; Ergebnis ausschließlich im Team-Wiki/Protokoll nachhalten.
 
-**Wave3-11-Tool-Todos (Agent, 2026-04-27):** Mandanten-/Produktiv-Go und Workshop-Pflicht unverändert; vollständige Wave3-11-Operativliste siehe [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) (*Agent-Abnahme*). **Inbound**-Tabelle dort: **nur Team-Runden** / kein Agent-Eintrag (Team-Entscheid 2026-04-27); **alle** übrigen automatisierbaren Agent-Pflichten **weiterhin** erledigen.
+**Wave3-11-Tool-Todos (Agent, 2026-04-27):** Mandanten-/Produktiv-Go **empfohlen** organisatorisch klären; vollständige Wave3-11-Operativliste siehe [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) (*Agent-Abnahme*). **Inbound**-Tabelle dort: **nur Team-Runden** / kein Agent-Eintrag (Team-Entscheid 2026-04-27); **alle** übrigen automatisierbaren Agent-Pflichten **weiterhin** erledigen.
 
 **Wave3-12-Tool-Todos (Agent, 2026-04-27):** **Wave3-12** kanonisch unter *Agent-Abnahme* in [`PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md); **Inbound** nur Team-Runden (kein Agent-Eintrag).

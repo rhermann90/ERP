@@ -1,25 +1,40 @@
 # ERP — Systembeschreibung (konsolidiert)
 
-**Version:** 2.0 konsolidiert  
-**Stand:** 2026-05-01  
+**Version:** 3.0 konsolidiert  
+**Stand:** 2026-05-07  
 **Status:** Verbindliche fachliche und planerische Gesamtquelle für dieses Repository.
+
+## Hinweis zu Recht und Steuern
+
+Diese Systembeschreibung ist **fachliche Produkt- und Domänenquelle** für dieses Repository; sie ist **keine Rechts-, Steuer- oder Buchhaltungsberatung**. Konformität oder Vereinbarkeit mit GoBD, UStG, HGB, DSGVO und anderen Regelwerken entsteht erst durch **Implementierung**, **Konfiguration**, **Betrieb** und **organisatorische Freigaben** (z. B. Steuerberatung, Datenschutz). Für die operative Mandanten-Einführung gelten [**§15**](#15-validierung-und-quality-gate-v11-erweitert-v13), die Checkliste [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) und die Hinweise im [`README.md`](../README.md).
 
 ## Teil 0 — Zweck, Geltung und Lesereihenfolge
 
 Dieses Dokument **ersetzt** die zuvor verteilten Einzeldateien im Wurzelverzeichnis und in `docs/` (siehe Archiv `docs/_archiv/systembeschreibung-und-phasen-legacy/`). Es bündelt:
 
-1. **Teil I — Fachliche Domäne (vollständig):** Inhalt von *ERP Systembeschreibung v1.3* inkl. Finanz-Submodell §8, Lebenszyklen, LV/Text, Audit, DSGVO, Export, Quality Gate §15, Risiken §16, Glossar §17. Abschnittsnummern **1–17** entsprechen der historischen v1.3-Struktur (für ADR-/Ticket-Verweise beibehalten).
+1. **Teil I — Fachliche Domäne (vollständig):** Inhalt von *ERP Systembeschreibung v1.3* inkl. Finanz-Submodell §8, Lebenszyklen, LV/Text, Audit, DSGVO, Export, Quality Gate §15, Risiken §16, Glossar §17; **§18** Erweiterte Domänenmodule (Gerüstbau-CRM/-ERP-Zielbild, v3.0). Abschnitte **1–17** entsprechen der historischen v1.3-Struktur (für ADR-/Ticket-Verweise beibehalten); **§18** ergänzt verbindliche Zielvorgaben phasenweise umzusetzen (Priorität **Teil IV** / **Teil V**).
 2. **Teil II — Technischer Systemkontext (Kurz):** Implementierungsrealität und Verweise auf Artefakte (kein Ersatz für ADR/OpenAPI).
 3. **Teil III — Phase A (technische Härtung):** Verbindliche Checkliste vor dem nächsten Produktiv- oder Groß-Release.
 4. **Teil IV — Fachlicher Lieferplan:** Reihenfolge der Umsetzung bis zur vollständigen Abdeckung der Domäne; FIN-x und Phase-2-Strang integriert.
+5. **Teil V — PWA-Roadmap und Architektur-Leitplanken:** Priorisierte Ausbaustufen für die Enduser-PWA und technische Querschnitte (ohne Code-Zeilendokumentation).
+
+**PWA-Entwicklung und Umsetzungsstatus:** Für das **MVP-Zielbild der PWA**, die **Ist-Matrix** und die Abgrenzung **§18 (nicht MVP)** siehe [`docs/PWA-Entwicklungsreferenz.md`](./PWA-Entwicklungsreferenz.md). Die **Domänennorm** (Teil I, Invarianten) bleibt maßgeblich in **diesem** Dokument.
+
+### Änderungen 2.0 → 3.0 (Kurz)
+
+- Konsolidierung der Inhalte aus `docs/erweiterungen_systembeschreibung_geruestbau_crm.md` in **§18** und **Teil V** (komprimiert); CRM-Quelldatei nur noch Verweis.
+- **Objekt (Baustelle):** verbindliche Präzisierung — mandantenbezogen, nicht exklusiv einem Kunden zugeordnet; **Projekt** verbindet Kunde und Objekt; mehrere Projekte dürfen dasselbe Objekt referenzieren (**§3–§4**, **§18.1**).
+- **§5.4 Aufmass:** Korrekturen **auch nach Rechnungsstellung** über neue Aufmassversion; **erstellte/gebuchte Rechnungen** werden nicht geändert; finanzielle Auswirkung über **Differenzbuchung** in die **nächste zu erstellende** Rechnung (Entwurf); nach **Schlussrechnung** bei **Rechnungsstellung** des Ausgleichs **automatisch** **Folgerechnung** bei **Plus**-Differenz (Nachforderung) bzw. **Gutschrift** bei **Minus**-Differenz (**§8.6**).
+- **§8.6 Differenzbuchung:** Explizit auch für aufmassbedingte Betragsabweichungen (nicht nur Zahlungsbedingungen); Integration in die **nächste zu erstellende** Rechnung; nach Schlussrechnung **Vorzeichen-Automatik** (**Plus → Folgerechnung**, **Minus → Gutschrift**).
+- **Teil IV:** Zusätzliche Stränge für CRM-Stamm/DMS/Mobile/Material und Querschnitt (Priorisierung siehe **Teil V**).
 
 ### Reihenfolge im Dateiinhalt und Leseempfehlung
 
-**Im Markdown-File stehen die Teile in dieser Reihenfolge:** Teil **II** (technischer Kontext) → Teil **III** (Phase A) → Teil **IV** (Lieferplan) → Teil **I** (fachliche Domäne, Abschnitte **1–17**). Die Aufzählung oben beschreibt die **inhaltliche** Rolle, nicht die Dateireihenfolge.
+**Im Markdown-File stehen die Teile in dieser Reihenfolge:** Teil **II** (technischer Kontext) → Teil **III** (Phase A) → Teil **IV** (Lieferplan) → Teil **V** (PWA-Roadmap) → Teil **I** (fachliche Domäne, Abschnitte **1–18**). Die Aufzählung oben beschreibt die **inhaltliche** Rolle, nicht zwingend die Lesepriorität.
 
-**Leseempfehlung:** Für **normative Fachlogik** zuerst **Teil I** (ab Überschrift „Teil I — Fachliche Domäne“). Für **Repository-Ist**, CI und Release-Härtung **Teil II** und **III**; für **Roadmap/FIN-x** **Teil IV**. Umsetzungsdetail und aktuelle Wellen: [`README.md`](../README.md) (Persistenz), [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md).
+**Leseempfehlung:** Für **normative Fachlogik** **Teil I**. Für **Repository-Ist**, CI und Release-Härtung **Teil II** und **III**; für **Roadmap/FIN-x** **Teil IV**; für **PWA-Fertigstellung und Architekturleitplanken** **Teil V**. Umsetzungsdetail und aktuelle Wellen: [`README.md`](../README.md) (Persistenz), [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md).
 
-**Schreibkonvention Teil I:** Abschnitte **1–17** folgen historisch der Transkription ohne Unicode-Umlaute (`ae`, `oe`, `ue`). Das ist bewusst **kein** inhaltliches Defizit gegenüber dem übrigen Repo; eine flächige Umlaut-Harmonisierung wäre ein separates, editorisches Inkrement (hoher Diff, geringer fachlicher Mehrwert).
+**Schreibkonvention:** **Teil 0** und der **davorliegende Kopfbereich** (Metadaten und Abschnitt **„Hinweis zu Recht und Steuern“**) verwenden **normale deutsche Orthographie mit Umlauten**. **Teil I** Abschnitte **1–17** und **§18** folgen historisch der Transkription ohne Unicode-Umlaute (`ae`, `oe`, `ue`). Das ist bewusst **kein** inhaltliches Defizit gegenüber dem übrigen Repo; eine flächige Umlaut-Harmonisierung des gesamten Teil I wäre ein separates, editorisches Inkrement (hoher Diff, geringer fachlicher Mehrwert).
 
 **Nicht** Bestandteil dieser Systembeschreibung: Zeilenweise Code-Dokumentation — maßgeblich bleiben `src/`, `prisma/`, `docs/api-contract.yaml`, `docs/contracts/error-codes.json`, ADRs unter `docs/adr/`.
 
@@ -44,6 +59,9 @@ Dieses Dokument **ersetzt** die zuvor verteilten Einzeldateien im Wurzelverzeich
 | **Auth** | Bearer-Token; Multi-User-Login Postgres (`docs/authentication-login.md`); Admin-Benutzerverwaltung; Passwort-Reset per E-Mail (SMTP/`ERP_PUBLIC_APP_BASE_URL`). |
 | **CI** | `.github/workflows/ci.yml`: `npm ci`, `npm run audit:prod`, `npm audit --audit-level=high`, `prisma migrate deploy`, `prisma validate`, `typecheck`, `npm run build:web`, `npm test` inkl. Postgres-Service und `PERSISTENCE_DB_TEST_URL`. Lokale Näherung (ohne `npm ci` / ohne `migrate deploy`): `npm run verify:ci`; mit Migration: `npm run verify:ci:with-migrate` bei gesetztem `DATABASE_URL`. |
 | **Verträge** | `docs/api-contract.yaml`, `docs/contracts/error-codes.json` — bei API-Änderungen mitzuführen. |
+| **API-Stabilität (Zielbild)** | OpenAPI/`info.version` und Contract-Pflege sind maßgeblich; langfristig optionale URL-Pfadversionierung (z. B. `/api/v1`) nur nach ADR und ohne Bruch bestehender Clients. |
+| **Idempotenz (Zielbild)** | Finanz- und andere kritische Schreibpfade idempotent (technische Schlüssel bereits z. B. bei Zahlungs-Intake); Webhooks/Imports gleichermaßen. |
+| **Mobile zweite Oberfläche (später)** | Bestehende Oberfläche: PWA `apps/web`; native/mobile Gerüstbau-App = gesondertes Inkrement (siehe Teil I **§18.3**, Teil **V**). |
 
 **Docker (lokal):** `docker-compose.yml` — nur Entwicklung; Zugangsdaten und Ports nicht für Produktion übernehmen.
 
@@ -126,12 +144,19 @@ Die Reihenfolge maximiert **Traceability** und minimiert **Rework**. FIN-x bezie
 | 7 | **FIN-5** | Steuer-Sonderfälle MVP (**8.11/8.16**) | Feature-Flag/Fail-Closed bis Export-Regression grün. |
 | 8 | **FIN-6 / Härtung** | DSGVO Felder, Log-Redaction, Export-Skeletons (**8.14/14**) | Abnahme MVP **§15**. |
 | 9 | **Exporte voll** | XRechnung, GAEB, DATEV-Mapping-Matrix (**14**) | Nach stabiler Buchhaltungsdomäne. |
-| 10 | **Kunde / Projekt / Stammdaten** | Vollständige CRM-/Projektstammdaten gemäß Teil I §3–5 | Ergänzt technische Slices. |
+| 10 | **Kunde / Projekt / Stammdaten** | Vollständige CRM-/Projektstammdaten gemäß Teil I §3–5, **§18.1** (Objekt/Baustelle, Kontakte) | Ergänzt technische Slices; Basis für traceable Ketten. |
 | 11 | **Rollen fein** | Feingranulare `actionIds` / SoD (**11**, **8.x**) | Nachdem alle Schreibpfade existieren. |
+| 12 | **Aufmass–Rechnung–Differenz (v3.0)** | Nach **§5.4** / **§8.6**: Aufmassaenderungen nach Rechnung, Differenzbuchung in die **naechste zu erstellende** Rechnung; nach Schlussrechnung bei Ausgleich **Plus → Folgerechnung**, **Minus → Gutschrift** | Rechtssichere Nachberechnung ohne gebuchte Rechnung zu verändern. |
+| 13 | **DMS / Dokumente** | Revisionssicheres Dokumentenmanagement, Referenzen zu Projekt/Objekt/Angebot/Rechnung (**§18.4**) | Nach Kern-FIN und belastbarer Spurbarkeit. |
+| 14 | **Mobile Baustelle** | Offline-fähige Erfassung, Fotos, Signaturen (**§18.3**) | Nach stabiler API und Auth-Strategie. |
+| 15 | **Material / Lager / Disposition** | Stamm, Bewegungen, Reservierung (**§18.2**) | Nach LV/Aufmass-/Rechnungskern; hohe Komplexität. |
+| 16 | **Kalkulation / Nachkalkulation** | Vorkalkulation, Soll-Ist, Deckungsbeiträge (**§18.5**) | Nach Stammdaten und Basiskostenlogik. |
+| 17 | **Workflow / Freigaben erweitert** | Ketten, Eskalation, Vertretung (Anbindung **Freigabevorgang** §3.2) | Nach bestehenden Statusmodellen. |
+| 18 | **Querschnitt Technik** | Domain Events (**§18.6**), Queues/Jobs (**§18.7**), Suche bis Security-Ausbau (**§18.8–§18.14**), GoBD-Verweis / Soft Delete (**§18.15–§18.16**) | Modular; Priorität siehe **Teil V**. |
 
-### Repo-Snapshot (Synchronisation Stand 2026-05-01)
+### Repo-Snapshot (Synchronisation Stand 2026-05-07)
 
-Abgleich der **Reihenfolge** oben mit Tickets/ADR/QA im Repository (**verkürzt**). **Verbindlicher Implementierungs-Iststand** (Persistenz, FIN-Inkremente, Wellen): [`README.md`](../README.md) Abschnitt „Hinweis zur Persistenz“ und [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) — dort pflegen, um Drift zu vermeiden. Die folgende Tabelle bleibt als **Orientierung** zur fachlichen Reihenfolge.
+Abgleich der **Reihenfolge** oben mit Tickets/ADR/QA im Repository (**verkürzt**). **Verbindlicher Implementierungs-Iststand** (Persistenz, FIN-Inkremente, Wellen): [`README.md`](../README.md) Abschnitt „Hinweis zur Persistenz“ und [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](./tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) — dort pflegen, um Drift zu vermeiden. **v3.0** erweitert den **normativen** Domänenumfang (**§18**); der Snapshot beschreibt weiterhin **Ist vs. Soll-Lücke**, keine erfundenen Implementierungsnachweise. Die folgende Tabelle bleibt als **Orientierung** zur fachlichen Reihenfolge.
 
 | # | Strang | Repo-Nachweise und Kurzstatus |
 |---|--------|--------------------------------|
@@ -140,12 +165,13 @@ Abgleich der **Reihenfolge** oben mit Tickets/ADR/QA im Repository (**verkürzt*
 | 3 | FIN-0 bis FIN-1 | **FIN-0:** Verträge/Stubs/QA — `docs/api-contract.yaml`, `docs/adr/0007-finance-persistence-and-invoice-boundaries.md`, `docs/contracts/qa-fin-0-gate-readiness.md` (§3 Regression/CI, §5a/§5b Merge-Evidence), `test/finance-fin0-stubs.test.ts`; Koordination Sprint: `docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md`. **FIN-1** (Zahlungsbedingungen persistiert/versioniert): **`payment_terms_heads`** / **`payment_terms_versions`** in Postgres, ADR-0008, OpenAPI/Contracts — siehe [`README.md`](../README.md) „Hinweis zur Persistenz“ und Persistenz-/Finanz-Tests (`test/persistence.integration.test.ts`, `test/finance-fin0-stubs.test.ts`); Feintuning und Abnahme weiter mit MVP-/Gate-Dokumenten abgleichen. |
 | 4 | FIN-2 | **FIN-2-Start-Gate** G1–G10 **ja** inkl. Freigabezeile (2026-04-21) — `docs/tickets/FIN-2-START-GATE.md`. **Umgesetzter Kernslice (M2/Wave3):** Rechnungsentwurf, Lesen, **`BOOK_INVOICE`** / `POST /invoices/{invoiceId}/book` (**ENTWURF → GEBUCHT_VERSENDET**), **8.4(1)** + USt/Brutto, optional **B2-1a** `skontoBps`, Traceability fail-closed, Persistenz/Audit — ADR-0007 **Status**, `src/services/invoice-service.ts`, `docs/contracts/finance-fin0-openapi-mapping.md`, Tests u. a. `test/finance-fin0-stubs.test.ts` / `test/persistence.integration.test.ts`. **Bewusst nicht** dieser Slice: vollständiger **8.4(2–6)**-Motor, Zwischenstatus **GEPRUEFT/FREIGEGEBEN** (Pfad C, eigenes Gate), belastbarer End-to-End **LV→Rechnung** — siehe ADR-0007 **Non-Goals** / **§8**, [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md), Zeile **FIN-2** in [`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md) (Teil 7 Abschnitt D). |
 | 5 | FIN-3 | **M3 Intake-Slice (Teil I §8.7):** `POST /finance/payments/intake` + `Idempotency-Key`, `GET /invoices/{id}/payment-intakes`, Persistenz `payment_intakes`, SoT **`RECORD_PAYMENT_INTAKE`**, Status **TEILBEZAHLT** / **BEZAHLT**; Überzahlung als Domainfehler **`PAYMENT_EXCEEDS_OPEN_AMOUNT`**; Audit bei Zahlungsmutationen — `src/services/payment-intake-service.ts`, `docs/contracts/finance-fin0-openapi-mapping.md`, Tests u. a. `test/finance-fin0-stubs.test.ts` / `test/persistence.integration.test.ts`. **Nicht** Anspruch dieses Slices: vollständige **8.8–8.9** (z. B. Mehrfachbelege pro Bankumsatz), **Bankfile**, **PSP** / Chargebacks — siehe **`docs/adr/0007-finance-persistence-and-invoice-boundaries.md`**. |
-| 6 | FIN-4 | **Wave 3 (FIN-4 / M4):** verbindlicher Code-/Contract-Umfang abgeschlossen — ADR-0009 (Konfig), ADR-0010 (Vorlagen/Footer/E-Mail/Mahnlauf), ADR-0011 (SEMI), Batch 5c (`docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md`); Abgleich `docs/tickets/P1-FINANCE-WAVE3-POST-RELEASE-PLAN.md`, `docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`. **Mandanten-/Produktiv-Go** weiterhin über `Checklisten/compliance-rechnung-finanz.md` (StB/DSB/PL). §8.10-Folgeslices (Option A), B5-PDF, 8.4(2–6), Pfad C, Audit-Verhalten = eigene Gates/Backlog, nicht Wave-3-Pflichtrest. |
+| 6 | FIN-4 | **Wave 3 (FIN-4 / M4):** verbindlicher Code-/Contract-Umfang abgeschlossen — ADR-0009 (Konfig), ADR-0010 (Vorlagen/Footer/E-Mail/Mahnlauf), ADR-0011 (SEMI), Batch 5c (`docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md`); Abgleich `docs/tickets/P1-FINANCE-WAVE3-POST-RELEASE-PLAN.md`, `docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`. **Mandanten-/Produktiv-Go:** empfohlene inhaltliche Arbeit an [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) und [`README.md`](../README.md) (Compliance-Empfehlungen); Ledger-Kürzel nur bei Nutzung des Hybrid-Pakets. §8.10-Folgeslices (Option A), B5-PDF, 8.4(2–6), Pfad C, Audit-Verhalten = eigene Gates/Backlog, nicht Wave-3-Pflichtrest. |
 | 7 | FIN-5 | **MVP Fail-Closed (Option B)** — [`docs/tickets/FIN-5-GATE-816-FAIL-CLOSED.md`](./tickets/FIN-5-GATE-816-FAIL-CLOSED.md), [`docs/adr/0014-fin5-mvp-tax-fail-closed.md`](./adr/0014-fin5-mvp-tax-fail-closed.md); kein produktiver **8.16**-Sonderfall bis Folge-Gate/Implementierung (Option A). |
 | 8 | FIN-6 / Härtung | Teilweise vorbereitend (Logging/CORS/FIN-0-Stubs); vollständige §15-Abnahme offen. |
 | 9 | Exporte voll | Skeleton/Export-Service laut Codepfad; XRechnung/GAEB/DATEV vollständig offen. |
 | 10 | Kunde / Projekt / Stammdaten | Kernentitäten fachlich in Teil I §3–5; technische UI/Stammdaten-Verwaltung überwiegend **noch nicht** als eigenständiger CRM-Strang abgeschlossen — Traceability-Tests in `test/persistence.integration.test.ts` / `test/app.test.ts` als aktueller Nachweis für angebundene Ketten. |
 | 11 | Rollen fein | Grobe Rollen in Auth/Tests; Feingranularität **11** / SoD nach Abschluss der Schreibpfade. |
+| 12–18 | CRM/DMS/Mobile/Material/Querschnitt | **Normativ** in Teil I **§18** beschrieben; Umsetzung überwiegend **offen** — Priorität **Teil V** und neue Lieferplan-Zeilen **12–18**. |
 
 **Koordination / Sprint-Kontext:** `docs/tickets/PL-SYSTEM-ZUERST-2026-04-14.md` (historischer Sprint-Fokus). **FIN-2:** Start-Gate erfüllt; Kernbuchung nach Gate im Repo — weitere FIN-2-Erweiterungen (8.4(2–6), Pfad C, LV→Rechnung-E2E) nur nach dokumentiertem Gate laut [`docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md`](docs/tickets/NEXT-INCREMENT-FINANCE-WAVE3.md).
 
@@ -153,11 +179,37 @@ Abgleich der **Reihenfolge** oben mit Tickets/ADR/QA im Repository (**verkürzt*
 
 ---
 
+## Teil V — PWA-Roadmap und Architektur-Leitplanken
+
+Dieses Kapitel ist **planerisch** und **architektonisch** verbindlich als **Zielrichtung** für die **Enduser-PWA** (`apps/web`) und spätere Clients; der **Ist-Stand** bleibt Teil **II** und [`README.md`](../README.md).
+
+### V.1 Priorisierte Wellen (Vorschlag)
+
+| Welle | Inhalt | Ziel |
+|-------|--------|------|
+| W1 | Stammdaten **Kunde / Projekt / Objekt** (**§18.1**), konsistent mit Traceability | Saubere Ketten ohne UUID-only-Stubs. |
+| W2 | Kerngeschäft PWA: Angebot → Aufmass → Rechnung lesen/anstoßen; **§5.4**/**§8.6** Nachberechnung nachvollziehbar darstellen | Operative Alltagstauglichkeit. |
+| W3 | **DMS** light (**§18.4**), Suche (**§18.8**) | Nachweise und Auffindbarkeit. |
+| W4 | **Mobile** / Feld (**§18.3**) optional als zweite Oberfläche | Parallel zur PWA, nicht Ersatz. |
+| W5 | **Material / Disposition** (**§18.2**), **Kalkulation** (**§18.5**) | Tiefe ERP-Funktion. |
+| W6 | Reporting, Benachrichtigungen, Kommunikation, Zeiterfassung (**§18.9–§18.13**) | Steuerung und Kommunikation. |
+
+### V.2 Technische Leitplanken (Querschnitt)
+
+- **API-first:** bestehende Contract-Pflege (`docs/api-contract.yaml`) bleibt Primary; Breaking Changes nur versioniert dokumentiert.
+- **Synchronisation:** Änderungszeitstempel, Konfliktstrategien für spätere Offline-Nutzung (**§18.3**).
+- **Domain Events** vs. **AuditEvent:** Events für Integration/Automatisierung; **AuditEvent** für Nachweis/GoBD — beides nachvollziehbar verknüpfen, nicht vermischen (**§18.6**).
+- **Hintergrundverarbeitung:** PDF, Mahnlauf, E-Mail, Exporte über warteschlangenfähige Jobs mit Retry und Fehlerprotokoll (**§18.7**).
+- **Branding:** Mandanten-CI (Logo, Farben, Briefpapier) **ohne** Verletzung **Pflicht-Systemfooter** Mahnung/E-Mail (**8.10**) — **§18.11**.
+- **Security-Ausbau:** MFA, Session-Härtung, Login-Historie als Zielbild — **§18.14**; aktuell Bearer-Auth siehe Teil **II**.
+
+---
+
 ## --- Beginn Teil I (vormals docs/ERP-Systembeschreibung.md, ungekürzt) ---
 
-## Teil I — Fachliche Domäne (Normativ v1.3, Abschnitte 1–17)
+## Teil I — Fachliche Domäne (Normativ v1.3, Abschnitte 1–18)
 
-Dieses Dokument ist die fachlich verbindliche Version 1.3 des Domaenenmodells fuer ein modulares, mandantenfaehiges ERP-System fuer Geruestbauunternehmen.
+Dieses Dokument ist die fachlich verbindliche Version 1.3 des Domaenenmodells fuer ein modulares, mandantenfaehiges ERP-System fuer Geruestbauunternehmen. **Abschnitt 18** ist die **v3.0**-Erweiterung (Gerüstbau-CRM/-ERP-Zielbild); er ist **ebenfalls verbindlich** als Domänenziel, **Umsetzung** jedoch **inkrementell** (Teil **IV**, **V**, **§16**).
 
 **Aenderung gegenueber v1.2:** Das **Finanz-Submodell** (Rechnung, Zahlungsbedingungen inkl. Nachlaesse/Abzuege/Einbehalte, Zahlungsbedingungs-Versionen, Differenzbuchungen, Zahlungseingang, Zahlungszuordnung, Zahlungsstatus, Mahnwesen, Steuer- und Rundungslogik, **Waehrung EUR**, **Steuer-Sonderfaelle** in Abschnitt 8.16, **mandantenspezifische Textbausteine** Mahnung/Rechnung (8.10), Projekt-Finanzuebersicht, DSGVO-Minimierung Zahlungsdaten) ist **vollstaendig** in diese Systembeschreibung integriert und gilt als **verbindlicher** Bestandteil der Domain-Core-Definition (Abschnitt 8). Technische Umsetzung erfolgt phasenweise; v1.2-Abschnitte 1–7, 9–16 bleiben grundsaetzlich gueltig, soweit nicht durch v1.3 ergaenzt oder praezisiert.
 
@@ -165,7 +217,7 @@ Dieses Dokument ist die fachlich verbindliche Version 1.3 des Domaenenmodells fu
 
 ## 1. Zielbild und Geltungsbereich
 
-Das System bildet den vollstaendigen Geschaeftsprozess rechtssicher und nachvollziehbar ab:
+Das System bildet den vollstaendigen Geschaeftsprozess **fachlich nachvollziehbar** und mit **Blick auf Pruefbarkeit** sowie **gaengige Anforderungen an Belege und Datenverarbeitung** ab — **ohne** Gewaehr fuer eine bestimmte **rechtliche** Bewertung im Einzelfall:
 
 `Kunde -> Projekt -> Leistungsverzeichnis -> Angebot -> Nachtrag -> Ausfuehrung -> Aufmass -> Rechnung`
 
@@ -178,8 +230,10 @@ Pflichtprinzipien:
 - mandantenfaehig
 - modular
 - versioniert
-- rechtssicher (inkl. XRechnung, GAEB)
-- DSGVO-konform
+- **Zielunterstuetzung** gaengiger Austauschformate (XRechnung, ZUGFeRD, GAEB) — **keine** alleinige Norm- oder Konformitaetszusage durch diese Spezifikation; **Pflichtformate und Export-Vertiefungen** siehe **14**
+- **Orientierung an** Anforderungen des **GoBD-Themenkreises** (Nachvollziehbarkeit, Aufbewahrung) und **einschlaegigem Handels-, Zivil- und Steuerrecht** — Nachweis ueber Implementierung, Konfiguration, Betrieb und externe Pruefung
+- **Beruecksichtigung** des **DSGVO-Themenkreises** — Details und organisatorische Massnahmen siehe **13** und Mandantenprozesse
+- **Operatives Mandanten-Go:** **15** und [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) mit Steuerberatung, Datenschutz und Release-Verantwortlichen; siehe [`README.md`](../README.md)
 - fachliche Korrektheit hat Vorrang vor technischer Vereinfachung
 
 ## 2. Verbindliche Grundprinzipien
@@ -187,7 +241,7 @@ Pflichtprinzipien:
 - **Mandantentrennung absolut**: Jede Entitaet gehoert genau einem Mandanten. Keine mandantenuebergreifenden Datenbeziehungen.
 - **Versionierung statt Ueberschreiben**: Geschaeftskritische Aenderungen erzeugen neue Versionen bzw. folgen einem definierten, nicht-destruktiven Aenderungsmodell (kein stillschweigendes Ueberschreiben geschaeftskritischer Historie).
 - **Unveraenderbarkeit rechtlicher Dokumente**: **Gebuchte** bzw. rechtswirksam festschreibende **Rechnungen** sind unveraenderbar (Korrekturen nur per Storno/Gutschrift und Folgedokument). **Angebote** sind **nach verbindlicher Annahme** (`Angenommen`) inhaltlich fixiert: Aenderungen an Leistungsumfang, Preisbasis oder vergleichbaren Kerninhalten sind **ausschliesslich ueber Nachtrag** zulaessig. In **Entwurf** und im Status **Versendet** (solange das Angebot **nicht** angenommen wurde) sind **Anpassungen und Abweichungen** der Angebotsversion zulaessig — unter Einhaltung von Rollenrecht, Auditpflicht und technischem Nicht-Destruktivitaetsmodell.
-- **Traceability Pflicht**: Rechnung muss ueber Aufmass, LV, Angebot, Projekt bis Kunde rueckverfolgbar sein (soweit fuer den Rechnungstyp vorgesehen; siehe 5.5 und 8.2). **Zahlungs- und Konditionsaenderungen** muessen zur **Projekt- und Rechnungslinie**, zur referenzierten **Konditions-Version** und zu **Zahlungseingaengen / -zuordnungen** rueckverfolgbar sein (siehe Abschnitt 8).
+- **Traceability Pflicht**: Rechnung muss ueber Aufmass, LV, Angebot, Projekt bis Kunde rueckverfolgbar sein (soweit fuer den Rechnungstyp vorgesehen; siehe 5.5 und 8.2). **Zahlungs- und Konditionsaenderungen** sowie **Differenzbuchungen** (Ausloeser: Konditionswechsel, **Aufmass-Korrektur** nach 5.4 / 8.6) muessen zur **Projekt- und Rechnungslinie**, zur referenzierten **Konditions-Version** bzw. **Aufmassversion** und zu **Zahlungseingaengen / -zuordnungen** rueckverfolgbar sein (siehe Abschnitt 8).
 - **Trennung Systemtext/Bearbeitungstext**: Externe und buchhalterische Daten duerfen nicht durch Freitextaenderungen beeinflusst werden.
 - **Realitaetsabbildung Bauwesen**: Miet-, Mengen- und Zeitlogik duerfen nicht auf einfache CRUD-Muster reduziert werden.
 
@@ -236,12 +290,15 @@ Pflichtprinzipien:
 - Datenanfrage (DSGVO Auskunft)
 - Loesch-/Anonymisierungsvorgang
 
+**v3.0 Ergaenzung:** Weitere Zielentitaeten und Querschnitte (DMS, Baustellenhistorie, Materialbewegung, Kommunikationsprotokoll, Zeitbuchung u. a.) sind in **§18** als **verbindliches Zielbild** beschrieben; Umsetzung **phasenweise** nach **Teil IV** / **Teil V**.
+
 ## 4. Beziehungen (fachlich-logisch, erweitert v1.3)
 
 - Mandant -> alle Entitaeten (1:n)
 - Kunde -> Projektbeteiligter (1:n)
 - Projekt -> Projektbeteiligter (1:n)
-- Projekt -> Objekt (n:1)
+- Projekt -> Objekt (n:1); **mehrere Projekte duerfen dasselbe Objekt** referenzieren (wiederkehrende Baustelle, neuer Auftraggeber je Projekt).
+- **Objekt (Baustelle)** ist **Mandanten-Stammdatum** und **nicht** exklusiv an einen einzelnen **Kunden** gebunden; **Kundenbezug** entsteht **ueber Projekt** und **Projektbeteiligte** (**§18.1**).
 - Projekt -> LV (1:n, versioniert)
 - LV -> LV-Strukturknoten (1:n)
 - LV-Strukturknoten -> LV-Position (1:n)
@@ -259,7 +316,7 @@ Pflichtprinzipien:
 - **Projekt -> Zahlungsbedingungen (1:1 oder 1:n je Mandantenregel); Zahlungsbedingungen -> Zahlungsbedingungs-Versionen (1:n, jede Aenderung neue Version)** — v1.3
 - **Zahlungsbedingungs-Version -> Nachlassregeln / Abzugsregeln / Einbehaltregeln (1:n, geordnet wo relevant)** — v1.3
 - **Rechnung -> referenzierte Zahlungsbedingungs-Version** (verbindlich fuer Berechnung zum Stichtag der Rechnung) — v1.3
-- **Differenzbuchung** bei Aenderung der Zahlungsbedingungen: referenziert alte/neue Konditionsversion, wird als eigene Buchung gespeichert und **automatisch in die naechste Rechnung integriert** — v1.3
+- **Differenzbuchung** bei (a) **Aenderung der Zahlungsbedingungen** (referenziert alte/neue Konditionsversion) und (b) **Aufmass-Korrekturen** nach Rechnungsstellung (referenziert nachvollziehbares Aufmassversionspaar / Mengendifferenz): wird als eigene Buchung gespeichert und **automatisch in die naechste zu erstellende Rechnung integriert** (**naechster Rechnungsentwurf**), sofern eine solche im Sinne von **8.6** existiert — v1.3 / **v3.0** Praezisierung **5.4**
 - **Zahlungseingang -> Zahlungszuordnungen (1:n); Zahlungszuordnung -> Rechnung (n:1), Teilbetrag** — v1.3
 - **Mahnung** bezieht sich auf eine oder mehrere offene Rechnungspositionen / Rechnungen mit Protokoll (Stufe, Zeitpunkt, Versandart) — v1.3
 
@@ -299,8 +356,12 @@ Regeln:
 
 Regeln:
 
-- Aufmasspositionen referenzieren LV-Positionen und Mengenkontext
-- Nach Freigabe nur Korrektur ueber neue Aufmassversion
+- Aufmasspositionen referenzieren LV-Positionen und Mengenkontext.
+- **Nicht-destruktiv:** Korrekturen erfolgen **immer** ueber eine **neue Aufmassversion** (bestehende Versionen bleiben lesbar und referenzierbar).
+- **Nach Freigabe** gilt dasselbe Versionsmodell; eine freigegebene Version wird nicht ueberschrieben.
+- **Auch nach Rechnungsstellung** darf das Aufmass fachlich bereinigt werden (neue Version nach Rollenrecht und Auditpflicht). **Erstellte und gebuchte Rechnungen** werden **nicht** nachtraeglich geaendert (5.5).
+- **Finanzielle Folge:** Der sich aus der Aufmass-Aenderung ergebende Betrag wird als **Differenzbuchung** nach **8.6** gefuehrt und wirkt sich erst auf die **naechste zu erstellende Rechnung** aus (**naechster Rechnungsentwurf** / Anlage eines neuen Belegs), in den die Differenzbuchung **integriert** wird — **nicht** durch Anpassen bestehender Belege (Teilrechnung, Abschlagsfolge o. a. nach Rechnungstyp und Projektlogik, sofern die Abrechnungskette fortgesetzt wird).
+- **Liegt bereits eine Schlussrechnung** zu dem relevanten Leistungs-/Saldenkontext vor (**keine** weitere regulaere Folgerechnung in dieser Kette), erzeugt das System bei **Rechnungsstellung** des Ausgleichs **automatisch** je nach **Vorzeichen** der Differenzsumme einen neuen Beleg: **Plus** (Nachforderung) → **Folgerechnung**; **Minus** (Minderung/Erstattung) → **Gutschrift**. **Kein** stilles Umbuchen; keine Veraenderung bereits gebuchter Belege (Randfall **8.6**(a), konsistent mit 5.5).
 
 ### 5.5 Rechnung
 
@@ -355,7 +416,7 @@ Dieses Unterkapitel ist **integral** Bestandteil der Domain-Core-Definition und 
 - **Zahlungen** = Ereignisse (**additiv**): Zahlungseingang und Zahlungszuordnung.
 - **Differenzen** = Korrekturmechanismus bei Aenderung der Zahlungsbedingungen (siehe 8.6).
 
-**Vollstaendige Traceability:** Jede finanzielle Veraenderung muss rueckverfolgbar sein: Rechnung (inkl. gebundener **Zahlungsbedingungs-Version**), Projekt-Konditionshistorie, Differenzbuchung (falls zutreffend), Zahlungseingang, Zahlungszuordnung, Zahlungsstatus.
+**Vollstaendige Traceability:** Jede finanzielle Veraenderung muss rueckverfolgbar sein: Rechnung (inkl. gebundener **Zahlungsbedingungs-Version**), Projekt-Konditionshistorie, **Aufmassversion(en)** soweit massgeblich fuer Abrechnung, **Differenzbuchung** (Ausloeser: Kondition oder **Aufmass-Korrektur** nach **5.4**), Zahlungseingang, Zahlungszuordnung, Zahlungsstatus.
 
 **Scope-Grenze (Produkt):** Die in **Abschnitt 8** beschriebenen Finanzobjekte beziehen sich auf die **Geschäftsbeziehung des Mandanten zu dessen Kunden** (Leistungsverzeichnis, Aufmaß, Angebot, Rechnung, Zahlung, Mahnung). Eine **Abrechnung der Software- oder Plattformnutzung gegenüber dem Mandanten** als ERP-Nutzer ist **nicht** Gegenstand dieses Finanzsubmoduls und wird hier **nicht** modelliert — verbindlich dokumentiert in **ADR 0012**.
 
@@ -412,10 +473,10 @@ Dieses Unterkapitel ist **integral** Bestandteil der Domain-Core-Definition und 
 
 ### 8.6 Differenzbuchungen
 
-- **Zweck:** Ausgleich bei Aenderungen der Zahlungsbedingungen (gegenueber bereits abgerechneten / offenen Leistungen, fachlich im Projekt zu steuern).
-- **Verhalten:** Differenzen werden berechnet, als **eigene Buchung** gespeichert und **automatisch in die naechste Rechnung integriert** (kein stiller Wegfall).
+- **Zweck:** Ausgleich bei (1) **Aenderungen der Zahlungsbedingungen** und (2) **fachlich zulaessigen Aufmass-Korrekturen** nach erfolgter Rechnungsstellung, soweit sich der **gegenueber gebuchten Rechnungen** nach **8.4** nachzubildende Betrag aendert — jeweils gegenueber bereits abgerechneten / offenen Leistungen, fachlich im Projekt zu steuern (siehe **5.4**). **Gebuchte Rechnungen** werden **nicht** rueckwirkend veraendert.
+- **Verhalten:** Differenzen werden berechnet, als **eigene Buchung** gespeichert und **automatisch in die naechste zu erstellende Rechnung integriert** (**naechster Rechnungsentwurf** / neuer Anlagevorgang; kein stiller Wegfall). Referenz auf Ausloeser (z. B. Aufmassversionspaar, Konditionsversionspaar) ist **auditierbar** festzuhalten.
 
-**Randfaelle (verbindlich zu modellieren, kein stilles Verhalten):** (a) Es liegt **keine** planbare „naechste“ Rechnung vor (Projektende, Schlussrechnung bereits erfolgt) — Ausgleich nur ueber definierten Alternativpfad (z. B. Gutschrift, Ausgleichsposten, manuelle Freigabe). (b) **Mehrere** gleichzeitig offene Folgerechnungen — Prioritaetsregel festlegen. (c) **Storno** einer bereits mit Zahlungen belegten Rechnung — Zuordnungen rueckabwickeln oder umverteilen nach GoBD-konformem Regelwerk (Domaenenfehler statt stiller Loeschung).
+**Randfaelle (verbindlich zu modellieren, kein stilles Verhalten):** (a) Es liegt **keine** „naechste zu erstellende“ Rechnung im Sinne der **fortgesetzten** Teil-/Abschlagskette vor (**Schlussrechnung** bereits erfolgt / regulaere Folge beendet): Ausgleich bei **Rechnungsstellung** durch **automatisch** zu fuehrenden neuen Beleg nach **Vorzeichen** der Differenzsumme — **Plus → Folgerechnung** (Nachforderung), **Minus → Gutschrift** (Minderung/Erstattung), konsistent **5.4**; **Ausgleichsposten** nur mit expliziter fachlicher Freigabe, wo erforderlich. (b) **Mehrere** gleichzeitig **offene Rechnungsentwuerfe**, in die eine Differenzbuchung eingehen koennte: **Prioritaetsregel** festlegen **oder** als Default nur **ein aktiver Entwurf** pro definiertem Abrechnungskontext — in **Implementierung/ADR** dokumentieren. (c) **Storno** einer bereits mit Zahlungen belegten Rechnung — Zuordnungen rueckabwickeln oder umverteilen nach GoBD-konformem Regelwerk (Domaenenfehler statt stiller Loeschung).
 
 ### 8.7 Zahlungseingang
 
@@ -612,21 +673,33 @@ Neu konkret:
 
 **v1.3 Ergaenzung:** Zahlungsdaten und Verwendungszwecke nur minimal speichern (siehe 8.14).
 
+**v3.0 Ergaenzung:** **Soft Delete** / Archivmarker (`deletedAt`, `deletedBy`, optionaler Grund) fuer Geschaeftsdaten ist **zulaessig**, darf aber **DSGVO-Loesch- und Anonymisierungsvorgaenge** nicht ersetzen; Personenbezug ist nach **13** und Aufbewahrungspflichten zu loesen. Keine physische Loeschung geschaeftspruefungsrelevanter Belege ohne definierten Prozess.
+
 ## 14. Export- und Schnittstellenlogik (neu praezisiert)
 
 Pflichtformate:
 
-- PDF
-- XRechnung
-- GAEB Import
-- GAEB Export
-- Buchhaltungsexporte (z. B. DATEV)
+- **PDF** — Darstellungs-PDF **ohne** eingebettete normierte Rechnungs-XML (Menschenlesbarkeit/Versand); nicht gleichbedeutend mit **ZUGFeRD**.
+- **XRechnung** — strukturierte Rechnung im **XRechnung-XML**-Umfeld.
+- **ZUGFeRD** — **PDF/A-3** mit eingebetteter **XML-Rechnung** im **XRechnung**-Umfeld; **kein** zweiter fachlicher Rechenkern — **dieselbe** Mapping-/Validierungslogik wie **XRechnung**, anderer **Verteil-/Druckcontainer**.
+- **GAEB Import**
+- **GAEB Export**
+- **Buchhaltungsexporte** — z. B. **DATEV**-Importformate, **strukturiertes CSV/XML** je **Mandantenkonfiguration** (konkrete Codierung im **Mapping** und **ADR**).
+
+**Abgrenzung Darstellung:** Je nach Mandanten- und Empfaengeranforderung kommen **Darstellungs-PDF**, **ZUGFeRD** und **reines XRechnung-XML** zum Einsatz; die fachliche Quelle bleibt dieselbe **gebuchte Rechnung** (soweit der Rechnungstyp exportiert wird).
+
+**XRechnung — Profile:** Unterstuetzte **CIUS-/XRechnung-Profile** (z. B. **EN 16931**-konforme Auspraegungen wie **Basic** oder erweiterte Profile) sind **pro Produktrelease** festzulegen und in **OpenAPI** / Vertraegen bzw. **ADR** zu dokumentieren — **keine** vollstaendige BT-/BG-Normierung in dieser Systembeschreibung.
+
+**GAEB — Varianten:** Konkrete **Austauschformate** und **GAEB-Versionen** (z. B. je Partner **D83**, **X81**, **P81**) sind **mandanten- oder schnittstellenspezifisch** zu unterstuetzen und im **Mapping je Format** mit **Validierungsregel** und **Fehlerverhalten** zu beschreiben (Anschluss an die Pflicht „fuer jedes Format …“ unten).
+
+**Uebertragungswege:** Transport (z. B. **E-Mail-Anhang**, Download-Portal, **Peppol**) ist **kein Ersatz** fuer die obigen **Inhaltsformate**; Anbindung **phasenweise** und mandantenweise — Priorisierung **Teil IV** / Tickets.
 
 Fachliche Mapping-Regeln (Pflicht):
 
 - fuer jedes Format: Pflichtfelder, Quellenentitaet, Validierungsregel, Fehlerverhalten
 - fehlerhafte Exporte duerfen keine rechtsverbindlichen Dokumente erzeugen
 - Exportlauf wird als `Exportlauf` protokolliert
+- **Mehrere technische Repraesentationen** derselben Rechnung (**reines XML**, **ZUGFeRD**, **Darstellungs-PDF**) teilen sich dieselbe fachliche **Quellenentitaet** und dieselbe **Validierung**, sofern nicht ausdruecklich ausgenommen
 
 ## 15. Validierung und Quality Gate (v1.1, erweitert v1.3)
 
@@ -642,6 +715,12 @@ Phase 1 ist nur abgeschlossen, wenn:
 - AuditEvent-Modell umgesetzt ist
 - DSGVO- und Exportregeln mit Pflichtfeldern dokumentiert sind
 - **Operative Abnahme neben Software-QA:** fuer Mandanten-Go unter **UStG / HGB / AO / GoBD / E-Rechnung / DSGVO** die Checkliste [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) mit **Steuerberatung, Datenschutz und Release-Verantwortlichen** abgearbeitet (kein Ersatz fuer separates Release-GO; siehe [`README.md`](../README.md))
+- **v3.0:** Fuer jedes live gehende Modul aus **§18** sind **eigenes Quality-Gate** (Tests, Audit, Exportkonsequenzen) und Abgleich mit **§15**-Kriterien zu definieren, bevor Produktiv-Go ausgesprochen wird.
+
+**Zwei-Ebenen-Modell (Software vs. Mandanten-Nachweis):**
+
+- **Software-Quality-Gate:** Funktionale und technische Abnahme aus **Systembeschreibung**, **ADR**, **OpenAPI**, automatisierten Tests und CI — **ohne** Vollstaendigkeit des Begleitblatts [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) als Merge-Voraussetzung (vgl. [`README.md`](../README.md), [`AGENTS.md`](../AGENTS.md)).
+- **Mandanten-Konformitaetsnachweis:** Ausarbeitung der Checkliste (inkl. **Systemverhalten** und **Nachweis** je Zeile nach dort dokumentiertem Template) und externe Bestaetigung **parallel** zur Entwicklung; **Ziel** vor Produktiv-Go: Steuerberatung, Datenschutz und Release-Verantwortliche bestaetigen auf dieser Basis — nicht durch Reverse Engineering aus dem Code. Pflege der Spez-zu-Nachweis-Matrix: [`docs/contracts/compliance-spec-traceability.md`](contracts/compliance-spec-traceability.md). Fehlende narrative Evidenz = **offenes Risiko** (**§16**, Pilot-Dokument), **kein** Build-Stopp.
 
 ## 16. Offene Risiken und Annahmen (Pflichtabschnitt)
 
@@ -656,13 +735,15 @@ Bei jeder Fortschreibung aktiv zu dokumentieren:
 
 **Annahme v1.3:** Technische Umsetzung des Finanz-Submodells erfolgt **inkrementell** (Domaenenmodelle, API, Persistenz, PWA); bis zur vollstaendigen Implementierung bleiben Schnittstellen zwischen **teilpersistierten** und **In-Memory**-Aggregaten klar zu dokumentieren (kein Produktions-Go ohne vollstaendige Persistenz und Audit-Strategie).
 
+**Festlegung v3.0 (Aufmass / Differenzbuchung):** Aufmass darf **nach Rechnungsstellung** per neuer Version angepasst werden; **betragliche** Ausgleiche laufen ueber **Differenzbuchung** in die **naechste zu erstellende Rechnung** (Entwurf), ohne bestehende gebuchte Belege zu aendern; liegt **Schlussrechnung** bereits vor, **automatische** Belegwahl bei **Rechnungsstellung** des Ausgleichs nach **Vorzeichen** (**Plus → Folgerechnung**, **Minus → Gutschrift**) (5.4, 8.6). Implementierung und Prioritaet: **Teil IV** Zeile **12** und Tickets/ADR.
+
 **Festlegung v1.3.6 (Mahnwesen / 8.10):** Skonto-Platzhalter-Aufloesung und **Vorlagen-Typ-Kardinalitaet** sind **verbindlich** in **8.10** geregelt. **Restrisiko** (bewusst ausserhalb der Spez): Einzelfall-Bewertungen **Inkasso**, **Wettbewerbsrecht**, **Verbraucherschutz** je Branche und Kommunikationskanal — **Mandanten-Freigabe** und ggf. **externe** Rechts-/Inkassoberatung bleiben **Pflicht** fuer produktive Texte und Footer.
 
 **Festlegung v1.3.8 (Mahnwesen / 8.10, Anhang 17):** **Tagesfristen** und **Mahngebuehr-Hoehen** je Mahnstufe werden **vom Produkt** mit **Standardwerten** ausgeliefert und sind **mandanteneditierbar**; die zum **Versand** gueltige Konfiguration ist **auditierbar** (**12**) und **massgeblich** fuer Eskalation, **8.4** und **`{{MahngebuehrEUR}}`**. Die **Referenzlogik** fuer Fristen (Faelligkeit vs. Abstand zur Vorstufe) ist **pro Mandant** **einheitlich** und in **Implementierung/ADR** zu dokumentieren. Zahlen in **Anhang 17** (Muster-Tabelle) sind **Illustration**, **keine** rechtliche oder buchhalterische **Norm**.
 
 ## 17. Anhang — Kurz-Glossar und UI-Leitplanken (v1.3)
 
-**Begriffe:** **Nachlass** = positions- oder summenbezogene Ermaessigung laut definierter Reihenfolge (8.3); nicht mit werblichem **Rabatt** ausserhalb der kalkulierten Kette verwechseln (Rabatt ggf. Angebots-/LV-Ebene, nicht Finanz-Submodell ohne Abbildung). **Teilrechnung** / **Abschlagsrechnung** / **Schlussrechnung** = Rechnungstypen mit unterschiedlicher **Aufmass-** und **Saldenlogik** (5.5, 8.2). **Differenzbuchung** = Ausgleich bei Konditionswechsel (8.6), nicht automatisch identisch mit **Gutschrift**. **Waehrung** = bis auf Weiteres nur **EUR** (8.16); **Steuer-Sonderfaelle** = 8.16 in Verbindung mit 8.11. **Mahngebuehr** in Mahntexten = Pflicht-Platzhalter `{{MahngebuehrEUR}}` (8.10), Wert konsistent mit Buchung (8.4); **Hoehe** und **Tagesfristen** je Stufe: Produkt-Standard, **mandanteneditierbar** (8.10). **Skonto** auf Zahlungserinnerung/Zahlungsavis = Pflicht-Platzhalter `{{SkontoBetragEUR}}`, `{{SkontofristDatum}}` (8.10), Werte aus 8.4/8.5; **normierte** Neutralfaelle **8.10** (Betrag `0,00`; ohne Skonto in Kondition: Datum-Ausgabe = Em Dash U+2014). **E-Mail-Mahnwesen** = editierbarer Vorlagentext plus **Pflicht-Systemfooter** (Impressum, Rechtshinweis) nach 8.10.
+**Begriffe:** **Nachlass** = positions- oder summenbezogene Ermaessigung laut definierter Reihenfolge (8.3); nicht mit werblichem **Rabatt** ausserhalb der kalkulierten Kette verwechseln (Rabatt ggf. Angebots-/LV-Ebene, nicht Finanz-Submodell ohne Abbildung). **Teilrechnung** / **Abschlagsrechnung** / **Schlussrechnung** = Rechnungstypen mit unterschiedlicher **Aufmass-** und **Saldenlogik** (5.5, 8.2). **Differenzbuchung** = Ausgleich bei **Konditionswechsel** oder **Aufmass-Korrektur** nach Rechnungsstellung (5.4, 8.6), typischerweise in die **naechste zu erstellende Rechnung** integriert; wenn **keine** weitere regulaere Folgerechnung mehr folgt (**Schlussrechnung**), bei **Rechnungsstellung** **Plus → Folgerechnung**, **Minus → Gutschrift**; nicht automatisch identisch mit **Gutschrift** / **Folgerechnung** in allen Kontexten. **Waehrung** = bis auf Weiteres nur **EUR** (8.16); **Steuer-Sonderfaelle** = 8.16 in Verbindung mit 8.11. **Mahngebuehr** in Mahntexten = Pflicht-Platzhalter `{{MahngebuehrEUR}}` (8.10), Wert konsistent mit Buchung (8.4); **Hoehe** und **Tagesfristen** je Stufe: Produkt-Standard, **mandanteneditierbar** (8.10). **Skonto** auf Zahlungserinnerung/Zahlungsavis = Pflicht-Platzhalter `{{SkontoBetragEUR}}`, `{{SkontofristDatum}}` (8.10), Werte aus 8.4/8.5; **normierte** Neutralfaelle **8.10** (Betrag `0,00`; ohne Skonto in Kondition: Datum-Ausgabe = Em Dash U+2014). **E-Mail-Mahnwesen** = editierbarer Vorlagentext plus **Pflicht-Systemfooter** (Impressum, Rechtshinweis) nach 8.10.
 
 **UI/UX (verbindliche Leitplanken):** Rechenweg der Rechnung **1:1** zur Server-Berechnung (8.4) anzeigen (**Zwischensummen** sichtbar). Vor **Buchung** einer Rechnung und vor **Mahnversand** **Vorschau** mit Schlussbestaetigung. **Zahlungsstatus** und **Fehler** benutzerfreundlich und **ohne** interne Enum-Namen als alleinige Anzeige. **Zahlungseingang ungeklaert:** Zuordnungsvorschlaege nur mit dokumentiertem **Konfidenz-Schwellwert**; kein automatisches Buchen ohne Regelwerk. **Textbausteine** Mahnung/Rechnung/Steuerhinweise: siehe **8.10** (Whitelist-Platzhalter, serverseitiges Rendering, E-Mail-Pflichtfooter).
 
@@ -679,12 +760,89 @@ Die folgende **vierstufige** Reihenfolge dient **nur** als **Startvorlage** fuer
 
 **Hinweis zur Drei-Stufen-Variante:** Mandanten mit **drei** Stufen koennen z. B. **Zahlungserinnerung** — **Zahlungsavis** — **Mahnung** (Letzte entfaellt) waehlen; **Typisierung** und Platzhalter-Regeln bleiben **8.10** unterworfen.
 
+## 18. Erweiterte Domaenenmodule (Geruestbau-CRM / ERP-Zielbild, v3.0)
+
+Dieser Abschnitt fasst **verbindliche Zielvorgaben** fuer die **vollstaendige** Produktvision zusammen (inkl. konsolidierter Inhalte aus dem frueheren Ergaenzungsdokument). **Umsetzung** erfolgt **nicht** alles im gleichen Release; Reihenfolge **Teil IV**, Architekturhinweise **Teil V**. Englische Arbeitstitel in Klammern sind **optional** technisch.
+
+### 18.1 Objekt (Baustelle), Projekt, Kontakte
+
+- **Objekt** = mandantenbezogenes **Stammdatum** „Baustelle“; **wieder verwendbar** ueber Jahre; **keine** exklusive 1:1-Bindung an einen **Kunden**.
+- **Projekt** verbindet **Kunde(n)** / **Projektbeteiligte** mit **Objekt**; **mehrere Projekte** duerfen dasselbe **Objekt** referenzieren.
+- **Historie** und **Anhaenge** am Objekt (Risiken, Besonderheiten) sind langfristig revisionssicher zu fuehren (siehe **18.4**).
+- **Ansprechpartner** / **Projektbeteiligte:** Zuordnung zu Projekt und rolle; Wiederverwendung ueber Kundenstamm.
+
+### 18.2 Material, Lager, Disposition (spaeter)
+
+- **Materialstamm** (Geruest, Zubehoer, Sonder-, Verbrauchsmaterial); **Lagerorte**, **Bewegungen** (Ausgabe, Ruecknahme, Verlust, Beschaedigung, Inventur); **Reservierung** und **Disposition** (Fahrzeug/Kolonne/Einsatz).
+- **Nicht MVP-Pflicht**; Datenmodell **getrennte Bewegungstabellen**, modulare Services, Events fuer Erweiterbarkeit.
+
+### 18.3 Mobile Baustelle (spaeter)
+
+- Vor-Ort-**Aufmass**, Fotos, Notizen, Nachtragsbezug; **Offline**-Nutzung; digitale **Unterschriften**; optionale **Material**-Rueckmeldung (Scan).
+- **Zweite Oberflaeche** neben PWA `apps/web`; API-first; **synchronisierbare** Datensaetze, Timestamps, Konfliktstrategie; Auth langfristig **JWT/OIDC-faehig** — Evolution von Bearer (Teil **II**).
+
+### 18.4 Dokumentenmanagement (DMS)
+
+- **Typen:** Vertraege, Pruefprotokolle, Baustellenfotos, PDF-Exporte, Lieferscheine, Rechnungen u. a.
+- **Nicht destruktiv** versionieren; **referenzierbar** zu Projekt, Objekt, Angebot, Rechnung; **OCR** optional vorbereitbar.
+- Zielstruktur fachlich: Dokument, Dokumentversion, Referenz, Kategorie.
+
+### 18.5 Kalkulation und Nachkalkulation
+
+- **Vorkalkulation:** Material, Lohn, Transport, Mietdauer, Gemeinkosten.
+- **Nachkalkulation:** Ist-Stunden, Ist-Material, Soll-Ist, Deckungsbeitraege — fuer Steuerung und Angebotsverbesserung.
+
+### 18.6 Workflow, Freigaben, Domain Events
+
+- Erweiterung des **Freigabevorgangs** (§3.2): Ketten, Eskalation, Vertretung, Wiedervorlagen (z. B. Schwellwerte fuer Angebotswerte).
+- **Domain Events** (z. B. OfferAccepted, InvoiceBooked, PaymentAssigned, ProjectArchived): versionierbar, nachvollziehbar, **asynchron** verarbeitbar; **unterscheiden** von **AuditEvent** (Nachweis/GoBD), aber verknuepfbar.
+
+### 18.7 Hintergrundjobs und Queues
+
+- PDF, Mahnlauf, E-Mail, OCR, DATEV-Export u. a. **entkoppelt**; retries, Fehlerprotokoll.
+
+### 18.8 Suche
+
+- Mandantenbezogene **globale Suche** ueber Kunden, Objekte, Projekte, Dokumente, LV; langfristig Volltext.
+
+### 18.9 Benachrichtigungen
+
+- In-App, E-Mail, Push: Freigaben, Faelligkeiten, Nachtraege, Termine — mandantenkonfigurierbar.
+
+### 18.10 Reporting und Business Intelligence
+
+- Baustellenprofitabilitaet, Materialauslastung, Forderungen, Deckungsbeitraege, Kolonnenleistung — **lesend**, Export optional.
+
+### 18.11 Mandanten-Branding
+
+- Logo, Farben, Briefpapier, **abgrenzend** von **Pflicht-Systemfooter** Mahnung/E-Mail (**8.10**); keine Vermischung von Freitext mit Pflichtangaben.
+
+### 18.12 Kommunikation
+
+- E-Mail-Historie, optional externe Postfach-Anbindung, Threading — DSGVO und Aufbewahrung beachten (**13**).
+
+### 18.13 Zeiterfassung (spaeter)
+
+- Mitarbeiter-, Baustellen-, Projekt-, Maschinenzeiten; mobiler Erfassungsweg; Schichten/Zuschlaege — **nicht MVP-Pflicht**.
+
+### 18.14 Sicherheits-Ausbau
+
+- MFA, Geraeteverwaltung, Session-Haertung, Login-Historie, IP-Hinweise — Zielbild; Ist siehe Teil **II**.
+
+### 18.15 GoBD und Compliance (Verweis)
+
+- **Keine** Parallel-Norm zu **§15**/**§8**/**§12**: GoBD-konformes Arbeiten bleibt in den bestehenden Abschnitten und [`Checklisten/compliance-rechnung-finanz.md`](../Checklisten/compliance-rechnung-finanz.md) verankert; **§18** erweitert nur die **geschaeftliche** Breite des Produkts.
+
+### 18.16 Soft Delete und Archivierung
+
+- Geschaeftsrelevante Daten **nicht physisch** loeschen ohne Prozess; **Soft Delete**-Marker nur im Einklang mit **13** und steuerrechtlicher Aufbewahrung.
+
 ---
 
-**Domänenbasis (Teil I):** Historischer Kern **ERP Systembeschreibung v1.3** — **Revision 1.3.8** (8.10: Standard-Tagesfristen und -Mahngebuehren, mandanteneditierbar, Audit; Anhang 17: illustrative Standardzahlen; 16: Festlegung v1.3.8). In diesem Repository eingebettet in **Dokumentversion 2.0** (siehe Dokumentkopf).  
-**Status (Teil I):** Die **fachliche Domänendefinition** (Abschnitte **1–17**) ist **verbindlich**. Konkrete **API-, Persistenz- und UI-Umsetzung** erfolgen inkrementell und sind gegen **ADR**, **OpenAPI** und Code zu messen (vgl. Teil 0 sowie Teil I **§16** — keine Produktions-Go-Ziele ohne dokumentierte Persistenz-/Audit-Linie).  
+**Domänenbasis (Teil I):** Historischer Kern **ERP Systembeschreibung v1.3** — **Revision 1.3.8** (8.10: Standard-Tagesfristen und -Mahngebuehren, mandanteneditierbar, Audit; Anhang 17: illustrative Standardzahlen; 16: Festlegung v1.3.8). **Erweiterung v3.0:** Abschnitt **18**, **5.4**/**8.6** Aufmass-Differenzlogik, **§4** Objektregeln. In diesem Repository eingebettet in **Dokumentversion 3.0** (siehe Dokumentkopf).  
+**Status (Teil I):** Die **fachliche Domänendefinition** (Abschnitte **1–18**) ist **verbindlich**. Konkrete **API-, Persistenz- und UI-Umsetzung** erfolgen inkrementell und sind gegen **ADR**, **OpenAPI** und Code zu messen (vgl. Teil 0 sowie Teil I **§16** — keine Produktions-Go-Ziele ohne dokumentierte Persistenz-/Audit-Linie).  
 **Hinweis:** Bei Konflikt zwischen Einfachheit und fachlicher Korrektheit gilt immer fachliche Korrektheit.  
-**Historie v1.2:** Der Text von v1.2 liegt im Archiv: `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`. **Verbindlich** ist ab Konsolidierung 2.0 ausschließlich dieses Dokument (`docs/ERP-Systembeschreibung.md`).
+**Historie v1.2:** Der Text von v1.2 liegt im Archiv: `docs/_archiv/systembeschreibung-und-phasen-legacy/ERP Systembeschreibung v1.2.md`. **Verbindlich** ist ab Konsolidierung **3.0** ausschließlich dieses Dokument (`docs/ERP-Systembeschreibung.md`).
 
 ---
 
@@ -696,7 +854,7 @@ Die historischen Einzelstände (**ERP Systembeschreibung v1.2** / **v1.3**, **ER
 
 **Kanonischer MVP-Finanz-Fahrplan (Phasen + Arbeitsablauf):** `docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`. Historische MVP-Finanz-Dateinamen und erläuternder Archivtext: `docs/_archiv/mvp-finanz-legacy-stubs/`; unter `docs/` bleiben nur **minimale Weiterleitungen** (`docs/ENTWICKLUNGSPHASEN-MVP-V1.3.md`, `docs/PHASENARBEITSPLAN-MVP-V1.3-FINANZ.md`) für stabile externe Links.
 
-Die vormals im **Repo-Root** liegenden Duplikate dieser Dateien wurden entfernt. Archivierte Dateien sind **nicht** maßgeblich; bei Widersprüchen gilt **dieses** Dokument (`docs/ERP-Systembeschreibung.md`).
+Die vormals im **Repo-Root** liegenden Duplikate dieser Dateien wurden entfernt. Archivierte Dateien sind **nicht** maßgeblich; bei Widersprüchen gilt **dieses** Dokument (`docs/ERP-Systembeschreibung.md`) **Version 3.0 konsolidiert**.
 
 **Phase A (Teil III) — Artefakte im Repo:** `docs/runbooks/phase-a-vulnerability-register.md`, `docs/runbooks/phase-a-staging-prod-env-checklist.md`, `docs/runbooks/phase-a-database-backup-restore.md`, `docs/runbooks/phase-a-observability-incident-drill.md`, `docs/runbooks/phase-a-network-security-checklist.md`, `docs/runbooks/github-branch-protection-backend.md`, `docs/contracts/phase-a-critical-path-test-matrix.md`.
 

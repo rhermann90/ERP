@@ -1,0 +1,19 @@
+# Compliance — Spezifikation zu Nachweisen (Traceability-Matrix)
+
+**Zweck:** Die Matrix verknüpft Themen aus [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) mit der [`docs/ERP-Systembeschreibung.md`](../ERP-Systembeschreibung.md) und **technischen Nachweisen** (Tests, QA-Gates, Runbooks). Sie wird **schrittweise** erweitert — **kein** Merge-Gate, **kein** Ersatz für Steuer-/Rechtsberatung.
+
+**Pflege:** Bei merge-relevanten Finanz-/Export-/DSGVO-Slices eine Zeile ergänzen oder aktualisieren (gleicher PR oder Follow-up-Ticket). Siehe auch [`docs/plans/workflow-code-first-ohne-qualitaetsverlust.md`](../plans/workflow-code-first-ohne-qualitaetsverlust.md).
+
+| Thema (Kurz) | Checkliste (Abschnitt) | ERP-Spez (§) | ADR / Ticket / Vertrag | Test / Evidence |
+|--------------|-------------------------|--------------|-------------------------|-----------------|
+| Pflichtangaben & Rechnungsberechnung | §1 UStG — Pflichtangaben; Brutto/Netto | **8.2**, **8.4**, **5.5** | [`docs/adr/0007-finance-persistence-and-invoice-boundaries.md`](../adr/0007-finance-persistence-and-invoice-boundaries.md) | [`test/invoice-calculation.test.ts`](../../test/invoice-calculation.test.ts); [`docs/api-contract.yaml`](../api-contract.yaml) Rechnungs-Endpunkte |
+| Korrekturbelege / Differenz | §1 — Korrekturbelege | **8.6**, **5.4**, **5.5** | ADR-0007; [`docs/adr/0018-pilot-lv-aufmass-invoice-convergence.md`](../adr/0018-pilot-lv-aufmass-invoice-convergence.md) | [`test/invoice-service-pilot-convergence.test.ts`](../../test/invoice-service-pilot-convergence.test.ts) (Pilot); Domänenregeln `invoice-service` |
+| Steuerregime / Sonderfälle | §1 — Steuersätze; Mandanten-Rechnungen LV | **8.16**, **8.11** | [`docs/adr/0015-fin5-invoice-tax-regimes-816.md`](../adr/0015-fin5-invoice-tax-regimes-816.md); [`docs/contracts/xrechnung-tax-regime-mapping.md`](xrechnung-tax-regime-mapping.md) | Backend-Tests FIN-5; [`docs/tickets/FIN-5-FOLLOWUP-INCREMENTS.md`](../tickets/FIN-5-FOLLOWUP-INCREMENTS.md) |
+| Belegkette / Traceability | §2 — Belegkette | **4**, **8**, **15** | ADR-0007; ADR-0013 (LV Lesepfad) | [`test/persistence.integration.test.ts`](../../test/persistence.integration.test.ts); Gate [`qa-fin-0-gate-readiness.md`](qa-fin-0-gate-readiness.md) |
+| Unveränderbarkeit gebuchter Rechnungen | §2 / §3 — Unveränderbarkeit | **5.5**, **8.1**, **8.2** | ADR-0007 | Domänen-/API-Tests gebuchte Rechnung; [`docs/contracts/ui-action-executor-coverage.md`](ui-action-executor-coverage.md) |
+| GoBD — Audit & Mutationen | §3 — Audit, Zeitbezug | **12**, **8.x** | Repo-weit AuditEvent-Konzept | Audit-Pfade in Services; FIN-6 Logging [`docs/contracts/fin6-logging-privacy-814.md`](fin6-logging-privacy-814.md) |
+| E-Rechnung / XRechnung / ZUGFeRD | §4 — Profile, Regression | **14**, **8** | [`docs/contracts/xrechnung-profile-scope-and-gaps.md`](xrechnung-profile-scope-and-gaps.md); OpenAPI `POST /exports` | Export-/FIN-5-XRechnung-Tests wo vorhanden; Validator-Pipeline (Roadmap) |
+| DSGVO Zahlungsdaten / Logs | §5 — Minimierung, Logs | **8.14**, **13** | [`docs/contracts/fin6-logging-privacy-814.md`](fin6-logging-privacy-814.md) | [`test/privacy-log-redaction.test.ts`](../../test/privacy-log-redaction.test.ts); [`test/finance-payment-intake-log-helpers.test.ts`](../../test/finance-payment-intake-log-helpers.test.ts) |
+| Massen-Mahn-E-Mail (5c) | §2 — FIN-4 / 5c | **8.10**, **11** | [`docs/tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md`](../tickets/M4-BATCH-DUNNING-EMAIL-SPEC.md) | [`docs/runbooks/m4-slice-5c-pl-mandanten-go.md`](../runbooks/m4-slice-5c-pl-mandanten-go.md); E2E/Contract je Spec |
+
+**Hinweis „Systemverhalten“:** Kurzbeschreibungen für StB/DSB gehören primär **unter die jeweilige Checklistenzeile** (siehe Vorlage im Kopf von `compliance-rechnung-finanz.md`); diese Matrix hält die **technischen Anker** konsolidiert.

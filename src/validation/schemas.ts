@@ -21,6 +21,15 @@ export const authHeaderSchema = z.object({
   "x-tenant-id": z.string().uuid().optional(),
 });
 
+export const createOfferSchema = z.object({
+  projectId: z.string().uuid(),
+  customerId: z.string().uuid(),
+  lvVersionId: z.string().uuid(),
+  systemText: z.string().min(1),
+  editingText: z.string().min(1),
+  reason: z.string().min(5),
+});
+
 export const createOfferVersionSchema = z.object({
   offerId: z.string().uuid(),
   lvVersionId: z.string().uuid(),
@@ -53,6 +62,8 @@ export const createInvoiceDraftSchema = z.object({
   lvVersionId: z.string().uuid(),
   offerVersionId: z.string().uuid(),
   invoiceCurrencyCode: z.enum(["EUR"]),
+  /** Optional: welches Aufmass die Rechnung referenziert (Projekt/Kunde/LV müssen zur Angebotskette passen). Ohne Angabe: deterministisch ältestes passendes Aufmass (createdAt, dann id). */
+  measurementId: z.string().uuid().optional(),
   /** Optional: gebundene Zahlungsbedingungs-Version (FIN-1), gleiches Projekt wie Angebot. */
   paymentTermsVersionId: z.string().uuid().optional(),
   /** 8.4(2) B2-1a: Skonto in Basispunkten (0 = kein Abzug). */
@@ -344,6 +355,7 @@ export const userListQuerySchema = auditListQuerySchema;
 
 export const allowedActionsQuerySchema = z.object({
   entityType: z.enum([
+    "PROJECT",
     "OFFER_VERSION",
     "SUPPLEMENT_VERSION",
     "MEASUREMENT_VERSION",
@@ -502,3 +514,115 @@ export const patchTenantPwaDisplaySettingsSchema = z.object({
   pwaExpertModeEnabled: z.boolean(),
   reason: z.string().min(5).max(500),
 });
+
+const optionalCountry = z
+  .string()
+  .length(2)
+  .regex(/^[A-Z]{2}$/u, "ISO-3166-1 alpha-2 Grossbuchstaben")
+  .optional()
+  .nullable();
+
+export const createCrmConstructionSiteSchema = z.object({
+  label: z.string().min(1).max(500),
+  street: z.string().max(500).optional().nullable(),
+  postalCode: z.string().max(32).optional().nullable(),
+  city: z.string().max(200).optional().nullable(),
+  countryCode: optionalCountry,
+  reason: z.string().min(5).max(500),
+});
+
+export const patchCrmConstructionSiteSchema = z
+  .object({
+    label: z.string().min(1).max(500).optional(),
+    street: z.string().max(500).optional().nullable(),
+    postalCode: z.string().max(32).optional().nullable(),
+    city: z.string().max(200).optional().nullable(),
+    countryCode: optionalCountry,
+    reason: z.string().min(5).max(500),
+  })
+  .strict()
+  .superRefine((val, ctx) => {
+    const { reason: _r, ...rest } = val;
+    if (Object.keys(rest).length === 0) {
+      ctx.addIssue({ code: "custom", message: "Mindestens ein Feld neben reason erforderlich" });
+    }
+  });
+
+export const createCrmCustomerSchema = z.object({
+  legalName: z.string().min(1).max(500),
+  street: z.string().max(500).optional().nullable(),
+  postalCode: z.string().max(32).optional().nullable(),
+  city: z.string().max(200).optional().nullable(),
+  countryCode: optionalCountry,
+  reason: z.string().min(5).max(500),
+});
+
+export const patchCrmCustomerSchema = z
+  .object({
+    legalName: z.string().min(1).max(500).optional(),
+    street: z.string().max(500).optional().nullable(),
+    postalCode: z.string().max(32).optional().nullable(),
+    city: z.string().max(200).optional().nullable(),
+    countryCode: optionalCountry,
+    reason: z.string().min(5).max(500),
+  })
+  .strict()
+  .superRefine((val, ctx) => {
+    const { reason: _r, ...rest } = val;
+    if (Object.keys(rest).length === 0) {
+      ctx.addIssue({ code: "custom", message: "Mindestens ein Feld neben reason erforderlich" });
+    }
+  });
+
+export const createCrmProjectSchema = z.object({
+  id: z.string().uuid(),
+  primaryCustomerId: z.string().uuid(),
+  constructionSiteId: z.string().uuid(),
+  status: z.string().min(1).max(64).optional(),
+  label: z.string().max(500).optional().nullable(),
+  reason: z.string().min(5).max(500),
+});
+
+export const patchCrmProjectSchema = z
+  .object({
+    primaryCustomerId: z.string().uuid().optional(),
+    constructionSiteId: z.string().uuid().optional(),
+    status: z.string().min(1).max(64).optional(),
+    label: z.string().max(500).optional().nullable(),
+    versionNumber: z.number().int().min(1).optional(),
+    reason: z.string().min(5).max(500),
+  })
+  .strict()
+  .superRefine((val, ctx) => {
+    const { reason: _r, ...rest } = val;
+    if (Object.keys(rest).length === 0) {
+      ctx.addIssue({ code: "custom", message: "Mindestens ein Feld neben reason erforderlich" });
+    }
+  });
+
+export const createCrmProjectContactSchema = z.object({
+  projectId: z.string().uuid(),
+  customerId: z.string().uuid().optional().nullable(),
+  role: z.string().min(1).max(120),
+  displayName: z.string().min(1).max(300),
+  email: z.string().email().max(320).optional().nullable(),
+  phone: z.string().max(80).optional().nullable(),
+  reason: z.string().min(5).max(500),
+});
+
+export const patchCrmProjectContactSchema = z
+  .object({
+    customerId: z.string().uuid().optional().nullable(),
+    role: z.string().min(1).max(120).optional(),
+    displayName: z.string().min(1).max(300).optional(),
+    email: z.string().email().max(320).optional().nullable(),
+    phone: z.string().max(80).optional().nullable(),
+    reason: z.string().min(5).max(500),
+  })
+  .strict()
+  .superRefine((val, ctx) => {
+    const { reason: _r, ...rest } = val;
+    if (Object.keys(rest).length === 0) {
+      ctx.addIssue({ code: "custom", message: "Mindestens ein Feld neben reason erforderlich" });
+    }
+  });

@@ -9,6 +9,8 @@ export const SOT_ENTITY_TYPES = [
   "LV_VERSION",
   "LV_STRUCTURE_NODE",
   "LV_POSITION",
+  /** Projektbezogene Anlageaktionen (z. B. MEASUREMENT_CREATE, OFFER_CREATE). */
+  "PROJECT",
 ] as const;
 
 export type SotEntityType = (typeof SOT_ENTITY_TYPES)[number];

@@ -1,6 +1,6 @@
 # XRechnung — Zielprofil, Scope und Gap-Liste (Repo-MVP)
 
-**Zweck:** Festlegung des **Default-Zielprofils** für die Implementierung in diesem Repository und tabellarische **Lücken** gegenüber einem vollständigen Behörden-/PEPPOL-Konformitätsnachweis. **Keine Rechtsberatung** — finale Profile und Validator-Pflichten mit StB/Release und [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) abstimmen.
+**Zweck:** Festlegung des **Default-Zielprofils** für die Implementierung in diesem Repository und tabellarische **Lücken** gegenüber einem vollständigen Behörden-/PEPPOL-Konformitätsnachweis. **Keine Rechtsberatung** — finale Profile und Validator-Pflichten organisatorisch abstimmen ([`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md), [`README.md`](../../README.md)).
 
 ## Gewähltes Default-Zielprofil (Implementierung)
 

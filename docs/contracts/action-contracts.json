@@ -109,6 +109,52 @@
       }
     },
     {
+      "actionId": "OFFER_CREATE",
+      "requiredRole": [
+        "ADMIN",
+        "VERTRIEB_BAULEITUNG"
+      ],
+      "allowedFromStatus": [
+        "N_A"
+      ],
+      "allowedToStatus": [
+        "ENTWURF"
+      ],
+      "validationSchema": {
+        "endpoint": "POST /offers",
+        "requiredFields": [
+          "projectId",
+          "customerId",
+          "lvVersionId",
+          "systemText",
+          "editingText",
+          "reason"
+        ],
+        "fieldRules": {
+          "projectId": "uuid",
+          "customerId": "uuid",
+          "lvVersionId": "uuid",
+          "systemText": "minLength:1",
+          "editingText": "minLength:1",
+          "reason": "minLength:5"
+        }
+      },
+      "idempotencyKeyRequired": false,
+      "auditEventType": "VERSION_CREATED",
+      "backendErrors": [
+        "AUTH_ROLE_FORBIDDEN",
+        "TENANT_SCOPE_VIOLATION",
+        "UNAUTHORIZED",
+        "LV_VERSION_NOT_FOUND",
+        "LV_PROJECT_MISMATCH",
+        "VALIDATION_FAILED"
+      ],
+      "backendPolicyMirror": {
+        "source": "OfferService.createOfferWithInitialVersion",
+        "optionalSoT": "GET /documents/{projectId}/allowed-actions?entityType=PROJECT"
+      }
+    },
+    {
       "actionId": "SUPPLEMENT_SET_IN_FREIGABE",
       "requiredRole": [
         "ADMIN",

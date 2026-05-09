@@ -33,6 +33,7 @@ export function registerInvoiceFinanceRoutes(
         lvVersionId: body.lvVersionId,
         offerVersionId: body.offerVersionId,
         invoiceCurrencyCode: body.invoiceCurrencyCode,
+        measurementId: body.measurementId,
         paymentTermsVersionId: body.paymentTermsVersionId,
         skontoBps: body.skontoBps,
         reason: body.reason,

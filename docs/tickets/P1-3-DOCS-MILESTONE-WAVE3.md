@@ -99,6 +99,8 @@ Wann **nach** dem Merge auf `main` ausfüllen (noch in derselben Session oder di
 
 **Hinweis (Agent, 2026-05-05):** Meilenstein **Zeile 10** befüllt aus GitHub PR [#98](https://github.com/rhermann90/ERP/pull/98) (`mergedAt` **2026-05-05T18:32:31Z**). Meilenstein **Zeile 11** befüllt aus GitHub PR [#101](https://github.com/rhermann90/ERP/pull/101) (`mergedAt` **2026-05-05T19:42:17Z**).
 
+**Offen (nächster qualifizierter Merge):** Sobald ein Finanz-relevanter Merge auf `main` das Paket **OpenAPI `info.version` 1.30.x CRM**, `FIN4-external-client-integration.md` und PWA **`#/stammdaten`** CRM (Lesen/Schreib-Pilot) enthält, die **nächste freie Tabellenzeile** (fortlaufend **12**, falls noch leer) mit **echter** PR-URL und Merge-Datum (UTC) aus GitHub `mergedAt` eintragen — **keine** erfundenen Links (siehe **Pflege (Agent)** oben).
+
 | # | Merge-Datum (UTC) | PR / Referenz | Notiz |
 |---|-------------------|----------------|-------|
 | 1 | 2026-04-26 | https://github.com/rhermann90/ERP/pull/42 | FIN4 OpenAPI 5c + `FIN4-external-client-integration.md`; PWA Finanz-Vorbereitung; PR-Punkt5/RELEASE-Verweise in PR #42 |

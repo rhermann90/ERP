@@ -11,4 +11,13 @@ describe("sanitizeFinanceRequestUrlForLogs (FIN-6 §8.14)", () => {
     expect(sanitizeFinanceRequestUrlForLogs("/finance/payments/intake?ref=abc")).toBe("/finance/payments/intake");
     expect(sanitizeFinanceRequestUrlForLogs("/finance/payments/foo/bar")).toBe("/finance/payments/foo/bar");
   });
+
+  it("entfernt Query unter /invoices/*/payment-intakes und …/dunning-reminders (§8.14)", () => {
+    expect(
+      sanitizeFinanceRequestUrlForLogs("/invoices/x/payment-intakes?cursor=1"),
+    ).toBe("/invoices/x/payment-intakes");
+    expect(
+      sanitizeFinanceRequestUrlForLogs("/invoices/x/dunning-reminders?foo=bar"),
+    ).toBe("/invoices/x/dunning-reminders");
+  });
 });

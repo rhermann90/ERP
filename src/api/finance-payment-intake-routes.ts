@@ -1,7 +1,9 @@
 import type { FastifyInstance } from "fastify";
-import { z } from "zod";
+import { z, ZodError } from "zod";
+import { DomainError } from "../errors/domain-error.js";
 import { handleHttpError, parseAuthContext } from "./http-response.js";
 import { parseIdempotencyKeyHeader } from "./idempotency-header.js";
+import { redactedExternalReferenceFromPaymentIntakeBody } from "./finance-payment-intake-log-helpers.js";
 import type { AuthorizationService } from "../services/authorization-service.js";
 import type { PaymentIntakeService } from "../services/payment-intake-service.js";
 
@@ -35,8 +37,32 @@ export function registerPaymentIntakeRoutes(
         reason: body.reason,
       });
       const { replay, ...out } = result;
+      if (process.env.ERP_LOG_PAYMENT_INTAKE_SUMMARY === "1") {
+        request.log.info({
+          msg: "finance_payment_intake_recorded",
+          correlationId: request.id,
+          invoiceId: body.invoiceId,
+          amountCents: body.amountCents,
+          replay,
+          externalReferenceRedacted: redactedExternalReferenceFromPaymentIntakeBody(body),
+        });
+      }
       return reply.status(replay ? 200 : 201).send(out);
     } catch (error) {
+      const logDiagnostic =
+        (!(error instanceof DomainError) && !(error instanceof ZodError)) ||
+        (error instanceof DomainError && error.statusCode >= 500);
+      if (logDiagnostic) {
+        const externalReferenceRedacted = redactedExternalReferenceFromPaymentIntakeBody(request.body);
+        request.log.warn({
+          msg: "finance_payment_intake_failure",
+          correlationId: request.id,
+          ...(error instanceof DomainError
+            ? { code: error.code, statusCode: error.statusCode }
+            : { errorName: error instanceof Error ? error.name : "non_error_throwable" }),
+          ...(externalReferenceRedacted !== undefined ? { externalReferenceRedacted } : {}),
+        });
+      }
       return handleHttpError(error, request, reply);
     }
   });
