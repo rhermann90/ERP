@@ -1,14 +1,14 @@
 openapi: 3.0.3
 info:
   title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-1/2/3/4 Finance)
-  version: 1.29.4-e-invoice-party-api
+  version: 1.30.1-crm-stammdaten-option-c
   description: |
     **PWA / Browser-Anbindung**
     - **CORS**: Umgebungsvariable `CORS_ORIGINS` — kommagetrennte, exakte Origins (z. B. `https://app.example.com,http://localhost:5173`). Leer oder unset: keine `Access-Control-*`-Header (gleiche Origin oder Server-zu-Server).
     - **Auth**: `Authorization: Bearer <signed-v1-token>` (siehe `bearerToken`); optionaler Header `X-Tenant-Id` muss zum Tenant im Token passen, sonst `TENANT_SCOPE_VIOLATION`. **Passwort-Login:** `POST /auth/login` mit JSON `{ tenantId, email, password }` — siehe `docs/authentication-login.md`. **Passwort vergessen (öffentlich):** `POST /auth/request-password-reset`, `POST /auth/confirm-password-reset` — nur mit Postgres; Link `#/password-reset?token=…` (Basis `ERP_PUBLIC_APP_BASE_URL`); Produktion: SMTP + Basis-URL Pflicht. **Benutzerverwaltung:** `GET|POST /users`, `PATCH /users/{userId}` inkl. optional **E-Mail** (nur Rolle **ADMIN**, nur mit Postgres) — Audit-Ereignisse `USER` / `USER_CREATED` / `USER_UPDATED`. **Betrieb:** `AUTH_TOKEN_SECRET` (min. 32 Zeichen bei `NODE_ENV=production`); ohne Secret kein Start — siehe Repo-`.env.example`. Nur lokaler Demo-Modus: `ERP_ALLOW_INSECURE_DEV_AUTH=1` und nicht `production` (niemals deployen).
     - **Logs**: Strukturierte Fastify-Request-Logs enthalten keine `Authorization`- oder `Cookie`-Werte (`LOG_LEVEL`, `LOG_DISABLE=1` siehe Betrieb).
     - **Fehler**: Antwort-JSON gemäß Schema `Error` — Felder `code`, `message`, `correlationId`, `retryable`, `blocking`, optional `details` (Frontend-Passthrough laut `docs/contracts/decision-log-phase1-frontend.md`). **Header:** `x-correlation-id` und `x-request-id` sind gleich der Request-ID (`request.id`) und entsprechen `correlationId` im Body bei Fehlerantworten.
-    - **FIN-4 / Integratoren:** Auf Pfaden unter **`/finance/dunning-reminder…`**, **`/finance/dunning-reminder-automation`**, **`/finance/dunning-email-footer`** und **`/finance/invoice-tax-profile…`**, **`/finance/e-invoice-parties…`** sendet der Server zusätzlich **`x-erp-openapi-contract-version`** (Wert identisch zu `info.version` dieser Datei). Laufzeit-Abgleich und Breaking-Notes: `docs/contracts/FIN4-external-client-integration.md`. Browser-Cross-Origin: Header steht in `Access-Control-Expose-Headers`, wenn CORS aktiv ist (`CORS_ORIGINS`).
+    - **FIN-4 / Integratoren:** Auf Pfaden unter **`/finance/dunning-reminder…`**, **`/finance/dunning-reminder-automation`**, **`/finance/dunning-email-footer`** und **`/finance/invoice-tax-profile…`**, **`/finance/e-invoice-parties…`**, **`/crm/…`** sendet der Server zusätzlich **`x-erp-openapi-contract-version`** (Wert identisch zu `info.version` dieser Datei). Laufzeit-Abgleich und Breaking-Notes: `docs/contracts/FIN4-external-client-integration.md`. Browser-Cross-Origin: Header steht in `Access-Control-Expose-Headers`, wenn CORS aktiv ist (`CORS_ORIGINS`).
 servers:
   - url: http://localhost:3000
 tags:
@@ -38,6 +38,9 @@ tags:
   - name: Finance (FIN-5)
     description: |
       Steuer-Sonderfälle (Spez **8.16**): Mandanten-Default und Projekt-Override für effektives Rechnungs-Steuerregime; Rechnungs-Snapshot bei Entwurf — `docs/adr/0014-fin5-mvp-tax-fail-closed.md`.
+  - name: CRM Stammdaten (ADR 0019)
+    description: |
+      Mandanten-isolierte Stammdaten **Objekt**, **CRM-Kunde**, **Projekt**, **Projektkontakt** — `docs/adr/0019-w1-stammdaten-project-customer-object-option-c.md`. Lesepfad wie Rechnung; Schreiben wie FIN-1 Zahlungsbedingungen. Nur Postgres (`CRM_PERSISTENCE_UNAVAILABLE` sonst).
   - name: Finance (FIN-2)
     description: |
       Rechnung Entwurf + Lesepfad (Spez 8.2, Traceability) — vertikaler Slice ohne vollständige 8.4-Berechnung; siehe ADR-0007.
@@ -68,6 +71,202 @@ components:
         technische Eindeutigkeit je Endpunkt (Zahlungseingang: `payment_intakes`; Mahn-E-Mail: `dunning_email_sends`; Mahnlauf: `dunning_reminder_run_intents`) gemäß ADR-0007 bzw. ADR-0010.
         Header wird **case-insensitive** gelesen; Wert muss **UUID** sein, sonst `400` / `VALIDATION_FAILED`.
   schemas:
+    CrmConstructionSite:
+      type: object
+      required: [tenantId, id, label, street, postalCode, city, countryCode, createdAt, createdBy]
+      properties:
+        tenantId: { type: string, format: uuid }
+        id: { type: string, format: uuid }
+        label: { type: string }
+        street: { type: string, nullable: true }
+        postalCode: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        countryCode: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string, format: uuid }
+    CrmConstructionSiteListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrmConstructionSite'
+    CrmConstructionSiteCreateRequest:
+      type: object
+      required: [label, reason]
+      properties:
+        label: { type: string }
+        street: { type: string, nullable: true }
+        postalCode: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        countryCode: { type: string, nullable: true }
+        reason: { type: string }
+    CrmProject:
+      type: object
+      required: [tenantId, id, primaryCustomerId, constructionSiteId, status, versionNumber, label, createdAt, createdBy]
+      properties:
+        tenantId: { type: string, format: uuid }
+        id: { type: string, format: uuid }
+        primaryCustomerId: { type: string, format: uuid }
+        constructionSiteId: { type: string, format: uuid }
+        status: { type: string }
+        versionNumber: { type: integer }
+        label: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string, format: uuid }
+    CrmProjectListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrmProject'
+    CrmConstructionSitePatchRequest:
+      type: object
+      required: [reason]
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 500
+        street:
+          type: string
+          maxLength: 500
+          nullable: true
+        postalCode:
+          type: string
+          maxLength: 32
+          nullable: true
+        city:
+          type: string
+          maxLength: 200
+          nullable: true
+        countryCode:
+          type: string
+          minLength: 2
+          maxLength: 2
+          pattern: '^[A-Z]{2}$'
+          nullable: true
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 500
+    CrmCustomer:
+      type: object
+      required: [tenantId, id, legalName, street, postalCode, city, countryCode, createdAt, createdBy]
+      properties:
+        tenantId: { type: string, format: uuid }
+        id: { type: string, format: uuid }
+        legalName: { type: string }
+        street: { type: string, nullable: true }
+        postalCode: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        countryCode: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string, format: uuid }
+    CrmCustomerListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrmCustomer'
+    CrmCustomerCreateRequest:
+      type: object
+      required: [legalName, reason]
+      properties:
+        legalName: { type: string, minLength: 1, maxLength: 500 }
+        street: { type: string, maxLength: 500, nullable: true }
+        postalCode: { type: string, maxLength: 32, nullable: true }
+        city: { type: string, maxLength: 200, nullable: true }
+        countryCode:
+          type: string
+          minLength: 2
+          maxLength: 2
+          pattern: '^[A-Z]{2}$'
+          nullable: true
+        reason: { type: string, minLength: 5, maxLength: 500 }
+    CrmCustomerPatchRequest:
+      type: object
+      required: [reason]
+      properties:
+        legalName: { type: string, minLength: 1, maxLength: 500 }
+        street: { type: string, maxLength: 500, nullable: true }
+        postalCode: { type: string, maxLength: 32, nullable: true }
+        city: { type: string, maxLength: 200, nullable: true }
+        countryCode:
+          type: string
+          minLength: 2
+          maxLength: 2
+          pattern: '^[A-Z]{2}$'
+          nullable: true
+        reason: { type: string, minLength: 5, maxLength: 500 }
+    CrmProjectCreateRequest:
+      type: object
+      required: [id, primaryCustomerId, constructionSiteId, reason]
+      properties:
+        id: { type: string, format: uuid }
+        primaryCustomerId: { type: string, format: uuid }
+        constructionSiteId: { type: string, format: uuid }
+        status: { type: string, minLength: 1, maxLength: 64 }
+        label: { type: string, maxLength: 500, nullable: true }
+        reason: { type: string, minLength: 5, maxLength: 500 }
+    CrmProjectPatchRequest:
+      type: object
+      required: [reason]
+      properties:
+        primaryCustomerId: { type: string, format: uuid }
+        constructionSiteId: { type: string, format: uuid }
+        status: { type: string, minLength: 1, maxLength: 64 }
+        label: { type: string, maxLength: 500, nullable: true }
+        versionNumber: { type: integer, minimum: 1 }
+        reason: { type: string, minLength: 5, maxLength: 500 }
+    CrmProjectContact:
+      type: object
+      required: [tenantId, id, projectId, role, displayName, email, phone, createdAt, createdBy]
+      properties:
+        tenantId: { type: string, format: uuid }
+        id: { type: string, format: uuid }
+        projectId: { type: string, format: uuid }
+        customerId: { type: string, format: uuid, nullable: true }
+        role: { type: string }
+        displayName: { type: string }
+        email: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string, format: uuid }
+    CrmProjectContactListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrmProjectContact'
+    CrmProjectContactCreateRequest:
+      type: object
+      required: [projectId, role, displayName, reason]
+      properties:
+        projectId: { type: string, format: uuid }
+        customerId: { type: string, format: uuid, nullable: true }
+        role: { type: string, minLength: 1, maxLength: 120 }
+        displayName: { type: string, minLength: 1, maxLength: 300 }
+        email: { type: string, format: email, maxLength: 320, nullable: true }
+        phone: { type: string, maxLength: 80, nullable: true }
+        reason: { type: string, minLength: 5, maxLength: 500 }
+    CrmProjectContactPatchRequest:
+      type: object
+      required: [reason]
+      properties:
+        customerId: { type: string, format: uuid, nullable: true }
+        role: { type: string, minLength: 1, maxLength: 120 }
+        displayName: { type: string, minLength: 1, maxLength: 300 }
+        email: { type: string, format: email, maxLength: 320, nullable: true }
+        phone: { type: string, maxLength: 80, nullable: true }
+        reason: { type: string, minLength: 5, maxLength: 500 }
     AllowedActionsResponse:
       type: object
       required: [documentId, entityType, allowedActions]
@@ -124,6 +323,28 @@ components:
           minItems: 1
           items:
             $ref: '#/components/schemas/MeasurementPosition'
+        reason:
+          type: string
+          minLength: 5
+    CreateOfferRequest:
+      type: object
+      required: [projectId, customerId, lvVersionId, systemText, editingText, reason]
+      properties:
+        projectId:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        lvVersionId:
+          type: string
+          format: uuid
+        systemText:
+          type: string
+          minLength: 1
+        editingText:
+          type: string
+          minLength: 1
         reason:
           type: string
           minLength: 5
@@ -518,6 +739,7 @@ components:
         `invoiceCurrencyCode` explizit required; v1.3 buchführungsrelevant nur **EUR** — **ohne** OpenAPI-Default.
         Optional `paymentTermsVersionId` muss zum Projekt des Angebots passen (FIN-1).
         Optional `skontoBps` (0–10_000): **8.4(2)** Skonto aliquot auf LV-Netto nach Schritt 1 (B2-1a); USt/Brutto auf reduziertes Netto.
+        Optional `measurementId`: Aufmass für die Traceability-Zeile; muss zu Projekt/Kunde/LV der Angebotsversion passen. Ohne Angabe wählt der Server deterministisch das zeitlich älteste passende Aufmass (gleiches Projekt/Kunde/LV).
       required: [lvVersionId, offerVersionId, invoiceCurrencyCode, reason]
       properties:
         lvVersionId:
@@ -529,6 +751,10 @@ components:
         invoiceCurrencyCode:
           type: string
           enum: [EUR]
+        measurementId:
+          type: string
+          format: uuid
+          description: Optional; Aufmass-Root-ID (Projekt/Kunde/LV wie Angebot). Ohne Feld — ältestes passendes Aufmass.
         paymentTermsVersionId:
           type: string
           format: uuid
@@ -2788,6 +3014,32 @@ paths:
           description: MEASUREMENT_NOT_FOUND
         '401':
           description: Authentifizierung fehlgeschlagen
+  /offers:
+    post:
+      description: |
+        Neues Angebots-Aggregat mit erster Version (ENTWURF). Rollen **ADMIN** und **VERTRIEB_BAULEITUNG** (SoT-Aktion **OFFER_CREATE**).
+        Optional: Shell lädt SoT via `GET /documents/{projectId}/allowed-actions?entityType=PROJECT` (erfordert LV-Katalog mit diesem `projectId`).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOfferRequest'
+      responses:
+        '201':
+          description: offerId und offerVersionId
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+        '404':
+          description: LV_VERSION_NOT_FOUND
+        '422':
+          description: LV_PROJECT_MISMATCH — LV-Katalog gebunden an anderes Projekt
+        '401':
+          description: Authentifizierung fehlgeschlagen
   /offers/version:
     post:
       security:
@@ -2967,6 +3219,7 @@ paths:
     get:
       description: |
         Liefert erlaubte actionIds für das Dokument (Backend-SoT). Kein separates entityType=OFFER in Phase 1.
+        **entityType=PROJECT:** `id` ist die **projectId**; Aktionen **OFFER_CREATE** und **MEASUREMENT_CREATE** erscheinen, wenn mindestens ein LV-Katalog dieses Mandanten auf das Projekt verweist (`project_id`).
         Beispiel nach Annahme: bei OFFER_VERSION im Status ANGENOMMEN erscheint für ADMIN/VERTRIEB_BAULEITUNG/GESCHAEFTSFUEHRUNG
         OFFER_CREATE_SUPPLEMENT (nicht OFFER_CREATE_VERSION).
         Für §9 LV: `id` ist jeweils die Entitäts-ID passend zu `entityType` (LV_VERSION → lvVersionId, LV_STRUCTURE_NODE → nodeId, LV_POSITION → positionId); siehe ADR-0005.
@@ -2986,6 +3239,7 @@ paths:
           schema:
             type: string
             enum:
+              - PROJECT
               - OFFER_VERSION
               - SUPPLEMENT_VERSION
               - MEASUREMENT_VERSION
@@ -3997,7 +4251,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
-          description: DOCUMENT_NOT_FOUND | OFFER_VERSION_NOT_FOUND | OFFER_NOT_FOUND
+          description: DOCUMENT_NOT_FOUND | OFFER_VERSION_NOT_FOUND | OFFER_NOT_FOUND | MEASUREMENT_NOT_FOUND
           content:
             application/json:
               schema:
@@ -4400,3 +4654,419 @@ paths:
           description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
         '401':
           description: UNAUTHORIZED
+  /crm/construction-sites:
+    get:
+      tags: [CRM Stammdaten (ADR 0019)]
+      operationId: crmConstructionSitesList
+      summary: Baustellen/Objekte (Liste)
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmConstructionSiteListResponse'
+        '401': { description: UNAUTHORIZED }
+        '403': { description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION }
+        '503': { description: CRM_PERSISTENCE_UNAVAILABLE }
+    post:
+      tags: [CRM Stammdaten (ADR 0019)]
+      operationId: crmConstructionSiteCreate
+      summary: Baustelle anlegen
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmConstructionSiteCreateRequest'
+      responses:
+        '201':
+          description: Erstellt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmConstructionSite'
+        '400': { description: VALIDATION_FAILED }
+        '401': { description: UNAUTHORIZED }
+        '403': { description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION }
+        '503': { description: CRM_PERSISTENCE_UNAVAILABLE }
+  /crm/projects:
+    get:
+      tags: [CRM Stammdaten (ADR 0019)]
+      operationId: crmProjectsList
+      summary: CRM-Projekte (Liste)
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmProjectListResponse'
+        '401': { description: UNAUTHORIZED }
+        '403': { description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION }
+        '503': { description: CRM_PERSISTENCE_UNAVAILABLE }
+    post:
+      tags: [CRM Stammdaten (ADR 0019)]
+      operationId: crmProjectCreate
+      summary: CRM-Projekt anlegen
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmProjectCreateRequest'
+      responses:
+        '201':
+          description: Erstellt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmProject'
+        '400': { description: VALIDATION_FAILED }
+        '401': { description: UNAUTHORIZED }
+        '403': { description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION }
+        '503': { description: CRM_PERSISTENCE_UNAVAILABLE }
+  /crm/construction-sites/{id}:
+    get:
+      tags: [CRM Stammdaten (ADR 0019)]
+      operationId: crmConstructionSiteGet
+      summary: Baustelle nach ID
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmConstructionSite'
+        '401': { description: UNAUTHORIZED }
+        '403': { description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION }
+        '404': { description: CRM_ENTITY_NOT_FOUND }
+        '503': { description: CRM_PERSISTENCE_UNAVAILABLE }
+    patch:
+      tags: [CRM Stammdaten (ADR 0019)]
+      operationId: crmConstructionSitePatch
+      summary: Baustelle aktualisieren
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmConstructionSitePatchRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmConstructionSite'
+        '400': { description: VALIDATION_FAILED }
+        '401': { description: UNAUTHORIZED }
+        '403': { description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION }
+        '404': { description: CRM_ENTITY_NOT_FOUND }
+        '503': { description: CRM_PERSISTENCE_UNAVAILABLE }
+  /crm/customers:
+    get:
+      tags: [CRM Stammdaten (ADR 0019)]
+      operationId: crmCustomersList
+      summary: CRM-Kunden (Liste)
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmCustomerListResponse'
+        '401': { description: UNAUTHORIZED }
+        '403': { description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION }
+        '503': { description: CRM_PERSISTENCE_UNAVAILABLE }
+    post:
+      tags: [CRM Stammdaten (ADR 0019)]
+      operationId: crmCustomerCreate
+      summary: CRM-Kunde anlegen
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmCustomerCreateRequest'
+      responses:
+        '201':
+          description: Erstellt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmCustomer'
+        '400': { description: VALIDATION_FAILED }
+        '401': { description: UNAUTHORIZED }
+        '403': { description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION }
+        '503': { description: CRM_PERSISTENCE_UNAVAILABLE }
+  /crm/customers/{id}:
+    get:
+      tags: [CRM Stammdaten (ADR 0019)]
+      operationId: crmCustomerGet
+      summary: CRM-Kunde nach ID
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmCustomer'
+        '401': { description: UNAUTHORIZED }
+        '403': { description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION }
+        '404': { description: CRM_ENTITY_NOT_FOUND }
+        '503': { description: CRM_PERSISTENCE_UNAVAILABLE }
+    patch:
+      tags: [CRM Stammdaten (ADR 0019)]
+      operationId: crmCustomerPatch
+      summary: CRM-Kunde aktualisieren
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmCustomerPatchRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmCustomer'
+        '400': { description: VALIDATION_FAILED }
+        '401': { description: UNAUTHORIZED }
+        '403': { description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION }
+        '404': { description: CRM_ENTITY_NOT_FOUND }
+        '503': { description: CRM_PERSISTENCE_UNAVAILABLE }
+  /crm/projects/{id}:
+    get:
+      tags: [CRM Stammdaten (ADR 0019)]
+      operationId: crmProjectGet
+      summary: CRM-Projekt nach ID
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmProject'
+        '401': { description: UNAUTHORIZED }
+        '403': { description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION }
+        '404': { description: CRM_ENTITY_NOT_FOUND }
+        '503': { description: CRM_PERSISTENCE_UNAVAILABLE }
+    patch:
+      tags: [CRM Stammdaten (ADR 0019)]
+      operationId: crmProjectPatch
+      summary: CRM-Projekt aktualisieren
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmProjectPatchRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmProject'
+        '400': { description: VALIDATION_FAILED }
+        '401': { description: UNAUTHORIZED }
+        '403': { description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION }
+        '404': { description: CRM_ENTITY_NOT_FOUND }
+        '503': { description: CRM_PERSISTENCE_UNAVAILABLE }
+  /crm/projects/{projectId}/contacts:
+    get:
+      tags: [CRM Stammdaten (ADR 0019)]
+      operationId: crmProjectContactsList
+      summary: Projektkontakte (Liste)
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmProjectContactListResponse'
+        '401': { description: UNAUTHORIZED }
+        '403': { description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION }
+        '404': { description: CRM_ENTITY_NOT_FOUND }
+        '503': { description: CRM_PERSISTENCE_UNAVAILABLE }
+  /crm/project-contacts:
+    post:
+      tags: [CRM Stammdaten (ADR 0019)]
+      operationId: crmProjectContactCreate
+      summary: Projektkontakt anlegen
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmProjectContactCreateRequest'
+      responses:
+        '201':
+          description: Erstellt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmProjectContact'
+        '400': { description: VALIDATION_FAILED }
+        '401': { description: UNAUTHORIZED }
+        '403': { description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION }
+        '503': { description: CRM_PERSISTENCE_UNAVAILABLE }
+  /crm/project-contacts/{id}:
+    get:
+      tags: [CRM Stammdaten (ADR 0019)]
+      operationId: crmProjectContactGet
+      summary: Projektkontakt nach ID
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmProjectContact'
+        '401': { description: UNAUTHORIZED }
+        '403': { description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION }
+        '404': { description: CRM_ENTITY_NOT_FOUND }
+        '503': { description: CRM_PERSISTENCE_UNAVAILABLE }
+    patch:
+      tags: [CRM Stammdaten (ADR 0019)]
+      operationId: crmProjectContactPatch
+      summary: Projektkontakt aktualisieren
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrmProjectContactPatchRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrmProjectContact'
+        '400': { description: VALIDATION_FAILED }
+        '401': { description: UNAUTHORIZED }
+        '403': { description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION }
+        '404': { description: CRM_ENTITY_NOT_FOUND }
+        '503': { description: CRM_PERSISTENCE_UNAVAILABLE }

@@ -30,7 +30,7 @@ function FinancePrepStepDraftInner({
     <FinancePrepPanel step={2} title="Rechnungsentwurf (FIN-2)" liveStatus={liveStatus}>
       <FinancePrepNotice notice={stepNotice} structuredAnnouncementRole="status" />
       <p id={FIN_PREP_A11Y.draftIntro} style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
-        Erzeugt einen Entwurf mit Seed-LV/Angebot, sofern Traceability im Backend erfüllt ist. Optional: Skonto in Basispunkten (B2-1a), z. B.{" "}
+        Erzeugt einen Entwurf mit Seed-LV/Angebot und fester Demo-<code>measurementId</code>, sofern Traceability im Backend erfüllt ist. Optional: Skonto in Basispunkten (B2-1a), z. B.{" "}
         <strong>200</strong> = 2 % Abzug auf das LV-Netto nach Schritt 1 vor USt.
       </p>
       <label style={{ display: "block", marginBottom: "0.5rem" }}>

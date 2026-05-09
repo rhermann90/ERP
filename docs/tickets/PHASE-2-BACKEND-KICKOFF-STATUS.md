@@ -16,12 +16,14 @@
 
 Siehe **`docs/tickets/PHASE-2-PRIORISIERUNG-INCREMENT-1.md`** — **Aufmass** §5.4 (ADR-0004).
 
-## Priorisierung Increment 2 (verbindlich — aktueller Fokus)
+## Priorisierung Increment 2 (Repo-Ist: umgesetzt)
 
 Siehe **`docs/tickets/PHASE-2-PRIORISIERUNG-INCREMENT-2.md`**.
 
 - **Gewählt:** **LV §9** — Hierarchie Bereich/Titel/Untertitel/Position, Systemtext vs. Bearbeitungstext, LV-Versionierung, SoT, Audit, Tenant-Isolation.
 - **Nicht enthalten:** §10 Mietlogik, TICKET-002-1b, produktive Postgres-Migration, PWA.
+
+**Evidenz (Backend):** ADR [`docs/adr/0013-lv-section9-hierarchy-and-text-separation.md`](../adr/0013-lv-section9-hierarchy-and-text-separation.md) (Accepted); Routen `GET /lv/versions/{lvVersionId}`, `…/structure`, `…/nodes/{nodeId}`, `…/positions/{positionId}` → `lv-hierarchy-service` (Codemap [`docs/CODEMAPS/overview.md`](../CODEMAPS/overview.md)); Tests u. a. LV-/Hierarchy-Pfade in Root-`npm test` / `verify:ci`.
 
 ## Gate-Empfehlung Agent 1
 
@@ -30,4 +32,4 @@ Siehe **`docs/tickets/PHASE-2-PRIORISIERUNG-INCREMENT-2.md`**.
 
 ## Evidenz-Hinweis (QA)
 
-- Aktueller Repo-Stand: `npm test` **46/46** (inkl. Phase-2 Inc1 Aufmass); bei Abweichung in älteren Reports immer Commit/Branch abgleichen.
+- Inkremente **1** und **2** (Backend-Umfang laut Tickets): mit **`npm run verify:ci`** verifizieren; Persistenz bei Bedarf **`npm run verify:ci:local-db`** ([`AGENTS.md`](../../AGENTS.md)). Konkrete Testanzahl nicht fest verdrahten — immer lokalen Run auswerten.

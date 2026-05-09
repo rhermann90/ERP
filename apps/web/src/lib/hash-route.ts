@@ -9,6 +9,71 @@ export const FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH = "#/finanz-grundeinstellungen
 export const LOGIN_HASH = "#/login";
 export const PASSWORD_RESET_HASH = "#/password-reset";
 
+/** Phase-2 Pilot: geführter Flow LV → Angebot → Rechnungsentwurf (`GeschaeftsprozessWizard`). */
+export const GESCHAEFSPROZESS_HASH = "#/geschaeftsprozess";
+
+/** Phase-2 Pilot: LV §9 Lesepfad + Sprung zur Shell für SoT-Aktionen. */
+export const LV_BEARBEITEN_HASH = "#/lv-bearbeiten";
+
+/** Integrations-Arbeitsbereich: Dokument-Shell und Diagnose-Panels. */
+export const DOCUMENT_WORKSPACE_HASH = "#/dokument";
+
+/** Domänen-Hub: Stammdaten (Einstieg bis geführte Projekt-/Kundenlisten existieren). */
+export const STAMMDATEN_HASH = "#/stammdaten";
+
+/** Query-Key: XRechnung-Kunde im Stammdaten-Hub (`#/stammdaten?customerId=`). */
+export const STAMMDATEN_CUSTOMER_ID_QUERY = "customerId";
+
+/** Hash für Stammdaten-Hub mit optionalem Kunden-Deep-Link (XRechnung `customerId`). */
+export function stammdatenHashWithCustomerId(customerId: string | null | undefined): string {
+  const id = customerId?.trim();
+  if (!id) return STAMMDATEN_HASH;
+  const q = new URLSearchParams({ [STAMMDATEN_CUSTOMER_ID_QUERY]: id });
+  return `${STAMMDATEN_HASH}?${q}`;
+}
+
+/**
+ * Setzt `location.hash` auf Stammdaten mit/ohne `customerId` und feuert `hashchange`
+ * (analog zu Finanz-Tab-Kanonikalisierung).
+ */
+export function applyStammdatenCustomerIdToLocationHash(customerId: string | null | undefined): void {
+  const next = stammdatenHashWithCustomerId(customerId ?? null);
+  if (window.location.hash !== next) {
+    const url = `${window.location.pathname}${window.location.search}${next}`;
+    history.replaceState(null, "", url);
+    window.dispatchEvent(new Event("hashchange"));
+  }
+}
+
+/** Aktueller `customerId`-Parameter für den Stammdaten-Hub (nach Trim). */
+export function readStammdatenCustomerIdFromHash(): string {
+  return readHashQuery().get(STAMMDATEN_CUSTOMER_ID_QUERY)?.trim() ?? "";
+}
+
+/** Domänen-Hub: LV & Aufmaß (Sprünge zu Pilot-Screens und Shell). */
+export const LV_AUFMASS_HUB_HASH = "#/lv-aufmass";
+
+/** Domänen-Hub: Angebote & Nachträge (Wizard + Shell). */
+export const ANGEBOTE_NACHTRAEGE_HUB_HASH = "#/angebote-nachtraege";
+
+/** Mandanten-/Sitzungsbezogene Hinweise (Detail weiter auf Start). */
+export const EINSTELLUNGEN_HASH = "#/einstellungen";
+
+/** Hilfe und Repo-Verweise (ohne neue Geschäftslogik). */
+export const HILFE_HASH = "#/hilfe";
+
+/** Pilot: Messungsversionen merken und Detail lesen (kein Backend-Listen-Endpunkt). */
+export const MEASUREMENT_PILOT_LIST_HASH = "#/aufmass-messungen";
+
+/** Pilot: Angebots-/Nachtrags-SoT ohne vollen Dokument-Shell-Kontext. */
+export const OFFER_WORKSPACE_HASH = "#/angebote-arbeitsflaeche";
+
+/** Betrieb: Mahnkandidaten als Arbeitsliste (FIN-4 Lesepfad). */
+export const FINANCE_WORKLIST_HASH = "#/finanz-arbeitsliste";
+
+/** Mandanten-Benutzer (nur Rolle ADMIN, Postgres). */
+export const ADMIN_USERS_HASH = "#/admin/users";
+
 const FINANCE_PREP_MAIN_TABS = ["rechnung", "grundeinstellungen", "mahnwesen", "fortgeschritten"] as const;
 
 /** Haupt-Tabs innerhalb der Finanz-Vorbereitung (synchron mit UI). */

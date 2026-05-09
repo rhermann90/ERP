@@ -31,7 +31,7 @@
 **Gates / Merge-Regeln (kurz):**
 - FIN-2 / produktive Finanz-API: erst nach Schließen G1–G10 in docs/tickets/FIN-2-START-GATE.md
 - PR mit Audit-Verhalten (AuditService / Dual-Write / Transaktionsgrenze Audit): **empfohlen** nach dokumentiertem Eintrag in docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md (alle vier Zellen ohne —); Entwicklungsphase: [AGENTS.md](../../AGENTS.md) Punkt 6
-- Mandanten-Go Finanz (UStG / GoBD / E-Rechnung / DSGVO u. a.): fachliche Checkliste `Checklisten/compliance-rechnung-finanz.md` mit StB/DSB/Release-Owner — **vor Produktiv-Go**; zusätzlich zu CI; kein Ersatz für separates Release-GO (siehe README)
+- Mandanten-Go Finanz (UStG / GoBD / E-Rechnung / DSGVO u. a.): fachliche Checkliste `Checklisten/compliance-rechnung-finanz.md` **empfohlen** inhaltlich bearbeiten — **vor Produktiv-Go**; zusätzlich zu CI; organisatorische Klärung; kein Ersatz für separates Release-GO (siehe README, AGENTS Punkt 6)
 
 **Optional — Branch-Schutz / CI:** <z. B. Required Check „backend“ auf main — ja/nein/offen>
 

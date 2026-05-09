@@ -12,7 +12,7 @@
 ## Disclaimer (technisch vs. rechtlich)
 
 - **`readyForEmailFooter`:** Nur **Produkt-Mindestregel** (sechs Pflichtfelder im Code), **keine** Zusicherung einer rechtskonformen **Geschäftsbrief-/Impressumspflicht** für alle Rechtsformen und Länder.
-- **`impressumComplianceTier` / `impressumGaps`:** Optionale **Transparenz** (Folge-Ergänzung Risikoabbau): Heuristiken und stabile Gap-Codes — **kein** Ersatz für StB/DSB/Anwalt; Pflicht je Rechtsform bleibt **mandantenextern** zu klären.
+- **`impressumComplianceTier` / `impressumGaps`:** Optionale **Transparenz** (Folge-Ergänzung Risikoabbau): Heuristiken und stabile Gap-Codes — **kein** Ersatz für externe Rechts-/Steuerberatung; Pflicht je Rechtsform bleibt **mandantenextern** zu klären.
 
 ## Feld-Matrix (Orientierung §8.10 / strukturierte Stammdaten)
 

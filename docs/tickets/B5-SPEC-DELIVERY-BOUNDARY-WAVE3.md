@@ -3,7 +3,7 @@
 > **Hinweis (Entwicklungsphase):** „PL“/„Projektleitung“/„PL-Gate“ hier **historisch**; Steuerung: Team/Maintainer, ADRs, CI — kanonisch [AGENTS.md](../../AGENTS.md) Punkt 6.
 
 
-**Status:** Spezifikations-Anker nur (kein Implementierungs-PR in diesem Batch). **Hauptticket:** [`B5-FORMAL-DUNNING-PDF.md`](./B5-FORMAL-DUNNING-PDF.md). **Domänen-Anker (technisch):** [`src/domain/dunning-formal-notice-spec.ts`](../../src/domain/dunning-formal-notice-spec.ts). **Kontext SEMI/B3:** [`docs/adr/0011-fin4-semi-dunning-context.md`](../adr/0011-fin4-semi-dunning-context.md).
+**Status:** Spezifikations-Anker nur (kein Implementierungs-PR in diesem Batch). **Hauptticket:** [`B5-FORMAL-DUNNING-PDF.md`](./B5-FORMAL-DUNNING-PDF.md). **ADR (Proposed):** [`docs/adr/0017-b5-formal-dunning-pdf-delivery-proposed.md`](../adr/0017-b5-formal-dunning-pdf-delivery-proposed.md). **Domänen-Anker (technisch):** [`src/domain/dunning-formal-notice-spec.ts`](../../src/domain/dunning-formal-notice-spec.ts). **Kontext SEMI/B3:** [`docs/adr/0011-fin4-semi-dunning-context.md`](../adr/0011-fin4-semi-dunning-context.md).
 
 ## Liefergrenze (explizit)
 
@@ -12,7 +12,7 @@
 
 ## P1-Wave-3 Querschnitt (Protokoll, projektintern 2026-04-26)
 
-**Kein** Ersatz für StB-/Release-Freigabe der späteren B5-Lieferung (Produktiv-Go).
+**Kein** Repo-Ersatz für organisatorische Produktiv-Freigabe der späteren B5-Lieferung ([`README.md`](../../README.md)).
 
 - **Liefergrenze zu 5c:** B5 bleibt **eigenes** Lieferobjekt; kein Mix mit Batch-E-Mail-PRs ([`P1-FINANCE-WAVE3-POST-RELEASE-PLAN.md`](./P1-FINANCE-WAVE3-POST-RELEASE-PLAN.md) P1-4).
 - **Nächster Schritt:** Nach **schriftlicher** Team-Priorisierung eigenes Umsetzungsticket/ADR (OpenAPI-Skeleton, QA-Gate) — siehe unten *Nächster technischer Schritt*.
@@ -26,7 +26,7 @@
 
 ## Pflichtinhalt der späteren B5-Spezifikation (Checkliste für Team / Architektur)
 
-1. **Pflichtfelder** des PDF (Verweis auf `dunning-formal-notice-spec.ts` + StB-Freigabetext getrennt von technischen IDs).
+1. **Pflichtfelder** des PDF (Verweis auf `dunning-formal-notice-spec.ts` + vom Mandanten freigegebener Mustertext getrennt von technischen IDs; externe Fachrolle nach Bedarf).
 2. **Archiv / Nachweis:** Speicherort, Hash/Version, immutable Artefakt-Kette; Bezug zu Mahn-Ereignis / Rechnung / Mandant.
 3. **Kanal:** Druck vs. E-Mail-Anhang; kein Ersatz für formellen Mahnlauf ohne rechtliche Freigabe ([`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md)).
 4. **Schnittstelle zu E-Mail:** optionaler Anhang-Pfad vs. reiner Druck — explizit entscheiden.

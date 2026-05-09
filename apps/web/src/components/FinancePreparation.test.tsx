@@ -7,6 +7,7 @@ import {
   isFinancePrepHashPath,
   resolveFinancePrepInitialMainTab,
 } from "../lib/hash-route.js";
+import { DEMO_SEED_IDS } from "../lib/demo-seed-ids.js";
 import { FinanceStructuredApiError } from "./finance/FinanceStructuredApiError.js";
 import { FinancePreparation } from "./FinancePreparation.js";
 
@@ -401,6 +402,7 @@ describe("FinancePreparation", () => {
       expect.objectContaining({
         skontoBps: 200,
         invoiceCurrencyCode: "EUR",
+        measurementId: DEMO_SEED_IDS.measurementId,
       }),
     );
   });
@@ -451,6 +453,7 @@ describe("FinancePreparation", () => {
         lvVersionId: entwurfOverview.lvVersionId,
         offerVersionId: entwurfOverview.offerVersionId,
         invoiceCurrencyCode: "EUR",
+        measurementId: entwurfOverview.measurementId,
         skontoBps: 150,
         reason: expect.stringContaining("Skonto"),
       }),
@@ -536,6 +539,7 @@ describe("FinancePreparation", () => {
         lvVersionId,
         offerVersionId,
         invoiceCurrencyCode: "EUR",
+        measurementId: entwurfOverviewOld.measurementId,
         skontoBps: 200,
         reason: expect.stringContaining("Regime-Drift"),
       }),

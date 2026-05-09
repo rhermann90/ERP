@@ -30,7 +30,7 @@ Team / Review trägt hier **Datum + Entscheid** ein (oder verweist auf Protokoll
 | 9 | **Mandanten-Modus Mahnlauf** | OFF / SEMI / ~~AUTO~~ | **Nur `OFF` und `SEMI`** (Persistenz + `GET|PATCH /finance/dunning-reminder-automation`). **SEMI:** UI/Batch `DRY_RUN`/`EXECUTE`. **AUTO** und Hintergrund-Cron **entfernt** (ADR-0011). |
 | 10 | **UI-Ort** | Grundeinstellungen vs. Finanz-Vorbereitung | **Bis Team-Priorität:** Finanz-Vorbereitung + API; Umzug „Grundeinstellungen“ = späteres UX-Slice. |
 | 11 | **E-Mail + Mahnlauf** | `EXECUTE` ohne Mail | Unverändert: kein Batch-5a in `POST …/dunning-reminder-run`. |
-| 12 | **M4 Slice 5c (Batch-E-Mail, separater Pfad)** | Neuer Endpoint vs. Zeile 5/11 | **Doku-Sync 2026-04-26:** `POST /finance/dunning-reminder-run/send-emails` ist **zulässig** und **getrennt** von `POST …/dunning-reminder-run`; weiterhin **kein** SMTP-Batch **innerhalb** des Mahnlauf-POST. Spec + Vertrag: [`M4-BATCH-DUNNING-EMAIL-SPEC.md`](./M4-BATCH-DUNNING-EMAIL-SPEC.md), ADR-0010; **Compliance-Produktiv-Go** (vor Mandanten-Live, nicht Merge): [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) mit StB/DSB/Release-Owner. |
+| 12 | **M4 Slice 5c (Batch-E-Mail, separater Pfad)** | Neuer Endpoint vs. Zeile 5/11 | **Doku-Sync 2026-04-26:** `POST /finance/dunning-reminder-run/send-emails` ist **zulässig** und **getrennt** von `POST …/dunning-reminder-run`; weiterhin **kein** SMTP-Batch **innerhalb** des Mahnlauf-POST. Spec + Vertrag: [`M4-BATCH-DUNNING-EMAIL-SPEC.md`](./M4-BATCH-DUNNING-EMAIL-SPEC.md), ADR-0010; **Compliance-Produktiv-Go** (vor Mandanten-Live, nicht Merge): [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md) **empfohlen** inhaltlich bearbeiten — organisatorische Klärung, Begleitblatt-Kürzel ([`README.md`](../../README.md)). |
 
 ## Ziel (Slice 5b, fachlich)
 
@@ -47,7 +47,7 @@ Aus Mandanten-Stufenkonfiguration und Rechnungs-/Zahlungsdaten **ermitteln**, we
 ## Out-of-Scope (Standard, bis Team erweitert)
 
 - Vollständiger **8.4(2–6)**-Motor; **Pfad C** Rechnungsstatus.
-- **Massenversand** ohne explizites Architektur-/Go-Dokument (Rate-Limits, SMTP-Policy) — **Ausnahme dokumentiert 2026-04-26:** Slice **5c** ist der explizit spezifizierte Batch-Pfad (Zeile 12); **Mandanten-Produktiv-Go** weiterhin nur mit StB/DSB/Release-Owner und Checkliste (nicht Merge-Gate).
+- **Massenversand** ohne explizites Architektur-/Go-Dokument (Rate-Limits, SMTP-Policy) — **Ausnahme dokumentiert 2026-04-26:** Slice **5c** ist der explizit spezifizierte Batch-Pfad (Zeile 12); **Mandanten-Produktiv-Go** weiterhin **empfohlen** mit Checkliste und organisatorischer Klärung — keine Repo-Pflichtfreigabe für Merge ([`README.md`](../../README.md)).
 - ~~**Cron** in Produktion~~ (entfernt).
 - Automatischer **Empfänger** aus Kundenstamm (bleibt explizit wie 5a, sofern nicht team-gewünscht).
 

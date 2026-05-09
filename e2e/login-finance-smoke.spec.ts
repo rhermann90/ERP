@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import {
   SEED_CUSTOMER_ID,
   SEED_INVOICE_ID,
@@ -10,6 +10,11 @@ import {
   SEED_SUPPLEMENT_VERSION_ID,
 } from "./login-finance-smoke-constants.js";
 
+/** Shell-Panels liegen unter #/dokument (Start #/ zeigt nur Start + Schnellzugriff). */
+async function goToDocumentWorkspace(page: Page) {
+  await page.goto("/#/dokument");
+}
+
 test.describe("Login → Finanz (Vorbereitung)", () => {
   test("Haupt-Shell: LV_VERSION GET-Detail (Snapshot)", async ({ page }) => {
     await page.goto("/#/login");
@@ -20,6 +25,7 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
 
     await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
     await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+    await goToDocumentWorkspace(page);
 
     const docPanel = page.getByTestId("shell-document-panel");
     await docPanel.getByTestId("shell-document-entity-type").selectOption("LV_VERSION");
@@ -47,6 +53,7 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
 
     await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
     await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+    await goToDocumentWorkspace(page);
     await expect(page.getByTestId("shell-dunning-config-panel")).toBeVisible({ timeout: 20_000 });
 
     await page.getByTestId("shell-dunning-config-fetch").click();
@@ -64,6 +71,7 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
 
     await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
     await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+    await goToDocumentWorkspace(page);
     await expect(page.getByTestId("shell-fin4-extra-readonly-panel")).toBeVisible({ timeout: 20_000 });
 
     await page.getByTestId("shell-dunning-templates-fetch").click();
@@ -93,6 +101,7 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
 
     await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
     await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+    await goToDocumentWorkspace(page);
 
     const docPanel = page.getByTestId("shell-document-panel");
     await docPanel.getByTestId("shell-document-entity-type").selectOption("OFFER_VERSION");
@@ -115,6 +124,7 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
 
     await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
     await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+    await goToDocumentWorkspace(page);
 
     const docPanel = page.getByTestId("shell-document-panel");
     await docPanel.getByTestId("shell-document-entity-type").selectOption("INVOICE");
@@ -124,6 +134,9 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     const invoiceDetail = page.getByTestId("invoice-shell-detail");
     await expect(invoiceDetail).toBeVisible({ timeout: 15_000 });
     await expect(invoiceDetail).toContainText(SEED_INVOICE_ID);
+    await expect(invoiceDetail.getByTestId("shell-invoice-trace-lv")).toContainText(SEED_LV_VERSION_ID);
+    await expect(invoiceDetail.getByTestId("shell-invoice-trace-measurement")).toContainText(SEED_MEASUREMENT_ID);
+    await expect(invoiceDetail.getByTestId("shell-invoice-trace-offer-version")).toContainText(SEED_OFFER_VERSION_ID);
 
     const subreads = page.getByTestId("shell-invoice-readonly-subreads");
     await subreads.getByRole("button", { name: "Zahlungseingänge (GET)" }).click();
@@ -147,6 +160,12 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
       timeout: 15_000,
     });
     await expect(page.getByTestId("shell-invoice-allowed-actions-json")).toContainText("allowedActions");
+
+    await page.getByTestId("shell-invoice-offer-version-allowed-actions-fetch").click();
+    await expect(page.getByRole("heading", { name: "Antwort allowed-actions (OFFER_VERSION)" })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("shell-invoice-offer-version-allowed-actions-json")).toContainText("allowedActions");
 
     await page.getByTestId("shell-invoice-e-invoice-tenant-fetch").click();
     await expect(page.getByRole("heading", { name: "Antwort GET /finance/e-invoice-parties/tenant" })).toBeVisible({
@@ -204,6 +223,7 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
 
     await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
     await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+    await goToDocumentWorkspace(page);
 
     const docPanel = page.getByTestId("shell-document-panel");
     await docPanel.getByTestId("shell-document-entity-type").selectOption("MEASUREMENT_VERSION");
@@ -226,6 +246,7 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
 
     await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
     await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+    await goToDocumentWorkspace(page);
 
     const docPanel = page.getByTestId("shell-document-panel");
     await docPanel.getByTestId("shell-document-entity-type").selectOption("SUPPLEMENT_VERSION");
@@ -249,7 +270,7 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await page.getByRole("button", { name: "Anmelden" }).click();
 
     await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
-    await page.getByRole("link", { name: "Finanz (Vorbereitung)" }).click();
+    await page.getByTestId("primary-nav-finanz_prep").click();
     await expect(page.locator("section.finance-prep")).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole("tab", { name: /Grundeinstellungen Mahnlauf/i }).click();
@@ -299,6 +320,7 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
 
     await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
     await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+    await goToDocumentWorkspace(page);
 
     const panel = page.getByTestId("shell-tenant-pwa-display-panel");
     await expect(panel).toBeVisible({ timeout: 15_000 });
@@ -317,7 +339,7 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await page.getByRole("button", { name: "Anmelden" }).click();
 
     await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
-    await page.getByRole("link", { name: "Finanz (Vorbereitung)" }).click();
+    await page.getByTestId("primary-nav-finanz_prep").click();
     await expect(page.locator("section.finance-prep")).toBeVisible({ timeout: 15_000 });
 
     await page.getByTestId("finance-prep-tab-mahnwesen").click();
@@ -377,7 +399,7 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
 
       await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
 
-      await page.getByRole("link", { name: "Finanz (Vorbereitung)" }).click();
+      await page.getByTestId("primary-nav-finanz_prep").click();
       await expect(page.locator("section.finance-prep")).toBeVisible({ timeout: 15_000 });
       await page.getByRole("tab", { name: /Rechnung & Zahlung/i }).click();
       await page.getByRole("button", { name: "Rechnung laden" }).click();
@@ -388,3 +410,94 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     }
   });
 });
+
+test.describe("Phase-2 Geschäftsprozess (Pilot)", () => {
+  test("Golden path: LV → Angebot → Rechnungsentwurf", async ({ page }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+
+    await page.goto("/#/geschaeftsprozess");
+    await expect(page.getByTestId("geschaeftsprozess-wizard")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("lv-workbench")).toBeVisible();
+
+    await page.getByRole("button", { name: /Weiter zu Aufmass/ }).click();
+    await page.getByTestId("geschaeftsprozess-project-sot-load").click();
+    await expect(
+      page
+        .getByTestId("geschaeftsprozess-project-allowed-json")
+        .or(page.getByTestId("geschaeftsprozess-project-allowed-summary")),
+    ).toContainText("MEASUREMENT_CREATE", {
+      timeout: 30_000,
+    });
+    await page.getByTestId("geschaeftsprozess-measurement-create").click();
+    await expect(page.getByTestId("geschaeftsprozess-measurement-banner")).toContainText("measurementId", {
+      timeout: 30_000,
+    });
+    await page.getByTestId("geschaeftsprozess-step-measurement-next").click();
+    await page.getByTestId("geschaeftsprozess-create-offer").click();
+    await expect(page.getByTestId("geschaeftsprozess-create-draft")).toBeEnabled({ timeout: 30_000 });
+    await page.getByTestId("geschaeftsprozess-create-draft").click();
+    await expect(page.getByTestId("geschaeftsprozess-draft-summary")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId("geschaeftsprozess-draft-summary")).toContainText("invoiceId");
+  });
+
+  test("LV §9: Lesepfad-Seite mit Workbench", async ({ page }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+
+    await page.goto("/#/lv-bearbeiten");
+    await expect(page.getByTestId("lv-bearbeiten-page")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("lv-workbench")).toBeVisible();
+    await expect(page.getByTestId("lv-version-sot-panel")).toBeVisible();
+  });
+});
+
+test.describe("Stammdaten-Hub (Pilot W1)", () => {
+  test("Nach Login: FIN-1 strukturiert zum Pilot-Projekt laden", async ({ page }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+
+    await page.goto("/#/stammdaten");
+    await expect(page.getByRole("heading", { name: "Stammdaten" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("hub-stammdaten")).toBeVisible();
+    await expect(page.getByTestId("stamm-pilot-project-id")).toContainText(SEED_PROJECT_ID);
+    await expect(page.getByTestId("stamm-crm-memory-hint")).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole("button", { name: /Zahlungsbedingungen zum Pilot-Projekt laden/ }).click();
+    await expect(page.getByTestId("stamm-payment-terms-structured")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("stamm-payment-terms-versions-table")).toBeVisible();
+    await expect(page.getByTestId("stamm-payment-terms-customer-jump")).toHaveAttribute("title", SEED_CUSTOMER_ID);
+  });
+
+  test("Start: Kachel Stammdaten führt zum Hub", async ({ page }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+
+    await page.getByTestId("home-tile-stammdaten-hub").click();
+    await expect(page).toHaveURL(/#\/stammdaten/);
+    await expect(page.getByRole("heading", { name: "Stammdaten" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("hub-stammdaten")).toBeVisible();
+  });
+});
+

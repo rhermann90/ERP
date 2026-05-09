@@ -1,6 +1,9 @@
 import type { ApiClient } from "./api-client.js";
 
 /**
+ * Shell-Ausführung für document-scoped `allowedActions`.
+ * FIN-3 (`RECORD_PAYMENT_INTAKE`) und FIN-5 (`MANAGE_INVOICE_TAX_SETTINGS`) laufen bewusst **nicht** hier — siehe `docs/contracts/ui-action-executor-coverage.md`.
+ *
  * Kanonische Export-actionId für Rechnungen (GET allowed-actions).
  * @see docs/contracts/action-contracts.json → EXPORT_INVOICE.backendPolicyMirror.canonicalActionId
  * Legacy `EXPORT_INVOICE_XRECHNUNG` ist ausdrücklich verboten (legacyForbidden).
@@ -151,6 +154,25 @@ export async function executeAllowedAction(
       customerId,
       lvVersionId,
       positions,
+      reason,
+    });
+  }
+
+  if (actionId === "OFFER_CREATE") {
+    const projectId = fields.projectId?.trim() || documentId.trim();
+    const customerId = fields.customerId?.trim();
+    const lvVersionId = fields.lvVersionId?.trim();
+    const systemText = fields.systemText?.trim();
+    const editingText = fields.editingText?.trim();
+    if (!projectId || !customerId || !lvVersionId || !systemText || !editingText) {
+      throw new Error("projectId, customerId, lvVersionId, systemText, editingText erforderlich (projectId default: Dokument-ID bei entityType PROJECT).");
+    }
+    return client.requestJson("POST", "/offers", {
+      projectId,
+      customerId,
+      lvVersionId,
+      systemText,
+      editingText,
       reason,
     });
   }
@@ -341,6 +363,7 @@ export async function executeActionWithSotGuard(
 
 /** entityType laut GET /documents/.../allowed-actions */
 export const ENTITY_TYPES = [
+  "PROJECT",
   "OFFER_VERSION",
   "SUPPLEMENT_VERSION",
   "MEASUREMENT_VERSION",

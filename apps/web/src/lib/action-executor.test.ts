@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ApiClient } from "./api-client.js";
-import { CANONICAL_EXPORT_INVOICE_ACTION_ID, executeActionWithSotGuard } from "./action-executor.js";
+import {
+  CANONICAL_EXPORT_INVOICE_ACTION_ID,
+  executeActionWithSotGuard,
+  executeAllowedAction,
+} from "./action-executor.js";
 
 function makeClient(): ApiClient {
   return {
@@ -13,6 +17,7 @@ function makeClient(): ApiClient {
     getSupplementVersion: vi.fn(),
     getPaymentTermsByProject: vi.fn(),
     createInvoiceDraft: vi.fn(),
+    createOffer: vi.fn(),
     getInvoice: vi.fn(),
     listInvoicePaymentIntakes: vi.fn(),
     listInvoiceDunningReminders: vi.fn(),
@@ -45,7 +50,16 @@ function makeClient(): ApiClient {
     getTenantEInvoiceParty: vi.fn(),
     listCustomerEInvoiceParties: vi.fn(),
     getCustomerEInvoiceParty: vi.fn(),
+    listCrmConstructionSites: vi.fn(),
+    listCrmProjects: vi.fn(),
+    getCrmProject: vi.fn(),
+    listCrmProjectContacts: vi.fn(),
+    listCrmCustomers: vi.fn(),
+    patchCrmProject: vi.fn(),
     getAuditEvents: vi.fn(),
+    listTenantUsers: vi.fn(),
+    createTenantUser: vi.fn(),
+    patchTenantUser: vi.fn(),
   };
 }
 
@@ -129,6 +143,26 @@ describe("executeActionWithSotGuard", () => {
       "/invoices/44444444-4444-4444-8444-444444444444/dunning-reminders",
       { stageOrdinal: 3, reason: "Valid reason text", note: "Demo" },
     );
+  });
+
+
+  it("OFFER_CREATE ruft POST /offers mit Pflichtfeldern auf", async () => {
+    const client = makeClient();
+    await executeAllowedAction(client, "OFFER_CREATE", "PROJECT", "10101010-1010-4010-8010-101010101010", {
+      reason: "Valid reason text",
+      customerId: "20202020-2020-4020-8020-202020202020",
+      lvVersionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001",
+      systemText: "Sys",
+      editingText: "Ed",
+    });
+    expect(client.requestJson).toHaveBeenCalledWith("POST", "/offers", {
+      projectId: "10101010-1010-4010-8010-101010101010",
+      customerId: "20202020-2020-4020-8020-202020202020",
+      lvVersionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001",
+      systemText: "Sys",
+      editingText: "Ed",
+      reason: "Valid reason text",
+    });
   });
 
   it("lehnt Legacy actionId EXPORT_INVOICE_XRECHNUNG ab", async () => {

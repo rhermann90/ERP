@@ -1,12 +1,26 @@
 import { useCallback, useEffect, useMemo, useState, type ReactElement, type ReactNode } from "react";
 import { AppShell } from "./components/AppShell.js";
+import { AppPrimaryNav } from "./components/AppPrimaryNav.js";
+import { HomeDashboard } from "./components/HomeDashboard.js";
+import { StammdatenHubPage } from "./components/hubs/StammdatenHubPage.js";
+import { LvAufmassHubPage } from "./components/hubs/LvAufmassHubPage.js";
+import { AngeboteNachtraegeHubPage } from "./components/hubs/AngeboteNachtraegeHubPage.js";
+import { EinstellungenHubPage } from "./components/hubs/EinstellungenHubPage.js";
+import { HilfeHubPage } from "./components/hubs/HilfeHubPage.js";
 import { DocumentTextPanels } from "./components/DocumentTextPanels.js";
+import { AdminUsersPage } from "./components/admin/AdminUsersPage.js";
 import { FinancePreparation } from "./components/FinancePreparation.js";
+import { FinanceOperationalWorklistPage } from "./components/finance/FinanceOperationalWorklistPage.js";
+import { GeschaeftsprozessWizard } from "./components/geschaeftsprozess/GeschaeftsprozessWizard.js";
+import { LvBearbeitenPage } from "./components/lv-workbench/LvBearbeitenPage.js";
+import { MeasurementPilotListPage } from "./components/measurements/MeasurementPilotListPage.js";
+import { OfferSupplementWorkspacePage } from "./components/offers/OfferSupplementWorkspacePage.js";
 import { LoginPage } from "./components/LoginPage.js";
 import { PasswordResetPage } from "./components/PasswordResetPage.js";
 import { RoleQuickNav } from "./components/RoleQuickNav.js";
 import { DEMO_SEED_IDS as SEED } from "./lib/demo-seed-ids.js";
 import {
+  DOCUMENT_WORKSPACE_HASH,
   FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH,
   FINANCE_PREP_HASH,
   isFinancePrepHashPath,
@@ -140,6 +154,8 @@ export default function App() {
   const [invoiceDunningRemindersJson, setInvoiceDunningRemindersJson] = useState("");
   const [invoicePaymentTermsJson, setInvoicePaymentTermsJson] = useState("");
   const [invoiceAllowedActionsShellJson, setInvoiceAllowedActionsShellJson] = useState("");
+  /** INVOICE-Shell: read-only GET allowed-actions für SoT OFFER_VERSION (`invoice.offerVersionId`). */
+  const [invoiceOfferVersionAllowedActionsJson, setInvoiceOfferVersionAllowedActionsJson] = useState("");
   /** INVOICE-Shell: read-only GET /finance/e-invoice-parties/* (XRechnung Seller/Buyer). */
   const [invoiceEInvoiceTenantJson, setInvoiceEInvoiceTenantJson] = useState("");
   const [invoiceEInvoiceCustomersListJson, setInvoiceEInvoiceCustomersListJson] = useState("");
@@ -225,12 +241,49 @@ export default function App() {
 
   const hashPath = useHashRoute();
   const hashQuery = readHashQuery();
+  /** Deep-Link z. B. `#/dokument?documentId=…&entityType=INVOICE` (Arbeitslisten). */
+  useEffect(() => {
+    if (hashPath !== "/dokument") return;
+    const q = readHashQuery();
+    const did = q.get("documentId")?.trim();
+    const etRaw = q.get("entityType")?.trim();
+    if (!did || !etRaw) return;
+    if (!(ENTITY_TYPES as readonly string[]).includes(etRaw)) return;
+    setDocumentId(did);
+    setEntityType(etRaw as EntityType);
+  }, [hashPath]);
   const showFinancePrep = isFinancePrepHashPath(hashPath);
   const financePrepInitialMainTab = resolveFinancePrepInitialMainTab(hashPath, hashQuery);
   /** Stable across Tab-/Hash-Wechsel innerhalb Finanz-Vorbereitung — sonst Remount und Verlust von z. B. invoiceAllowedActions (FIN-5 SoT). */
   const financePrepMountKey = `finance-prep:${tenantId || "no-tenant"}`;
   const showLogin = hashPath === "/login";
   const showPasswordReset = hashPath === "/password-reset";
+  const showGeschaeftsprozess = hashPath === "/geschaeftsprozess";
+  const showLvBearbeiten = hashPath === "/lv-bearbeiten";
+  const showMeasurementPilot = hashPath === "/aufmass-messungen";
+  const showOfferWorkspace = hashPath === "/angebote-arbeitsflaeche";
+  const showFinanceWorklist = hashPath === "/finanz-arbeitsliste";
+  const showAdminUsers = hashPath === "/admin/users";
+  const showStammdatenHub = hashPath === "/stammdaten";
+  const showLvAufmassHub = hashPath === "/lv-aufmass";
+  const showAngeboteHub = hashPath === "/angebote-nachtraege";
+  const showEinstellungenHub = hashPath === "/einstellungen";
+  const showHilfeHub = hashPath === "/hilfe";
+  const showDomainHubChrome =
+    showStammdatenHub || showLvAufmassHub || showAngeboteHub || showEinstellungenHub || showHilfeHub;
+  const showMainWorkspaceChrome =
+    !showFinancePrep &&
+    !showLogin &&
+    !showPasswordReset &&
+    !showGeschaeftsprozess &&
+    !showLvBearbeiten &&
+    !showMeasurementPilot &&
+    !showOfferWorkspace &&
+    !showFinanceWorklist &&
+    !showAdminUsers &&
+    !showDomainHubChrome;
+  const showDocumentWorkspace = hashPath === "/dokument";
+  const showHomeDashboard = showMainWorkspaceChrome && hashPath === "/";
 
   useEffect(() => {
     if (!showFinancePrep) return;
@@ -336,7 +389,7 @@ export default function App() {
           p.id === "finance-grundeinstellungen" ? FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH : FINANCE_PREP_HASH;
         return;
       }
-      window.location.hash = "#/";
+      window.location.hash = DOCUMENT_WORKSPACE_HASH;
       await fetchAllowedFor(p.documentId, p.entityType);
     },
     [fetchAllowedFor],
@@ -349,6 +402,7 @@ export default function App() {
     setInvoiceDunningRemindersJson("");
     setInvoicePaymentTermsJson("");
     setInvoiceAllowedActionsShellJson("");
+    setInvoiceOfferVersionAllowedActionsJson("");
     setInvoiceEInvoiceTenantJson("");
     setInvoiceEInvoiceCustomersListJson("");
     setInvoiceEInvoiceBuyerJson("");
@@ -501,6 +555,27 @@ export default function App() {
     try {
       const r = await client.getAllowedActions(invoiceShellDetail.invoiceId, "INVOICE");
       setInvoiceAllowedActionsShellJson(JSON.stringify(r, null, 2));
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setBanner({
+          kind: "error",
+          text: e.envelope.message,
+          code: e.envelope.code,
+          correlationId: e.envelope.correlationId,
+        });
+      } else setBanner({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [client, invoiceShellDetail]);
+
+  const loadInvoiceShellOfferVersionAllowedActions = useCallback(async () => {
+    if (!invoiceShellDetail?.offerVersionId) return;
+    setBusy(true);
+    setBanner(null);
+    try {
+      const r = await client.getAllowedActions(invoiceShellDetail.offerVersionId, "OFFER_VERSION");
+      setInvoiceOfferVersionAllowedActionsJson(JSON.stringify(r, null, 2));
     } catch (e) {
       if (e instanceof ApiError) {
         setBanner({
@@ -969,29 +1044,20 @@ export default function App() {
 
   return (
     <AppShell
+      integrationChrome={showExpertUi}
       offlineNote={
         browserOnline
           ? undefined
           : "Offline (Browser): nur App-Shell und statische Assets (Workbox). API und Schreibaktionen (Buchung, Mahnung, Zahlung, …) erfordern Netz und Backend — keine Offline-Schreibsimulation."
       }
       nav={
-        <nav className="shell-nav" aria-label="Hauptnavigation">
-          <a href="#/">Shell / Dokument</a>
-          <a href={FINANCE_PREP_HASH}>Finanz (Vorbereitung)</a>
-          <a href={FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH}>Finanz (Grundeinstellungen Mahnlauf)</a>
-          <a href="#/login">Anmeldung</a>
-          <a href="#/password-reset">Passwort vergessen</a>
-        </nav>
+        <AppPrimaryNav
+          currentPath={hashPath}
+          hasSession={Boolean(token?.trim())}
+          role={tokenRole}
+        />
       }
     >
-      {!showFinancePrep && !showLogin && !showPasswordReset ? (
-        <RoleQuickNav
-          effectiveRole={quickNavRole}
-          hasSession={Boolean(token?.trim())}
-          busy={busy}
-          onSelect={runQuickPreset}
-        />
-      ) : null}
       {banner?.kind === "error" ? (
         banner.structured ? (
           <FinanceStructuredApiError envelope={banner.structured.envelope} status={banner.structured.status} />
@@ -1027,6 +1093,7 @@ export default function App() {
           api={client}
           initialMainTab={financePrepInitialMainTab}
           showExpertIntegratorNav={showExpertUi}
+          showFortgeschrittenTab={showExpertUi}
         />
       ) : null}
 
@@ -1053,9 +1120,86 @@ export default function App() {
 
       {showPasswordReset ? <PasswordResetPage apiBase={apiBase} defaultTenantId={viteDefaultTenant} /> : null}
 
-      {!showFinancePrep && !showLogin && !showPasswordReset ? (
+      {showGeschaeftsprozess ? <GeschaeftsprozessWizard api={client} showIntegrationHints={showExpertUi} /> : null}
+
+      {showLvBearbeiten ? (
+        <LvBearbeitenPage
+          api={client}
+          showIntegrationHints={showExpertUi}
+          onOpenShellForLvActions={async (lvId) => {
+            window.location.hash = DOCUMENT_WORKSPACE_HASH;
+            await fetchAllowedFor(lvId, "LV_VERSION");
+          }}
+        />
+      ) : null}
+
+      {showStammdatenHub ? (
+        <StammdatenHubPage
+          api={token?.trim() ? client : null}
+          hasSession={Boolean(token?.trim())}
+          showIntegrationHints={showExpertUi}
+          canWriteCrmStammdaten={canManageTenantPwaExpertMode}
+        />
+      ) : null}
+      {showLvAufmassHub ? <LvAufmassHubPage showIntegrationHints={showExpertUi} /> : null}
+      {showAngeboteHub ? <AngeboteNachtraegeHubPage showIntegrationHints={showExpertUi} /> : null}
+      {showEinstellungenHub ? (
+        <EinstellungenHubPage showIntegrationHints={showExpertUi} tokenRole={tokenRole} />
+      ) : null}
+      {showHilfeHub ? <HilfeHubPage showIntegrationHints={showExpertUi} /> : null}
+
+      {showMeasurementPilot ? (
+        token?.trim() ? (
+          <MeasurementPilotListPage
+            api={client}
+            tenantId={tenantId.trim() || SEED.tenantId}
+            showIntegrationHints={showExpertUi}
+          />
+        ) : (
+          <section className="panel">
+            <p className="hint">Bitte anmelden, um Messungsversionen zu laden.</p>
+          </section>
+        )
+      ) : null}
+      {showOfferWorkspace ? (
+        token?.trim() ? (
+          <OfferSupplementWorkspacePage api={client} showIntegrationHints={showExpertUi} />
+        ) : (
+          <section className="panel">
+            <p className="hint">Bitte anmelden.</p>
+          </section>
+        )
+      ) : null}
+      {showFinanceWorklist ? (
+        token?.trim() ? (
+          <FinanceOperationalWorklistPage api={client} showIntegrationHints={showExpertUi} />
+        ) : (
+          <section className="panel">
+            <p className="hint">Bitte anmelden.</p>
+          </section>
+        )
+      ) : null}
+      {showAdminUsers ? (
+        token?.trim() ? (
+          <AdminUsersPage api={client} showIntegrationHints={showExpertUi} />
+        ) : (
+          <section className="panel">
+            <p className="hint">Bitte anmelden.</p>
+          </section>
+        )
+      ) : null}
+
+      {showMainWorkspaceChrome ? (
         <>
-      <section className="panel">
+          {showHomeDashboard ? <HomeDashboard showIntegrationHints={showExpertUi} /> : null}
+          <RoleQuickNav
+            effectiveRole={quickNavRole}
+            hasSession={Boolean(token?.trim())}
+            busy={busy}
+            onSelect={runQuickPreset}
+            showIntegrationHints={showExpertUi}
+          />
+      <section className="panel" id="session-api-panel">
         <h2>Sitzung &amp; API</h2>
         <div className="field-grid two">
           <label className="field">
@@ -1174,6 +1318,8 @@ export default function App() {
         ) : null}
       </section>
 
+      {showDocumentWorkspace ? (
+        <>
       <section className="panel" data-testid="shell-document-panel">
         <h2>Dokument (allowed-actions)</h2>
         <div className="field-grid two">
@@ -1504,6 +1650,22 @@ export default function App() {
             </dd>
             <dt className="label">Bezahlt</dt>
             <dd style={{ margin: 0 }}>{formatShellEur(invoiceShellDetail.totalPaidCents)}</dd>
+            <dt className="label">LV-Version (Trace)</dt>
+            <dd style={{ margin: 0 }} data-testid="shell-invoice-trace-lv">
+              <code>{invoiceShellDetail.lvVersionId}</code>
+            </dd>
+            <dt className="label">Aufmass-ID</dt>
+            <dd style={{ margin: 0 }} data-testid="shell-invoice-trace-measurement">
+              <code>{invoiceShellDetail.measurementId}</code>
+            </dd>
+            <dt className="label">Angebotsversion</dt>
+            <dd style={{ margin: 0 }} data-testid="shell-invoice-trace-offer-version">
+              {invoiceShellDetail.offerVersionId ? (
+                <code>{invoiceShellDetail.offerVersionId}</code>
+              ) : (
+                <span>—</span>
+              )}
+            </dd>
           </dl>
           <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.65rem", marginBottom: "0.35rem" }}>
             Weitere Lesepfade (keine Schreibaktionen):{" "}
@@ -1516,7 +1678,14 @@ export default function App() {
             </code>
             , <code>GET /finance/payment-terms</code> (<code>projectId</code> aus dieser Rechnung:{" "}
             <code>{invoiceShellDetail.projectId}</code>),{" "}
-            <code>GET /documents/…/allowed-actions</code> (<code>INVOICE</code>),{" "}
+            <code>GET /documents/…/allowed-actions</code> (<code>INVOICE</code>
+            {invoiceShellDetail.offerVersionId ? (
+              <>
+                ; bei gesetzter Angebotsversion zusätzlich <code>OFFER_VERSION</code> mit{" "}
+                <code>{invoiceShellDetail.offerVersionId}</code>
+              </>
+            ) : null}
+            ),{" "}
             <code>GET /finance/e-invoice-parties/tenant</code>, <code>GET …/customers</code>,{" "}
             <code>{`GET …/customers/{customerId}`}</code> (aus dieser Rechnung:{" "}
             <code>{invoiceShellDetail.customerId}</code>), <code>GET /finance/invoice-tax-profile</code>,{" "}
@@ -1547,6 +1716,15 @@ export default function App() {
               onClick={() => void loadInvoiceAllowedActionsForShell()}
             >
               Erlaubte Aktionen Rechnung (GET)
+            </button>
+            <button
+              type="button"
+              disabled={busy || !invoiceShellDetail.offerVersionId}
+              aria-label="Erlaubte Aktionen für die Angebotsversion dieser Rechnung laden (GET)"
+              data-testid="shell-invoice-offer-version-allowed-actions-fetch"
+              onClick={() => void loadInvoiceShellOfferVersionAllowedActions()}
+            >
+              Erlaubte Aktionen Angebotsversion (GET)
             </button>
             <button
               type="button"
@@ -1648,6 +1826,16 @@ export default function App() {
               </ShellExpertDiagnosticsJson>
             </>
           ) : null}
+          {invoiceOfferVersionAllowedActionsJson ? (
+            <>
+              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
+                Antwort allowed-actions (OFFER_VERSION)
+              </h3>
+              <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-invoice-offer-version-allowed-actions-json">
+                {invoiceOfferVersionAllowedActionsJson}
+              </ShellExpertDiagnosticsJson>
+            </>
+          ) : null}
           {invoiceEInvoiceTenantJson ? (
             <>
               <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
@@ -1719,6 +1907,8 @@ export default function App() {
             </>
           ) : null}
         </section>
+      ) : null}
+        </>
       ) : null}
 
       {modalAction ? (

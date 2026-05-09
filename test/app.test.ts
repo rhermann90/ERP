@@ -390,6 +390,82 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     expect(response.json().code).toBe("AUTH_ROLE_FORBIDDEN");
   });
 
+  it("POST /offers creates offer and initial ENTWURF version (ADMIN)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/offers",
+      headers,
+      payload: {
+        projectId: SEED_IDS.projectId,
+        customerId: SEED_IDS.customerId,
+        lvVersionId: SEED_IDS.lvVersionId,
+        systemText: "Sys neu",
+        editingText: "Ed neu",
+        reason: "Test POST /offers Stamm",
+      },
+    });
+    expect(res.statusCode).toBe(201);
+    const j = res.json() as { offerId: string; offerVersionId: string };
+    expect(j.offerId).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(j.offerVersionId).toMatch(/^[0-9a-f-]{36}$/i);
+  });
+
+  it("POST /offers 403 for VIEWER", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/offers",
+      headers: buildHeaders("VIEWER"),
+      payload: {
+        projectId: SEED_IDS.projectId,
+        customerId: SEED_IDS.customerId,
+        lvVersionId: SEED_IDS.lvVersionId,
+        systemText: "Sys",
+        editingText: "Ed",
+        reason: "Test viewer forbidden offer create",
+      },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("POST /offers 422 LV_PROJECT_MISMATCH when projectId disagrees with LV catalog", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/offers",
+      headers,
+      payload: {
+        projectId: randomUUID(),
+        customerId: SEED_IDS.customerId,
+        lvVersionId: SEED_IDS.lvVersionId,
+        systemText: "Sys",
+        editingText: "Ed",
+        reason: "Test project mismatch",
+      },
+    });
+    expect(res.statusCode).toBe(422);
+    expect(res.json().code).toBe("LV_PROJECT_MISMATCH");
+  });
+
+  it("GET allowed-actions entityType=PROJECT lists OFFER_CREATE and MEASUREMENT_CREATE for ADMIN", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: `/documents/${SEED_IDS.projectId}/allowed-actions?entityType=PROJECT`,
+      headers,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().allowedActions).toContain("OFFER_CREATE");
+    expect(res.json().allowedActions).toContain("MEASUREMENT_CREATE");
+  });
+
+  it("GET allowed-actions entityType=PROJECT yields empty list for VIEWER", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: `/documents/${SEED_IDS.projectId}/allowed-actions?entityType=PROJECT`,
+      headers: buildHeaders("VIEWER"),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().allowedActions).toEqual([]);
+  });
+
   it("returns backend source-of-truth allowed actions per role", async () => {
     const response = await app.inject({
       method: "GET",
@@ -1886,3 +1962,31 @@ describe("ERP domain slice (Teil I Domäne)", () => {
     });
   });
 });
+
+describe("CRM Stammdaten (ADR 0019) — Memory-Modus", () => {
+  let app: FastifyInstance;
+  const userId = "77777777-7777-4777-8777-777777777777";
+  beforeEach(async () => {
+    app = await buildApp({ seedDemoData: true, repositoryMode: "memory" });
+    await app.ready();
+  });
+  afterEach(async () => {
+    await app.close();
+  });
+  it("GET /crm/projects ohne Postgres -> CRM_PERSISTENCE_UNAVAILABLE", async () => {
+    const token = createSignedToken({
+      sub: userId,
+      tenantId: SEED_IDS.tenantId,
+      role: "ADMIN",
+      exp: Math.floor(Date.now() / 1000) + 600,
+    });
+    const res = await app.inject({
+      method: "GET",
+      url: "/crm/projects",
+      headers: { authorization: `Bearer ${token}`, "x-tenant-id": SEED_IDS.tenantId },
+    });
+    expect(res.statusCode).toBe(503);
+    expect((res.json() as { code: string }).code).toBe("CRM_PERSISTENCE_UNAVAILABLE");
+  });
+});
+

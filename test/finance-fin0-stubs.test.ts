@@ -244,6 +244,23 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     expect(draft.skontoBps).toBe(0);
   });
 
+  it("POST /invoices rejects unknown measurementId (MEASUREMENT_NOT_FOUND)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/invoices",
+      headers: buildHeaders(),
+      payload: {
+        lvVersionId: SEED_IDS.lvVersionId,
+        offerVersionId: SEED_IDS.offerVersionId,
+        invoiceCurrencyCode: "EUR",
+        measurementId: "99999999-9999-4999-8999-999999999999",
+        reason: "FIN-2 draft unknown measurementId",
+      },
+    });
+    expect(res.statusCode).toBe(404);
+    expect((res.json() as { code: string }).code).toBe("MEASUREMENT_NOT_FOUND");
+  });
+
   it("POST /invoices applies optional skontoBps (B2-1a) to net before VAT", async () => {
     const res = await app.inject({
       method: "POST",

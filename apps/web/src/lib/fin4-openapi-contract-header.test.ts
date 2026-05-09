@@ -16,6 +16,7 @@ describe("isFin4OpenApiContractResponsePath", () => {
     expect(isFin4OpenApiContractResponsePath("/finance/dunning-email-footer?x=1")).toBe(true);
     expect(isFin4OpenApiContractResponsePath("/finance/e-invoice-parties/tenant")).toBe(true);
     expect(isFin4OpenApiContractResponsePath("/tenant/pwa-display-settings")).toBe(true);
+    expect(isFin4OpenApiContractResponsePath("/crm/projects")).toBe(true);
   });
   it("does not match invoice-scoped dunning routes", () => {
     expect(isFin4OpenApiContractResponsePath("/invoices/00000000-0000-4000-8000-000000000001/dunning-reminders")).toBe(

@@ -255,6 +255,58 @@ button {
   outline-offset: 2px;
 }
 
+.shell-nav a[aria-current="page"] {
+  font-weight: var(--font-weight-title);
+  background: var(--muted-surface);
+  text-decoration: none;
+}
+
+.home-dashboard-domain-heading {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-title);
+  letter-spacing: var(--letter-tight);
+  margin: var(--space-6) 0 var(--space-3);
+  color: var(--text);
+}
+
+.home-dashboard-domain-heading:first-of-type {
+  margin-top: var(--space-4);
+}
+
+.product-empty-state {
+  margin-top: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+}
+
+.product-empty-state-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-title);
+}
+
+.product-empty-state-desc {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+}
+
+.product-empty-state-actions {
+  margin-top: var(--space-4);
+}
+
+.domain-hub-list {
+  margin: var(--space-3) 0 0;
+  padding-left: 1.25rem;
+  font-size: var(--font-size-base);
+}
+
+.domain-hub-list li {
+  margin-bottom: var(--space-2);
+}
+
 @media (min-width: 880px) {
   .app-shell-body {
     grid-template-columns: 11.5rem minmax(0, 1fr);
@@ -363,6 +415,96 @@ button {
 
 .quick-role-panel {
   margin-bottom: var(--space-4);
+}
+
+.home-dashboard {
+  margin-bottom: var(--space-4);
+}
+
+.home-dashboard-tile-grid .quick-role-tile {
+  text-decoration: none;
+  color: inherit;
+}
+
+.lv-pilot-intro-panel h2 {
+  margin-top: 0;
+}
+
+.lv-workbench-heading {
+  margin-top: 0;
+}
+
+.lv-workbench-tree {
+  max-height: 22rem;
+  overflow: auto;
+}
+
+.lv-workbench-node {
+  margin-bottom: 0.75rem;
+}
+
+.lv-workbench-meta {
+  margin-bottom: 0.5rem;
+}
+
+.lv-workbench-line {
+  font-size: 0.9rem;
+}
+
+.lv-workbench-pos-list {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.lv-workbench-pos-item {
+  margin-bottom: 0.35rem;
+}
+
+.geschaeftsprozess-intro-panel h2 {
+  margin-top: 0;
+}
+
+.geschaeftsprozess-step-list {
+  margin: 0 0 var(--space-4);
+  padding-left: 1.25rem;
+}
+
+.geschaeftsprozess-step-active {
+  font-weight: 600;
+}
+
+.geschaeftsprozess-step-heading {
+  margin-top: 0;
+}
+
+.geschaeftsprozess-allowed-json {
+  margin-top: 0.75rem;
+  max-height: 10rem;
+  overflow: auto;
+}
+
+.geschaeftsprozess-allowed-summary {
+  margin-top: 0.75rem;
+}
+
+.geschaeftsprozess-field-spaced {
+  margin-top: 0.75rem;
+}
+
+.geschaeftsprozess-btn-spaced {
+  margin-top: 0.5rem;
+}
+
+.geschaeftsprozess-nav-row {
+  margin-top: 1rem;
+}
+
+.geschaeftsprozess-nav-row .btn-primary {
+  margin-left: 0.5rem;
+}
+
+.geschaeftsprozess-back-inline {
+  margin-left: 0.5rem;
 }
 
 .quick-role-grid {

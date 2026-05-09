@@ -7,7 +7,7 @@ import {
 } from "../domain/invoice-calculation.js";
 import { getMandatoryTaxNoticeLines } from "../domain/invoice-tax-mandatory-notices.js";
 import type { InvoiceTaxRegime } from "../domain/invoice-tax-regime.js";
-import type { Invoice, TenantId, UUID } from "../domain/types.js";
+import type { Invoice, Measurement, TenantId, UUID } from "../domain/types.js";
 import { DomainError } from "../errors/domain-error.js";
 import type { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import type { InvoicePersistencePort } from "../persistence/invoice-persistence.js";
@@ -29,6 +29,8 @@ export type CreateInvoiceDraftInput = {
   lvVersionId: UUID;
   offerVersionId: UUID;
   invoiceCurrencyCode: "EUR";
+  /** Explizites Aufmass; sonst ältestes zur Kette passendes (createdAt, dann id). */
+  measurementId?: UUID;
   paymentTermsVersionId?: UUID;
   /** 8.4(2) B2-1a: Skonto in Basispunkten; fehlend = 0. */
   skontoBps?: number;
@@ -96,21 +98,48 @@ export class InvoiceService {
     if (!offer) {
       throw new DomainError("OFFER_NOT_FOUND", "Angebot nicht gefunden", 404);
     }
-    const measurements = [...this.repos.measurements.values()].filter(
+    const candidateMeasurements = [...this.repos.measurements.values()].filter(
       (m) =>
         m.tenantId === input.tenantId &&
         m.projectId === offer.projectId &&
         m.customerId === offer.customerId &&
         m.lvVersionId === input.lvVersionId,
     );
-    if (measurements.length === 0) {
+    if (candidateMeasurements.length === 0) {
       throw new DomainError(
         "TRACEABILITY_LINK_MISSING",
         "Kein Aufmass fuer Projekt/Kunde/LV-Version — Rechnungskette unvollstaendig",
         422,
       );
     }
-    const measurement = measurements[0]!;
+
+    let measurement: Measurement;
+    const explicitId = input.measurementId?.trim();
+    if (explicitId) {
+      const byId = this.repos.getMeasurementByTenant(input.tenantId, explicitId);
+      if (!byId) {
+        throw new DomainError("MEASUREMENT_NOT_FOUND", "Aufmass nicht gefunden", 404);
+      }
+      const chainOk =
+        byId.projectId === offer.projectId &&
+        byId.customerId === offer.customerId &&
+        byId.lvVersionId === input.lvVersionId;
+      if (!chainOk) {
+        throw new DomainError(
+          "TRACEABILITY_FIELD_MISMATCH",
+          "measurementId passt nicht zur Angebotskette (Projekt/Kunde/LV-Version)",
+          422,
+        );
+      }
+      measurement = byId;
+    } else {
+      candidateMeasurements.sort((a, b) => {
+        const dt = a.createdAt.getTime() - b.createdAt.getTime();
+        if (dt !== 0) return dt;
+        return a.id.localeCompare(b.id);
+      });
+      measurement = candidateMeasurements[0]!;
+    }
 
     if (input.paymentTermsVersionId) {
       const ptv = this.repos.getPaymentTermsVersionByTenant(input.tenantId, input.paymentTermsVersionId);

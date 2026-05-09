@@ -13,6 +13,7 @@ Eine Seite für **Orientierung**: wohin mit Fragen zu PWA-Oberfläche, Theming u
 | PWA-Betrieb, SoT, API-Oberfläche | [`apps/web/README.md`](../apps/web/README.md) |
 | Agenten-Lesepfad | [`AGENTS.md`](../AGENTS.md) (Punkt 5 PWA / UI-UX) |
 | Code-Landkarte `apps/web` | [`docs/CODEMAPS/overview.md`](./CODEMAPS/overview.md) (Abschnitt PWA) |
+| PWA MVP-Zielbild und Umsetzungsstand | [`docs/PWA-Entwicklungsreferenz.md`](./PWA-Entwicklungsreferenz.md) |
 
 ## Cursor / KI
 

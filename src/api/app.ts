@@ -5,6 +5,7 @@ import { assertSystemTextNotInUpdatePayload } from "../domain/lv-text-structure-
 import { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import { AuditService } from "../services/audit-service.js";
 import { AuthorizationService } from "../services/authorization-service.js";
+import { CrmStammdatenService } from "../services/crm-stammdaten-service.js";
 import { ExportService } from "../services/export-service.js";
 import { LvReferenceValidator } from "../services/lv-reference-validator.js";
 import { LvHierarchyService } from "../services/lv-hierarchy-service.js";
@@ -29,6 +30,7 @@ import {
   createMeasurementSchema,
   createMeasurementVersionSchema,
   createSupplementSchema,
+  createOfferSchema,
   createOfferVersionSchema,
   patchLvPositionSchema,
   prepareExportSchema,
@@ -41,6 +43,7 @@ import {
 } from "../validation/schemas.js";
 import { seedDemoData, SEED_IDS } from "../composition/seed.js";
 import { seedAuthUsers } from "../composition/seed-auth-prisma.js";
+import { seedCrmStammdaten } from "../composition/seed-crm-stammdaten-prisma.js";
 import {
   buildFastifyLoggerOptions,
   normalizeCorsOrigins,
@@ -145,6 +148,7 @@ import { registerDunningReminderConfigRoutes } from "./finance-dunning-config-ro
 import { registerInvoiceFinanceRoutes } from "./finance-invoice-routes.js";
 import { registerFinanceInvoiceTaxRoutes } from "./finance-invoice-tax-routes.js";
 import { registerFinanceEInvoicePartyRoutes } from "./finance-e-invoice-party-routes.js";
+import { registerCrmStammdatenRoutes } from "./crm-stammdaten-routes.js";
 import { registerAuthLoginRoutes } from "./auth-login-routes.js";
 import { registerPasswordResetRoutes } from "./password-reset-routes.js";
 import { registerUserAccountRoutes } from "./user-account-routes.js";
@@ -276,6 +280,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       await invoicePersistence.syncAllInvoicesFromMemory(repos);
       await invoiceTaxProfilePersistence.upsertTenantProfileFromMemory(repos, SEED_IDS.tenantId);
       await eInvoicePartyPersistence.syncAllFromMemory(repos);
+      await seedCrmStammdaten(prisma);
       await paymentIntakePersistence.hydrateIntoMemory(repos);
       await dunningReminderPersistence.hydrateIntoMemory(repos);
       await dunningEmailSendPersistence.hydrateIntoMemory(repos);
@@ -394,6 +399,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     dunningReminderEmailService,
   );
   const authorizationService = new AuthorizationService(repos);
+  const crmStammdatenService = new CrmStammdatenService(prisma);
   const measurementService = new MeasurementService(repos, audit, lvRef, lvMeasurementPersistence);
   const lvService = new LvService(repos, audit, lvMeasurementPersistence, authorizationService);
   const lvHierarchyService = new LvHierarchyService(lvService);
@@ -666,6 +672,22 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     }
   });
 
+  app.post("/offers", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      const body = createOfferSchema.parse(request.body);
+      authorizationService.assertCanCreateOffer(auth.role);
+      const result = await offerService.createOfferWithInitialVersion({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        ...body,
+      });
+      return reply.status(201).send(result);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
   app.post("/offers/version", async (request, reply) => {
     try {
       const auth = parseAuthContext(request.headers);
@@ -848,6 +870,11 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   registerFinanceEInvoicePartyRoutes(app, {
     authorizationService,
     eInvoicePartySettingsService,
+  });
+
+  registerCrmStammdatenRoutes(app, {
+    authorizationService,
+    crmStammdatenService,
   });
 
   registerDunningReminderConfigRoutes(app, {

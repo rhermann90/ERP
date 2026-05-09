@@ -8,6 +8,8 @@ type Props = {
   hasSession: boolean;
   busy: boolean;
   onSelect: (preset: QuickPreset) => void | Promise<void>;
+  /** §11.1-Mapping und Repo-Link — nur für Integrations-/Expertenkontext. */
+  showIntegrationHints?: boolean;
 };
 
 const ROLE_LABEL: Record<ApiUserRole, string> = {
@@ -18,25 +20,38 @@ const ROLE_LABEL: Record<ApiUserRole, string> = {
   VIEWER: "Viewer (nur Lesen)",
 };
 
-export function RoleQuickNav({ effectiveRole, hasSession, busy, onSelect }: Props) {
+export function RoleQuickNav({
+  effectiveRole,
+  hasSession,
+  busy,
+  onSelect,
+  showIntegrationHints = false,
+}: Props) {
   const presets = quickPresetsForRole(effectiveRole);
   const v13Hint = v13DomainRolesForApiRole(effectiveRole).join(" · ");
   const mappingHref = repoDocHref("docs/contracts/ui-role-mapping-v1-3.md");
   return (
     <section className="panel quick-role-panel" aria-labelledby="quick-role-heading">
-      <h2 id="quick-role-heading">Schnellzugriff (≤3 Klicks bis Aktionen)</h2>
+      <h2 id="quick-role-heading">Schnellzugriff</h2>
       <p className="shell-sub" style={{ marginTop: 0 }}>
-        API-Rolle <strong>{ROLE_LABEL[effectiveRole]}</strong> — v1.3-Bezug (§11.1): <span>{v13Hint}</span>.{" "}
-        {mappingHref ? (
-          <a href={mappingHref} target="_blank" rel="noopener noreferrer">
-            Tabelle im Repo
-          </a>
-        ) : (
-          <span>
-            Mapping: <code>docs/contracts/ui-role-mapping-v1-3.md</code>
-          </span>
-        )}
-        . {!hasSession ? "Ohne Token: Demo-Priorität wie Viewer — nach Anmeldung passt sich die Reihenfolge an." : null}
+        Rolle: <strong>{ROLE_LABEL[effectiveRole]}</strong>
+        {showIntegrationHints ? (
+          <>
+            {" "}
+            — v1.3-Bezug (§11.1): <span>{v13Hint}</span>.{" "}
+            {mappingHref ? (
+              <a href={mappingHref} target="_blank" rel="noopener noreferrer">
+                Tabelle im Repo
+              </a>
+            ) : (
+              <span>
+                Mapping: <code>docs/contracts/ui-role-mapping-v1-3.md</code>
+              </span>
+            )}
+            .
+          </>
+        ) : null}{" "}
+        {!hasSession ? "Ohne Anmeldung: eingeschränkte Demo-Reihenfolge — nach Anmeldung nach Rolle." : null}
       </p>
       <div className="quick-role-grid">
         {presets.map((p) => (

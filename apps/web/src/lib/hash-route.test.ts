@@ -1,8 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   FINANCE_PREP_GRUNDEINSTELLUNGEN_HASH,
+  STAMMDATEN_HASH,
+  applyStammdatenCustomerIdToLocationHash,
   financePrepHashWithTab,
   normalizeFinancePrepHashToCanon,
+  readStammdatenCustomerIdFromHash,
+  stammdatenHashWithCustomerId,
 } from "./hash-route.js";
 
 describe("financePrepHashWithTab", () => {
@@ -36,5 +40,37 @@ describe("normalizeFinancePrepHashToCanon", () => {
     const before = window.location.hash;
     normalizeFinancePrepHashToCanon();
     expect(window.location.hash).toBe(before);
+  });
+});
+
+describe("stammdatenHashWithCustomerId / readStammdatenCustomerIdFromHash", () => {
+  it("baut Deep-Link mit customerId", () => {
+    const id = "aaaaaaaa-bbbb-4ccc-dddd-eeeeeeeeeeee";
+    expect(stammdatenHashWithCustomerId(id)).toBe(`${STAMMDATEN_HASH}?customerId=${encodeURIComponent(id)}`);
+  });
+
+  it("liest customerId aus aktuellem Hash", () => {
+    window.history.replaceState(null, "", "/");
+    window.location.hash = "#/stammdaten?customerId=bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb";
+    expect(readStammdatenCustomerIdFromHash()).toBe("bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb");
+  });
+
+  it("applyStammdatenCustomerIdToLocationHash setzt Hash und löst hashchange aus", () => {
+    window.history.replaceState(null, "", "/");
+    window.location.hash = "#/stammdaten";
+    const listener = vi.fn();
+    window.addEventListener("hashchange", listener);
+    const id = "aaaaaaaa-bbbb-4ccc-dddd-eeeeeeeeeeee";
+    applyStammdatenCustomerIdToLocationHash(id);
+    expect(window.location.hash).toBe(`#/stammdaten?customerId=${id}`);
+    expect(listener).toHaveBeenCalled();
+    window.removeEventListener("hashchange", listener);
+  });
+
+  it("applyStammdatenCustomerIdToLocationHash(null) entfernt customerId-Query", () => {
+    window.history.replaceState(null, "", "/");
+    window.location.hash = "#/stammdaten?customerId=cccccccc-cccc-4ccc-cccc-cccccccccccc";
+    applyStammdatenCustomerIdToLocationHash(null);
+    expect(window.location.hash).toBe("#/stammdaten");
   });
 });

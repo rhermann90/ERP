@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   computeGrossFromLvNetEurMvp,
+  computeInvoiceNetPipeline84Through6Mvp,
   computeInvoiceTotalsForTaxRegime,
   netCentsAfterStep84_6Mvp,
   skontoNetReductionCents84_2,
@@ -47,10 +48,24 @@ describe("invoice-calculation 8.4", () => {
     expect(r.totalGrossCents).toBe(148750);
   });
 
-  it("netCentsAfterStep84_6Mvp lässt Netto nach Schritt 1 unverändert (B2-0: Schritte 2–6 noch kein Produktcode)", () => {
+  it("netCentsAfterStep84_6Mvp lässt Netto nach Schritt 1 unverändert (B2-0: Schritte 3–6 Identität)", () => {
     expect(netCentsAfterStep84_6Mvp(125000)).toBe(125000);
     const chained = computeGrossFromLvNetEurMvp(netCentsAfterStep84_6Mvp(125000));
     expect(chained.totalGrossCents).toBe(148750);
+  });
+
+  it("computeInvoiceNetPipeline84Through6Mvp benennt Schritte 2–6; 3–6 Identität ohne Skonto", () => {
+    const b = computeInvoiceNetPipeline84Through6Mvp(125000);
+    expect(b.netAfterStep1Cents).toBe(125000);
+    expect(b.netAfterStep6Cents).toBe(125000);
+    expect(b.subtotalAfterStep3Cents).toBe(b.netAfterStep2Cents);
+  });
+
+  it("computeInvoiceNetPipeline84Through6Mvp: Skonto nur in Schritt 2; Folgeschritte spiegeln", () => {
+    const b = computeInvoiceNetPipeline84Through6Mvp(125000, { skontoBps: 200 });
+    expect(b.netAfterStep2Cents).toBe(122500);
+    expect(b.netAfterStep6Cents).toBe(122500);
+    expect(netCentsAfterStep84_6Mvp(125000, { skontoBps: 200 })).toBe(b.netAfterStep6Cents);
   });
 
   it("B2-1a: Skonto 200 Bps (2 %) auf 125000 Cent Netto nach Schritt 1", () => {

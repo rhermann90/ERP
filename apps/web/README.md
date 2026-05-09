@@ -13,10 +13,18 @@ In der Shell: **Darstellung** → **Hell**, **Dunkel (warm)**, **Dunkel (neutral
 | `VITE_API_BASE_URL` | Backend-Origin, z. B. `http://localhost:3000` (Default im Code, falls unset) |
 | `VITE_REPO_DOCS_BASE` | Optional: GitHub-`blob/main`-URL **ohne** trailing slash — klickbare Links auf der Seite **Finanz (Vorbereitung)** (`#/finanz-vorbereitung`) |
 | `VITE_EXPECTED_OPENAPI_CONTRACT_VERSION` | Optional: gleicher Wert wie `docs/api-contract.yaml` `info.version` zum PWA-Release — bei Abweichung zu `x-erp-openapi-contract-version` auf FIN-4-Pfaden nur `console.warn` (siehe [`docs/contracts/FIN4-external-client-integration.md`](../docs/contracts/FIN4-external-client-integration.md)) |
+| `VITE_PWA_EXPERT_UI=1` | Optional: Experten-UI (Integrationstexte, Tab „Fortgeschritten“ in Finanz-Vorbereitung, technische Shell-Hilfen) auch im Production-Build — ohne diese Variable zusätzlich **`GET /tenant/pwa-display-settings`** (Mandanten-Flag) und im **Vite-Dev-Server** sind dieselben Hilfen eingeschaltet. |
 
 Kopiere `apps/web/.env.example` nach `.env` (nur Vite-Variablen). Backend-Umgebung siehe Repo-Root [`.env.example`](../.env.example).
 
-Die PWA dupliziert **keine** Domänenlogik: Berechtigungen und Status kommen aus dem Backend (`allowedActions`, Fehler-Envelope).
+## Routing (Start vs. Dokument-Arbeitsbereich)
+
+- **`#/`** — Start nach Login: **HomeDashboard** (Kacheln Finanz → Pilot → erweiterte Dokumentansicht) und **Schnellzugriff**; keine große Dokument-/JSON-Shell. Kurzer Einleitungstext; technischer Hinweis mit Link zu **Dokument und Details** nur bei Expertenmodus (`VITE_PWA_EXPERT_UI`, Mandanten-Flag oder Vite-Dev), wie bei Schnellzugriff.
+- **`#/dokument`** — **Dokument-Arbeitsbereich** (Entity-Typ, UUID, GET, Roh-JSON, FIN-4-Lesepfade, Mandanten-PWA-Anzeige): für Integration und E2E über denselben Hash erreichbar.
+- **`#/lv-bearbeiten`** — **LV (Pilot):** Lesepfad (`LvWorkbench`); direkte SoT-Aktionen (`LvVersionSotPanel`) nur bei Expertenmodus wie auf der Startseite.
+- **`#/geschaeftsprozess`** — **Geschäftsprozess (Pilot):** geführter Flow LV → Aufmass → Angebot → Rechnungsentwurf; Roh-JSON der Projekt-`allowedActions` nur bei Expertenmodus (sonst Kurzliste der Aktionen).
+
+Die PWA dupliziert **keine** Domänenlogik: Berechtigungen und Status kommen aus dem Backend (`allowedActions`, Fehler-Envelope). Welche Aktionen die Shell über `src/lib/action-executor.ts` ausführt und welche (z. B. FIN-3/FIN-5) nur in der Finanz-Vorbereitung — [`docs/contracts/ui-action-executor-coverage.md`](../docs/contracts/ui-action-executor-coverage.md).
 
 ## Ersten Eindruck / Demo starten
 
@@ -41,7 +49,7 @@ Details zu Postgres, `DATABASE_URL` und Prisma: [Root-`README.md`](../README.md)
 
 **Rechnungsexport (SoT):** Kanonische `actionId` ist **`EXPORT_INVOICE`** (`EXPORT_INVOICE_XRECHNUNG` nicht verwenden); `POST /exports` nutzt für Rechnungen fest **`format: XRECHNUNG`** — siehe `docs/contracts/action-contracts.json`.
 
-**Rechnung buchen FIN-2 (SoT):** In der **Haupt-Shell** (`#/`) nur, wenn **`BOOK_INVOICE`** in `GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE` steht (Status **ENTWURF**, Rollen ADMIN / GESCHAEFTSFUEHRUNG / BUCHHALTUNG); Ausführung über `executeActionWithSotGuard` → `POST /invoices/{invoiceId}/book` mit **`reason`** (mind. 5 Zeichen), optional **`issueDate`** (`yyyy-mm-dd`). Siehe `docs/contracts/action-contracts.json`.
+**Rechnung buchen FIN-2 (SoT):** Im **Dokument-Arbeitsbereich** (`#/dokument`) nur, wenn **`BOOK_INVOICE`** in `GET /documents/{invoiceId}/allowed-actions?entityType=INVOICE` steht (Status **ENTWURF**, Rollen ADMIN / GESCHAEFTSFUEHRUNG / BUCHHALTUNG); Ausführung über `executeActionWithSotGuard` → `POST /invoices/{invoiceId}/book` mit **`reason`** (mind. 5 Zeichen), optional **`issueDate`** (`yyyy-mm-dd`). Siehe `docs/contracts/action-contracts.json`.
 
 **Zahlungseingang FIN-3 (SoT):** In **Finanz (Vorbereitung)** nur, wenn **`RECORD_PAYMENT_INTAKE`** in den geladenen `allowedActions` steht (nach „GET Rechnung“); Aufruf `POST /finance/payments/intake` mit Header **`Idempotency-Key`** (UUID).
 
@@ -79,7 +87,7 @@ npm run test     # Frontend-Unit-Tests (SoT, Session, Envelope, Text-Rendering)
 
 Gelesen: [`docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md`](../docs/MVP-FINANZ-PHASEN-UND-ARBEITSPLAN.md), [`docs/tickets/FIN-2-START-GATE.md`](../docs/tickets/FIN-2-START-GATE.md). **Koordination / Gates:** [`docs/contracts/qa-fin-0-gate-readiness.md`](../docs/contracts/qa-fin-0-gate-readiness.md), [`docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md`](../docs/tickets/PL-SYSTEM-ZUERST-VORLAGE.md) *(Pfadname historisch — Sprint-/Prioritäts-Snapshot)*.
 
-**Haupt-Shell (`#/`):** Dokument-ID + `entityType`, dann **„Allowed Actions laden“**. Schreibaktionen nur, wenn die gewählte `actionId` in der zuletzt geladenen Liste steht — Ausführung über **`executeActionWithSotGuard`** (u. a. **BOOK_INVOICE** → Buchung, **EXPORT_INVOICE**, Angebots-/Aufmass-/LV-Aktionen). Keine parallele „versteckte“ Buchung ohne SoT. **„Detail (GET)“** bindet je nach `entityType` u. a. **`GET /lv/versions/{lvVersionId}`** für **LV_VERSION** (read-only Snapshot: Katalogkurzinfo, Knoten, Positionen).
+**Dokument-Arbeitsbereich (`#/dokument`):** Dokument-ID + `entityType`, dann **„Allowed Actions laden“**. Schreibaktionen nur, wenn die gewählte `actionId` in der zuletzt geladenen Liste steht — Ausführung über **`executeActionWithSotGuard`** (u. a. **BOOK_INVOICE** → Buchung, **EXPORT_INVOICE**, Angebots-/Aufmass-/LV-Aktionen). Keine parallele „versteckte“ Buchung ohne SoT. **„Detail (GET)“** bindet je nach `entityType` u. a. **`GET /lv/versions/{lvVersionId}`** für **LV_VERSION** (read-only Snapshot: Katalogkurzinfo, Knoten, Positionen).
 
 **Finanz (Vorbereitung) (`#/finanz-vorbereitung`):** Transparenz-Links (ADR 0007, 0008, **0009**, FIN-2-Gate, OpenAPI-Mapping, Stub-Testmatrix, MVP-Phasen, Prioritäts-Snapshot). **Lesend:** Zahlungsbedingungen je Projekt, Rechnungsentwurf, `GET` Rechnung inkl. **Zahlungseingänge** und **Mahn-Ereignisse** (FIN-4 Stub-Liste). **Schreibend:** Zahlungseingang nur mit SoT **`RECORD_PAYMENT_INTAKE`** + `Idempotency-Key`. **API-Client / Fehler:** Envelope wie oben (`api-error.ts`, `error-codes.json`, Decision-Log). **UI (Ist):** Kurze Feature-Matrix, nummerierte Schritte mit SoT-abhängigen Button-Zuständen, Skonto (`skontoBps`) im Entwurf und in der Rechnungsübersicht (nach **GET Rechnung** wird das Skonto-Feld mit dem Serverwert synchronisiert; bei **ENTWURF** optional **Skonto mit POST /invoices neu berechnen** mit derselben LV-/Angebots-Version), Roh-JSON unter einklappbaren Details, Zahlung/Mahnung in eigenen Panels mit lokaler Fehlerzeile. Release-Notiz: [`docs/tickets/RELEASE-PWA-SKONTO-ENTWURF-WAVE3.md`](../docs/tickets/RELEASE-PWA-SKONTO-ENTWURF-WAVE3.md).
 

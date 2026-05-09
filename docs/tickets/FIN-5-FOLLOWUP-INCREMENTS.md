@@ -1,6 +1,6 @@
 # FIN-5 Folge-Inkremente nach Merge #86 (Spur B aktiv)
 
-**Stand:** 2026-05-04 — nach Merge PR [#86](https://github.com/rhermann90/ERP/pull/86) (squash, [`a65b331`](https://github.com/rhermann90/ERP/commit/a65b3313c2c3d049c909ce34e052250fb9f25a7c)) ist FIN-5 §8.16 **Option A** im Backend produktiv ([ADR-0015](../adr/0015-fin5-invoice-tax-regimes-816.md), supersede [ADR-0014](../adr/0014-fin5-mvp-tax-fail-closed.md)). Dieses Ticket sammelt die offenen PWA-, Export- und Buchungspfade in **kleinen, einzeln verifizierten** Folge-PRs (siehe [`AGENTS.md`](../../AGENTS.md), [`docs/runbook/ci-and-persistence-tests.md`](../runbook/ci-and-persistence-tests.md), [`docs/plans/nächste-schritte.md`](../plans/nächste-schritte.md) Abschnitt „Nächste Produktspur").
+**Stand:** 2026-05-04 — nach Merge PR [#86](https://github.com/rhermann90/ERP/pull/86) (squash, [`a65b331`](https://github.com/rhermann90/ERP/commit/a65b3313c2c3d049c909ce34e052250fb9f25a7c)) ist FIN-5 §8.16 **Option A** im Backend produktiv ([ADR-0015](../adr/0015-fin5-invoice-tax-regimes-816.md), supersede [ADR-0014](../adr/0014-fin5-mvp-tax-fail-closed.md)). **Folgepakete A–D** im Abschnitt unten sind im Repo abgeschlossen; dieses Dokument bleibt als **Archiv/Verweis** für die Lieferblöcke und die Risikotabelle (siehe [`AGENTS.md`](../../AGENTS.md), [`docs/runbook/ci-and-persistence-tests.md`](../runbook/ci-and-persistence-tests.md), [`docs/plans/nächste-schritte.md`](../plans/nächste-schritte.md)).
 
 **Domänenquelle:** [`docs/ERP-Systembeschreibung.md`](../ERP-Systembeschreibung.md) §8.10 / §8.16; [`adr/0015-fin5-invoice-tax-regimes-816.md`](../adr/0015-fin5-invoice-tax-regimes-816.md).
 
@@ -60,19 +60,21 @@
 
 **Aufwand:** klein; **kein** Backend-Vertrags-Bump.
 
-### Paket C — XRechnung-Mapping für nicht-Standard-Regime
+### Paket C — XRechnung-Mapping für FIN-5-Regime
 
-**Zweck:** Aktuell fail-closed `EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED` bei `POST /exports XRECHNUNG` für nicht-Standard-Regime (ADR-0015 §Export). Mapping ergänzen.
+**Status:** erledigt (Repo) — siehe ADR-0015 §Export und [`docs/contracts/xrechnung-tax-regime-mapping.md`](../contracts/xrechnung-tax-regime-mapping.md).
 
-**Lieferung:**
+**Zweck (historisch):** Mapping der vier Option-A-Regime aus [`src/domain/invoice-tax-regime.ts`](../../src/domain/invoice-tax-regime.ts) auf UBL/XRechnung-Semantik; Preflight verweigert Export nur noch bei **ungültigem** Regime-String (`EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED` = Dateninkonsistenz oder künftige Enum-Erweiterung ohne Mapping — vgl. ADR-0015).
 
-- Adapter in [`src/services/export-service.ts`](../../src/services/export-service.ts) oder dediziertes XRechnung-Modul: Steuerregime → XRechnung-Codes (CEF / EN16931); Pflicht-Hinweise im XML-Output.
-- Persistenz-Test in [`test/persistence.integration.test.ts`](../../test/persistence.integration.test.ts) für jedes Regime; Snapshot-Test des XML-Ausgangs.
-- OpenAPI-`info.version`-Bump (Patch) + FIN4-Mapping nachziehen.
+**Umgesetzte Lieferung:**
 
-**Akzeptanz:** Export aller vier Regime liefert valides XRechnung-XML; Fail-closed-Code entfällt für gemappte Regime; CEF-/EN16931-Konformität durch Snapshot/Schema-Check belegt.
+- Domäne: [`src/domain/xrechnung-invoice-tax-mapping.ts`](../../src/domain/xrechnung-invoice-tax-mapping.ts) (`isFin5InvoiceTaxRegimeMappedForXrechnung`, `getXrechnungInvoiceTaxSemantics`, Pflicht-Hinweise für XML).
+- Preflight: [`src/services/export-service.ts`](../../src/services/export-service.ts) (XRECHNUNG nur bei gemapptem Regime).
+- XML: [`src/services/xrechnung-xml-builder.ts`](../../src/services/xrechnung-xml-builder.ts); Tests u. a. [`test/export-xrechnung-unknown-regime.test.ts`](../../test/export-xrechnung-unknown-regime.test.ts).
 
-**Aufwand:** mittel-groß; benötigt fachliche Klärung der CEF-Codes.
+**Akzeptanz:** Die vier FIN-5-Regime erzeugen nach erfolgreichem Preflight `xrechnungXml`; externes KoSIT-/Validator-Laufwerk bleibt [**non-goal**](../contracts/xrechnung-profile-scope-and-gaps.md).
+
+**Vertiefung / MVP-Grenzen:** Aggregierte Rechnungszeile, fehlende Bankfelder, PEPPOL — weiterhin [`xrechnung-profile-scope-and-gaps.md`](../contracts/xrechnung-profile-scope-and-gaps.md).
 
 ### Paket D — Buchungs-Recreate-Flow bei Regime-Drift
 
@@ -96,7 +98,7 @@
 1. **B** zuerst (klein, Read-Only, schnell sichtbar).
 2. **A** danach (Schreibpfade, größerer Surface).
 3. **D** (kleiner Bug-Fix-Charakter, hängt nicht von A/B ab).
-4. **C** zuletzt (größter Aufwand, fachliche XRechnung-Klärung nötig).
+4. **C** — erledigt (Repo); bei neuen Regime-Codes erneut Mapping + ADR pflegen.
 
 **Alternative Reihenfolge:** Wenn Mandanten- oder Projekt-Steuerprofil **ohne** externen API-Client gepflegt werden muss (Operativrisiko „nur Backend“), **Paket A vor B** ziehen — sonst bleibt die obige Empfehlung für schnelle Sichtbarkeit der Pflicht-Hinweise im UI.
 
@@ -107,7 +109,7 @@ Keine Pflicht-Reihenfolge — kleine, einzeln verifizierte PRs sind das Ziel.
 | Risiko | Mitigation |
 |--------|------------|
 | **Keine PWA-Schreib-UI** nach #86: Profil/Override nur über HTTP-API änderbar | Vertrag und Integratoren: [`docs/api-contract.yaml`](../api-contract.yaml) (`/finance/invoice-tax-profile…`), [`FIN4-external-client-integration.md`](../contracts/FIN4-external-client-integration.md). Ohne Integrator: **Paket A** priorisieren (siehe **Alternative Reihenfolge** oben). |
-| **XRechnung** bei nicht-Standard-Regime bleibt fail-closed bis **Paket C** | Operativ keinen XRechnung-Export für Sonderregime erwarten, bis Mapping und Tests vorliegen; Fehlercode `EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED` bleibt bis dahin kanonisch. |
+| **XRechnung** bei **ungültigem** `invoice_tax_regime` (außerhalb FIN-5-Enum) | Preflight liefert `EXPORT_INVOICE_TAX_REGIME_NOT_MAPPED` (kein stiller Fallback). Die **vier** ADR-0015-Regime sind gemappt (**Paket C** erledigt). |
 | **HTTP 409** `INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT` | **Paket D** umgesetzt: PWA mit strukturiertem Hinweis und CTA „Neuen Entwurf laden"; Backend-Regression sichert 409-Envelope. |
 | **CodeQL „Missing rate limiting“** bei neuen Routen | Locales `config.rateLimit` pro Route wie in [`finance-invoice-tax-routes.ts`](../../src/api/finance-invoice-tax-routes.ts) und [`user-account-routes.ts`](../../src/api/user-account-routes.ts) (read/write getrennt). |
 | **Namenskollision „Option B“** | In [`NEXT-INCREMENT-FINANCE-WAVE3.md`](../tickets/NEXT-INCREMENT-FINANCE-WAVE3.md) bezeichnet **Option B** eine **Wellen-Alternative** (8.4-Motor) — **nicht** das historische FIN-5-Gate [`FIN-5-GATE-816-FAIL-CLOSED.md`](./FIN-5-GATE-816-FAIL-CLOSED.md) (Fail-Closed §8.16; durch ADR-0015 superseded). |
@@ -117,7 +119,7 @@ Keine Pflicht-Reihenfolge — kleine, einzeln verifizierte PRs sind das Ziel.
 - **Keine** zusätzlichen Steuerregime über die vier in ADR-0015 hinaus ohne neuen ADR.
 - **Keine** Kombination mit FIN-6-Härtung (§8.14, GoBD-Querschnitt) in einem PR — eigene Spur **C** laut [`docs/plans/nächste-schritte.md`](../plans/nächste-schritte.md) Tabelle „Nächste Produktspur".
 - **Keine** Code-Mischung mit B5 Mahn-PDF / Audit-Fail-Hard ([`B5-SPEC-DELIVERY-BOUNDARY-WAVE3.md`](./B5-SPEC-DELIVERY-BOUNDARY-WAVE3.md), [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md)).
-- **Keine** Mandanten-Aktivierung der Regime im Repo-Prozess — produktive Schaltung in einem Mandanten ist **Repo-extern** (StB/DSB-Klärung; siehe [`AGENTS.md`](../../AGENTS.md) Punkt 6 und [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md)).
+- **Keine** Mandanten-Aktivierung der Regime im Repo-Prozess — produktive Schaltung in einem Mandanten ist **Repo-extern** (organisatorische Klärung; Empfehlungen siehe [`README.md`](../../README.md), [`AGENTS.md`](../../AGENTS.md) Punkt 6 und [`Checklisten/compliance-rechnung-finanz.md`](../../Checklisten/compliance-rechnung-finanz.md)).
 
 ## Verweise
 

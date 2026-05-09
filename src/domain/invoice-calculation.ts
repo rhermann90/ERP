@@ -29,6 +29,41 @@ export function skontoNetReductionCents84_2(netAfterStep1Cents: number, skontoBp
 }
 
 /**
+ * Explizite Zwischenstände **8.4 Schritte 2–6** (MVP): nach Systembeschreibung Reihenfolge
+ * LV-Netto → Nachlässe → Zwischensumme → Abzüge → Zwischensumme → Einbehalte → (Schritt 7 USt).
+ *
+ * **Umsetzung:** Schritt 2 = **B2-1a** Skonto-BP auf Schritt-1-Netto; Schritte 3–6 sind **Identität**
+ * (keine weiteren Nachlässe/Abzüge/Einbehalte), aber benannt — Erweiterungen nur mit separatem Gate/ADR
+ * (vollständiger 8.4(2–6)-Motor).
+ */
+export type InvoiceNetPipeline84Through6MvpBreakdown = {
+  netAfterStep1Cents: number;
+  netAfterStep2Cents: number;
+  subtotalAfterStep3Cents: number;
+  netAfterStep4Cents: number;
+  subtotalAfterStep5Cents: number;
+  /** Netto-Basis vor Schritt 7 (USt) — identisch zu `netCentsAfterStep84_6Mvp`. */
+  netAfterStep6Cents: number;
+};
+
+export function computeInvoiceNetPipeline84Through6Mvp(
+  lvNetAfterStep1Cents: number,
+  options?: { skontoBps?: number },
+): InvoiceNetPipeline84Through6MvpBreakdown {
+  const skontoBps = options?.skontoBps ?? 0;
+  const reduction = skontoNetReductionCents84_2(lvNetAfterStep1Cents, skontoBps);
+  const after2 = lvNetAfterStep1Cents - reduction;
+  return {
+    netAfterStep1Cents: lvNetAfterStep1Cents,
+    netAfterStep2Cents: after2,
+    subtotalAfterStep3Cents: after2,
+    netAfterStep4Cents: after2,
+    subtotalAfterStep5Cents: after2,
+    netAfterStep6Cents: after2,
+  };
+}
+
+/**
  * 8.4 Schritte 2–6: **B2-1a** wendet nur Schritt 2 (Skonto in BP) an; Schritte 3–6 bleiben Identität.
  * Ohne `skontoBps` bzw. bei `0` entspricht das weiterhin **B2-0** (Netto nach 6 = Netto nach 1).
  */
@@ -36,9 +71,7 @@ export function netCentsAfterStep84_6Mvp(
   lvNetAfterStep1Cents: number,
   options?: { skontoBps?: number },
 ): number {
-  const skontoBps = options?.skontoBps ?? 0;
-  const reduction = skontoNetReductionCents84_2(lvNetAfterStep1Cents, skontoBps);
-  return lvNetAfterStep1Cents - reduction;
+  return computeInvoiceNetPipeline84Through6Mvp(lvNetAfterStep1Cents, options).netAfterStep6Cents;
 }
 
 /**

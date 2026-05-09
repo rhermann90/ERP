@@ -1,6 +1,7 @@
 // ADR-0003/0006: Offer + OfferVersion; ADR Inkrement 2: current_version FK (deferrable), audit_events
 // ADR-0005/0004: LV §9 + Aufmass; offer_versions.lv_version_id -> lv_versions (FIN-2 Gate G5)
 // ADR-0008: payment_terms_heads / payment_terms_versions (FIN-1)
+// ADR-0019: CRM Stammdaten Objekt/Kunde/Projekt/Kontakt (Spur B Option C)
 
 generator client {
   provider = "prisma-client"
@@ -538,4 +539,84 @@ model AuditEvent {
 
   @@index([tenantId, timestamp])
   @@map("audit_events")
+}
+
+/// CRM Baustelle/Objekt (mandantenisoliert; ADR 0019).
+model CrmConstructionSite {
+  tenantId    String   @map("tenant_id") @db.Uuid
+  id          String   @db.Uuid
+  label       String
+  street      String?
+  postalCode  String?  @map("postal_code")
+  city        String?
+  countryCode String?  @map("country_code") @db.Char(2)
+  createdAt   DateTime @map("created_at")
+  createdBy   String   @map("created_by") @db.Uuid
+
+  projects CrmProject[]
+
+  @@id([tenantId, id])
+  @@index([tenantId, label])
+  @@map("crm_construction_sites")
+}
+
+/// CRM-Kunde getrennt von XRechnung-Party (FIN-5); ADR 0019.
+model CrmCustomer {
+  tenantId    String   @map("tenant_id") @db.Uuid
+  id          String   @db.Uuid
+  legalName   String   @map("legal_name")
+  street      String?
+  postalCode  String?  @map("postal_code")
+  city        String?
+  countryCode String?  @map("country_code") @db.Char(2)
+  createdAt   DateTime @map("created_at")
+  createdBy   String   @map("created_by") @db.Uuid
+
+  primaryProjects CrmProject[]       @relation("CrmProjectPrimaryCustomer")
+  contacts        CrmProjectContact[]
+
+  @@id([tenantId, id])
+  @@index([tenantId, legalName])
+  @@map("crm_customers")
+}
+
+/// Projekt als Verbinder Kunde ↔ Objekt; PK kann Pilot-`project_id` sein (ADR 0019).
+model CrmProject {
+  tenantId           String   @map("tenant_id") @db.Uuid
+  id                 String   @db.Uuid
+  primaryCustomerId  String   @map("primary_customer_id") @db.Uuid
+  constructionSiteId String   @map("construction_site_id") @db.Uuid
+  status             String   @default("AKTIV")
+  versionNumber      Int      @default(1) @map("version_number")
+  label              String?
+  createdAt          DateTime @map("created_at")
+  createdBy          String   @map("created_by") @db.Uuid
+
+  primaryCustomer  CrmCustomer         @relation("CrmProjectPrimaryCustomer", fields: [tenantId, primaryCustomerId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  constructionSite CrmConstructionSite @relation(fields: [tenantId, constructionSiteId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  contacts         CrmProjectContact[]
+
+  @@id([tenantId, id])
+  @@index([tenantId, primaryCustomerId])
+  @@map("crm_projects")
+}
+
+model CrmProjectContact {
+  tenantId    String   @map("tenant_id") @db.Uuid
+  id          String   @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  customerId  String?  @map("customer_id") @db.Uuid
+  role        String
+  displayName String   @map("display_name")
+  email       String?
+  phone       String?
+  createdAt   DateTime @map("created_at")
+  createdBy   String   @map("created_by") @db.Uuid
+
+  project  CrmProject   @relation(fields: [tenantId, projectId], references: [tenantId, id], onUpdate: Restrict, onDelete: Cascade)
+  customer CrmCustomer? @relation(fields: [tenantId, customerId], references: [tenantId, id], onUpdate: Restrict, onDelete: SetNull)
+
+  @@id([tenantId, id])
+  @@index([tenantId, projectId])
+  @@map("crm_project_contacts")
 }

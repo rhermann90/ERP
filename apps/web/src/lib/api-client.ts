@@ -217,6 +217,12 @@ export type CreateInvoiceDraftResponse = {
   mandatoryTaxNoticeLines: string[];
 };
 
+/** Antwort `POST /offers` (Angebots-Stamm + erste Version ENTWURF). */
+export type CreateOfferResponse = {
+  offerId: string;
+  offerVersionId: string;
+};
+
 /** Antwort `GET /tenant/pwa-display-settings` (Mandanten-Expertenmodus). */
 export type TenantPwaDisplaySettingsRead = {
   settingsSource: "NOT_CONFIGURED" | "TENANT_DATABASE";
@@ -271,6 +277,25 @@ export type CustomerEInvoicePartyReadResponse = {
   configured: boolean;
   customerId: string;
   party: EInvoicePartySnapshot | null;
+};
+
+/** Zeile in `GET /finance/payment-terms` (FIN-1, OpenAPI `PaymentTermsListResponse.versions`). */
+export type PaymentTermsVersionRow = {
+  paymentTermsVersionId: string;
+  versionNumber: number;
+  termsLabel: string;
+  createdAt: string;
+  createdBy: string;
+};
+
+/** Antwort `GET /finance/payment-terms?projectId=` (FIN-1). */
+export type PaymentTermsListResponse = {
+  paymentTermsHeadId: string;
+  projectId: string;
+  customerId: string;
+  createdAt: string;
+  createdBy: string;
+  versions: PaymentTermsVersionRow[];
 };
 
 /** Antwort `POST /finance/payments/intake` (FIN-3). */
@@ -441,6 +466,94 @@ export type AuditEventsListResponse = {
   total: number;
 };
 
+export type TenantUserRole =
+  | "ADMIN"
+  | "BUCHHALTUNG"
+  | "GESCHAEFTSFUEHRUNG"
+  | "VERTRIEB_BAULEITUNG"
+  | "VIEWER";
+
+/** Eintrag `GET /users` (paginiert). */
+export type TenantUserRow = {
+  id: string;
+  email: string;
+  role: TenantUserRole;
+  active: boolean;
+  createdAt: string;
+};
+
+export type TenantUserListResponse = {
+  data: TenantUserRow[];
+  page: number;
+  pageSize: number;
+  total: number;
+};
+
+export type CreateTenantUserRequest = {
+  email: string;
+  password: string;
+  role: TenantUserRole;
+  reason: string;
+};
+
+export type PatchTenantUserRequest = {
+  reason: string;
+  role?: TenantUserRole;
+  active?: boolean;
+  password?: string;
+  email?: string;
+};
+
+
+export type CrmConstructionSiteRow = {
+  tenantId: string;
+  id: string;
+  label: string;
+  street: string | null;
+  postalCode: string | null;
+  city: string | null;
+  countryCode: string | null;
+  createdAt: string;
+  createdBy: string;
+};
+
+export type CrmProjectRow = {
+  tenantId: string;
+  id: string;
+  primaryCustomerId: string;
+  constructionSiteId: string;
+  status: string;
+  versionNumber: number;
+  label: string | null;
+  createdAt: string;
+  createdBy: string;
+};
+
+export type CrmProjectContactRow = {
+  tenantId: string;
+  id: string;
+  projectId: string;
+  customerId: string | null;
+  role: string;
+  displayName: string;
+  email: string | null;
+  phone: string | null;
+  createdAt: string;
+  createdBy: string;
+};
+
+export type CrmCustomerRow = {
+  tenantId: string;
+  id: string;
+  legalName: string;
+  street: string | null;
+  postalCode: string | null;
+  city: string | null;
+  countryCode: string | null;
+  createdAt: string;
+  createdBy: string;
+};
+
 export type ApiClient = {
   requestJson<T>(method: string, path: string, body?: unknown): Promise<T>;
   getAllowedActions(documentId: string, entityType: string): Promise<AllowedActionsResponse>;
@@ -449,15 +562,24 @@ export type ApiClient = {
   getLvVersionStructure(lvVersionId: string): Promise<LvHierarchySnapshot>;
   getMeasurementVersion(measurementVersionId: string): Promise<unknown>;
   getSupplementVersion(supplementVersionId: string): Promise<unknown>;
-  getPaymentTermsByProject(projectId: string): Promise<unknown>;
+  getPaymentTermsByProject(projectId: string): Promise<PaymentTermsListResponse>;
   createInvoiceDraft(body: {
     lvVersionId: string;
     offerVersionId: string;
     invoiceCurrencyCode: "EUR";
+    measurementId?: string;
     paymentTermsVersionId?: string;
     skontoBps?: number;
     reason: string;
   }): Promise<CreateInvoiceDraftResponse>;
+  createOffer(body: {
+    projectId: string;
+    customerId: string;
+    lvVersionId: string;
+    systemText: string;
+    editingText: string;
+    reason: string;
+  }): Promise<CreateOfferResponse>;
   getInvoice(invoiceId: string): Promise<InvoiceOverview>;
   listInvoicePaymentIntakes(invoiceId: string): Promise<{ data: PaymentIntakeReadRow[] }>;
   listInvoiceDunningReminders(invoiceId: string): Promise<{ data: DunningReminderReadRow[] }>;
@@ -560,7 +682,26 @@ export type ApiClient = {
   getTenantEInvoiceParty(): Promise<TenantEInvoicePartyReadResponse>;
   listCustomerEInvoiceParties(): Promise<CustomerEInvoicePartyListResponse>;
   getCustomerEInvoiceParty(customerId: string): Promise<CustomerEInvoicePartyReadResponse>;
+  listCrmConstructionSites(): Promise<{ data: CrmConstructionSiteRow[] }>;
+  listCrmProjects(): Promise<{ data: CrmProjectRow[] }>;
+  getCrmProject(projectId: string): Promise<CrmProjectRow>;
+  listCrmProjectContacts(projectId: string): Promise<{ data: CrmProjectContactRow[] }>;
+  listCrmCustomers(): Promise<{ data: CrmCustomerRow[] }>;
+  patchCrmProject(
+    projectId: string,
+    body: {
+      reason: string;
+      label?: string | null;
+      primaryCustomerId?: string;
+      constructionSiteId?: string;
+      status?: string;
+      versionNumber?: number;
+    },
+  ): Promise<CrmProjectRow>;
   getAuditEvents(page?: number, pageSize?: number): Promise<AuditEventsListResponse>;
+  listTenantUsers(params?: { page?: number; pageSize?: number }): Promise<TenantUserListResponse>;
+  createTenantUser(body: CreateTenantUserRequest): Promise<TenantUserRow>;
+  patchTenantUser(userId: string, body: PatchTenantUserRequest): Promise<TenantUserRow>;
 };
 
 export function createApiClient(options: {
@@ -641,10 +782,13 @@ export function createApiClient(options: {
     },
     getPaymentTermsByProject(projectId) {
       const q = new URLSearchParams({ projectId });
-      return requestJson("GET", `/finance/payment-terms?${q}`);
+      return requestJson<PaymentTermsListResponse>("GET", `/finance/payment-terms?${q}`);
     },
     createInvoiceDraft(body) {
       return requestJson<CreateInvoiceDraftResponse>("POST", "/invoices", body);
+    },
+    createOffer(body) {
+      return requestJson<CreateOfferResponse>("POST", "/offers", body);
     },
     getInvoice(invoiceId) {
       return requestJson<InvoiceOverview>("GET", `/invoices/${encodeURIComponent(invoiceId)}`);
@@ -900,12 +1044,55 @@ export function createApiClient(options: {
         `/finance/e-invoice-parties/customers/${encodeURIComponent(id)}`,
       );
     },
+    listCrmConstructionSites() {
+      return requestJson<{ data: CrmConstructionSiteRow[] }>("GET", "/crm/construction-sites");
+    },
+    listCrmProjects() {
+      return requestJson<{ data: CrmProjectRow[] }>("GET", "/crm/projects");
+    },
+    getCrmProject(projectId) {
+      const id = projectId.trim();
+      assertUuidKey(id, "projectId");
+      return requestJson<CrmProjectRow>("GET", `/crm/projects/${encodeURIComponent(id)}`);
+    },
+    listCrmProjectContacts(projectId) {
+      const id = projectId.trim();
+      assertUuidKey(id, "projectId");
+      return requestJson<{ data: CrmProjectContactRow[] }>(
+        "GET",
+        `/crm/projects/${encodeURIComponent(id)}/contacts`,
+      );
+    },
+    listCrmCustomers() {
+      return requestJson<{ data: CrmCustomerRow[] }>("GET", "/crm/customers");
+    },
+    patchCrmProject(projectId, body) {
+      const id = projectId.trim();
+      assertUuidKey(id, "projectId");
+      return requestJson<CrmProjectRow>("PATCH", `/crm/projects/${encodeURIComponent(id)}`, body);
+    },
     getAuditEvents(page = 1, pageSize = 15) {
       const q = new URLSearchParams({
         page: String(Math.max(1, page)),
         pageSize: String(Math.min(100, Math.max(1, pageSize))),
       });
       return requestJson<AuditEventsListResponse>("GET", `/audit-events?${q}`);
+    },
+    listTenantUsers(params) {
+      const q = new URLSearchParams();
+      const page = params?.page ?? 1;
+      const pageSize = params?.pageSize ?? 25;
+      q.set("page", String(Math.max(1, page)));
+      q.set("pageSize", String(Math.min(100, Math.max(1, pageSize))));
+      return requestJson<TenantUserListResponse>("GET", `/users?${q}`);
+    },
+    createTenantUser(body) {
+      return requestJson<TenantUserRow>("POST", "/users", body);
+    },
+    patchTenantUser(userId, body) {
+      const id = userId.trim();
+      assertUuidKey(id, "userId");
+      return requestJson<TenantUserRow>("PATCH", `/users/${encodeURIComponent(id)}`, body);
     },
   };
 }

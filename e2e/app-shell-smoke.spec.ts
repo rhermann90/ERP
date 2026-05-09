@@ -26,4 +26,22 @@ test.describe("App-Shell (ohne Login)", () => {
     const quickHeading = page.getByRole("heading", { name: "Schnellzugriff" });
     await expect(loginHeading.or(quickHeading)).toBeVisible({ timeout: 20_000 });
   });
+
+  test("Hilfe-Hub lädt mit Überschrift", async ({ page }) => {
+    await page.goto("/#/hilfe");
+    await expect(page.getByRole("heading", { name: "Hilfe & Diagnose" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("hub-hilfe")).toBeVisible();
+  });
+
+  test("Stammdaten-Hub lädt mit Überschrift (ohne Session: Hinweis statt Liste)", async ({ page }) => {
+    await page.goto("/#/stammdaten");
+    await expect(page.getByRole("heading", { name: "Stammdaten" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("hub-stammdaten")).toBeVisible();
+    await expect(page.getByText(/Bitte anmelden/i).first()).toBeVisible();
+  });
+
+  test("Globale Nav enthält Hilfe-Link", async ({ page }) => {
+    await page.goto("/#/");
+    await expect(page.getByTestId("primary-nav-hilfe")).toBeVisible({ timeout: 15_000 });
+  });
 });

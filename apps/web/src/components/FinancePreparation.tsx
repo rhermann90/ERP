@@ -56,14 +56,24 @@ export function FinancePreparation({
   api,
   initialMainTab,
   showExpertIntegratorNav,
+  showFortgeschrittenTab = true,
 }: {
   api: ApiClient;
   initialMainTab?: FinancePrepMainTab;
   /** Hash-/Query-Hilfen in der Meta-Zeile; Standard wie bisher: nur im Vite-Dev-Build sichtbar. */
   showExpertIntegratorNav?: boolean;
+  /** Tab „Fortgeschritten“ (SoT, Audit) — typischerweise nur mit Mandanten-Expertenmodus. */
+  showFortgeschrittenTab?: boolean;
 }) {
   const showIntegratorNavRow =
     showExpertIntegratorNav ?? (typeof import.meta !== "undefined" && Boolean(import.meta.env.DEV));
+  const financePrepTabsVisible: readonly FinancePrepMainTab[] = useMemo(
+    () =>
+      showFortgeschrittenTab
+        ? FINANCE_PREP_MAIN_TABS
+        : (["rechnung", "grundeinstellungen", "mahnwesen"] as FinancePrepMainTab[]),
+    [showFortgeschrittenTab],
+  );
   const [projectId, setProjectId] = useState(DEMO_PROJECT_ID);
   const [termsLabel, setTermsLabel] = useState("14 Tage netto");
   const [listJson, setListJson] = useState<string>("");
@@ -98,30 +108,37 @@ export function FinancePreparation({
     applyFinancePrepTabToLocationHash(t);
   }, []);
 
+  useEffect(() => {
+    if (!showFortgeschrittenTab && financePrepMainTab === "fortgeschritten") {
+      selectFinancePrepMainTab("rechnung");
+    }
+  }, [showFortgeschrittenTab, financePrepMainTab, selectFinancePrepMainTab]);
+
   const focusFinancePrepTabAtIndex = useCallback(
     (idx: number) => {
-      const tab = FINANCE_PREP_MAIN_TABS[idx];
+      const tab = financePrepTabsVisible[idx];
       if (!tab) return;
       selectFinancePrepMainTab(tab);
       requestAnimationFrame(() => {
         financePrepTabButtonRefs.current[idx]?.focus();
       });
     },
-    [selectFinancePrepMainTab],
+    [selectFinancePrepMainTab, financePrepTabsVisible],
   );
 
   const onFinancePrepTabKeyDown = useCallback(
     (tabIdx: number) => (e: KeyboardEvent<HTMLButtonElement>) => {
+      const len = financePrepTabsVisible.length;
       switch (e.key) {
         case "ArrowRight":
         case "ArrowDown":
           e.preventDefault();
-          focusFinancePrepTabAtIndex((tabIdx + 1) % FINANCE_PREP_MAIN_TABS.length);
+          focusFinancePrepTabAtIndex((tabIdx + 1) % len);
           break;
         case "ArrowLeft":
         case "ArrowUp":
           e.preventDefault();
-          focusFinancePrepTabAtIndex((tabIdx - 1 + FINANCE_PREP_MAIN_TABS.length) % FINANCE_PREP_MAIN_TABS.length);
+          focusFinancePrepTabAtIndex((tabIdx - 1 + len) % len);
           break;
         case "Home":
           e.preventDefault();
@@ -129,13 +146,13 @@ export function FinancePreparation({
           break;
         case "End":
           e.preventDefault();
-          focusFinancePrepTabAtIndex(FINANCE_PREP_MAIN_TABS.length - 1);
+          focusFinancePrepTabAtIndex(len - 1);
           break;
         default:
           break;
       }
     },
-    [focusFinancePrepTabAtIndex],
+    [focusFinancePrepTabAtIndex, financePrepTabsVisible.length],
   );
   const [dunningAutomationIanaTimezone, setDunningAutomationIanaTimezone] = useState("Europe/Berlin");
   const [dunningAutomationFederalState, setDunningAutomationFederalState] = useState("");
@@ -314,6 +331,7 @@ export function FinancePreparation({
         lvVersionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001",
         offerVersionId: "33333333-3333-4333-8333-333333333333",
         invoiceCurrencyCode: "EUR",
+        measurementId: DEMO_SEED_IDS.measurementId,
         skontoBps: bps,
         reason: "Demo-Rechnungsentwurf aus Finanz-Vorbereitung (FIN-2)",
       });
@@ -409,6 +427,7 @@ export function FinancePreparation({
         lvVersionId: invoiceOverview.lvVersionId,
         offerVersionId: invoiceOverview.offerVersionId,
         invoiceCurrencyCode: "EUR",
+        measurementId: invoiceOverview.measurementId,
         skontoBps: bps,
         reason: "Finanz-Vorbereitung: Skonto auf Entwurf anwenden (POST /invoices)",
       });
@@ -481,6 +500,7 @@ export function FinancePreparation({
         lvVersionId: invoiceOverview.lvVersionId,
         offerVersionId: invoiceOverview.offerVersionId,
         invoiceCurrencyCode: "EUR",
+        measurementId: invoiceOverview.measurementId,
         paymentTermsVersionId: invoiceOverview.paymentTermsVersionId,
         skontoBps: invoiceOverview.skontoBps,
         reason: "FIN-5 §8.16 Regime-Drift: Entwurf neu erzeugt aus Buchungs-Pfad",
@@ -1411,7 +1431,7 @@ export function FinancePreparation({
       </p>
       {showIntegratorNavRow ? (
         <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-          <a href="#/">Zurück zur Shell (Start)</a>
+          <a href="#/">Zurück zur Startseite</a>
           {" · "}
           <span style={{ color: "var(--text-secondary)" }}>Basis-URL: </span>
           <code>{FINANCE_PREP_HASH}</code>
@@ -1424,7 +1444,7 @@ export function FinancePreparation({
         </p>
       ) : (
         <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-          <a href="#/">Zurück zur Shell (Start)</a>
+          <a href="#/">Zurück zur Startseite</a>
         </p>
       )}
 
@@ -1533,31 +1553,33 @@ export function FinancePreparation({
           >
             Mahnwesen
           </button>
-          <button
-            type="button"
-            role="tab"
-            id="finance-prep-tab-fortgeschritten"
-            data-testid="finance-prep-tab-fortgeschritten"
-            ref={(el) => {
-              financePrepTabButtonRefs.current[3] = el;
-            }}
-            tabIndex={financePrepMainTab === "fortgeschritten" ? 0 : -1}
-            aria-selected={financePrepMainTab === "fortgeschritten"}
-            aria-controls="finance-prep-panel-fortgeschritten"
-            onClick={() => selectFinancePrepMainTab("fortgeschritten")}
-            onKeyDown={onFinancePrepTabKeyDown(3)}
-            style={{
-              fontWeight: financePrepMainTab === "fortgeschritten" ? 700 : 400,
-              borderBottom: financePrepMainTab === "fortgeschritten" ? "2px solid var(--accent)" : "2px solid transparent",
-              marginBottom: "-1px",
-              minHeight: "44px",
-              padding: "0.35rem 0.6rem",
-              background: "transparent",
-              cursor: "pointer",
-            }}
-          >
-            Fortgeschritten
-          </button>
+          {showFortgeschrittenTab ? (
+            <button
+              type="button"
+              role="tab"
+              id="finance-prep-tab-fortgeschritten"
+              data-testid="finance-prep-tab-fortgeschritten"
+              ref={(el) => {
+                financePrepTabButtonRefs.current[3] = el;
+              }}
+              tabIndex={financePrepMainTab === "fortgeschritten" ? 0 : -1}
+              aria-selected={financePrepMainTab === "fortgeschritten"}
+              aria-controls="finance-prep-panel-fortgeschritten"
+              onClick={() => selectFinancePrepMainTab("fortgeschritten")}
+              onKeyDown={onFinancePrepTabKeyDown(3)}
+              style={{
+                fontWeight: financePrepMainTab === "fortgeschritten" ? 700 : 400,
+                borderBottom: financePrepMainTab === "fortgeschritten" ? "2px solid var(--accent)" : "2px solid transparent",
+                marginBottom: "-1px",
+                minHeight: "44px",
+                padding: "0.35rem 0.6rem",
+                background: "transparent",
+                cursor: "pointer",
+              }}
+            >
+              Fortgeschritten
+            </button>
+          ) : null}
         </div>
 
         <div id="finance-prep-dunning-notice" aria-live="polite" aria-relevant="additions text">
@@ -1782,7 +1804,7 @@ export function FinancePreparation({
           id="finance-prep-panel-fortgeschritten"
           role="tabpanel"
           aria-labelledby="finance-prep-tab-fortgeschritten"
-          hidden={financePrepMainTab !== "fortgeschritten"}
+          hidden={financePrepMainTab !== "fortgeschritten" || !showFortgeschrittenTab}
         >
         <FinancePrepStepSot
           busy={busy}
