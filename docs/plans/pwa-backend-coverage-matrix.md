@@ -38,18 +38,18 @@ Keine zweite SoT-Logik in der UI — [`docs/contracts/ui-action-executor-coverag
 | **Zahlungsbedingungen** | FIN-1 Projekt | `getPaymentTermsByProject` | Shell + Finanz; zusätzlich geführte FIN-1-Tabelle unter **`#/stammdaten`** (Pilot, Lesepfad) | **Teil** |
 | **Dokument-SoT** | `GET /documents/:id/allowed-actions` | ja | überall zentral | Shell + Guards |
 | **Domänen-Navigation** | — | — | `AppPrimaryNav`, Hubs + Pilot `#/aufmass-messungen`, `#/angebote-arbeitsflaeche`, `#/finanz-arbeitsliste`, `#/admin/users`; Start gruppiert nach IA | **Teil** |
-| **Stammdaten (W1 / Pilot)** | FIN-5 Buyer/Seller, FIN-1 Zahlungsbedingungen, CRM-Stamm ADR-0019, Dokument `PROJECT` | `listCustomerEInvoiceParties`, `getCustomerEInvoiceParty`, `getTenantEInvoiceParty`, `getPaymentTermsByProject`, `listCrmConstructionSites`, `listCrmCustomers`, `listCrmProjects`, `listCrmProjectContacts`, `getCrmProject`, `patchCrmProject` | **`#/stammdaten`** — CRM-Listen + Pilot-Projekt-Label (Schreibrolle); Memory-API: CRM-Hinweis | **Produkt** (CRM lesend mit DB; Schreiben `/crm/…` wie FIN-1-Rollen) |
+| **Stammdaten (W1 / Pilot)** | FIN-5 Buyer/Seller, FIN-1 Zahlungsbedingungen, CRM-Stamm ADR-0019, Dokument `PROJECT` | CRM: `list/get/post/patch` für `CrmConstructionSite`, `CrmCustomer`, `CrmProject`, `CrmProjectContact` (alle mit `versionNumber` wo PATCH); plus FIN-Stammpfade wie oben | **`#/stammdaten`** — CRM-CRUD + Konflikt-409; Wizard-Link zu Hub; Memory-API: CRM-Hinweis | **Produkt** (CRM Postgres + Opt-Lock + Audit; Rollen wie FIN-1) |
 
 ---
 
 ## Fehlende Produkt-Schicht (Gap-Liste, priorisierbar)
 
-1. **Stammdaten (§18.1 vollständig):** Lesende CRM-Pfade, Postgres-Seeds und minimale Schreib-UI (Pilot-Projekt-Label im Hub für ADMIN/GF/Buchhaltung) sind umgesetzt; Lücken: geführte Voll-Schreib-UI außerhalb Shell, Objekt-Historie, weitere Rollenfeinjustierung — ADR [`0019-w1-stammdaten-project-customer-object-option-c.md`](../adr/0019-w1-stammdaten-project-customer-object-option-c.md); Ticket [`PHASE-2-BACKLOG-PROJECT-CUSTOMER-STAMM.md`](../tickets/PHASE-2-BACKLOG-PROJECT-CUSTOMER-STAMM.md).
+1. **Stammdaten (§18.1 Pilot):** CRM lesend/schreibend im Hub mit Opt-Lock und Audit; Persistenz-Nachweise in Integrationstests. **Lücken (Zielbild / spätere Wellen):** §18.1 Objekt-Historie/DMS, weitere Rollenfeinjustierung — ADR [`0019-w1-stammdaten-project-customer-object-option-c.md`](../adr/0019-w1-stammdaten-project-customer-object-option-c.md); Ticket [`PHASE-2-BACKLOG-PROJECT-CUSTOMER-STAMM.md`](../tickets/PHASE-2-BACKLOG-PROJECT-CUSTOMER-STAMM.md) (DoD W1).
 2. **LV-Editing:** Pilot-Formulare (`LvEntityTextSotPanel`); weiterhin nicht alle `LV_*`-Aktionen ohne Roh-JSON.
 3. **Aufmass / Angebot:** Pilot-Screens `#/aufmass-messungen`, `#/angebote-arbeitsflaeche` ergänzen Wizard/Shell.
 4. **Finanz-Operation:** Mahn-Kandidaten-Arbeitsliste `#/finanz-arbeitsliste`; „offene Posten“ gesamt weiter roadmap (FIN-4/Follow).
 5. **Admin:** `#/admin/users` für ADMIN; erweiterte Policy-UX optional.
-6. **§5.4 / §8.6 Differenzbuchung:** Backend/openAPI — [`DOM-8-6-DIFFERENZBUCHUNG-BACKEND-PWA.md`](../tickets/DOM-8-6-DIFFERENZBUCHUNG-BACKEND-PWA.md).
+6. **§5.4 / §8.6 Differenzbuchung:** `GET /projects/{projectId}/difference-bookings` + Persistenz `difference_bookings` (ADR [`0020`](../adr/0020-difference-booking-measurement-8-6-slice.md)); vollständige 8.6-Randfälle — [`DOM-8-6-DIFFERENZBUCHUNG-BACKEND-PWA.md`](../tickets/DOM-8-6-DIFFERENZBUCHUNG-BACKEND-PWA.md).
 
 ---
 

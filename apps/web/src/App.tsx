@@ -167,6 +167,7 @@ export default function App() {
   const [invoiceShellLvSnapshotJson, setInvoiceShellLvSnapshotJson] = useState("");
   /** INVOICE-Shell: read-only GET /audit-events (mandantenweit, erste Seite). */
   const [invoiceAuditEventsJson, setInvoiceAuditEventsJson] = useState("");
+  const [invoiceDifferenceBookingsJson, setInvoiceDifferenceBookingsJson] = useState("");
   /** Haupt-Shell: read-only GET /finance/dunning-reminder-config (FIN-4). */
   const [shellDunningConfigJson, setShellDunningConfigJson] = useState("");
   /** Haupt-Shell: weitere FIN-4-Lesepfade ohne Dokument-Kontext (Spur E). */
@@ -410,6 +411,7 @@ export default function App() {
     setInvoiceProjectTaxOverrideJson("");
     setInvoiceShellLvSnapshotJson("");
     setInvoiceAuditEventsJson("");
+    setInvoiceDifferenceBookingsJson("");
     setLvShellStructureJson("");
     try {
       if (entityType === "MEASUREMENT_VERSION") {
@@ -702,6 +704,27 @@ export default function App() {
     try {
       const r = await client.getAuditEvents(1, 15);
       setInvoiceAuditEventsJson(JSON.stringify(r, null, 2));
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setBanner({
+          kind: "error",
+          text: e.envelope.message,
+          code: e.envelope.code,
+          correlationId: e.envelope.correlationId,
+        });
+      } else setBanner({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [client, invoiceShellDetail]);
+
+  const loadInvoiceDifferenceBookingsShell = useCallback(async () => {
+    if (!invoiceShellDetail) return;
+    setBusy(true);
+    setBanner(null);
+    try {
+      const r = await client.listProjectDifferenceBookings(invoiceShellDetail.projectId);
+      setInvoiceDifferenceBookingsJson(JSON.stringify(r, null, 2));
     } catch (e) {
       if (e instanceof ApiError) {
         setBanner({
@@ -1692,7 +1715,8 @@ export default function App() {
             <code>{`GET /finance/invoice-tax-profile/projects/{projectId}`}</code> (
             <code>{invoiceShellDetail.projectId}</code>),{" "}
             <code>{`GET /lv/versions/${invoiceShellDetail.lvVersionId}`}</code> (LV-Traceability aus Rechnung),{" "}
-            <code>GET /audit-events</code> (mandantenweit, Seite 1; Rollen mit Audit-Leserecht).
+            <code>GET /audit-events</code> (mandantenweit, Seite 1; Rollen mit Audit-Leserecht),{" "}
+            <code>{`GET /projects/{projectId}/difference-bookings`}</code> (Nachberechnung §5.4/§8.6, Lesepfad).
           </p>
           <div data-testid="shell-invoice-readonly-subreads" style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
             <button type="button" disabled={busy} onClick={() => void loadInvoicePaymentIntakesRead()}>
@@ -1788,6 +1812,15 @@ export default function App() {
               onClick={() => void loadInvoiceShellAuditEventsPage()}
             >
               Audit-Ereignisse (GET)
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              aria-label="Differenzbuchungen zum Projekt der Rechnung laden (GET)"
+              data-testid="shell-invoice-difference-bookings-fetch"
+              onClick={() => void loadInvoiceDifferenceBookingsShell()}
+            >
+              Differenzbuchungen Projekt (GET)
             </button>
           </div>
           {invoicePaymentIntakesJson ? (
@@ -1903,6 +1936,16 @@ export default function App() {
               </h3>
               <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-invoice-audit-events-json">
                 {invoiceAuditEventsJson}
+              </ShellExpertDiagnosticsJson>
+            </>
+          ) : null}
+          {invoiceDifferenceBookingsJson ? (
+            <>
+              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
+                Antwort GET /projects/…/difference-bookings
+              </h3>
+              <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-invoice-difference-bookings-json">
+                {invoiceDifferenceBookingsJson}
               </ShellExpertDiagnosticsJson>
             </>
           ) : null}

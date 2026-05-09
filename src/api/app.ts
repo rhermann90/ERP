@@ -11,6 +11,7 @@ import { LvReferenceValidator } from "../services/lv-reference-validator.js";
 import { LvHierarchyService } from "../services/lv-hierarchy-service.js";
 import { LvService } from "../services/lv-service.js";
 import { MeasurementService } from "../services/measurement-service.js";
+import { DifferenceBookingService } from "../services/difference-booking-service.js";
 import { OfferService } from "../services/offer-service.js";
 import { SupplementService } from "../services/supplement-service.js";
 import { PaymentTermsService } from "../services/payment-terms-service.js";
@@ -89,6 +90,11 @@ import {
   type LvMeasurementPersistencePort,
 } from "../persistence/lv-measurement-persistence.js";
 import {
+  noopDifferenceBookingPersistence,
+  PrismaDifferenceBookingPersistence,
+  type DifferenceBookingPersistencePort,
+} from "../persistence/difference-booking-persistence.js";
+import {
   noopPaymentIntakePersistence,
   PrismaPaymentIntakePersistence,
   type PaymentIntakePersistencePort,
@@ -154,6 +160,7 @@ import { registerPasswordResetRoutes } from "./password-reset-routes.js";
 import { registerUserAccountRoutes } from "./user-account-routes.js";
 import { registerTenantPwaDisplaySettingsRoutes } from "./tenant-pwa-display-settings-routes.js";
 import { DomainError } from "../errors/domain-error.js";
+import { z } from "zod";
 import { handleHttpError, parseAuthContext } from "./http-response.js";
 
 /**
@@ -252,6 +259,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   let dunningEmailSendPersistence: DunningEmailSendPersistencePort = noopDunningEmailSendPersistence;
   let dunningTenantAutomationPersistence = noopDunningTenantAutomationPersistence;
   let tenantPwaDisplaySettingsPersistence = noopTenantPwaDisplaySettingsPersistence;
+  let differenceBookingPersistence: DifferenceBookingPersistencePort = noopDifferenceBookingPersistence;
 
   if (repositoryMode === "postgres") {
     assertDatabaseUrlForPostgresMode(repositoryMode);
@@ -271,6 +279,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     dunningEmailSendPersistence = new PrismaDunningEmailSendPersistence(prisma);
     dunningTenantAutomationPersistence = new PrismaDunningTenantAutomationPersistence(prisma);
     tenantPwaDisplaySettingsPersistence = new PrismaTenantPwaDisplaySettingsPersistence(prisma);
+    differenceBookingPersistence = new PrismaDifferenceBookingPersistence(prisma);
     if (options?.seedDemoData ?? true) {
       seedDemoData(repos);
       await lvMeasurementPersistence.syncAllFromMemory(repos);
@@ -284,6 +293,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       await paymentIntakePersistence.hydrateIntoMemory(repos);
       await dunningReminderPersistence.hydrateIntoMemory(repos);
       await dunningEmailSendPersistence.hydrateIntoMemory(repos);
+      await differenceBookingPersistence.hydrateIntoMemory(repos);
     } else {
       await lvMeasurementPersistence.hydrateIntoMemory(repos);
       await offerPersistence.hydrateOffersIntoMemory(repos);
@@ -295,6 +305,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       await dunningEmailSendPersistence.hydrateIntoMemory(repos);
       await invoiceTaxProfilePersistence.hydrateIntoMemory(repos);
       await eInvoicePartyPersistence.hydrateIntoMemory(repos);
+      await differenceBookingPersistence.hydrateIntoMemory(repos);
     }
     app.addHook("onClose", async () => {
       await prisma?.$disconnect();
@@ -399,8 +410,9 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
     dunningReminderEmailService,
   );
   const authorizationService = new AuthorizationService(repos);
-  const crmStammdatenService = new CrmStammdatenService(prisma);
+  const crmStammdatenService = new CrmStammdatenService(prisma, audit);
   const measurementService = new MeasurementService(repos, audit, lvRef, lvMeasurementPersistence);
+  const differenceBookingService = new DifferenceBookingService(repos, audit, differenceBookingPersistence);
   const lvService = new LvService(repos, audit, lvMeasurementPersistence, authorizationService);
   const lvHierarchyService = new LvHierarchyService(lvService);
   const exportService = new ExportService(repos, audit);
@@ -636,6 +648,14 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
         measurementId: body.measurementId,
         reason: body.reason,
       });
+      await differenceBookingService.afterMeasurementVersionCreated({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        measurementId: body.measurementId,
+        predecessorMeasurementVersionId: result.predecessorMeasurementVersionId,
+        subsequentMeasurementVersionId: result.measurementVersionId,
+        reason: body.reason,
+      });
       return reply.status(201).send(result);
     } catch (error) {
       return handleHttpError(error, request, reply);
@@ -655,7 +675,41 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
         positions: body.positions,
         reason: body.reason,
       });
+      await differenceBookingService.afterMeasurementPositionsUpdated({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        measurementVersionId: params.measurementVersionId,
+        reason: body.reason,
+      });
       return reply.status(200).send({ positions: result });
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+
+  app.get("/projects/:projectId/difference-bookings", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      authorizationService.assertCanReadInvoice(auth.role);
+      const params = request.params as { projectId: string };
+      const projectId = z.string().uuid().parse(params.projectId);
+      const rows = differenceBookingService.listForProject(auth.tenantId, projectId);
+      return reply.status(200).send({
+        data: rows.map((b) => ({
+          id: b.id,
+          projectId: b.projectId,
+          measurementId: b.measurementId,
+          predecessorMeasurementVersionId: b.predecessorMeasurementVersionId,
+          subsequentMeasurementVersionId: b.subsequentMeasurementVersionId,
+          kind: b.kind,
+          amountNetCents: b.amountNetCents,
+          status: b.status,
+          referenceInvoiceId: b.referenceInvoiceId,
+          createdAt: b.createdAt.toISOString(),
+          createdBy: b.createdBy,
+        })),
+      });
     } catch (error) {
       return handleHttpError(error, request, reply);
     }

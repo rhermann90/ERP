@@ -1,5 +1,5 @@
 {
-  "contractVersion": "1.29.1-fin5-manage-tax-settings-sot",
+  "contractVersion": "1.31.0-w2-difference-bookings-read",
   "phase": "phase-2-inc2-lv+fin0-contract",
   "qaClosure": {
     "defectId": "QA-P1-001",
@@ -43,6 +43,7 @@
     "CRM_FOREIGN_CUSTOMER_MISSING",
     "CRM_FOREIGN_SITE_MISSING",
     "CRM_PERSISTENCE_UNAVAILABLE",
+    "CRM_STALE_VERSION",
     "DOCUMENT_NOT_FOUND",
     "DUNNING_AUTOMATION_NOT_PERSISTABLE",
     "DUNNING_BATCH_EMAIL_CONFIRM_REQUIRED",
@@ -105,6 +106,7 @@
     "PAYMENT_INTAKE_IDEMPOTENCY_MISMATCH",
     "PAYMENT_INVOICE_AMOUNT_MISSING",
     "PAYMENT_INVOICE_NOT_PAYABLE",
+    "PROJECT_NOT_FOUND",
     "PWA_DISPLAY_SETTINGS_NOT_PERSISTABLE",
     "STATUS_TRANSITION_FORBIDDEN",
     "SUPPLEMENT_BASE_NOT_ACCEPTED",
@@ -722,6 +724,13 @@
       "classId": "crm_stammdaten",
       "codes": [
         {
+          "code": "CRM_STALE_VERSION",
+          "httpStatus": 409,
+          "retryable": false,
+          "blocking": true,
+          "uiReaction": "Datensatz wurde zwischenzeitlich geaendert — neu laden und erneut speichern."
+        },
+        {
           "code": "CRM_ENTITY_NOT_FOUND",
           "httpStatus": 404,
           "retryable": false,
@@ -777,6 +786,6 @@
     "user_account: USER_NOT_FOUND|USER_EMAIL_CONFLICT|USER_LAST_ADMIN_FORBIDDEN|USER_SELF_DEACTIVATION_FORBIDDEN|USER_MANAGEMENT_REQUIRES_DB|PASSWORD_RESET_INVALID|PASSWORD_RESET_MAIL_NOT_CONFIGURED",
     "validation: VALIDATION_FAILED",
     "versioning: FOLLOWUP_DOCUMENT_REQUIRED",
-    "crm-stammdaten: CRM_ENTITY_NOT_FOUND|CRM_FOREIGN_CUSTOMER_MISSING|CRM_FOREIGN_SITE_MISSING|CRM_PERSISTENCE_UNAVAILABLE|AUTH_ROLE_FORBIDDEN|UNAUTHORIZED|VALIDATION_FAILED|TENANT_SCOPE_VIOLATION"
+    "crm-stammdaten: CRM_ENTITY_NOT_FOUND|CRM_FOREIGN_CUSTOMER_MISSING|CRM_FOREIGN_SITE_MISSING|CRM_PERSISTENCE_UNAVAILABLE|CRM_STALE_VERSION|AUTH_ROLE_FORBIDDEN|UNAUTHORIZED|VALIDATION_FAILED|TENANT_SCOPE_VIOLATION|AUDIT_PERSIST_FAILED"
   ]
 }

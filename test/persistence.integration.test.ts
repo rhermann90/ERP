@@ -2032,6 +2032,56 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     expect(await prisma.crmProject.count({ where: { tenantId: foreign } })).toBe(0);
   });
 
+  it("CRM PATCH mit falscher versionNumber -> 409 CRM_STALE_VERSION", async () => {
+    const res = await app.inject({
+      method: "PATCH",
+      url: `/crm/projects/${SEED_IDS.projectId}`,
+      headers: adminHeaders(),
+      payload: {
+        reason: "Persistenztest CRM optimistic lock falsch",
+        versionNumber: 999,
+        label: "Soll nicht persistieren",
+      },
+    });
+    expect(res.statusCode).toBe(409);
+    const j = res.json() as { code?: string };
+    expect(j.code).toBe("CRM_STALE_VERSION");
+  });
+
+  it("CRM PATCH erfolgreich erhoeht versionNumber und schreibt Audit", async () => {
+    const before = await prisma.crmProject.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.projectId } },
+    });
+    expect(before).not.toBeNull();
+    const v = before!.versionNumber;
+    const res = await app.inject({
+      method: "PATCH",
+      url: `/crm/projects/${SEED_IDS.projectId}`,
+      headers: adminHeaders(),
+      payload: {
+        reason: "Persistenztest CRM PATCH mit Audit",
+        versionNumber: v,
+        label: "Pilot persistence label",
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const row = await prisma.crmProject.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.projectId } },
+    });
+    expect(row?.versionNumber).toBe(v + 1);
+    expect(row?.label).toBe("Pilot persistence label");
+    const audit = await prisma.auditEvent.findFirst({
+      where: {
+        tenantId: SEED_IDS.tenantId,
+        entityType: "CRM_PROJECT",
+        entityId: SEED_IDS.projectId,
+        action: "CRM_PROJECT_PATCHED",
+      },
+      orderBy: { timestamp: "desc" },
+    });
+    expect(audit).not.toBeNull();
+  });
+
   it("GET /crm/projects: liefert Pilot-Projekt (Auth + Mandant)", async () => {
     const res = await app.inject({ method: "GET", url: "/crm/projects", headers: adminHeaders() });
     expect(res.statusCode).toBe(200);

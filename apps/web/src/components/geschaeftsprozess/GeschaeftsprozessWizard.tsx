@@ -193,6 +193,16 @@ export function GeschaeftsprozessWizard({
           <li className={step === 2 ? "geschaeftsprozess-step-active" : undefined}>Schritt 3 — Angebot anlegen</li>
           <li className={step === 3 ? "geschaeftsprozess-step-active" : undefined}>Schritt 4 — Rechnungsentwurf</li>
         </ol>
+        <p className="shell-sub" style={{ marginTop: "0.35rem" }}>
+          Stammdaten (Pilot, CRM):{" "}
+          <a href="#/stammdaten" data-testid="geschaeftsprozess-stammdaten-link">
+            Stammdaten-Hub öffnen
+          </a>
+          . Traceability: Demo-<code>projectId</code> / <code>customerId</code> entsprechen Rechnung und Aufmass im
+          Seed; Nachberechnungen (Differenzbuchungen) lesen Sie unter{" "}
+          <a href="#/dokument">Dokument und Details</a> für <code>INVOICE</code> → Button „Differenzbuchungen Projekt
+          (GET)“.
+        </p>
         {banner ? (
           <p className={banner.kind === "err" ? "error-banner" : "success-banner"} role="status">
             {banner.text}

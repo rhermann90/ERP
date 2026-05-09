@@ -144,7 +144,7 @@ export class MeasurementService {
     actorUserId: UserId;
     measurementId: string;
     reason: string;
-  }): Promise<{ measurementVersionId: string; versionNumber: number }> {
+  }): Promise<{ measurementVersionId: string; versionNumber: number; predecessorMeasurementVersionId: string }> {
     const measurement = this.repos.getMeasurementByTenant(input.tenantId, input.measurementId);
     if (!measurement) {
       throw new DomainError("MEASUREMENT_NOT_FOUND", "Aufmass nicht gefunden", 404);
@@ -202,7 +202,11 @@ export class MeasurementService {
         predecessorVersionId: current.id,
       },
     });
-    return { measurementVersionId: newVersionId, versionNumber: nextNumber };
+    return {
+      measurementVersionId: newVersionId,
+      versionNumber: nextNumber,
+      predecessorMeasurementVersionId: current.id,
+    };
   }
 
   public async updatePositions(input: {

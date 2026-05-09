@@ -539,10 +539,11 @@ export const patchCrmConstructionSiteSchema = z
     city: z.string().max(200).optional().nullable(),
     countryCode: optionalCountry,
     reason: z.string().min(5).max(500),
+    versionNumber: z.number().int().min(1),
   })
   .strict()
   .superRefine((val, ctx) => {
-    const { reason: _r, ...rest } = val;
+    const { reason: _r, versionNumber: _v, ...rest } = val;
     if (Object.keys(rest).length === 0) {
       ctx.addIssue({ code: "custom", message: "Mindestens ein Feld neben reason erforderlich" });
     }
@@ -565,10 +566,11 @@ export const patchCrmCustomerSchema = z
     city: z.string().max(200).optional().nullable(),
     countryCode: optionalCountry,
     reason: z.string().min(5).max(500),
+    versionNumber: z.number().int().min(1),
   })
   .strict()
   .superRefine((val, ctx) => {
-    const { reason: _r, ...rest } = val;
+    const { reason: _r, versionNumber: _v, ...rest } = val;
     if (Object.keys(rest).length === 0) {
       ctx.addIssue({ code: "custom", message: "Mindestens ein Feld neben reason erforderlich" });
     }
@@ -589,12 +591,12 @@ export const patchCrmProjectSchema = z
     constructionSiteId: z.string().uuid().optional(),
     status: z.string().min(1).max(64).optional(),
     label: z.string().max(500).optional().nullable(),
-    versionNumber: z.number().int().min(1).optional(),
+    versionNumber: z.number().int().min(1),
     reason: z.string().min(5).max(500),
   })
   .strict()
   .superRefine((val, ctx) => {
-    const { reason: _r, ...rest } = val;
+    const { reason: _r, versionNumber: _v, ...rest } = val;
     if (Object.keys(rest).length === 0) {
       ctx.addIssue({ code: "custom", message: "Mindestens ein Feld neben reason erforderlich" });
     }
@@ -618,10 +620,11 @@ export const patchCrmProjectContactSchema = z
     email: z.string().email().max(320).optional().nullable(),
     phone: z.string().max(80).optional().nullable(),
     reason: z.string().min(5).max(500),
+    versionNumber: z.number().int().min(1),
   })
   .strict()
   .superRefine((val, ctx) => {
-    const { reason: _r, ...rest } = val;
+    const { reason: _r, versionNumber: _v, ...rest } = val;
     if (Object.keys(rest).length === 0) {
       ctx.addIssue({ code: "custom", message: "Mindestens ein Feld neben reason erforderlich" });
     }

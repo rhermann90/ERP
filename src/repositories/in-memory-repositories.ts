@@ -1,6 +1,7 @@
 import type { InvoiceTaxRegime } from "../domain/invoice-tax-regime.js";
 import {
   AuditEvent,
+  DifferenceBooking,
   ExportRun,
   DunningReminder,
   DunningEmailSend,
@@ -53,6 +54,8 @@ export class InMemoryRepositories {
   public dunningEmailSends = new Map<UUID, DunningEmailSend>();
   /** `${tenantId}:${idempotencyKey}` → dunningEmailSend.id */
   public dunningEmailSendByIdempotencyKey = new Map<string, UUID>();
+  /** §5.4 / §8.6 Differenzbuchungen (key = booking id). */
+  public differenceBookings = new Map<UUID, DifferenceBooking>();
 
   /** FIN-5: ein Profil je Mandant (Postgres `tenant_invoice_tax_profiles`). */
   public tenantInvoiceTaxProfiles = new Map<TenantId, TenantInvoiceTaxProfile>();
@@ -165,6 +168,31 @@ export class InMemoryRepositories {
 
   public listInvoicesForTenant(tenantId: TenantId): Invoice[] {
     return [...this.invoices.values()].filter((inv) => inv.tenantId === tenantId);
+  }
+
+  public listInvoicesForMeasurement(tenantId: TenantId, measurementId: UUID): Invoice[] {
+    return [...this.invoices.values()].filter(
+      (inv) => inv.tenantId === tenantId && inv.measurementId === measurementId,
+    );
+  }
+
+  public listDifferenceBookingsForProject(tenantId: TenantId, projectId: UUID): DifferenceBooking[] {
+    return [...this.differenceBookings.values()].filter(
+      (b) => b.tenantId === tenantId && b.projectId === projectId,
+    );
+  }
+
+  public getDifferenceBookingBySubsequentVersion(
+    tenantId: TenantId,
+    subsequentMeasurementVersionId: UUID,
+  ): DifferenceBooking | undefined {
+    return [...this.differenceBookings.values()].find(
+      (b) => b.tenantId === tenantId && b.subsequentMeasurementVersionId === subsequentMeasurementVersionId,
+    );
+  }
+
+  public putDifferenceBooking(row: DifferenceBooking): void {
+    this.differenceBookings.set(row.id, row);
   }
 
   public getPaymentIntakeByIdempotency(tenantId: TenantId, idempotencyKey: UUID): PaymentIntake | undefined {

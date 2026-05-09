@@ -2,6 +2,7 @@
 // ADR-0005/0004: LV §9 + Aufmass; offer_versions.lv_version_id -> lv_versions (FIN-2 Gate G5)
 // ADR-0008: payment_terms_heads / payment_terms_versions (FIN-1)
 // ADR-0019: CRM Stammdaten Objekt/Kunde/Projekt/Kontakt (Spur B Option C)
+// ADR-0020: Differenzbuchungen §5.4/§8.6 (Aufmassversionspaar)
 
 generator client {
   provider = "prisma-client"
@@ -227,6 +228,28 @@ model MeasurementPosition {
   @@id([tenantId, id])
   @@index([tenantId, measurementVersionId])
   @@map("measurement_positions")
+}
+
+/// §5.4 / §8.6: Differenzbuchung nach Aufmass-Korrektur bei gebuchter Rechnung (Lesepfad + persistierte Auslöser; ADR-0020).
+model DifferenceBooking {
+  tenantId                        String   @map("tenant_id") @db.Uuid
+  id                              String   @db.Uuid
+  projectId                       String   @map("project_id") @db.Uuid
+  customerId                      String   @map("customer_id") @db.Uuid
+  measurementId                   String   @map("measurement_id") @db.Uuid
+  predecessorMeasurementVersionId String   @map("predecessor_measurement_version_id") @db.Uuid
+  subsequentMeasurementVersionId  String   @map("subsequent_measurement_version_id") @db.Uuid
+  kind                            String   @db.VarChar(64)
+  amountNetCents                  Int      @map("amount_net_cents")
+  status                          String   @db.VarChar(32)
+  referenceInvoiceId              String?  @map("reference_invoice_id") @db.Uuid
+  createdAt                       DateTime @map("created_at")
+  createdBy                       String   @map("created_by") @db.Uuid
+
+  @@id([tenantId, id])
+  @@unique([tenantId, subsequentMeasurementVersionId], map: "difference_bookings_tenant_subsequent_key")
+  @@index([tenantId, projectId])
+  @@map("difference_bookings")
 }
 
 
@@ -543,15 +566,16 @@ model AuditEvent {
 
 /// CRM Baustelle/Objekt (mandantenisoliert; ADR 0019).
 model CrmConstructionSite {
-  tenantId    String   @map("tenant_id") @db.Uuid
-  id          String   @db.Uuid
-  label       String
-  street      String?
-  postalCode  String?  @map("postal_code")
-  city        String?
-  countryCode String?  @map("country_code") @db.Char(2)
-  createdAt   DateTime @map("created_at")
-  createdBy   String   @map("created_by") @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  id            String   @db.Uuid
+  label         String
+  versionNumber Int      @default(1) @map("version_number")
+  street        String?
+  postalCode    String?  @map("postal_code")
+  city          String?
+  countryCode   String?  @map("country_code") @db.Char(2)
+  createdAt     DateTime @map("created_at")
+  createdBy     String   @map("created_by") @db.Uuid
 
   projects CrmProject[]
 
@@ -562,15 +586,16 @@ model CrmConstructionSite {
 
 /// CRM-Kunde getrennt von XRechnung-Party (FIN-5); ADR 0019.
 model CrmCustomer {
-  tenantId    String   @map("tenant_id") @db.Uuid
-  id          String   @db.Uuid
-  legalName   String   @map("legal_name")
-  street      String?
-  postalCode  String?  @map("postal_code")
-  city        String?
-  countryCode String?  @map("country_code") @db.Char(2)
-  createdAt   DateTime @map("created_at")
-  createdBy   String   @map("created_by") @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  id            String   @db.Uuid
+  legalName     String   @map("legal_name")
+  versionNumber Int      @default(1) @map("version_number")
+  street        String?
+  postalCode    String?  @map("postal_code")
+  city          String?
+  countryCode   String?  @map("country_code") @db.Char(2)
+  createdAt     DateTime @map("created_at")
+  createdBy     String   @map("created_by") @db.Uuid
 
   primaryProjects CrmProject[]       @relation("CrmProjectPrimaryCustomer")
   contacts        CrmProjectContact[]
@@ -602,16 +627,17 @@ model CrmProject {
 }
 
 model CrmProjectContact {
-  tenantId    String   @map("tenant_id") @db.Uuid
-  id          String   @db.Uuid
-  projectId   String   @map("project_id") @db.Uuid
-  customerId  String?  @map("customer_id") @db.Uuid
-  role        String
-  displayName String   @map("display_name")
-  email       String?
-  phone       String?
-  createdAt   DateTime @map("created_at")
-  createdBy   String   @map("created_by") @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  id            String   @db.Uuid
+  projectId     String   @map("project_id") @db.Uuid
+  customerId    String?  @map("customer_id") @db.Uuid
+  role          String
+  displayName   String   @map("display_name")
+  versionNumber Int      @default(1) @map("version_number")
+  email         String?
+  phone         String?
+  createdAt     DateTime @map("created_at")
+  createdBy     String   @map("created_by") @db.Uuid
 
   project  CrmProject   @relation(fields: [tenantId, projectId], references: [tenantId, id], onUpdate: Restrict, onDelete: Cascade)
   customer CrmCustomer? @relation(fields: [tenantId, customerId], references: [tenantId, id], onUpdate: Restrict, onDelete: SetNull)

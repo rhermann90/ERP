@@ -14,6 +14,7 @@ export async function seedCrmStammdaten(prisma: PrismaClient): Promise<void> {
     create: {
       tenantId: SEED_IDS.tenantId,
       id: SEED_IDS.crmConstructionSiteId,
+      versionNumber: 1,
       label: "Demo-Baustelle Nord",
       street: "Baustellenweg 1",
       postalCode: "10115",
@@ -36,6 +37,7 @@ export async function seedCrmStammdaten(prisma: PrismaClient): Promise<void> {
     create: {
       tenantId: SEED_IDS.tenantId,
       id: SEED_IDS.customerId,
+      versionNumber: 1,
       legalName: "Demo-Kunde AG (CRM)",
       street: "Kundenallee 2",
       postalCode: "80331",
@@ -78,6 +80,7 @@ export async function seedCrmStammdaten(prisma: PrismaClient): Promise<void> {
     create: {
       tenantId: SEED_IDS.tenantId,
       id: SEED_IDS.crmProjectContactId,
+      versionNumber: 1,
       projectId: SEED_IDS.projectId,
       customerId: SEED_IDS.customerId,
       role: "ANSPRECHPARTNER",

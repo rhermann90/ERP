@@ -36,8 +36,8 @@ Aus [`docs/ERP-Systembeschreibung.md`](./ERP-Systembeschreibung.md) **Teil V —
 
 | Welle | Inhalt (Kurz) | MVP-PWA |
 |-------|----------------|---------|
-| **W1** | Stammdaten Kunde / Projekt / Objekt (§18.1) | **Teilweise** — `#/stammdaten`: XRechnung Buyer/Seller + FIN-1 + **CRM-Stamm** (Baustelle, **CRM-Kunde**, Projekt, Kontakte; Postgres-API); **Pilot-Projekt-Label** per `patchCrmProject` im Hub (Schreibrolle wie FIN-1); Memory-Demo: Hinweis statt CRM-Daten — siehe [`pwa-backend-coverage-matrix.md`](./plans/pwa-backend-coverage-matrix.md), ADR [`0019`](./adr/0019-w1-stammdaten-project-customer-object-option-c.md). |
-| **W2** | Kerngeschäft: Angebot → Aufmass → Rechnung; §5.4 / §8.6 nachvollziehbar | **MVP** — Pilot-Wizard, Shell, Finanz-Vorbereitung (konservativ: nicht jedes Teilziel „Implementiert“). |
+| **W1** | Stammdaten Kunde / Projekt / Objekt (§18.1) | **Implementiert (Pilot-CRM)** — `#/stammdaten`: XRechnung Buyer/Seller + FIN-1 + **CRM-Stamm** vollständig über `ApiClient` (Lesen/Schreiben: Baustelle, CRM-Kunde, Projekt, Projektkontakt) mit **Optimistic Locking** (`versionNumber`) und **409-Konflikt-UX**; Audit fail-hard; Einstieg **Geschäftsprozess** → Link Stammdaten-Hub. Memory-Demo: Hinweis statt Live-CRM — Matrix [`pwa-backend-coverage-matrix.md`](./plans/pwa-backend-coverage-matrix.md), ADR [`0019`](./adr/0019-w1-stammdaten-project-customer-object-option-c.md). §18.1 Historie/Anhänge: Zielbild, nicht W1. |
+| **W2** | Kerngeschäft: Angebot → Aufmass → Rechnung; §5.4 / §8.6 nachvollziehbar | **MVP** — Pilot-Wizard, Shell, Finanz-Vorbereitung; **Lesepfad Differenzbuchungen** `GET /projects/{projectId}/difference-bookings` + Shell-Button; vollständige 8.6-Randfälle weiterhin Folge-Inkremente (ADR-0020). |
 | **W3** | DMS light, Suche (§18.4, §18.8) | **Außerhalb MVP** |
 | **W4** | Mobile / Feld (§18.3) | **Außerhalb MVP** |
 | **W5** | Material, Kalkulation (§18.2, §18.5) | **Außerhalb MVP** |
@@ -58,7 +58,7 @@ Zielbild-Spalte verweist auf die **normative** Domäne; **Ist** bezieht sich auf
 | Globale Navigation & IA | §11.1, Teil V | **Teilweise** | [`docs/plans/pwa-information-architecture.md`](./plans/pwa-information-architecture.md); `AppPrimaryNav`, Hubs; Pilot-Routen `#/aufmass-messungen`, `#/angebote-arbeitsflaeche`, `#/finanz-arbeitsliste`, `#/admin/users` (ADMIN) |
 | Dokument-Arbeitsbereich `#/dokument` (SoT, Shell) | §5, §8, §11 | **Implementiert** | [`apps/web/README.md`](../apps/web/README.md); `executeActionWithSotGuard` |
 | LV Lesepfad §9 | §9 | **Teilweise** | `#/lv-bearbeiten`, Shell GET; SoT-Formulare für Text/Knotenposition (`LvEntityTextSotPanel`); tiefe Bearbeitung weiter Experte — [`pwa-backend-coverage-matrix.md`](./plans/pwa-backend-coverage-matrix.md) |
-| Aufmass | §5.3–§5.4 | **Teilweise** | Wizard + Shell + Pilot **`#/aufmass-messungen`** (Liste/Detail); §5.4/§8.6 Differenzbuchung: Backend offen — Ticket [`DOM-8-6-DIFFERENZBUCHUNG-BACKEND-PWA.md`](./tickets/DOM-8-6-DIFFERENZBUCHUNG-BACKEND-PWA.md) |
+| Aufmass | §5.3–§5.4 | **Teilweise** | Wizard + Shell + Pilot **`#/aufmass-messungen`** (Liste/Detail); §5.4/§8.6: **persistierter Lesepfad** `GET /projects/{projectId}/difference-bookings` + Rechnungs-Shell (ADR [`0020`](./adr/0020-difference-booking-measurement-8-6-slice.md)); Integration in nächsten Rechnungsentwurf / Randfälle 8.6 offen |
 | Angebot / Nachtrag | §5.2, §7 | **Teilweise** | Wizard, Shell, Pilot **`#/angebote-arbeitsflaeche`** (SoT-Arbeitsfläche) |
 | Rechnung Entwurf / Lesen / Buchung | §8.2, §8.4, FIN-2 | **Teilweise** | **Finanz-Vorbereitung** + Shell; volle 8.4-Tiefe siehe Tickets/ADR |
 | Zahlungseingang FIN-3 | §8.7–§8.9 | **Implementiert** (SoT-Pfad) | [`apps/web/README.md`](../apps/web/README.md); `RECORD_PAYMENT_INTAKE` + Idempotency-Key |
@@ -102,7 +102,7 @@ Auszug aus ERP **Teil II** — für Details weiterhin [`docs/ERP-Systembeschreib
 
 | Unterabschnitt | Stichwort | Status für MVP-PWA |
 |----------------|-----------|---------------------|
-| **18.1** | Objekt/Baustelle, Projekt, Kontakte | **Vorbereitet (§18)** — Zielbild in ERP; W1 nur teilweise abgedeckt |
+| **18.1** | Objekt/Baustelle, Projekt, Kontakte | **Pilot-W1** — CRM-Stamm CRUD + Traceability-IDs im Repo; vollständige §18.1-Produktvision (Historie/DMS) weiterhin Zielbild |
 | **18.2** | Material, Lager, Disposition | **Außerhalb MVP (§18)** |
 | **18.3** | Mobile Baustelle, Offline | **Außerhalb MVP (§18)** |
 | **18.4** | DMS | **Außerhalb MVP (§18)** |

@@ -16,6 +16,7 @@ export function LvAufmassHubPage({ showIntegrationHints = false }: Props) {
       <h2 id="lv-aufmass-hub-heading">LV &amp; Aufmaß</h2>
       <p className="shell-sub">
         Lesepfad LV §9, Pilot-Wizard und Shell für Messungen — Schreibaktionen nur über Backend-<code>allowedActions</code>.
+        Nachberechnung: Differenzbuchungen zum Projekt in der Rechnungs-Shell (Button „Differenzbuchungen Projekt (GET)“).
       </p>
       <div className="quick-role-grid home-dashboard-tile-grid">
         <a className="quick-role-tile" href={LV_BEARBEITEN_HASH} data-testid="hub-lv-link-lv">
