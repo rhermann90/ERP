@@ -2,23 +2,17 @@
 
 Kurzbriefing für automatisierte oder assistierte Arbeit am Repository. **Kernregeln (immer):** [`.cursor/rules/erp-multi-agent.mdc`](./.cursor/rules/erp-multi-agent.mdc). **Liefer-, Merge-, Review- und Ausgabeformat** bei Arbeit unter `src/`, `apps/web/`, `prisma/`, `README.md`, `Checklisten/`, `docs/contracts/`, `docs/api-contract.yaml`, `docs/adr/`, `docs/tickets/`, `docs/CODEMAPS/`: [`.cursor/rules/erp-delivery-review.mdc`](./.cursor/rules/erp-delivery-review.mdc). Ausführlicher Betrieb und Links: [`README.md`](./README.md). **Cursor Plan-Modus / TodoWrite vs. CreatePlan:** in der Multi-Agent-Regel festgelegt.
 
+**Pick your path:** [**Developer-Ladder**](docs/plans/developer-onboarding-ladder.md) (15 min / 1–2 h / Merge) → [**Codemap-Spine**](docs/CODEMAPS/overview-spine.md) → bei Domänenlogik: [`docs/ERP-Systembeschreibung.md`](docs/ERP-Systembeschreibung.md). Längere Agenten-Pflichten (Cursor-Gate, Tickets, P1-3/P1-4): [`docs/runbook/agent-session-rituals.md`](docs/runbook/agent-session-rituals.md).
+
 ## 1. Lesereihenfolge (Kontext schichten)
 
 1. **Diese Datei** — Wo liegt was, welche Befehle, welche Artefakte zuerst.
-2. **[`docs/CODEMAPS/overview.md`](./docs/CODEMAPS/overview.md)** — Modul-Landkarte (`src/` vs. `apps/web/`), ohne Fachbuch.
+2. **[`docs/CODEMAPS/overview-spine.md`](./docs/CODEMAPS/overview-spine.md)** — schlanker technischer Einstieg; danach bei Bedarf **[`docs/CODEMAPS/overview.md`](./docs/CODEMAPS/overview.md)** (volle API-/PWA-Tabelle). Persistenz: [`docs/CODEMAPS/persistence-and-repository-mode.md`](./docs/CODEMAPS/persistence-and-repository-mode.md).
 3. **Fachliche Quelle** — [`docs/ERP-Systembeschreibung.md`](./docs/ERP-Systembeschreibung.md): nur die für die Aufgabe nötigen Teile (z. B. referenzierte §), nicht zwangsläufig das ganze Dokument.
-4. **Technische Verträge** — [`docs/api-contract.yaml`](./docs/api-contract.yaml), [`docs/contracts/`](./docs/contracts/) (inkl. `error-codes.json`), relevante [`docs/adr/`](./docs/adr/).
+4. **Technische Verträge** — [`docs/api-contract.yaml`](./docs/api-contract.yaml), [`docs/contracts/`](./docs/contracts/) (inkl. `error-codes.json`), [`docs/adr/README.md`](./docs/adr/README.md) / [`docs/adr/`](./docs/adr/).
 5. **PWA / UI-UX** (bei Arbeit unter `apps/web/`) — MVP-Zielbild und Ist-Matrix: [`docs/PWA-Entwicklungsreferenz.md`](./docs/PWA-Entwicklungsreferenz.md); Link-Hub [`docs/referenz-ui-ux.md`](./docs/referenz-ui-ux.md); [`docs/ui-ux-style-guide.md`](./docs/ui-ux-style-guide.md), [`docs/web-theming.md`](./docs/web-theming.md); Cursor-Rule **erp-web-ui** (`apps/web/**`).
 6. **Compliance / Produktiv-Go (Empfehlungen)** — Für **Merge und laufende Entwicklung** gelten die **CI-/Review-Erwartungen** des Repos; es gibt **keine** im Repo definierte **menschengestützte Pflichtfreigabe** als Merge-Voraussetzung. Für **Mandanten-Produktivität** empfohlen: [`Checklisten/README.md`](./Checklisten/README.md), [`Checklisten/compliance-rechnung-finanz.md`](./Checklisten/compliance-rechnung-finanz.md), Hybrid-Ledger/[`compliance-freigabe-runbook.md`](./Checklisten/compliance-freigabe-runbook.md) **inhaltlich durcharbeiten** und im Paket dokumentieren; **`npm run validate:compliance-artifacts`** / **`validate:compliance-signoffs`** in `verify:ci` prüfen nur **Datei-/Schema-Konsistenz**. Mahn-Massen-E-Mail (M4 5c): [`docs/runbooks/m4-slice-5c-pl-mandanten-go.md`](./docs/runbooks/m4-slice-5c-pl-mandanten-go.md) *(historischer Pfad)*. Übersicht: [`README.md`](./README.md) („Compliance, Finanz-Go-Live und Merge-Disziplin (Empfehlungen)“).
 7. **Arbeitsweise (Code/Doku)** — [`docs/plans/workflow-code-first-ohne-qualitaetsverlust.md`](./docs/plans/workflow-code-first-ohne-qualitaetsverlust.md) (Kurzverweis auch unter [„Arbeitsweise“ in `docs/plans/nächste-schritte.md`](./docs/plans/nächste-schritte.md)).
-
-**Cursor / Fact-Forcing Gate:** Blockiert ein Hook (`[Fact-Forcing Gate]`) `Write`/`StrReplace`, zuerst den Retry-Workflow in [`docs/runbook/agent-gateguard-workflow.md`](./docs/runbook/agent-gateguard-workflow.md) befolgen — Shell-Schreiben nicht als Standard; **Team-Empfehlung** (Whitelist vs. streng) und Risiko-Tabelle dort im Runbook.
-
-Tickets und Gates (z. B. FIN-2, QA §5a) stehen in `docs/tickets/` und `docs/contracts/`; bei merge-kritischen Themen README und PR-Vorlage beachten. **QA/Review vor Merge:** Querschnitt in [`docs/runbook/ci-and-persistence-tests.md`](./docs/runbook/ci-and-persistence-tests.md) (Abschnitt „QA und Review vor Merge auf `main`“).
-
-**P1-4 (B5 / Audit-Code):** Tickets [`B5-SPEC-DELIVERY-BOUNDARY-WAVE3.md`](./docs/tickets/B5-SPEC-DELIVERY-BOUNDARY-WAVE3.md) und [`FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md) dokumentieren **Risiken und empfohlene** Vorgehensweise — sie sind **kein** Merge-Blocker durch wartende Freigabe; vor **Mandanten-Produktivität** empfohlen, Auswirkungen erneut zu bewerten (Risiko/Schwere nach Organisation).
-
-**Agent nach finanz-relevantem Merge auf `main`:** Nächste freie Zeile in [`docs/tickets/P1-3-DOCS-MILESTONE-WAVE3.md`](./docs/tickets/P1-3-DOCS-MILESTONE-WAVE3.md) ausfüllen (Merge-Datum UTC, PR-URL) — siehe Abschnitt **„Pflege (Agent)“** dort. **Review-Protokoll** (Tabelle in [`docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md`](./docs/tickets/FOLLOWUP-AUDIT-DB-PERSIST-FAIL-HARD.md)): **keine erfundenen URLs** durch den Agenten — echte Links nur von Menschen mit Zugriff auf das externe Protokoll. Koordinations-Tabelle in [`docs/tickets/PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md`](./docs/tickets/PL-WAVE3-M4-NEXT-BRANCH-RECORD-2026-04-26.md) *(Dateiname historisch)*: der Agent **pflegt manuelle Fremd-Protokoll-Zellen nicht** und **erfindet** keine URLs. **Verbindlich** für den Agenten: `verify:ci` (und bei Bedarf `verify:ci:local-db`), grüne Merge-Checks wie dokumentiert, P1-3 bei qualifiziertem Merge, übrige Ticket-/Codemap-Pflege ohne fingierte Nachweise.
 
 ## 2. Repo-Layout (Kurz)
 
@@ -50,7 +44,7 @@ Tickets und Gates (z. B. FIN-2, QA §5a) stehen in `docs/tickets/` und `docs/con
 
 ## 4. Codemap
 
-Die pfadbezogene Orientierung liegt zentral unter **[`docs/CODEMAPS/`](./docs/CODEMAPS/)** ([`overview.md`](./docs/CODEMAPS/overview.md)). Bei neuen Features dort die betroffene Sektion um eine Zeile ergänzen (kein Ersatz für ADR oder OpenAPI).
+Die pfadbezogene Orientierung liegt unter **[`docs/CODEMAPS/`](./docs/CODEMAPS/)** — Einstieg [**Spine**](./docs/CODEMAPS/overview-spine.md), Details [**overview.md**](./docs/CODEMAPS/overview.md), FIN/Compliance-Tabellen [**overview-deep-links.md**](./docs/CODEMAPS/overview-deep-links.md). Bei neuen Features die betroffene Sektion um eine Zeile ergänzen (kein Ersatz für ADR oder OpenAPI).
 
 ## 5. Umsetzung und Wartung (wie dieses Paket gedacht ist)
 
@@ -59,7 +53,7 @@ Die pfadbezogene Orientierung liegt zentral unter **[`docs/CODEMAPS/`](./docs/CO
 | **`.cursor/rules/erp-multi-agent.mdc`** | Immer geladen: Domänen-Invarianten, Plan-Modus (TodoWrite + CreatePlan), Verweis auf Lieferregeln und kanonische Systembeschreibung. |
 | **`.cursor/rules/erp-delivery-review.mdc`** | Bei relevanten Pfaden: Merge-/Compliance-Erwartungen, Antwortschema, Review-Regeln (siehe Dateikopf `globs`). |
 | **`AGENTS.md`** | Session-Bootstrap: Schichtung, Befehle, Link zur Codemap — bewusst kurz, um Tokens zu sparen. |
-| **`docs/CODEMAPS/overview.md`** | Strukturorientierung im Code; wird bei neuen vertikalen Slices oder größeren Verschiebungen aktualisiert. |
+| **`docs/CODEMAPS/overview-spine.md` / `overview.md` / `overview-deep-links.md`** | Strukturorientierung (Spine → Vollcodemap → Deep-Links); bei neuen vertikalen Slices oder größeren Verschiebungen aktualisieren. |
 | **`docs/ERP-Systembeschreibung.md`** | Fachliche Wahrheit; bei Konflikt gewinnt Fachlogik gegen Implementierungsbequemlichkeit. |
 | **[Checklisten/README.md](./Checklisten/README.md)** | Compliance-Paket (Begleitblatt, Ledger, Hybrid-Signoffs, Prompts): **Einstieg** empfohlen vor Mandanten-Produktivität; Vorlagen können Rollenfelder enthalten — ergänzend zu README und grünem CI. |
 

@@ -1,5 +1,11 @@
-import { useState } from "react";
-import type { ApiClient, OfferVersionDetail } from "../../lib/api-client.js";
+import { useCallback, useEffect, useState } from "react";
+import type {
+  ApiClient,
+  OfferListItem,
+  OfferVersionDetail,
+  SupplementListItem,
+  SupplementVersionRead,
+} from "../../lib/api-client.js";
 import { ApiError } from "../../lib/api-error.js";
 import {
   CANONICAL_EXPORT_INVOICE_ACTION_ID,
@@ -7,7 +13,15 @@ import {
   executeActionWithSotGuard,
 } from "../../lib/action-executor.js";
 import { DEMO_SEED_IDS as SEED } from "../../lib/demo-seed-ids.js";
-import { DOCUMENT_WORKSPACE_HASH, OFFER_WORKSPACE_HASH } from "../../lib/hash-route.js";
+import {
+  ANGEBOTE_NACHTRAEGE_HUB_HASH,
+  DOCUMENT_WORKSPACE_HASH,
+  LV_AUFMASS_HUB_HASH,
+  MEASUREMENT_PILOT_LIST_HASH,
+  OFFER_WORKSPACE_HASH,
+  readOfferWorkspaceVersionIdsFromHash,
+  useHashRoute,
+} from "../../lib/hash-route.js";
 
 type Props = {
   api: ApiClient;
@@ -46,6 +60,7 @@ export function OfferSupplementWorkspacePage({ api, showIntegrationHints = false
   const [suppAllowed, setSuppAllowed] = useState<string[] | null>(null);
   const [offerAction, setOfferAction] = useState("");
   const [suppAction, setSuppAction] = useState("");
+  const [suppDetail, setSuppDetail] = useState<SupplementVersionRead | null>(null);
   const [offerForm, setOfferForm] = useState<ActionFormFields>({
     reason: "Angebots-Arbeitsfläche — Pilot SoT",
     lvVersionId: SEED.lvVersionId,
@@ -58,11 +73,65 @@ export function OfferSupplementWorkspacePage({ api, showIntegrationHints = false
   const [busy, setBusy] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
 
-  const loadOffer = async () => {
+  const hashPath = useHashRoute();
+  const [projectIdInput, setProjectIdInput] = useState<string>(SEED.projectId);
+  const [offerListRows, setOfferListRows] = useState<OfferListItem[] | null>(null);
+  const [suppListRows, setSuppListRows] = useState<SupplementListItem[] | null>(null);
+  const [listBusy, setListBusy] = useState(false);
+  const [listError, setListError] = useState<string | null>(null);
+
+  const loadProjectLists = useCallback(async () => {
+    const pid = projectIdInput.trim();
+    if (!pid) return;
+    setListBusy(true);
+    setListError(null);
+    setOfferListRows(null);
+    setSuppListRows(null);
+    try {
+      const [offers, supps] = await Promise.all([api.listProjectOffers(pid), api.listProjectSupplements(pid)]);
+      setOfferListRows(offers.data);
+      setSuppListRows(supps.data);
+    } catch (e) {
+      setListError(e instanceof ApiError ? `${e.envelope.code}: ${e.envelope.message}` : String(e));
+    } finally {
+      setListBusy(false);
+    }
+  }, [api, projectIdInput]);
+
+  useEffect(() => {
+    if (hashPath !== "/angebote-arbeitsflaeche") return;
+    const { offerVersionId: ovFromHash, supplementVersionId: svFromHash } = readOfferWorkspaceVersionIdsFromHash();
+    if (ovFromHash) setOfferVersionId(ovFromHash);
+    if (svFromHash) setSupplementVersionId(svFromHash);
+    if (!ovFromHash && !svFromHash) return;
+    void (async () => {
+      setBusy(true);
+      setBanner(null);
+      try {
+        if (ovFromHash) {
+          const d = await api.getOfferVersion(ovFromHash);
+          setOfferDetail(d);
+          setOfferForm((f) => ({ ...f, offerId: d.offerId }));
+        }
+        if (svFromHash) {
+          const sd = await api.getSupplementVersion(svFromHash);
+          setSuppDetail(sd);
+        }
+      } catch (e) {
+        setBanner(e instanceof ApiError ? `${e.envelope.code}: ${e.envelope.message}` : String(e));
+      } finally {
+        setBusy(false);
+      }
+    })();
+  }, [api, hashPath]);
+
+  const loadOfferForId = async (versionId: string) => {
+    const id = versionId.trim();
+    if (!id) return;
     setBusy(true);
     setBanner(null);
     try {
-      const d = await api.getOfferVersion(offerVersionId.trim());
+      const d = await api.getOfferVersion(id);
       setOfferDetail(d);
       setOfferForm((f) => ({ ...f, offerId: d.offerId }));
     } catch (e) {
@@ -71,6 +140,26 @@ export function OfferSupplementWorkspacePage({ api, showIntegrationHints = false
     } finally {
       setBusy(false);
     }
+  };
+
+  const loadSuppForId = async (versionId: string) => {
+    const id = versionId.trim();
+    if (!id) return;
+    setBusy(true);
+    setBanner(null);
+    try {
+      const d = await api.getSupplementVersion(id);
+      setSuppDetail(d);
+    } catch (e) {
+      setSuppDetail(null);
+      setBanner(e instanceof ApiError ? `${e.envelope.code}: ${e.envelope.message}` : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const loadOffer = async () => {
+    await loadOfferForId(offerVersionId);
   };
 
   const loadOfferSoT = async () => {
@@ -105,6 +194,10 @@ export function OfferSupplementWorkspacePage({ api, showIntegrationHints = false
     }
   };
 
+  const loadSuppDetail = async () => {
+    await loadSuppForId(supplementVersionId);
+  };
+
   const runOffer = async () => {
     const id = offerVersionId.trim();
     const a = offerAction.trim();
@@ -113,7 +206,7 @@ export function OfferSupplementWorkspacePage({ api, showIntegrationHints = false
     setBanner(null);
     try {
       const res = await executeActionWithSotGuard(api, a, "OFFER_VERSION", id, offerAllowed, offerForm);
-      setBanner(JSON.stringify(res, null, 2));
+      setBanner(showIntegrationHints ? JSON.stringify(res, null, 2) : "Aktion erfolgreich ausgeführt.");
       await loadOffer();
       await loadOfferSoT();
     } catch (e) {
@@ -131,7 +224,7 @@ export function OfferSupplementWorkspacePage({ api, showIntegrationHints = false
     setBanner(null);
     try {
       const res = await executeActionWithSotGuard(api, a, "SUPPLEMENT_VERSION", id, suppAllowed, suppForm);
-      setBanner(JSON.stringify(res, null, 2));
+      setBanner(showIntegrationHints ? JSON.stringify(res, null, 2) : "Aktion erfolgreich ausgeführt.");
       await loadSuppSoT();
     } catch (e) {
       setBanner(e instanceof ApiError ? `${e.envelope.code}: ${e.envelope.message}` : String(e));
@@ -150,6 +243,192 @@ export function OfferSupplementWorkspacePage({ api, showIntegrationHints = false
         Schreibaktionen nur nach Server-<code>allowedActions</code>. Für Buchungsimpact beim Nachtrag ist eine passende{" "}
         <code>invoiceId</code> nötig ({CANONICAL_EXPORT_INVOICE_ACTION_ID} bleibt am Rechnungsdokument).
       </p>
+      <p className="shell-sub" data-testid="ows-api-hint">
+        Projektlisten vom Server: <code>GET /projects/&#123;projectId&#125;/offers</code>,{" "}
+        <code>GET /projects/&#123;projectId&#125;/supplements</code> (Lesepfad wie Aufmass/Rechnung). Deep-Link:{" "}
+        <code>{OFFER_WORKSPACE_HASH}?offerVersionId=…&amp;supplementVersionId=…</code>
+      </p>
+      <p className="shell-sub" data-testid="ows-cross-links">
+        Hub <a href={ANGEBOTE_NACHTRAEGE_HUB_HASH}>Angebote &amp; Nachträge</a> ·{" "}
+        <a href={MEASUREMENT_PILOT_LIST_HASH}>Aufmaß-Messungen</a> · <a href={LV_AUFMASS_HUB_HASH}>LV &amp; Aufmaß</a>
+      </p>
+
+      <div className="field-grid two" style={{ marginTop: "0.75rem" }}>
+        <label className="field">
+          <span>Projekt-ID (Listen vom Server)</span>
+          <input
+            type="text"
+            value={projectIdInput}
+            onChange={(e) => setProjectIdInput(e.target.value)}
+            data-testid="ows-project-id"
+            autoComplete="off"
+          />
+        </label>
+        <div className="actions-row" style={{ alignSelf: "end" }}>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => void loadProjectLists()}
+            disabled={listBusy || !projectIdInput.trim()}
+            data-testid="ows-load-project-lists"
+          >
+            {listBusy ? "Listen laden…" : "Projekt-Listen laden"}
+          </button>
+        </div>
+      </div>
+      {listError ? (
+        <p className="error-banner" role="alert" data-testid="ows-list-error">
+          {listError}
+        </p>
+      ) : null}
+      {offerListRows ? (
+        <div className="panel" style={{ marginTop: "0.75rem" }} data-testid="ows-offer-table-wrap">
+          <h3 className="shell-sub" style={{ marginTop: 0 }}>
+            Angebote im Projekt (Server)
+          </h3>
+          {offerListRows.length === 0 ? (
+            <p className="shell-sub">Keine Angebotsköpfe für dieses Projekt.</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table
+                style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}
+                data-testid="ows-offer-server-table"
+              >
+                <thead>
+                  <tr>
+                    <th
+                      scope="col"
+                      style={{ textAlign: "left", padding: "0.35rem", borderBottom: "1px solid var(--border-subtle)" }}
+                    >
+                      offerId
+                    </th>
+                    <th
+                      scope="col"
+                      style={{ textAlign: "left", padding: "0.35rem", borderBottom: "1px solid var(--border-subtle)" }}
+                    >
+                      Status (aktuell)
+                    </th>
+                    <th
+                      scope="col"
+                      style={{ textAlign: "left", padding: "0.35rem", borderBottom: "1px solid var(--border-subtle)" }}
+                    >
+                      Angebotsversion
+                    </th>
+                    <th
+                      scope="col"
+                      style={{ textAlign: "left", padding: "0.35rem", borderBottom: "1px solid var(--border-subtle)" }}
+                    >
+                      Aktion
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {offerListRows.map((row) => (
+                    <tr key={row.offerId}>
+                      <td style={{ padding: "0.35rem", borderBottom: "1px solid var(--border-subtle)" }}>
+                        <code>{row.offerId}</code>
+                      </td>
+                      <td style={{ padding: "0.35rem", borderBottom: "1px solid var(--border-subtle)" }}>
+                        {row.currentVersion.status}
+                      </td>
+                      <td style={{ padding: "0.35rem", borderBottom: "1px solid var(--border-subtle)" }}>
+                        <code>{row.currentOfferVersionId}</code>
+                      </td>
+                      <td style={{ padding: "0.35rem", borderBottom: "1px solid var(--border-subtle)" }}>
+                        <button
+                          type="button"
+                          className="btn secondary"
+                          data-testid={`ows-select-offer-${row.offerId}`}
+                          onClick={() => {
+                            setOfferVersionId(row.currentOfferVersionId);
+                            void loadOfferForId(row.currentOfferVersionId);
+                          }}
+                        >
+                          Anzeigen
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : null}
+      {suppListRows ? (
+        <div className="panel" style={{ marginTop: "0.75rem" }} data-testid="ows-supp-table-wrap">
+          <h3 className="shell-sub" style={{ marginTop: 0 }}>
+            Nachträge im Projekt (Server)
+          </h3>
+          {suppListRows.length === 0 ? (
+            <p className="shell-sub">Keine Nachträge für dieses Projekt.</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table
+                style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}
+                data-testid="ows-supp-server-table"
+              >
+                <thead>
+                  <tr>
+                    <th
+                      scope="col"
+                      style={{ textAlign: "left", padding: "0.35rem", borderBottom: "1px solid var(--border-subtle)" }}
+                    >
+                      supplementOfferId
+                    </th>
+                    <th
+                      scope="col"
+                      style={{ textAlign: "left", padding: "0.35rem", borderBottom: "1px solid var(--border-subtle)" }}
+                    >
+                      Status (aktuell)
+                    </th>
+                    <th
+                      scope="col"
+                      style={{ textAlign: "left", padding: "0.35rem", borderBottom: "1px solid var(--border-subtle)" }}
+                    >
+                      Nachtragsversion
+                    </th>
+                    <th
+                      scope="col"
+                      style={{ textAlign: "left", padding: "0.35rem", borderBottom: "1px solid var(--border-subtle)" }}
+                    >
+                      Aktion
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {suppListRows.map((row) => (
+                    <tr key={row.supplementOfferId}>
+                      <td style={{ padding: "0.35rem", borderBottom: "1px solid var(--border-subtle)" }}>
+                        <code>{row.supplementOfferId}</code>
+                      </td>
+                      <td style={{ padding: "0.35rem", borderBottom: "1px solid var(--border-subtle)" }}>
+                        {row.currentVersion.status}
+                      </td>
+                      <td style={{ padding: "0.35rem", borderBottom: "1px solid var(--border-subtle)" }}>
+                        <code>{row.currentSupplementVersionId}</code>
+                      </td>
+                      <td style={{ padding: "0.35rem", borderBottom: "1px solid var(--border-subtle)" }}>
+                        <button
+                          type="button"
+                          className="btn secondary"
+                          data-testid={`ows-select-supp-${row.supplementOfferId}`}
+                          onClick={() => {
+                            setSupplementVersionId(row.currentSupplementVersionId);
+                            void loadSuppForId(row.currentSupplementVersionId);
+                          }}
+                        >
+                          Anzeigen
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <section className="panel" style={{ marginTop: "1rem" }}>
         <h3>Angebotsversion</h3>
@@ -226,6 +505,9 @@ export function OfferSupplementWorkspacePage({ api, showIntegrationHints = false
           <input type="text" value={supplementVersionId} onChange={(e) => setSupplementVersionId(e.target.value)} data-testid="ows-supp-version-id" />
         </label>
         <div className="actions-row">
+          <button type="button" className="btn secondary" disabled={busy} onClick={() => void loadSuppDetail()} data-testid="ows-supp-detail-load">
+            Nachtrag lesen
+          </button>
           <button type="button" className="btn-primary" disabled={busy} onClick={() => void loadSuppSoT()} data-testid="ows-supp-sot-load">
             SoT laden
           </button>
@@ -236,6 +518,30 @@ export function OfferSupplementWorkspacePage({ api, showIntegrationHints = false
             Dokument-Shell
           </a>
         </div>
+        {suppDetail ? (
+          <dl data-testid="ows-supp-detail-dl" style={{ marginTop: "0.75rem" }}>
+            <dt className="shell-sub">Status</dt>
+            <dd>
+              <code>{suppDetail.status}</code>
+            </dd>
+            <dt className="shell-sub">Basis-Angebotsversion</dt>
+            <dd>
+              <code>{suppDetail.baseOfferVersionId}</code>{" "}
+              <a
+                className="btn secondary"
+                style={{ marginLeft: "0.35rem", fontSize: "0.85rem" }}
+                href={`${DOCUMENT_WORKSPACE_HASH}?documentId=${encodeURIComponent(suppDetail.baseOfferVersionId)}&entityType=OFFER_VERSION`}
+                data-testid="ows-supp-link-base-offer-shell"
+              >
+                In Shell öffnen
+              </a>
+            </dd>
+            <dt className="shell-sub">supplementOfferId</dt>
+            <dd>
+              <code>{suppDetail.supplementOfferId}</code>
+            </dd>
+          </dl>
+        ) : null}
         {suppChoices.length > 0 ? (
           <>
             <label className="field">
@@ -278,7 +584,7 @@ export function OfferSupplementWorkspacePage({ api, showIntegrationHints = false
         </pre>
       ) : null}
       {showIntegrationHints ? (
-        <p className="shell-sub" style={{ marginTop: "1rem" }}>
+        <p className="shell-sub" style={{ marginTop: "1rem" }} data-testid="ows-integration-route-hint">
           Route: <code>{OFFER_WORKSPACE_HASH}</code>
         </p>
       ) : null}

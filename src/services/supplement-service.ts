@@ -208,4 +208,59 @@ export class SupplementService {
     });
     return { invoiceId: updatedInvoice.id, supplementVersionId: supplement.id };
   }
+
+  /** Lesepfad Pilot/PWA: Nachträge je Projekt (über Parent-Angebot), jeweils mit neuester Supplement-Version. */
+  public listProjectSupplements(tenantId: TenantId, projectId: UUID): {
+    data: Array<{
+      supplementOfferId: UUID;
+      offerId: UUID;
+      projectId: UUID;
+      baseOfferVersionId: UUID;
+      currentSupplementVersionId: UUID;
+      createdAt: string;
+      currentVersion: {
+        id: UUID;
+        versionNumber: number;
+        status: SupplementStatus;
+        lvVersionId: UUID;
+        createdAt: string;
+      };
+    }>;
+  } {
+    if (!this.repos.tenantHasProjectContext(tenantId, projectId)) {
+      throw new DomainError("PROJECT_NOT_FOUND", "Projekt-Kontext fuer Mandant nicht gefunden", 404);
+    }
+    const supplementOffers = this.repos.listSupplementOffersForProject(tenantId, projectId);
+    const sorted = [...supplementOffers].sort((a, b) => {
+      const t = a.createdAt.getTime() - b.createdAt.getTime();
+      if (t !== 0) return t;
+      return a.id.localeCompare(b.id);
+    });
+    const data = sorted.map((so) => {
+      const offer = this.repos.getOfferByTenant(tenantId, so.offerId);
+      if (!offer) {
+        throw new DomainError("SUPPLEMENT_INCONSISTENT", "Parent-Angebot fuer Nachtrag fehlt im Repository", 500);
+      }
+      const v = this.repos.getLatestSupplementVersionForOffer(tenantId, so.id);
+      if (!v) {
+        throw new DomainError("SUPPLEMENT_INCONSISTENT", "Nachtragsversion fehlt im Repository", 500);
+      }
+      return {
+        supplementOfferId: so.id,
+        offerId: so.offerId,
+        projectId: offer.projectId,
+        baseOfferVersionId: so.baseOfferVersionId,
+        currentSupplementVersionId: v.id,
+        createdAt: so.createdAt.toISOString(),
+        currentVersion: {
+          id: v.id,
+          versionNumber: v.versionNumber,
+          status: v.status,
+          lvVersionId: v.lvVersionId,
+          createdAt: v.createdAt.toISOString(),
+        },
+      };
+    });
+    return { data };
+  }
 }

@@ -91,6 +91,8 @@ export type FinancePreparationDunningPanelProps = {
   onSubmitEmailPreview: () => void;
   onSubmitEmailSendStub: () => void;
   onSubmitEmailSend: () => void;
+  /** GET-/POST-Roh-JSON nur im Expertenmodus (`showIntegrationHints`). */
+  showIntegrationHints?: boolean;
 };
 
 function FinancePreparationDunningPanelInner({
@@ -169,6 +171,7 @@ function FinancePreparationDunningPanelInner({
   onSubmitEmailPreview,
   onSubmitEmailSendStub,
   onSubmitEmailSend,
+  showIntegrationHints = false,
 }: FinancePreparationDunningPanelProps) {
   const readLoadFailed = Boolean(dunningPanelError && !dunningReminderConfigJson.trim());
   const emailFooterData = useMemo((): DunningEmailFooterData | null => {
@@ -185,14 +188,33 @@ function FinancePreparationDunningPanelInner({
   }, [dunningEmailFooterJson]);
   return (
     <FinancePrepPanel step={6} title="Mahn-Ereignis (FIN-4)" liveStatus={liveStatus}>
-      <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginTop: 0 }}>
-        Nach „Rechnung laden“ prüft die UI SoT <code>{RECORD_DUNNING_REMINDER_ACTION_ID}</code>. <strong>M4 Slice 4:</strong> <code>POST …/dunning-reminders/email-preview</code> (Plain-Text) und <code>POST …/send-email-stub</code> (Audit, kein SMTP). <strong>M4 Slice 5a:</strong> <code>POST …/send-email</code> mit Header <code>Idempotency-Key</code> und SMTP (<code>ERP_SMTP_*</code>), wenn Footer technisch bereit ist. Konfig- und Vorlagen-Lesepfade beim Öffnen:{" "}
-        <code>GET /finance/dunning-reminder-config</code>, <code>GET /finance/dunning-reminder-templates</code>, <code>GET /finance/dunning-email-footer</code>. Stammdaten: <code>PATCH /finance/dunning-email-footer</code> (Formular unten). Vorlagentext:{" "}
-        <code>PATCH /finance/dunning-reminder-templates/stages/…/channels/EMAIL|PRINT</code> (§8.10-Pflichtplatzhalter, sonst <code>400</code>).
-      </p>
-      <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginTop: "0.35rem", marginBottom: "0.5rem" }}>
-        Fehler von Lesepfad oder Schreibaktionen erscheinen <strong>über den Tabs</strong> (<code>403</code> Rolle, <code>503</code> ohne Postgres, Validierung). Ohne erfolgreichen Lesepfad bleiben die JSON-Ausklappfelder leer — bei Lesepfad-Fehler „Mahn-Lesepfade erneut laden“ nutzen.
-      </p>
+      {showIntegrationHints ? (
+        <>
+          <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginTop: 0 }}>
+            Nach „Rechnung laden“ prüft die UI SoT <code>{RECORD_DUNNING_REMINDER_ACTION_ID}</code>. <strong>M4 Slice 4:</strong>{" "}
+            <code>POST …/dunning-reminders/email-preview</code> (Plain-Text) und <code>POST …/send-email-stub</code> (Audit, kein SMTP).{" "}
+            <strong>M4 Slice 5a:</strong> <code>POST …/send-email</code> mit Header <code>Idempotency-Key</code> und SMTP (<code>ERP_SMTP_*</code>), wenn Footer technisch bereit ist. Konfig- und Vorlagen-Lesepfade beim Öffnen:{" "}
+            <code>GET /finance/dunning-reminder-config</code>, <code>GET /finance/dunning-reminder-templates</code>, <code>GET /finance/dunning-email-footer</code>. Stammdaten: <code>PATCH /finance/dunning-email-footer</code> (Formular unten). Vorlagentext:{" "}
+            <code>PATCH /finance/dunning-reminder-templates/stages/…/channels/EMAIL|PRINT</code> (§8.10-Pflichtplatzhalter, sonst <code>400</code>).
+          </p>
+          <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginTop: "0.35rem", marginBottom: "0.5rem" }}>
+            Fehler von Lesepfad oder Schreibaktionen erscheinen <strong>über den Tabs</strong> (<code>403</code> Rolle, <code>503</code> ohne Postgres, Validierung). Ohne erfolgreichen Lesepfad bleiben die JSON-Ausklappfelder leer — bei Lesepfad-Fehler „Mahn-Lesepfade erneut laden“ nutzen.
+          </p>
+        </>
+      ) : (
+        <>
+          <p
+            data-testid="finance-dunning-intro-enduser"
+            style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginTop: 0 }}
+          >
+            Nach „Rechnung laden“ prüft die Oberfläche, ob eine Mahnung erlaubt ist. Vorschau und E-Mail nutzen die Mandanten-Konfiguration; technische Endpunkte und Rohantworten stehen im{" "}
+            <strong>Expertenmodus</strong> bereit.
+          </p>
+          <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginTop: "0.35rem", marginBottom: "0.5rem" }}>
+            Fehlermeldungen erscheinen über den Tabs. Bei Lesepfad-Problemen „Mahn-Lesepfade erneut laden“ verwenden.
+          </p>
+        </>
+      )}
       {readLoadFailed ? (
         <div style={{ marginBottom: "0.65rem" }}>
           <button type="button" disabled={busy} onClick={() => void onReloadDunningReads()} aria-label="Mahn-Lesepfade und E-Mail-Footer erneut laden">
@@ -200,17 +222,26 @@ function FinancePreparationDunningPanelInner({
           </button>
         </div>
       ) : null}
-      <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginBottom: "0.65rem", paddingBottom: "0.5rem", borderBottom: "1px solid var(--border)" }}>
-        <strong>Mandanten-Mahnlauf (Automation, Kandidaten, Batch):</strong> Tab <strong>Grundeinstellungen Mahnlauf</strong> (Hauptnavigation) —{" "}
-        <code>GET|PATCH …/dunning-reminder-automation</code>, <code>GET …/dunning-reminder-candidates</code>, <code>POST …/dunning-reminder-run</code> (siehe{" "}
-        <a href={repoDocHref("docs/adr/0011-fin4-semi-dunning-context.md")}>ADR-0011</a>
-        {", "}
-        <a href={repoDocHref("docs/contracts/FIN4-external-client-integration.md")}>FIN4-external-client-integration</a>).
-      </p>
-      {dunningReminderConfigJson ? (
+      {showIntegrationHints ? (
+        <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginBottom: "0.65rem", paddingBottom: "0.5rem", borderBottom: "1px solid var(--border)" }}>
+          <strong>Mandanten-Mahnlauf (Automation, Kandidaten, Batch):</strong> Tab <strong>Grundeinstellungen Mahnlauf</strong> (Hauptnavigation) —{" "}
+          <code>GET|PATCH …/dunning-reminder-automation</code>, <code>GET …/dunning-reminder-candidates</code>, <code>POST …/dunning-reminder-run</code> (siehe{" "}
+          <a href={repoDocHref("docs/adr/0011-fin4-semi-dunning-context.md")}>ADR-0011</a>
+          {", "}
+          <a href={repoDocHref("docs/contracts/FIN4-external-client-integration.md")}>FIN4-external-client-integration</a>).
+        </p>
+      ) : (
+        <p
+          data-testid="finance-dunning-grundeinst-hint-enduser"
+          style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginBottom: "0.65rem", paddingBottom: "0.5rem", borderBottom: "1px solid var(--border)" }}
+        >
+          <strong>Mandanten-Mahnlauf</strong> (Automation, Kandidaten, Batch-Läufe): bitte den Tab <strong>Grundeinstellungen Mahnlauf</strong> in der Hauptnavigation öffnen — dort die gleichen Schritte ohne API-Detailtext.
+        </p>
+      )}
+      {showIntegrationHints && dunningReminderConfigJson ? (
         <FinanceCollapsibleJson summary="Mahnstufen-Konfiguration (GET /finance/dunning-reminder-config)" json={dunningReminderConfigJson} />
       ) : null}
-      {dunningTemplatesJson ? (
+      {showIntegrationHints && dunningTemplatesJson ? (
         <FinanceCollapsibleJson summary="Mahn-Vorlagen (GET /finance/dunning-reminder-templates)" json={dunningTemplatesJson} />
       ) : null}
       {dunningEmailFooterJson.trim() ? (
@@ -257,7 +288,9 @@ function FinancePreparationDunningPanelInner({
               )}
             </div>
           ) : null}
-          <FinanceCollapsibleJson summary="E-Mail-Footer / Impressum (GET /finance/dunning-email-footer)" json={dunningEmailFooterJson} />
+          {showIntegrationHints ? (
+            <FinanceCollapsibleJson summary="E-Mail-Footer / Impressum (GET /finance/dunning-email-footer)" json={dunningEmailFooterJson} />
+          ) : null}
         </>
       ) : null}
 
@@ -441,13 +474,13 @@ function FinancePreparationDunningPanelInner({
           POST …/send-email (SMTP)
         </button>
       </div>
-      {dunningEmailPreviewJson.trim() ? (
+      {showIntegrationHints && dunningEmailPreviewJson.trim() ? (
         <FinanceCollapsibleJson summary="E-Mail-Vorschau (JSON)" json={dunningEmailPreviewJson} />
       ) : null}
-      {dunningEmailSendStubJson.trim() ? (
+      {showIntegrationHints && dunningEmailSendStubJson.trim() ? (
         <FinanceCollapsibleJson summary="E-Mail-Versand-Stub (JSON)" json={dunningEmailSendStubJson} />
       ) : null}
-      {dunningEmailSendJson.trim() ? (
+      {showIntegrationHints && dunningEmailSendJson.trim() ? (
         <FinanceCollapsibleJson summary="E-Mail-Versand SMTP (JSON)" json={dunningEmailSendJson} />
       ) : null}
 
@@ -603,7 +636,7 @@ function FinancePreparationDunningPanelInner({
       >
         Mahn-Ereignis speichern
       </button>
-      <FinanceCollapsibleJson summary="Rohantwort Mahn-Ereignis (JSON)" json={dunningResultJson} />
+      {showIntegrationHints ? <FinanceCollapsibleJson summary="Rohantwort Mahn-Ereignis (JSON)" json={dunningResultJson} /> : null}
     </FinancePrepPanel>
   );
 }

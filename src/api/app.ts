@@ -11,7 +11,7 @@ import { LvReferenceValidator } from "../services/lv-reference-validator.js";
 import { LvHierarchyService } from "../services/lv-hierarchy-service.js";
 import { LvService } from "../services/lv-service.js";
 import { MeasurementService } from "../services/measurement-service.js";
-import { DifferenceBookingService } from "../services/difference-booking-service.js";
+import { DifferenceBookingService, differenceBookingToReadJson } from "../services/difference-booking-service.js";
 import { OfferService } from "../services/offer-service.js";
 import { SupplementService } from "../services/supplement-service.js";
 import { PaymentTermsService } from "../services/payment-terms-service.js";
@@ -41,6 +41,7 @@ import {
   transitionOfferStatusSchema,
   updateLvNodeEditingSchema,
   updateMeasurementPositionsSchema,
+  createPaymentTermsDifferenceBookingSchema,
 } from "../validation/schemas.js";
 import { seedDemoData, SEED_IDS } from "../composition/seed.js";
 import { seedAuthUsers } from "../composition/seed-auth-prisma.js";
@@ -696,20 +697,91 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
       const projectId = z.string().uuid().parse(params.projectId);
       const rows = differenceBookingService.listForProject(auth.tenantId, projectId);
       return reply.status(200).send({
-        data: rows.map((b) => ({
-          id: b.id,
-          projectId: b.projectId,
-          measurementId: b.measurementId,
-          predecessorMeasurementVersionId: b.predecessorMeasurementVersionId,
-          subsequentMeasurementVersionId: b.subsequentMeasurementVersionId,
-          kind: b.kind,
-          amountNetCents: b.amountNetCents,
-          status: b.status,
-          referenceInvoiceId: b.referenceInvoiceId,
-          createdAt: b.createdAt.toISOString(),
-          createdBy: b.createdBy,
+        data: rows.map(differenceBookingToReadJson),
+      });
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.get("/projects/:projectId/difference-bookings/summary", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      authorizationService.assertCanReadInvoice(auth.role);
+      const params = request.params as { projectId: string };
+      const projectId = z.string().uuid().parse(params.projectId);
+      const { open, allocatedByDraft } = differenceBookingService.summarizeProjectBookings(auth.tenantId, projectId);
+      return reply.status(200).send({
+        open: open.map(differenceBookingToReadJson),
+        allocatedByDraft: allocatedByDraft.map((g) => ({
+          draftInvoiceId: g.draftInvoiceId,
+          invoiceStatus: g.invoiceStatus,
+          rows: g.rows.map(differenceBookingToReadJson),
         })),
       });
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.post("/projects/:projectId/difference-bookings/from-payment-terms", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      authorizationService.assertCanBookInvoice(auth.role);
+      const params = request.params as { projectId: string };
+      const projectId = z.string().uuid().parse(params.projectId);
+      const body = createPaymentTermsDifferenceBookingSchema.parse(request.body);
+      await differenceBookingService.createPaymentTermsDifferenceBooking({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        projectId,
+        measurementId: body.measurementId,
+        referenceInvoiceId: body.referenceInvoiceId,
+        predecessorPaymentTermsVersionId: body.predecessorPaymentTermsVersionId,
+        subsequentPaymentTermsVersionId: body.subsequentPaymentTermsVersionId,
+        amountNetCents: body.amountNetCents,
+        reason: body.reason,
+      });
+      return reply.status(204).send();
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.get("/projects/:projectId/measurements", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      authorizationService.assertCanReadInvoice(auth.role);
+      const params = request.params as { projectId: string };
+      const projectId = z.string().uuid().parse(params.projectId);
+      const result = measurementService.listProjectMeasurements(auth.tenantId, projectId);
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.get("/projects/:projectId/offers", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      authorizationService.assertCanReadInvoice(auth.role);
+      const params = request.params as { projectId: string };
+      const projectId = z.string().uuid().parse(params.projectId);
+      const result = offerService.listProjectOffers(auth.tenantId, projectId);
+      return reply.status(200).send(result);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.get("/projects/:projectId/supplements", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      authorizationService.assertCanReadInvoice(auth.role);
+      const params = request.params as { projectId: string };
+      const projectId = z.string().uuid().parse(params.projectId);
+      const result = supplementService.listProjectSupplements(auth.tenantId, projectId);
+      return reply.status(200).send(result);
     } catch (error) {
       return handleHttpError(error, request, reply);
     }
@@ -933,6 +1005,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
 
   registerDunningReminderConfigRoutes(app, {
     authorizationService,
+    invoiceService,
     dunningReminderConfigService,
     dunningReminderTemplateService,
     dunningEmailFooterService,
@@ -945,6 +1018,7 @@ export async function buildApp(options?: BuildAppOptions): Promise<FastifyInstan
   registerInvoiceFinanceRoutes(app, {
     authorizationService,
     invoiceService,
+    differenceBookingService,
     dunningReminderService,
     dunningReminderEmailService,
   });

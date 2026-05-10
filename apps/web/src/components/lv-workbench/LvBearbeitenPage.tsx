@@ -47,14 +47,13 @@ export function LvBearbeitenPage(props: {
           Zu Dokument und Details
         </button>
       </section>
-      {showIntegrationHints ? (
-        <LvVersionSotPanel
-          api={props.api}
-          lvVersionId={lvVersionId}
-          onAfterMutation={() => setWorkbenchTick((t) => t + 1)}
-        />
-      ) : null}
-      <LvEntityTextSotPanel api={props.api} />
+      <LvVersionSotPanel
+        api={props.api}
+        lvVersionId={lvVersionId}
+        allowExecution={showIntegrationHints}
+        onAfterMutation={() => setWorkbenchTick((t) => t + 1)}
+      />
+      <LvEntityTextSotPanel api={props.api} showIntegrationHints={showIntegrationHints} />
       <LvWorkbench
         key={workbenchTick}
         api={props.api}

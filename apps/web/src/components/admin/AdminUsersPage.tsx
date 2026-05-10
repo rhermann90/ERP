@@ -147,7 +147,9 @@ export function AdminUsersPage({ api, showIntegrationHints = false }: Props) {
         <ul style={{ listStyle: "none", padding: 0 }}>
           {users.map((u) => (
             <li key={u.id} style={{ padding: "0.35rem 0", borderBottom: "1px solid var(--border-color, #44444444)" }}>
-              <code>{u.email}</code> · {u.role} · {u.active ? "aktiv" : "inaktiv"} · <code>{u.id}</code>
+              <code>{u.email}</code> · {u.role} · {u.active ? "aktiv" : "inaktiv"} · angelegt{" "}
+              {new Date(u.createdAt).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" })} ·{" "}
+              <code>{u.id}</code>
             </li>
           ))}
         </ul>

@@ -12,6 +12,15 @@ describe("sanitizeFinanceRequestUrlForLogs (FIN-6 §8.14)", () => {
     expect(sanitizeFinanceRequestUrlForLogs("/finance/payments/foo/bar")).toBe("/finance/payments/foo/bar");
   });
 
+  it("entfernt Query unter …/difference-bookings inkl. allocate/deallocate", () => {
+    expect(sanitizeFinanceRequestUrlForLogs("/invoices/x/difference-bookings?cursor=1")).toBe(
+      "/invoices/x/difference-bookings",
+    );
+    expect(sanitizeFinanceRequestUrlForLogs("/invoices/x/difference-bookings/allocate?foo=1")).toBe(
+      "/invoices/x/difference-bookings/allocate",
+    );
+  });
+
   it("entfernt Query unter /invoices/*/payment-intakes und …/dunning-reminders (§8.14)", () => {
     expect(
       sanitizeFinanceRequestUrlForLogs("/invoices/x/payment-intakes?cursor=1"),

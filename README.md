@@ -2,6 +2,8 @@
 
 Dieser Stand ist als Integrations-/Abnahmebasis gedacht (API + Contracts + PWA-Shell), nicht als produktiver GoBD-/Compliance-Abschluss ohne separates Release-GO.
 
+**Neu im Repo?** Gestufte Lesepfade (15 min / 1–2 h / Merge), „musst du nicht“-Hinweise und Befehlsmatrix: [`docs/plans/developer-onboarding-ladder.md`](docs/plans/developer-onboarding-ladder.md) — danach [`AGENTS.md`](AGENTS.md) und [`docs/CODEMAPS/overview-spine.md`](docs/CODEMAPS/overview-spine.md).
+
 ## Mandanten-Produktivsystem — technische Mindestcheckliste
 
 ### Persistenz

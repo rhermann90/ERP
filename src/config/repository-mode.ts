@@ -1,5 +1,7 @@
 /**
  * ADR-0003: Persistenz-Modus. Kein stiller Produktionsbetrieb ohne DATABASE_URL.
+ *
+ * Mental Model und Diagramm: docs/CODEMAPS/persistence-and-repository-mode.md
  */
 
 export type RepositoryMode = "memory" | "postgres";

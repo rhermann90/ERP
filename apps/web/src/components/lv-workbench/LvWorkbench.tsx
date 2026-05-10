@@ -67,6 +67,13 @@ export function LvWorkbench(props: {
     return map;
   }, [data]);
 
+  const structureSummary = useMemo(() => {
+    if (!data) return null;
+    const n = data.structureNodes.length;
+    const p = data.positions.length;
+    return `${n} Strukturknoten, ${p} Positionen — SoT bleibt §9-Hierarchie und getrennte Texte (ADR-0013).`;
+  }, [data]);
+
   return (
     <section className="panel lv-workbench" data-testid="lv-workbench">
       <h3 className="lv-workbench-heading">LV — Leistungsverzeichnis</h3>
@@ -100,6 +107,11 @@ export function LvWorkbench(props: {
             <strong>Status:</strong> <code>{data.version.status}</code> · <strong>Katalog:</strong>{" "}
             {data.catalog?.name ?? "—"}
           </p>
+          {structureSummary ? (
+            <p className="shell-sub" data-testid="lv-workbench-structure-summary">
+              {structureSummary}
+            </p>
+          ) : null}
           <div className="system-block lv-workbench-tree">
             {sortedNodes.map((n) => {
               const depth = nodeDepth(n.id, data.structureNodes);

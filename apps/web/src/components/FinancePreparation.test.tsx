@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ApiClient, DunningStageConfigReadRow } from "../lib/api-client.js";
 import { ApiError } from "../lib/api-error.js";
 import {
@@ -20,6 +20,7 @@ const draftResponse = {
   skontoBps: 200,
   invoiceTaxRegime: "STANDARD_VAT_19" as const,
   mandatoryTaxNoticeLines: [] as string[],
+  billingKind: "REGULAR" as const,
 };
 
 const noopApi = {
@@ -39,8 +40,20 @@ const noopApi = {
         : [],
   }),
   getMeasurementVersion: async () => ({}),
+  listProjectDifferenceBookings: async () => ({ data: [] }),
+  listProjectMeasurements: async () => ({ data: [] }),
+  listProjectOffers: async () => ({ data: [] }),
+  listProjectSupplements: async () => ({ data: [] }),
   getSupplementVersion: async () => ({}),
-  getPaymentTermsByProject: async () => ({}),
+  getPaymentTermsByProject: async () => ({
+    paymentTermsHeadId: "00000000-0000-4000-8000-000000000001",
+    projectId: "00000000-0000-4000-8000-000000000002",
+    customerId: "00000000-0000-4000-8000-000000000003",
+    createdAt: "",
+    createdBy: "",
+    versions: [],
+  }),
+  createPaymentTermsDifferenceBooking: vi.fn().mockResolvedValue(undefined),
   createInvoiceDraft: async () => ({
     invoiceId: "",
     lvNetCents: 0,
@@ -50,6 +63,7 @@ const noopApi = {
     skontoBps: 0,
     invoiceTaxRegime: "STANDARD_VAT_19",
     mandatoryTaxNoticeLines: [],
+    billingKind: "REGULAR",
   }),
   listInvoicePaymentIntakes: async () => ({ data: [] }),
   listInvoiceDunningReminders: async () => ({ data: [] }),
@@ -156,7 +170,23 @@ const noopApi = {
     offerId: "",
     status: "ENTWURF",
     skontoBps: 0,
+    billingKind: "REGULAR",
     invoiceTaxRegime: "STANDARD_VAT_19",
+    allocatedDifferenceBookings: [],
+  }),
+  bookInvoice: async (invoiceId: string) => ({
+    invoiceId: invoiceId.trim(),
+    status: "GEBUCHT_VERSENDET",
+    invoiceNumber: "R-STUB",
+    issueDate: "2026-05-01",
+    totalGrossCents: 119_000,
+    schlussrechnungMitigation: { applies: false },
+    schlussrechnungFollowUpDraft: {
+      created: false,
+      invoiceId: null,
+      billingKind: null,
+      skippedReason: "MITIGATION_NOT_APPLICABLE",
+    },
   }),
   recordPaymentIntake: async () => ({
     paymentIntakeId: "00000000-0000-4000-8000-000000000099",
@@ -308,6 +338,10 @@ const noopApi = {
 } as unknown as ApiClient;
 
 describe("FinancePreparation", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("renders heading, tablist, tab panels and doc paths", async () => {
     await act(async () => {
       render(<FinancePreparation api={noopApi} />);
@@ -401,6 +435,7 @@ describe("FinancePreparation", () => {
     expect(createInvoiceDraft).toHaveBeenCalledWith(
       expect.objectContaining({
         skontoBps: 200,
+        billingKind: "REGULAR",
         invoiceCurrencyCode: "EUR",
         measurementId: DEMO_SEED_IDS.measurementId,
       }),
@@ -419,12 +454,14 @@ describe("FinancePreparation", () => {
       offerVersionId: "33333333-3333-4333-8333-333333333333",
       status: "ENTWURF" as const,
       skontoBps: 0,
+      billingKind: "REGULAR" as const,
       lvNetCents: 100_000,
       vatRateBps: 1900,
       vatCents: 19_000,
       totalGrossCents: 119_000,
       totalPaidCents: 0,
       invoiceTaxRegime: "STANDARD_VAT_19" as const,
+      allocatedDifferenceBookings: [],
     };
     const createInvoiceDraft = vi.fn().mockResolvedValue({
       ...draftResponse,
@@ -455,11 +492,192 @@ describe("FinancePreparation", () => {
         invoiceCurrencyCode: "EUR",
         measurementId: entwurfOverview.measurementId,
         skontoBps: 150,
+        billingKind: "REGULAR",
         reason: expect.stringContaining("Skonto"),
       }),
     );
     const newInvoiceId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
     await waitFor(() => expect(getInvoice).toHaveBeenCalledWith(newInvoiceId));
+  });
+
+  it("sends billingKind in createInvoiceDraft when Rechnungsart select changes", async () => {
+    const createInvoiceDraft = vi.fn().mockResolvedValue(draftResponse);
+    const api = { ...noopApi, createInvoiceDraft } as unknown as ApiClient;
+    render(<FinancePreparation api={api} />);
+
+    fireEvent.change(screen.getByTestId("finance-prep-billing-kind-select"), {
+      target: { value: "SCHLUSSRECHNUNG" },
+    });
+    fireEvent.change(screen.getByLabelText(/Skonto in Basispunkten für neuen Rechnungsentwurf/i), {
+      target: { value: "0" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Rechnungsentwurf anlegen/i }));
+
+    await waitFor(() => expect(createInvoiceDraft).toHaveBeenCalled());
+    expect(createInvoiceDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        billingKind: "SCHLUSSRECHNUNG",
+      }),
+    );
+  });
+
+  it("shows Schlussrechnung-Mitigation notice after book when API applies mitigation", async () => {
+    const invoiceId = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+    const entwurfOverview = {
+      invoiceId,
+      projectId: "10101010-1010-4010-8010-101010101010",
+      customerId: "20202020-2020-4020-8020-202020202020",
+      measurementId: "m0000000-0000-4000-8000-000000000001",
+      lvVersionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001",
+      offerId: "o0000000-0000-4000-8000-000000000002",
+      offerVersionId: "33333333-3333-4333-8333-333333333333",
+      status: "ENTWURF" as const,
+      skontoBps: 0,
+      billingKind: "REGULAR" as const,
+      lvNetCents: 100_000,
+      vatRateBps: 1900,
+      vatCents: 19_000,
+      totalGrossCents: 119_000,
+      totalPaidCents: 0,
+      invoiceTaxRegime: "STANDARD_VAT_19" as const,
+      allocatedDifferenceBookings: [],
+    };
+    let booked = false;
+    const getInvoice = vi.fn(async (id: string) => {
+      expect(id).toBe(invoiceId);
+      if (!booked) return entwurfOverview;
+      return {
+        ...entwurfOverview,
+        status: "GEBUCHT_VERSENDET" as const,
+        invoiceNumber: "R-MIT-1",
+      };
+    });
+    const bookInvoice = vi.fn(async () => {
+      booked = true;
+      return {
+        invoiceId,
+        status: "GEBUCHT_VERSENDET",
+        invoiceNumber: "R-MIT-1",
+        issueDate: "2026-05-10",
+        totalGrossCents: 119_000,
+        schlussrechnungMitigation: {
+          applies: true,
+          settledDifferenceNetSumCents: 12_345,
+          suggestedNextBillingKind: "FOLGERECHNUNG" as const,
+        },
+        schlussrechnungFollowUpDraft: {
+          created: false,
+          invoiceId: null,
+          billingKind: null,
+          skippedReason: "MITIGATION_NOT_APPLICABLE" as const,
+        },
+      };
+    });
+    const api = { ...noopApi, getInvoice, bookInvoice } as unknown as ApiClient;
+
+    await act(async () => {
+      render(<FinancePreparation api={api} />);
+    });
+    fireEvent.change(screen.getByLabelText(/Rechnungs-ID für GET/i), { target: { value: invoiceId } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Rechnung laden$/i }));
+    });
+    await waitFor(() => expect(getInvoice).toHaveBeenCalledWith(invoiceId));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Rechnung buchen$/i }));
+    });
+    await waitFor(() => expect(bookInvoice).toHaveBeenCalled());
+    await waitFor(() => {
+      expect(screen.getByText(/ausgeglichenes Differenz-Netto/i)).not.toBeNull();
+    });
+    expect(screen.getByText(/empfiehlt der Server Folgerechnung/i)).not.toBeNull();
+  });
+
+  it("submits createPaymentTermsDifferenceBooking when invoice is booked and form filled", async () => {
+    const invoiceId = "99999999-9999-4999-8999-999999999999";
+    const projectId = "10101010-1010-4010-8010-101010101010";
+    const predPt = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001";
+    const subPt = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const gebuchtOverview = {
+      invoiceId,
+      projectId,
+      customerId: "20202020-2020-4020-8020-202020202020",
+      measurementId: "m0000000-0000-4000-8000-000000000001",
+      lvVersionId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0002",
+      offerId: "o0000000-0000-4000-8000-000000000002",
+      offerVersionId: "33333333-3333-4333-8333-333333333333",
+      status: "GEBUCHT_VERSENDET" as const,
+      invoiceNumber: "R-42",
+      skontoBps: 0,
+      billingKind: "REGULAR" as const,
+      paymentTermsVersionId: predPt,
+      lvNetCents: 100_000,
+      vatRateBps: 1900,
+      vatCents: 19_000,
+      totalGrossCents: 119_000,
+      totalPaidCents: 0,
+      invoiceTaxRegime: "STANDARD_VAT_19" as const,
+      allocatedDifferenceBookings: [],
+    };
+    const getPaymentTermsByProject = vi.fn().mockResolvedValue({
+      paymentTermsHeadId: "head1",
+      projectId,
+      customerId: gebuchtOverview.customerId,
+      createdAt: "2026-01-01",
+      createdBy: "u1",
+      versions: [
+        {
+          paymentTermsVersionId: predPt,
+          versionNumber: 1,
+          termsLabel: "Alt",
+          createdAt: "2026-01-01",
+          createdBy: "u1",
+        },
+        {
+          paymentTermsVersionId: subPt,
+          versionNumber: 2,
+          termsLabel: "Neu",
+          createdAt: "2026-01-02",
+          createdBy: "u1",
+        },
+      ],
+    });
+    const createPaymentTermsDifferenceBooking = vi.fn().mockResolvedValue(undefined);
+    const getInvoice = vi.fn().mockResolvedValue(gebuchtOverview);
+    const api = {
+      ...noopApi,
+      getInvoice,
+      getPaymentTermsByProject,
+      createPaymentTermsDifferenceBooking,
+    } as unknown as ApiClient;
+
+    await act(async () => {
+      render(<FinancePreparation api={api} />);
+    });
+    fireEvent.change(screen.getByLabelText(/Rechnungs-ID für GET/i), { target: { value: invoiceId } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Rechnung laden$/i }));
+    });
+    await waitFor(() => expect(screen.getByTestId("finance-payment-terms-diff-panel")).not.toBeNull());
+
+    fireEvent.change(screen.getByTestId("finance-pt-diff-amount-cents"), { target: { value: "-500" } });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("finance-pt-diff-submit"));
+    });
+    await waitFor(() =>
+      expect(createPaymentTermsDifferenceBooking).toHaveBeenCalledWith(
+        projectId,
+        expect.objectContaining({
+          measurementId: gebuchtOverview.measurementId,
+          referenceInvoiceId: invoiceId,
+          predecessorPaymentTermsVersionId: predPt,
+          subsequentPaymentTermsVersionId: subPt,
+          amountNetCents: -500,
+          reason: expect.stringMatching(/.{5,}/u),
+        }),
+      ),
+    );
   });
 
   it("409 INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT beim Buchen: Hinweis, CTA und neuen Entwurf laden", async () => {
@@ -477,33 +695,33 @@ describe("FinancePreparation", () => {
       offerVersionId,
       status: "ENTWURF" as const,
       skontoBps: 200,
+      billingKind: "REGULAR" as const,
       lvNetCents: 100_000,
       vatRateBps: 1900,
       vatCents: 19_000,
       totalGrossCents: 119_000,
       totalPaidCents: 0,
       invoiceTaxRegime: "STANDARD_VAT_19" as const,
+      allocatedDifferenceBookings: [],
     };
     const entwurfOverviewNew = {
       ...entwurfOverviewOld,
       invoiceId: newInvoiceId,
       invoiceTaxRegime: "SMALL_BUSINESS_19" as const,
+      allocatedDifferenceBookings: [],
     };
     const getInvoice = vi.fn(async (id: string) => {
       if (id === newInvoiceId) return entwurfOverviewNew;
       return entwurfOverviewOld;
     });
-    const requestJson = vi.fn(async (method: string, path: string) => {
-      if (method === "POST" && /\/invoices\/.+\/book$/u.test(path)) {
-        throw new ApiError(409, {
-          code: "INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT",
-          message: "Steuerregime seit Entwurf geaendert — Entwurf verwerfen und neu anlegen",
-          correlationId: "00000000-0000-4000-8000-0000000000dr",
-          retryable: false,
-          blocking: true,
-        });
-      }
-      return {};
+    const bookInvoice = vi.fn(async () => {
+      throw new ApiError(409, {
+        code: "INVOICE_TAX_REGIME_CHANGED_RECREATE_DRAFT",
+        message: "Steuerregime seit Entwurf geaendert — Entwurf verwerfen und neu anlegen",
+        correlationId: "00000000-0000-4000-8000-0000000000dr",
+        retryable: false,
+        blocking: true,
+      });
     });
     const createInvoiceDraft = vi.fn().mockResolvedValue({
       ...draftResponse,
@@ -511,7 +729,7 @@ describe("FinancePreparation", () => {
       invoiceTaxRegime: "SMALL_BUSINESS_19",
       mandatoryTaxNoticeLines: ["Kleinunternehmer §19 UStG"],
     });
-    const api = { ...noopApi, getInvoice, requestJson, createInvoiceDraft } as unknown as ApiClient;
+    const api = { ...noopApi, getInvoice, bookInvoice, createInvoiceDraft } as unknown as ApiClient;
 
     await act(async () => {
       render(<FinancePreparation api={api} />);
@@ -525,7 +743,7 @@ describe("FinancePreparation", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /^Rechnung buchen$/i }));
     });
-    await waitFor(() => expect(requestJson).toHaveBeenCalled());
+    await waitFor(() => expect(bookInvoice).toHaveBeenCalled());
 
     expect(screen.getByTestId("finance-invoice-recreate-draft-cta")).not.toBeNull();
     expect(screen.getByText(/Steuerregime hat sich seit dem Entwurf geändert \(FIN-5 §8\.16\)/i)).not.toBeNull();
@@ -541,6 +759,7 @@ describe("FinancePreparation", () => {
         invoiceCurrencyCode: "EUR",
         measurementId: entwurfOverviewOld.measurementId,
         skontoBps: 200,
+        billingKind: "REGULAR",
         reason: expect.stringContaining("Regime-Drift"),
       }),
     );
@@ -838,6 +1057,79 @@ describe("FinancePreparation", () => {
     expect(tr?.getAttribute("title")).toContain("Europe/Berlin");
   });
 
+  it("hides raw dunning candidates JSON without showIntegrationHints", async () => {
+    const getDunningReminderCandidates = vi.fn().mockResolvedValue({
+      data: {
+        configSource: "MVP_STATIC_DEFAULTS" as const,
+        asOfDate: "2026-04-28",
+        stageOrdinal: 1,
+        daysAfterDueForStage: 14,
+        eligibilityContext: {
+          ianaTimezone: "Europe/Berlin",
+          federalStateCode: null,
+          paymentTermDayKind: "CALENDAR" as const,
+          preferredDunningChannel: "EMAIL" as const,
+        },
+        candidates: [],
+      },
+    });
+    const api = { ...noopApi, getDunningReminderCandidates } as unknown as ApiClient;
+    await act(async () => {
+      render(<FinancePreparation api={api} initialMainTab="grundeinstellungen" showIntegrationHints={false} />);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Kandidaten laden \(GET\)/i }));
+    });
+    await waitFor(() => expect(getDunningReminderCandidates).toHaveBeenCalled());
+    expect(screen.queryByTestId("finance-dunning-candidates-raw-json")).toBeNull();
+  });
+
+  it("shows raw dunning candidates JSON with showIntegrationHints", async () => {
+    const getDunningReminderCandidates = vi.fn().mockResolvedValue({
+      data: {
+        configSource: "MVP_STATIC_DEFAULTS" as const,
+        asOfDate: "2026-04-28",
+        stageOrdinal: 1,
+        daysAfterDueForStage: 14,
+        eligibilityContext: {
+          ianaTimezone: "Europe/Berlin",
+          federalStateCode: null,
+          paymentTermDayKind: "CALENDAR" as const,
+          preferredDunningChannel: "EMAIL" as const,
+        },
+        candidates: [],
+      },
+    });
+    const api = { ...noopApi, getDunningReminderCandidates } as unknown as ApiClient;
+    await act(async () => {
+      render(<FinancePreparation api={api} initialMainTab="grundeinstellungen" showIntegrationHints />);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Kandidaten laden \(GET\)/i }));
+    });
+    await waitFor(() => expect(screen.queryByTestId("finance-dunning-candidates-raw-json")).not.toBeNull());
+  });
+
+  it("hides raw payment-terms JSON without showIntegrationHints after load", async () => {
+    await act(async () => {
+      render(<FinancePreparation api={noopApi} showIntegrationHints={false} />);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /GET Konditionen laden/i }));
+    });
+    await waitFor(() => expect(screen.queryByTestId("finance-prep-terms-raw-json")).toBeNull());
+  });
+
+  it("hides invoice tax GET JSON without showIntegrationHints after load", async () => {
+    await act(async () => {
+      render(<FinancePreparation api={noopApi} initialMainTab="grundeinstellungen" showIntegrationHints={false} />);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("finance-invoice-tax-load"));
+    });
+    await waitFor(() => expect(screen.queryByTestId("finance-invoice-tax-tenant-json")).toBeNull());
+  });
+
   it("öffnet Tab Mahnwesen direkt über initialMainTab", async () => {
     await act(async () => {
       render(<FinancePreparation api={noopApi} initialMainTab="mahnwesen" />);
@@ -845,6 +1137,16 @@ describe("FinancePreparation", () => {
     });
     expect(screen.getByRole("tab", { name: /^Mahnwesen$/i }).getAttribute("aria-selected")).toBe("true");
     expect(screen.getByRole("heading", { name: /Mahn-Ereignis \(FIN-4\)/i })).not.toBeNull();
+  });
+
+  it("Mahnwesen: Kurz-Einleitung für Endnutzer ohne showIntegrationHints", async () => {
+    await act(async () => {
+      render(<FinancePreparation api={noopApi} initialMainTab="mahnwesen" showIntegrationHints={false} />);
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId("finance-dunning-intro-enduser")).toBeTruthy();
+    expect(screen.getByTestId("finance-dunning-grundeinst-hint-enduser")).toBeTruthy();
+    expect(screen.queryByText(/M4 Slice 4:/)).toBeNull();
   });
 
   it("deaktiviert Dry-Run/EXECUTE bei Server runMode OFF (Variante 1a)", async () => {
@@ -959,12 +1261,14 @@ describe("FinancePreparation", () => {
       offerVersionId: "33333333-3333-4333-8333-333333333333",
       status: "GEBUCHT_VERSENDET",
       skontoBps: 0,
+      billingKind: "REGULAR" as const,
       lvNetCents: 100_000,
       vatRateBps: 1900,
       vatCents: 19_000,
       totalGrossCents: 119_000,
       totalPaidCents: 0,
       invoiceTaxRegime: "STANDARD_VAT_19" as const,
+      allocatedDifferenceBookings: [],
     });
     const api = { ...noopApi, getInvoice } as unknown as ApiClient;
     await act(async () => {
@@ -992,12 +1296,14 @@ describe("FinancePreparation", () => {
       offerVersionId: "33333333-3333-4333-8333-333333333333",
       status: "ENTWURF",
       skontoBps: 0,
+      billingKind: "REGULAR" as const,
       lvNetCents: 8000,
       vatRateBps: 0,
       vatCents: 0,
       totalGrossCents: 8000,
       invoiceTaxRegime: "SMALL_BUSINESS_19" as const,
       mandatoryTaxNoticeLines: [line],
+      allocatedDifferenceBookings: [],
     });
     const api = { ...noopApi, getInvoice } as unknown as ApiClient;
     await act(async () => {

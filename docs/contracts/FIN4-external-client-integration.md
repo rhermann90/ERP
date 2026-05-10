@@ -29,11 +29,20 @@ Fachliche und go-live-relevante Entscheidungen werden **in der Organisation** (u
 Antworten unter:
 
 - `/finance/dunning-reminder…` (Vorlagen, Kandidaten, Konfig, Automation, Mahnlauf, …)
+- `/finance/open-receivables` (betriebliche Forderungsliste)
 - `/finance/dunning-email-footer`
 - `/finance/invoice-tax-profile` und Projekt-Override-Pfade (`…/projects/{projectId}`)
 - `/crm/…` (CRM-Stamm ADR 0019)
 
 Server-zu-Server: Header direkt lesen. **Browser + CORS:** nur sichtbar, wenn die Origin in `CORS_ORIGINS` steht; dann ist `x-erp-openapi-contract-version` in `Access-Control-Expose-Headers` enthalten (`src/http/pwa-http-layer.ts`).
+
+## Neu ab `1.37.0` (Finanz betrieblich — offene Forderungen)
+
+- **`GET /finance/open-receivables`:** mandanten-isolierte Liste gebuchter (`GEBUCHT_VERSENDET`) und teilbezahlter (`TEILBEZAHLT`) Rechnungen mit **positivem Restsaldo** (Brutto abzüglich Zahlungseingänge). Antwort **`OpenReceivablesReadResponse`** mit `data[]` (`OpenReceivableRow`). Auf diesem Pfad sendet der Server **`x-erp-openapi-contract-version`** wie bei den übrigen FIN-4-Leitpfaden.
+
+## Neu ab `1.37.1` (Offene Forderungen — optionale Filter)
+
+- **`GET /finance/open-receivables`:** optionale Query-Parameter **`projectId`** und **`customerId`** (jeweils UUID); schränken die Liste auf Rechnungen mit passender Zuordnung ein (kombinierbar, UND). Ungültige UUIDs → **`400`** / `VALIDATION_FAILED`.
 
 ## Breaking-Änderungen (Kurz, ab `1.25.0`)
 
@@ -66,6 +75,35 @@ Vollständige Schemas: `docs/api-contract.yaml`. Mapping: `docs/contracts/financ
 - Unter **`/crm/…`** sendet der Server weiterhin **`x-erp-openapi-contract-version`**. Ab **`1.30.1`** bildet [`docs/api-contract.yaml`](../api-contract.yaml) die **vollständige** HTTP-Oberfläche der CRM-Stamm-API ab: Baustellen (`GET|POST /crm/construction-sites`, `GET|PATCH /crm/construction-sites/{id}`), CRM-Kunden (`GET|POST /crm/customers`, `GET|PATCH /crm/customers/{id}`), Projekte (`GET|POST /crm/projects`, `GET|PATCH /crm/projects/{id}`), Projektkontakte (`GET /crm/projects/{projectId}/contacts`, `POST /crm/project-contacts`, `GET|PATCH /crm/project-contacts/{id}`) inklusive Request-Schemas für **POST** und **PATCH**. Lesepfad wie Rechnung; Schreiben wie FIN-1 Zahlungsbedingungen (**ADMIN**, **GESCHAEFTSFUEHRUNG**, **BUCHHALTUNG**). Ohne Postgres: **503** `CRM_PERSISTENCE_UNAVAILABLE`. ADR: [`docs/adr/0019-w1-stammdaten-project-customer-object-option-c.md`](../adr/0019-w1-stammdaten-project-customer-object-option-c.md).
 
 
+
+## Neu ab `1.33.0` (DOM-8-6 Slice 2b — Konditions-Differenz + Schlussrechnung-Mitigation)
+
+- **`POST /projects/{projectId}/difference-bookings/from-payment-terms`:** legt eine OFFENE Differenzbuchung **`PAYMENT_TERMS_CHANGE_AFTER_INVOICE`** an (Schreibrolle wie Rechnungsbuchung). Fehler u.a. **`DIFFERENCE_BOOKING_PAYMENT_TERMS_DUPLICATE`** (409), **`DIFFERENCE_BOOKING_PAYMENT_TERMS_REFERENCE_MISMATCH`** (422).
+- **`POST /invoices`:** optional **`billingKind`** (Enum REGULAR | SCHLUSSRECHNUNG | FOLGERECHNUNG | GUTSCHRIFT); Antwort **`CreateInvoiceDraftResponse`** enthält persistiertes **`billingKind`**.
+- **`GET /invoices/{invoiceId}`:** Pflichtfeld **`billingKind`** (Default REGULAR wenn nicht gesetzt).
+- **`POST /invoices/{invoiceId}/book`:** Antwort enthält **`schlussrechnungMitigation`** (`applies`, bei Bedarf **`settledDifferenceNetSumCents`** und **`suggestedNextBillingKind`**) — Hinweis nach §8.6 Slice 2b, wenn eine frühere gebuchte Schlussrechnung auf dasselbe Aufmass existiert und mit dieser Buchung zugeordnete Differenzzeilen auf SETTLED gesetzt wurden und die Summe ≠ 0 ist.
+- **`DifferenceBookingReadRow`:** nullable **`predecessorMeasurementVersionId`** / **`subsequentMeasurementVersionId`**; nullable **`predecessorPaymentTermsVersionId`** / **`subsequentPaymentTermsVersionId`** (Konditions-Differenz).
+
+## DOM-8-6 Slice 2c (ADR-0024 — gebündelt in aktueller `info.version`)
+
+- **`POST /invoices/{invoiceId}/book`:** Antwort enthält zusätzlich **`schlussrechnungFollowUpDraft`** (`created`, optional **`invoiceId`**, **`billingKind`**, **`skippedReason`**) — automatischer **FOLGERECHNUNG**-Entwurf bei positivem Ausgleich nach Schlussrechnungs-Mitigation; **Gutschrift** (Minus) bleibt ohne Auto-Entwurf (`GUTSCHRIFT_REQUIRES_MANUAL_DRAFT`). Persistenz: nullable **`mitigation_follow_up_source_invoice_id`** auf **`invoices`**. ADR: [`docs/adr/0024-dom86-schluss-mitigation-auto-follow-up-draft.md`](../adr/0024-dom86-schluss-mitigation-auto-follow-up-draft.md).
+
+## Neu ab `1.32.0` (DOM-8-6 Slice 2 — Zuordnung zum Entwurf + Settlement)
+
+- **`GET /invoices/{invoiceId}`:** enthält **`allocatedDifferenceBookings`** (Array, kann leer sein): Differenzbuchungen, die diesem Beleg als Ausgleich zugeordnet sind (Entwurf oder nach Buchung **SETTLED**).
+- **`POST /invoices/{invoiceId}/difference-bookings/allocate`** / **`deallocate`:** explizite Zuordnung bzw. Aufhebung; Schreibrolle wie Rechnungsbuchung (`assertCanBookInvoice`); nur **ENTWURF** — siehe ADR-0022.
+- **`DifferenceBookingReadRow`:** optionale Felder **`allocatedInvoiceId`**, **`allocatedAt`**, **`settledAt`** (nullable).
+- Nach **`POST …/book`** werden zugeordnete Zeilen serverseitig auf **SETTLED** gesetzt.
+
+## Neu ab `1.38.0` (DOM-8-6 Slice 3 — gebündelte Lesesicht + Gutschrift-Mitigation)
+
+- **`GET /projects/{projectId}/difference-bookings/summary`:** Antwort **`DifferenceBookingProjectSummaryResponse`** — Feld **`open`** (alle **`OPEN`**) und **`allocatedByDraft`** (Gruppierung nach **`draftInvoiceId`** inkl. **`invoiceStatus`** der Entwurfsrechnung).
+- **`POST /invoices`:** optional **`mitigationFollowUpSourceInvoiceId`** nur zusammen mit **`billingKind`** **`GUTSCHRIFT`** oder **`FOLGERECHNUNG`**; Bezugsrechnung muss **gebucht** sein und dasselbe **`measurementId`** wie der neue Entwurf tragen — sonst **`INVOICE_NOT_BOOKED_FOR_MITIGATION_LINK`** (422) bzw. Traceability-Codes.
+- **`billingKind: GUTSCHRIFT`:** Entwurf erhält **negierte** LV-Netto- und Steuer-/Bruttobeträge; automatisches Aufsummieren zugeordneter Differenzzeilen in die Entwurfssummen bleibt **out of scope** bis FIN-2/8.4-Gate — ADR [`0025-dom86-deferred-difference-to-invoice-totals.md`](../adr/0025-dom86-deferred-difference-to-invoice-totals.md).
+
+## Neu ab `1.31.1` (W2 — Differenzbuchungen je Bezugsrechnung, Slice-2-Lesepfad)
+
+- **`GET /invoices/{invoiceId}/difference-bookings`:** Liste nur der Differenzbuchungen, deren `referenceInvoiceId` dieser Rechnungs-ID entspricht (explizite Zuordnung; gleiche Leserolle wie `GET /invoices/{invoiceId}`). Antwort `DifferenceBookingListResponse`. Projektweite Liste unverändert: `GET /projects/{projectId}/difference-bookings`.
 
 ## Neu ab `1.31.0` (W2 — Differenzbuchungen Lesepfad)
 
@@ -119,6 +157,15 @@ Vollständige Schemas: `docs/api-contract.yaml`. Mapping: `docs/contracts/financ
 2. OpenAPI-Artefakt vom **deployten** Commit/Tag laden und `info.version` mit dem Header abgleichen.
 3. Client-Codegen / Zod / JSON-Schema **neu erzeugen** und Release koppeln (gleiche Version wie Backend).
 4. **Nicht** erwarten, dass das Backend „alte“ Antwortformen dauerhaft anbietet — Pflichtfelder wie `eligibilityContext` und `stageDeadlineIso` sind Teil der Traceability (ADR-0011); ein serverseitiges Abspecken würde die Nachvollziehbarkeit schwächen.
+
+## Neu ab `1.36.0` (Angebote/Nachträge — Projektlisten)
+
+- **`GET /projects/{projectId}/offers`**: `OfferListResponse` — Angebotsköpfe mit aktueller Version; gleiche Projekt-Kontext- und Leserollenregel wie **`GET …/measurements`** (**404** `PROJECT_NOT_FOUND` ohne Projektkontext).
+- **`GET /projects/{projectId}/supplements`**: `SupplementListResponse` — Nachträge je Projekt mit neuester Supplement-Version pro `supplementOfferId`; Leserollen wie oben.
+
+## Neu ab `1.35.0` (Aufmass — Projekt-Messungsliste)
+
+- **`GET /projects/{projectId}/measurements`**: tenant-isolierte Liste der Aufmassköpfe mit aktueller Messungsversion (`MeasurementListResponse`). Gleiche Projekt-Kontext-Regel wie **`GET …/difference-bookings`** (**404** `PROJECT_NOT_FOUND`, wenn kein Mess-/Angebots-/Rechnungsbezug zum Projekt). Leserollen wie Rechnung lesen (`assertCanReadInvoice`).
 
 ## Neu ab `1.29.6` (FIN-2 — optionales `measurementId` beim Rechnungsentwurf)
 

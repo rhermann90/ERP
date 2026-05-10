@@ -10,9 +10,17 @@ export type FinancePrepStepAuditProps = {
   stepNotice: FinNotice | null;
   auditJson: string;
   onLoadAuditEvents: () => void;
+  showIntegrationHints?: boolean;
 };
 
-function FinancePrepStepAuditInner({ busy, liveStatus, stepNotice, auditJson, onLoadAuditEvents }: FinancePrepStepAuditProps) {
+function FinancePrepStepAuditInner({
+  busy,
+  liveStatus,
+  stepNotice,
+  auditJson,
+  onLoadAuditEvents,
+  showIntegrationHints = false,
+}: FinancePrepStepAuditProps) {
   return (
     <FinancePrepPanel step={7} title="Audit — Nachvollziehbarkeit" liveStatus={liveStatus}>
       <FinancePrepNotice notice={stepNotice} structuredAnnouncementRole="status" />
@@ -23,7 +31,9 @@ function FinancePrepStepAuditInner({ busy, liveStatus, stepNotice, auditJson, on
       <button type="button" onClick={() => void onLoadAuditEvents()} disabled={busy}>
         Audit-Ereignisse laden (letzte 15)
       </button>
-      <FinanceCollapsibleJson summary="Rohantwort GET /audit-events (JSON)" json={auditJson} />
+      {showIntegrationHints ? (
+        <FinanceCollapsibleJson summary="Rohantwort GET /audit-events (JSON)" json={auditJson} />
+      ) : null}
     </FinancePrepPanel>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactElement, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
 import { AppShell } from "./components/AppShell.js";
 import { AppPrimaryNav } from "./components/AppPrimaryNav.js";
 import { HomeDashboard } from "./components/HomeDashboard.js";
@@ -40,8 +40,17 @@ import type { QuickPreset } from "./lib/role-quick-actions.js";
 import { decodeTokenPayload, roleForQuickNav } from "./lib/token-payload.js";
 import { ApiError, type ApiErrorEnvelope } from "./lib/api-error.js";
 import { FinanceStructuredApiError } from "./components/finance/FinanceStructuredApiError.js";
-import { createApiClient, resolveApiBaseUrl, type InvoiceOverview, type LvVersionSnapshot } from "./lib/api-client.js";
-import { formatSkontoDisplay } from "./components/finance/finance-prep-helpers.js";
+import { InvoiceShellReadonlyPanel } from "./components/shell/InvoiceShellReadonlyPanel.js";
+import { ShellExpertDiagnosticsJson } from "./components/shell/ShellExpertDiagnosticsJson.js";
+import { schlussrechnungFollowUpDraftUserSentence, schlussrechnungMitigationUserSentence } from "./components/finance/finance-prep-helpers.js";
+import {
+  createApiClient,
+  resolveApiBaseUrl,
+  type BookInvoiceResponse,
+  type DifferenceBookingReadRow,
+  type InvoiceOverview,
+  type LvVersionSnapshot,
+} from "./lib/api-client.js";
 import {
   clearDocumentScopedKeys,
   clearPersistedSession,
@@ -78,29 +87,6 @@ type AppBanner =
       correlationId?: string;
       structured?: { envelope: ApiErrorEnvelope; status: number };
     };
-
-/** Haupt-Shell-Roh-JSON: in Produktion ohne Expertenmodus hinter Summary (E2E nutzt Vite-Dev → immer aufgeklappt). */
-function ShellExpertDiagnosticsJson(props: { showOpen: boolean; testId?: string; children: ReactNode }) {
-  const pre = (
-    <pre
-      className="system-block"
-      style={{ margin: 0 }}
-      {...(props.testId ? ({ "data-testid": props.testId } as const) : {})}
-    >
-      {props.children}
-    </pre>
-  );
-  if (props.showOpen) return pre;
-  return (
-    <details style={{ marginTop: "0.25rem" }}>
-      <summary style={{ cursor: "pointer", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-        Rohdaten anzeigen (Expertenmodus aus — Mandanten-Schalter unter „Sitzung &amp; API“,{" "}
-        <code>VITE_PWA_EXPERT_UI=1</code> oder Vite-Dev)
-      </summary>
-      {pre}
-    </details>
-  );
-}
 
 export default function App() {
   const [browserOnline, setBrowserOnline] = useState(
@@ -168,6 +154,13 @@ export default function App() {
   /** INVOICE-Shell: read-only GET /audit-events (mandantenweit, erste Seite). */
   const [invoiceAuditEventsJson, setInvoiceAuditEventsJson] = useState("");
   const [invoiceDifferenceBookingsJson, setInvoiceDifferenceBookingsJson] = useState("");
+  const [invoiceDifferenceBookingsRows, setInvoiceDifferenceBookingsRows] = useState<DifferenceBookingReadRow[] | null>(
+    null,
+  );
+  const [invoiceDifferenceBookingsByRefJson, setInvoiceDifferenceBookingsByRefJson] = useState("");
+  const [invoiceDifferenceBookingsByRefRows, setInvoiceDifferenceBookingsByRefRows] = useState<
+    DifferenceBookingReadRow[] | null
+  >(null);
   /** Haupt-Shell: read-only GET /finance/dunning-reminder-config (FIN-4). */
   const [shellDunningConfigJson, setShellDunningConfigJson] = useState("");
   /** Haupt-Shell: weitere FIN-4-Lesepfade ohne Dokument-Kontext (Spur E). */
@@ -222,9 +215,6 @@ export default function App() {
       }),
     [apiBase, token, tenantId],
   );
-
-  const formatShellEur = (cents: number | undefined) =>
-    cents == null ? "—" : (cents / 100).toLocaleString("de-DE", { style: "currency", currency: "EUR" });
 
   const tokenTenant = token ? decodeTokenPayload(token).tenantId : null;
   const tokenRole = token ? decodeTokenPayload(token).role : null;
@@ -331,6 +321,10 @@ export default function App() {
       setShellDunningAutomationJson("");
       setShellDunningCandidatesJson("");
       setShellTenantPwaDisplayJson("");
+      setInvoiceDifferenceBookingsJson("");
+      setInvoiceDifferenceBookingsRows(null);
+      setInvoiceDifferenceBookingsByRefJson("");
+      setInvoiceDifferenceBookingsByRefRows(null);
       setBanner(null);
       const p = loadDocPrefs(tenantId);
       setDocumentId(p.documentId);
@@ -410,16 +404,23 @@ export default function App() {
     setInvoiceTenantTaxProfileJson("");
     setInvoiceProjectTaxOverrideJson("");
     setInvoiceShellLvSnapshotJson("");
-    setInvoiceAuditEventsJson("");
-    setInvoiceDifferenceBookingsJson("");
-    setLvShellStructureJson("");
+      setInvoiceAuditEventsJson("");
+      setInvoiceDifferenceBookingsJson("");
+      setInvoiceDifferenceBookingsRows(null);
+      setInvoiceDifferenceBookingsByRefJson("");
+      setInvoiceDifferenceBookingsByRefRows(null);
+      setLvShellStructureJson("");
     try {
       if (entityType === "MEASUREMENT_VERSION") {
-        const raw = (await client.getMeasurementVersion(documentId.trim())) as {
-          measurementId: string;
-          version: { status: string; systemText: string; editingText: string };
-        };
-        setMeasurementDetail({ measurementId: raw.measurementId, version: raw.version });
+        const raw = await client.getMeasurementVersion(documentId.trim());
+        setMeasurementDetail({
+          measurementId: raw.measurementId,
+          version: {
+            status: raw.version.status,
+            systemText: undefined,
+            editingText: undefined,
+          },
+        });
         setForm((f) => ({ ...f, measurementId: raw.measurementId }));
         setSupplementDetail(null);
         setOfferVersionDetail(null);
@@ -724,8 +725,11 @@ export default function App() {
     setBanner(null);
     try {
       const r = await client.listProjectDifferenceBookings(invoiceShellDetail.projectId);
+      setInvoiceDifferenceBookingsRows(r.data);
       setInvoiceDifferenceBookingsJson(JSON.stringify(r, null, 2));
     } catch (e) {
+      setInvoiceDifferenceBookingsRows(null);
+      setInvoiceDifferenceBookingsJson("");
       if (e instanceof ApiError) {
         setBanner({
           kind: "error",
@@ -738,6 +742,49 @@ export default function App() {
       setBusy(false);
     }
   }, [client, invoiceShellDetail]);
+
+  const loadInvoiceDifferenceBookingsByRefShell = useCallback(async () => {
+    if (!invoiceShellDetail) return;
+    setBusy(true);
+    setBanner(null);
+    try {
+      const r = await client.listInvoiceDifferenceBookingsByReference(invoiceShellDetail.invoiceId);
+      setInvoiceDifferenceBookingsByRefRows(r.data);
+      setInvoiceDifferenceBookingsByRefJson(JSON.stringify(r, null, 2));
+    } catch (e) {
+      setInvoiceDifferenceBookingsByRefRows(null);
+      setInvoiceDifferenceBookingsByRefJson("");
+      if (e instanceof ApiError) {
+        setBanner({
+          kind: "error",
+          text: e.envelope.message,
+          code: e.envelope.code,
+          correlationId: e.envelope.correlationId,
+        });
+      } else setBanner({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setBusy(false);
+    }
+  }, [client, invoiceShellDetail]);
+
+  const reloadInvoiceShellDetail = useCallback(async () => {
+    if (entityType !== "INVOICE") return;
+    const id = documentId.trim();
+    if (!id) return;
+    try {
+      const raw = await client.getInvoice(id);
+      setInvoiceShellDetail(raw);
+    } catch (e) {
+      if (e instanceof ApiError) {
+        setBanner({
+          kind: "error",
+          text: e.envelope.message,
+          code: e.envelope.code,
+          correlationId: e.envelope.correlationId,
+        });
+      } else setBanner({ kind: "error", text: e instanceof Error ? e.message : String(e) });
+    }
+  }, [client, entityType, documentId]);
 
   const loadInvoiceShellLvVersionSnapshot = useCallback(async () => {
     if (!invoiceShellDetail) return;
@@ -915,6 +962,7 @@ export default function App() {
 
   const runAction = async () => {
     if (!modalAction || !allowedActions?.includes(modalAction)) return;
+    const executedAction = modalAction;
     setBusy(true);
     setBanner(null);
     try {
@@ -931,7 +979,27 @@ export default function App() {
       setModalAction(null);
       // Nach Statuswechsel (z. B. BOOK_INVOICE) zuerst allowedActions neu laden — fetchAllowedFor setzt zunächst banner=null; Erfolgsmeldung danach.
       await fetchAllowed();
-      setBanner({ kind: "ok", text: JSON.stringify(result, null, 2) });
+      let okText = "Aktion wurde ausgeführt.";
+      if (
+        !showExpertUi &&
+        executedAction === "BOOK_INVOICE" &&
+        result &&
+        typeof result === "object" &&
+        result !== null &&
+        "schlussrechnungMitigation" in result
+      ) {
+        const r = result as BookInvoiceResponse;
+        const mitigation = schlussrechnungMitigationUserSentence(r.schlussrechnungMitigation);
+        const follow = schlussrechnungFollowUpDraftUserSentence(r.schlussrechnungFollowUpDraft, {
+          bookedInvoiceId: r.invoiceId,
+        });
+        const extra = [mitigation, follow].filter(Boolean).join(" ");
+        if (extra) okText = `Aktion wurde ausgeführt. ${extra}`;
+      }
+      setBanner({
+        kind: "ok",
+        text: showExpertUi ? JSON.stringify(result, null, 2) : okText,
+      });
     } catch (e) {
       if (e instanceof ApiError) {
         setBanner({
@@ -1098,8 +1166,16 @@ export default function App() {
         )
       ) : null}
       {banner?.kind === "ok" ? (
-        <div className="success-banner">
-          <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>{banner.text}</pre>
+        <div className="success-banner" role="status">
+          <p
+            style={{
+              margin: 0,
+              whiteSpace: "pre-wrap",
+              fontFamily: showExpertUi ? "ui-monospace, monospace" : "inherit",
+            }}
+          >
+            {banner.text}
+          </p>
         </div>
       ) : null}
 
@@ -1117,6 +1193,7 @@ export default function App() {
           initialMainTab={financePrepInitialMainTab}
           showExpertIntegratorNav={showExpertUi}
           showFortgeschrittenTab={showExpertUi}
+          showIntegrationHints={showExpertUi}
         />
       ) : null}
 
@@ -1164,7 +1241,14 @@ export default function App() {
           canWriteCrmStammdaten={canManageTenantPwaExpertMode}
         />
       ) : null}
-      {showLvAufmassHub ? <LvAufmassHubPage showIntegrationHints={showExpertUi} /> : null}
+      {showLvAufmassHub ? (
+        <LvAufmassHubPage
+          api={token?.trim() ? client : null}
+          hasSession={Boolean(token?.trim())}
+          tenantId={tenantId.trim() || SEED.tenantId}
+          showIntegrationHints={showExpertUi}
+        />
+      ) : null}
       {showAngeboteHub ? <AngeboteNachtraegeHubPage showIntegrationHints={showExpertUi} /> : null}
       {showEinstellungenHub ? (
         <EinstellungenHubPage showIntegrationHints={showExpertUi} tokenRole={tokenRole} />
@@ -1586,9 +1670,9 @@ export default function App() {
           <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: 0 }}>
             <code>GET /supplements/:supplementVersionId</code> — aktuell Metadaten (Status, Bezüge); System-/Bearbeitungstexte können später ergänzt werden.
           </p>
-          <pre className="system-block" style={{ margin: 0 }}>
+          <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-supplement-detail-json">
             {JSON.stringify(supplementDetail, null, 2)}
-          </pre>
+          </ShellExpertDiagnosticsJson>
         </section>
       ) : null}
 
@@ -1634,9 +1718,9 @@ export default function App() {
               LV-Strukturprojektion (GET)
             </button>
           </div>
-          <pre className="system-block" style={{ margin: 0 }}>
+          <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-lv-version-detail-json">
             {JSON.stringify(lvShellDetail, null, 2)}
-          </pre>
+          </ShellExpertDiagnosticsJson>
           {lvShellStructureJson ? (
             <>
               <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
@@ -1651,305 +1735,43 @@ export default function App() {
       ) : null}
 
       {invoiceShellDetail ? (
-        <section className="panel" data-testid="invoice-shell-detail">
-          <h2>Rechnung (GET-Detail, read-only)</h2>
-          <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: 0 }}>
-            <code>GET /invoices/{invoiceShellDetail.invoiceId}</code> — nur Anzeige; Schreibpfade bleiben über SoT/Aktionen.
-          </p>
-          <dl className="field-grid two" style={{ margin: 0 }}>
-            <dt className="label">Status</dt>
-            <dd style={{ margin: 0 }}>
-              <code>{invoiceShellDetail.status}</code>
-            </dd>
-            <dt className="label">Rechnungsnr.</dt>
-            <dd style={{ margin: 0 }}>{invoiceShellDetail.invoiceNumber ?? "—"}</dd>
-            <dt className="label">Skonto (B2-1a)</dt>
-            <dd style={{ margin: 0 }}>{formatSkontoDisplay(invoiceShellDetail.skontoBps)}</dd>
-            <dt className="label">LV-Netto (nach 8.4)</dt>
-            <dd style={{ margin: 0 }}>{formatShellEur(invoiceShellDetail.lvNetCents)}</dd>
-            <dt className="label">USt / Brutto</dt>
-            <dd style={{ margin: 0 }}>
-              {formatShellEur(invoiceShellDetail.vatCents)} / {formatShellEur(invoiceShellDetail.totalGrossCents)}
-            </dd>
-            <dt className="label">Bezahlt</dt>
-            <dd style={{ margin: 0 }}>{formatShellEur(invoiceShellDetail.totalPaidCents)}</dd>
-            <dt className="label">LV-Version (Trace)</dt>
-            <dd style={{ margin: 0 }} data-testid="shell-invoice-trace-lv">
-              <code>{invoiceShellDetail.lvVersionId}</code>
-            </dd>
-            <dt className="label">Aufmass-ID</dt>
-            <dd style={{ margin: 0 }} data-testid="shell-invoice-trace-measurement">
-              <code>{invoiceShellDetail.measurementId}</code>
-            </dd>
-            <dt className="label">Angebotsversion</dt>
-            <dd style={{ margin: 0 }} data-testid="shell-invoice-trace-offer-version">
-              {invoiceShellDetail.offerVersionId ? (
-                <code>{invoiceShellDetail.offerVersionId}</code>
-              ) : (
-                <span>—</span>
-              )}
-            </dd>
-          </dl>
-          <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.65rem", marginBottom: "0.35rem" }}>
-            Weitere Lesepfade (keine Schreibaktionen):{" "}
-            <code>
-              GET /invoices/{invoiceShellDetail.invoiceId}/payment-intakes
-            </code>
-            ,{" "}
-            <code>
-              GET /invoices/{invoiceShellDetail.invoiceId}/dunning-reminders
-            </code>
-            , <code>GET /finance/payment-terms</code> (<code>projectId</code> aus dieser Rechnung:{" "}
-            <code>{invoiceShellDetail.projectId}</code>),{" "}
-            <code>GET /documents/…/allowed-actions</code> (<code>INVOICE</code>
-            {invoiceShellDetail.offerVersionId ? (
-              <>
-                ; bei gesetzter Angebotsversion zusätzlich <code>OFFER_VERSION</code> mit{" "}
-                <code>{invoiceShellDetail.offerVersionId}</code>
-              </>
-            ) : null}
-            ),{" "}
-            <code>GET /finance/e-invoice-parties/tenant</code>, <code>GET …/customers</code>,{" "}
-            <code>{`GET …/customers/{customerId}`}</code> (aus dieser Rechnung:{" "}
-            <code>{invoiceShellDetail.customerId}</code>), <code>GET /finance/invoice-tax-profile</code>,{" "}
-            <code>{`GET /finance/invoice-tax-profile/projects/{projectId}`}</code> (
-            <code>{invoiceShellDetail.projectId}</code>),{" "}
-            <code>{`GET /lv/versions/${invoiceShellDetail.lvVersionId}`}</code> (LV-Traceability aus Rechnung),{" "}
-            <code>GET /audit-events</code> (mandantenweit, Seite 1; Rollen mit Audit-Leserecht),{" "}
-            <code>{`GET /projects/{projectId}/difference-bookings`}</code> (Nachberechnung §5.4/§8.6, Lesepfad).
-          </p>
-          <div data-testid="shell-invoice-readonly-subreads" style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-            <button type="button" disabled={busy} onClick={() => void loadInvoicePaymentIntakesRead()}>
-              Zahlungseingänge (GET)
-            </button>
-            <button type="button" disabled={busy} onClick={() => void loadInvoiceDunningRemindersRead()}>
-              Mahn-Ereignisse (GET)
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              aria-label="Zahlungsbedingungen zum Projekt der Rechnung laden (GET)"
-              onClick={() => void loadInvoicePaymentTermsForShell()}
-            >
-              Zahlungsbedingungen Projekt (GET)
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              aria-label="Erlaubte Aktionen für diese Rechnung laden (GET)"
-              onClick={() => void loadInvoiceAllowedActionsForShell()}
-            >
-              Erlaubte Aktionen Rechnung (GET)
-            </button>
-            <button
-              type="button"
-              disabled={busy || !invoiceShellDetail.offerVersionId}
-              aria-label="Erlaubte Aktionen für die Angebotsversion dieser Rechnung laden (GET)"
-              data-testid="shell-invoice-offer-version-allowed-actions-fetch"
-              onClick={() => void loadInvoiceShellOfferVersionAllowedActions()}
-            >
-              Erlaubte Aktionen Angebotsversion (GET)
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              aria-label="E-Rechnung Seller-Stammdaten Mandant laden (GET)"
-              data-testid="shell-invoice-e-invoice-tenant-fetch"
-              onClick={() => void loadInvoiceShellTenantEInvoiceParty()}
-            >
-              E-Rechnung Seller (GET)
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              aria-label="E-Rechnung Buyer-Stammdaten Liste laden (GET)"
-              data-testid="shell-invoice-e-invoice-customers-fetch"
-              onClick={() => void loadInvoiceShellCustomerEInvoicePartiesList()}
-            >
-              E-Rechnung Buyer-Liste (GET)
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              aria-label="E-Rechnung Buyer-Stammdaten für Kunden-ID der Rechnung laden (GET)"
-              data-testid="shell-invoice-e-invoice-buyer-fetch"
-              onClick={() => void loadInvoiceShellBuyerEInvoiceParty()}
-            >
-              E-Rechnung Buyer Rechnung (GET)
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              aria-label="Mandanten-Steuerprofil Rechnung laden (GET)"
-              data-testid="shell-invoice-invoice-tax-profile-fetch"
-              onClick={() => void loadInvoiceShellTenantTaxProfile()}
-            >
-              Steuerprofil Mandant (GET)
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              aria-label="Projekt-Steueroverride zur Rechnung laden (GET)"
-              data-testid="shell-invoice-project-tax-override-fetch"
-              onClick={() => void loadInvoiceShellProjectTaxOverride()}
-            >
-              Steueroverride Projekt (GET)
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              aria-label="LV-Version zur Traceability dieser Rechnung laden (GET)"
-              data-testid="shell-invoice-lv-version-fetch"
-              onClick={() => void loadInvoiceShellLvVersionSnapshot()}
-            >
-              LV-Version Traceability (GET)
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              aria-label="Audit-Ereignisse Mandant Seite 1 laden (GET)"
-              data-testid="shell-invoice-audit-events-fetch"
-              onClick={() => void loadInvoiceShellAuditEventsPage()}
-            >
-              Audit-Ereignisse (GET)
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              aria-label="Differenzbuchungen zum Projekt der Rechnung laden (GET)"
-              data-testid="shell-invoice-difference-bookings-fetch"
-              onClick={() => void loadInvoiceDifferenceBookingsShell()}
-            >
-              Differenzbuchungen Projekt (GET)
-            </button>
-          </div>
-          {invoicePaymentIntakesJson ? (
-            <>
-              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>Antwort payment-intakes</h3>
-              <pre className="system-block" style={{ margin: 0 }}>
-                {invoicePaymentIntakesJson}
-              </pre>
-            </>
-          ) : null}
-          {invoiceDunningRemindersJson ? (
-            <>
-              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>Antwort dunning-reminders</h3>
-              <pre className="system-block" style={{ margin: 0 }}>
-                {invoiceDunningRemindersJson}
-              </pre>
-            </>
-          ) : null}
-          {invoicePaymentTermsJson ? (
-            <>
-              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
-                Antwort GET /finance/payment-terms (Projekt)
-              </h3>
-              <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-invoice-payment-terms-json">
-                {invoicePaymentTermsJson}
-              </ShellExpertDiagnosticsJson>
-            </>
-          ) : null}
-          {invoiceAllowedActionsShellJson ? (
-            <>
-              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
-                Antwort allowed-actions (INVOICE)
-              </h3>
-              <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-invoice-allowed-actions-json">
-                {invoiceAllowedActionsShellJson}
-              </ShellExpertDiagnosticsJson>
-            </>
-          ) : null}
-          {invoiceOfferVersionAllowedActionsJson ? (
-            <>
-              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
-                Antwort allowed-actions (OFFER_VERSION)
-              </h3>
-              <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-invoice-offer-version-allowed-actions-json">
-                {invoiceOfferVersionAllowedActionsJson}
-              </ShellExpertDiagnosticsJson>
-            </>
-          ) : null}
-          {invoiceEInvoiceTenantJson ? (
-            <>
-              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
-                Antwort GET /finance/e-invoice-parties/tenant
-              </h3>
-              <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-invoice-e-invoice-tenant-json">
-                {invoiceEInvoiceTenantJson}
-              </ShellExpertDiagnosticsJson>
-            </>
-          ) : null}
-          {invoiceEInvoiceCustomersListJson ? (
-            <>
-              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
-                Antwort GET /finance/e-invoice-parties/customers
-              </h3>
-              <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-invoice-e-invoice-customers-json">
-                {invoiceEInvoiceCustomersListJson}
-              </ShellExpertDiagnosticsJson>
-            </>
-          ) : null}
-          {invoiceEInvoiceBuyerJson ? (
-            <>
-              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
-                {`Antwort GET /finance/e-invoice-parties/customers/{customerId}`}
-              </h3>
-              <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-invoice-e-invoice-buyer-json">
-                {invoiceEInvoiceBuyerJson}
-              </ShellExpertDiagnosticsJson>
-            </>
-          ) : null}
-          {invoiceTenantTaxProfileJson ? (
-            <>
-              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
-                Antwort GET /finance/invoice-tax-profile (Mandant)
-              </h3>
-              <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-invoice-invoice-tax-profile-json">
-                {invoiceTenantTaxProfileJson}
-              </ShellExpertDiagnosticsJson>
-            </>
-          ) : null}
-          {invoiceProjectTaxOverrideJson ? (
-            <>
-              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
-                {`Antwort GET /finance/invoice-tax-profile/projects/${invoiceShellDetail.projectId}`}
-              </h3>
-              <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-invoice-project-tax-override-json">
-                {invoiceProjectTaxOverrideJson}
-              </ShellExpertDiagnosticsJson>
-            </>
-          ) : null}
-          {invoiceShellLvSnapshotJson ? (
-            <>
-              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
-                {`Antwort GET /lv/versions/${invoiceShellDetail.lvVersionId}`}
-              </h3>
-              <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-invoice-lv-version-json">
-                {invoiceShellLvSnapshotJson}
-              </ShellExpertDiagnosticsJson>
-            </>
-          ) : null}
-          {invoiceAuditEventsJson ? (
-            <>
-              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
-                Antwort GET /audit-events (Seite 1)
-              </h3>
-              <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-invoice-audit-events-json">
-                {invoiceAuditEventsJson}
-              </ShellExpertDiagnosticsJson>
-            </>
-          ) : null}
-          {invoiceDifferenceBookingsJson ? (
-            <>
-              <h3 style={{ fontSize: "0.95rem", margin: "0.75rem 0 0.35rem" }}>
-                Antwort GET /projects/…/difference-bookings
-              </h3>
-              <ShellExpertDiagnosticsJson showOpen={showExpertUi} testId="shell-invoice-difference-bookings-json">
-                {invoiceDifferenceBookingsJson}
-              </ShellExpertDiagnosticsJson>
-            </>
-          ) : null}
-        </section>
+        <InvoiceShellReadonlyPanel
+          detail={invoiceShellDetail}
+          busy={busy}
+          showExpertUi={showExpertUi}
+          api={client}
+          onReloadInvoiceDetail={() => void reloadInvoiceShellDetail()}
+          invoicePaymentIntakesJson={invoicePaymentIntakesJson}
+          invoiceDunningRemindersJson={invoiceDunningRemindersJson}
+          invoicePaymentTermsJson={invoicePaymentTermsJson}
+          invoiceAllowedActionsShellJson={invoiceAllowedActionsShellJson}
+          invoiceOfferVersionAllowedActionsJson={invoiceOfferVersionAllowedActionsJson}
+          invoiceEInvoiceTenantJson={invoiceEInvoiceTenantJson}
+          invoiceEInvoiceCustomersListJson={invoiceEInvoiceCustomersListJson}
+          invoiceEInvoiceBuyerJson={invoiceEInvoiceBuyerJson}
+          invoiceTenantTaxProfileJson={invoiceTenantTaxProfileJson}
+          invoiceProjectTaxOverrideJson={invoiceProjectTaxOverrideJson}
+          invoiceShellLvSnapshotJson={invoiceShellLvSnapshotJson}
+          invoiceAuditEventsJson={invoiceAuditEventsJson}
+          invoiceDifferenceBookingsJson={invoiceDifferenceBookingsJson}
+          invoiceDifferenceBookingsRows={invoiceDifferenceBookingsRows}
+          invoiceDifferenceBookingsByRefJson={invoiceDifferenceBookingsByRefJson}
+          invoiceDifferenceBookingsByRefRows={invoiceDifferenceBookingsByRefRows}
+          onLoadPaymentIntakes={() => void loadInvoicePaymentIntakesRead()}
+          onLoadDunningReminders={() => void loadInvoiceDunningRemindersRead()}
+          onLoadPaymentTerms={() => void loadInvoicePaymentTermsForShell()}
+          onLoadAllowedActionsInvoice={() => void loadInvoiceAllowedActionsForShell()}
+          onLoadAllowedActionsOfferVersion={() => void loadInvoiceShellOfferVersionAllowedActions()}
+          onLoadEInvoiceTenant={() => void loadInvoiceShellTenantEInvoiceParty()}
+          onLoadEInvoiceCustomers={() => void loadInvoiceShellCustomerEInvoicePartiesList()}
+          onLoadEInvoiceBuyer={() => void loadInvoiceShellBuyerEInvoiceParty()}
+          onLoadTenantTaxProfile={() => void loadInvoiceShellTenantTaxProfile()}
+          onLoadProjectTaxOverride={() => void loadInvoiceShellProjectTaxOverride()}
+          onLoadLvVersion={() => void loadInvoiceShellLvVersionSnapshot()}
+          onLoadAuditEvents={() => void loadInvoiceShellAuditEventsPage()}
+          onLoadDifferenceBookings={() => void loadInvoiceDifferenceBookingsShell()}
+          onLoadDifferenceBookingsByInvoiceRef={() => void loadInvoiceDifferenceBookingsByRefShell()}
+        />
       ) : null}
         </>
       ) : null}

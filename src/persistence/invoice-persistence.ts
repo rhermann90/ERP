@@ -38,6 +38,8 @@ function toDomainInvoice(row: {
   invoiceTaxRegime: string;
   vatRateBpsEffective: number;
   taxReasonCode: string | null;
+  billingKind: string;
+  mitigationFollowUpSourceInvoiceId: string | null;
 }): Invoice {
   return {
     tenantId: row.tenantId,
@@ -62,6 +64,8 @@ function toDomainInvoice(row: {
     invoiceTaxRegime: row.invoiceTaxRegime as InvoiceTaxRegime,
     vatRateBpsEffective: row.vatRateBpsEffective,
     taxReasonCode: row.taxReasonCode ?? undefined,
+    billingKind: row.billingKind as Invoice["billingKind"],
+    mitigationFollowUpSourceInvoiceId: row.mitigationFollowUpSourceInvoiceId ?? undefined,
   };
 }
 
@@ -115,6 +119,8 @@ export class PrismaInvoicePersistence implements InvoicePersistencePort {
         invoiceTaxRegime: inv.invoiceTaxRegime ?? "STANDARD_VAT_19",
         vatRateBpsEffective: inv.vatRateBpsEffective ?? 1900,
         taxReasonCode: inv.taxReasonCode ?? null,
+        billingKind: inv.billingKind ?? "REGULAR",
+        mitigationFollowUpSourceInvoiceId: inv.mitigationFollowUpSourceInvoiceId ?? null,
       },
       update: {
         projectId: inv.projectId,
@@ -137,6 +143,8 @@ export class PrismaInvoicePersistence implements InvoicePersistencePort {
         invoiceTaxRegime: inv.invoiceTaxRegime ?? "STANDARD_VAT_19",
         vatRateBpsEffective: inv.vatRateBpsEffective ?? 1900,
         taxReasonCode: inv.taxReasonCode ?? null,
+        billingKind: inv.billingKind ?? "REGULAR",
+        mitigationFollowUpSourceInvoiceId: inv.mitigationFollowUpSourceInvoiceId ?? null,
       },
     });
   }

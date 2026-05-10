@@ -1502,6 +1502,31 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       expect(statusAudits.length).toBeGreaterThanOrEqual(4);
     });
 
+    it("P2-M-02c GET /measurements/:measurementVersionId includes traceability header fields", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: `/measurements/${SEED_IDS.measurementVersionId}`,
+        headers: buildHeaders("VIEWER"),
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as {
+        measurementId: string;
+        projectId: string;
+        customerId: string;
+        lvVersionId: string;
+        measurementCreatedAt: string;
+        version: { id: string };
+        positions: unknown[];
+      };
+      expect(body.measurementId).toBe(SEED_IDS.measurementId);
+      expect(body.projectId).toBe(SEED_IDS.projectId);
+      expect(body.customerId).toBe(SEED_IDS.customerId);
+      expect(body.lvVersionId).toBe(SEED_IDS.lvVersionId);
+      expect(typeof body.measurementCreatedAt).toBe("string");
+      expect(body.version.id).toBe(SEED_IDS.measurementVersionId);
+      expect(Array.isArray(body.positions)).toBe(true);
+    });
+
     it("P2-M-02 tenant isolation on measurement read", async () => {
       const res = await app.inject({
         method: "GET",
@@ -1510,6 +1535,42 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       });
       expect(res.statusCode).toBe(404);
       expect(res.json().code).toBe("MEASUREMENT_NOT_FOUND");
+    });
+
+    it("P2-M-02b GET /projects/:projectId/measurements lists pilot measurements", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: `/projects/${SEED_IDS.projectId}/measurements`,
+        headers: buildHeaders("VIEWER"),
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { data: Array<{ measurementId: string }> };
+      expect(Array.isArray(body.data)).toBe(true);
+      expect(body.data.some((r) => r.measurementId === SEED_IDS.measurementId)).toBe(true);
+    });
+
+    it("P2-O-01 GET /projects/:projectId/offers lists pilot offers", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: `/projects/${SEED_IDS.projectId}/offers`,
+        headers: buildHeaders("VIEWER"),
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { data: Array<{ offerId: string }> };
+      expect(Array.isArray(body.data)).toBe(true);
+      expect(body.data.some((r) => r.offerId === SEED_IDS.offerId)).toBe(true);
+    });
+
+    it("P2-O-02 GET /projects/:projectId/supplements lists pilot supplements", async () => {
+      const res = await app.inject({
+        method: "GET",
+        url: `/projects/${SEED_IDS.projectId}/supplements`,
+        headers: buildHeaders("VIEWER"),
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json() as { data: Array<{ supplementOfferId: string }> };
+      expect(Array.isArray(body.data)).toBe(true);
+      expect(body.data.some((r) => r.supplementOfferId === SEED_IDS.supplementOfferId)).toBe(true);
     });
 
     it("P2-M-03 position edit forbidden after FREIGEGEBEN (§5.4)", async () => {
@@ -1752,6 +1813,223 @@ describe("ERP domain slice (Teil I Domäne)", () => {
       expect(list2.statusCode).toBe(200);
       const data2 = (list2.json() as { data: Array<{ amountNetCents: number }> }).data;
       expect(data2[0]?.amountNetCents).toBe(9375);
+      const refInvoiceId = (data2[0] as { referenceInvoiceId?: string }).referenceInvoiceId;
+      expect(refInvoiceId).toBeTruthy();
+
+      const byRef = await app.inject({
+        method: "GET",
+        url: `/invoices/${refInvoiceId}/difference-bookings`,
+        headers: buildHeaders("VIEWER"),
+      });
+      expect(byRef.statusCode).toBe(200);
+      const byRefData = (byRef.json() as { data: Array<{ amountNetCents: number; referenceInvoiceId?: string }> }).data;
+      expect(byRefData.length).toBe(1);
+      expect(byRefData[0]?.amountNetCents).toBe(9375);
+      expect(byRefData[0]?.referenceInvoiceId).toBe(refInvoiceId);
+
+      const summary = await app.inject({
+        method: "GET",
+        url: `/projects/${SEED_IDS.projectId}/difference-bookings/summary`,
+        headers: buildHeaders("VIEWER"),
+      });
+      expect(summary.statusCode).toBe(200);
+      const sj = summary.json() as {
+        open: Array<{ amountNetCents: number }>;
+        allocatedByDraft: unknown[];
+      };
+      expect(Array.isArray(sj.open)).toBe(true);
+      expect(sj.open.some((r) => r.amountNetCents === 9375)).toBe(true);
+      expect(sj.allocatedByDraft).toEqual([]);
+    });
+
+    it("W2-DOM86 Slice 2b: Buchung mit zugeordneter Differenz nach Schlussrechnung liefert schlussrechnungMitigation", async () => {
+      const ver = await app.inject({
+        method: "POST",
+        url: "/measurements/version",
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
+        payload: {
+          measurementId: SEED_IDS.measurementId,
+          reason: "Slice2b Korrekturversion fuer Schluss-Mitigation",
+        },
+      });
+      expect(ver.statusCode).toBe(201);
+      const mv = ver.json() as { measurementVersionId: string };
+
+      const pos = await app.inject({
+        method: "POST",
+        url: `/measurements/${mv.measurementVersionId}/positions`,
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
+        payload: {
+          positions: [
+            { lvPositionId: SEED_IDS.lvPositionSeedA, quantity: 20, unit: "m2", note: "Slice2b Mengenkorrektur" },
+          ],
+          reason: "Slice2b Positionen fuer Delta",
+        },
+      });
+      expect(pos.statusCode).toBe(200);
+
+      const list = await app.inject({
+        method: "GET",
+        url: `/projects/${SEED_IDS.projectId}/difference-bookings`,
+        headers: buildHeaders("VIEWER"),
+      });
+      expect(list.statusCode).toBe(200);
+      const diffRows = (
+        list.json() as { data: Array<{ id: string; amountNetCents: number; status: string; createdAt: string }> }
+      ).data;
+      expect(diffRows.length).toBeGreaterThanOrEqual(1);
+      const sorted = [...diffRows].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+      const diffRow = sorted.find((r) => r.amountNetCents === 9375 && r.status === "OPEN");
+      expect(diffRow?.id).toBeTruthy();
+
+      const alloc = await app.inject({
+        method: "POST",
+        url: `/invoices/${SEED_IDS.draftInvoiceId}/difference-bookings/allocate`,
+        headers: buildHeaders("BUCHHALTUNG"),
+        payload: {
+          differenceBookingIds: [diffRow!.id],
+          reason: "Slice2b Zuordnung zum ENTWURF fuer Settlement",
+        },
+      });
+      expect(alloc.statusCode).toBe(204);
+
+      const summaryAlloc = await app.inject({
+        method: "GET",
+        url: `/projects/${SEED_IDS.projectId}/difference-bookings/summary`,
+        headers: buildHeaders("VIEWER"),
+      });
+      expect(summaryAlloc.statusCode).toBe(200);
+      const sjA = summaryAlloc.json() as {
+        open: Array<{ id: string }>;
+        allocatedByDraft: Array<{ draftInvoiceId: string; rows: Array<{ id: string }> }>;
+      };
+      expect(sjA.open.every((r) => r.id !== diffRow!.id)).toBe(true);
+      expect(sjA.allocatedByDraft.some((g) => g.draftInvoiceId === SEED_IDS.draftInvoiceId)).toBe(true);
+      const grp = sjA.allocatedByDraft.find((g) => g.draftInvoiceId === SEED_IDS.draftInvoiceId);
+      expect(grp?.rows.length).toBe(1);
+
+      const book = await app.inject({
+        method: "POST",
+        url: `/invoices/${SEED_IDS.draftInvoiceId}/book`,
+        headers: buildHeaders("BUCHHALTUNG"),
+        payload: { reason: "Slice2b Buchung mit Ausgleich nach Schlussrechnung", issueDate: "2026-05-10" },
+      });
+      expect(book.statusCode).toBe(200);
+      const bookBody = book.json() as {
+        schlussrechnungMitigation: {
+          applies: boolean;
+          settledDifferenceNetSumCents?: number;
+          suggestedNextBillingKind?: string;
+        };
+        schlussrechnungFollowUpDraft: {
+          created: boolean;
+          invoiceId: string | null;
+          billingKind: string | null;
+          skippedReason: string | null;
+        };
+      };
+      expect(bookBody.schlussrechnungMitigation.applies).toBe(true);
+      expect(bookBody.schlussrechnungMitigation.settledDifferenceNetSumCents).toBe(9375);
+      expect(bookBody.schlussrechnungMitigation.suggestedNextBillingKind).toBe("FOLGERECHNUNG");
+      expect(bookBody.schlussrechnungFollowUpDraft.created).toBe(true);
+      expect(bookBody.schlussrechnungFollowUpDraft.invoiceId).toBeTruthy();
+      expect(bookBody.schlussrechnungFollowUpDraft.invoiceId).not.toBe(SEED_IDS.draftInvoiceId);
+      expect(bookBody.schlussrechnungFollowUpDraft.billingKind).toBe("FOLGERECHNUNG");
+      expect(bookBody.schlussrechnungFollowUpDraft.skippedReason).toBe(null);
+
+      const followId = bookBody.schlussrechnungFollowUpDraft.invoiceId as string;
+      const followGet = await app.inject({
+        method: "GET",
+        url: `/invoices/${followId}`,
+        headers: buildHeaders("VIEWER"),
+      });
+      expect(followGet.statusCode).toBe(200);
+      const fo = followGet.json() as { status: string; billingKind: string };
+      expect(fo.status).toBe("ENTWURF");
+      expect(fo.billingKind).toBe("FOLGERECHNUNG");
+    });
+
+    it("W2-DOM86 Slice 2c: negativer Ausgleich liefert Gutschrift-Hinweis ohne automatischen Folge-Entwurf (ADR-0024)", async () => {
+      const ver = await app.inject({
+        method: "POST",
+        url: "/measurements/version",
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
+        payload: {
+          measurementId: SEED_IDS.measurementId,
+          reason: "Slice2c negative delta for Gutschrift path",
+        },
+      });
+      expect(ver.statusCode).toBe(201);
+      const mv = ver.json() as { measurementVersionId: string };
+
+      const pos = await app.inject({
+        method: "POST",
+        url: `/measurements/${mv.measurementVersionId}/positions`,
+        headers: buildHeaders("VERTRIEB_BAULEITUNG"),
+        payload: {
+          positions: [
+            { lvPositionId: SEED_IDS.lvPositionSeedA, quantity: 5, unit: "m2", note: "Slice2c Mengenreduktion" },
+          ],
+          reason: "Slice2c Positionen fuer negatives Delta",
+        },
+      });
+      expect(pos.statusCode).toBe(200);
+
+      const list = await app.inject({
+        method: "GET",
+        url: `/projects/${SEED_IDS.projectId}/difference-bookings`,
+        headers: buildHeaders("VIEWER"),
+      });
+      expect(list.statusCode).toBe(200);
+      const diffRows = (
+        list.json() as { data: Array<{ id: string; amountNetCents: number; status: string; createdAt: string }> }
+      ).data;
+      const sorted = [...diffRows].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+      const diffRow = sorted.find((r) => r.status === "OPEN" && r.amountNetCents < 0);
+      expect(diffRow?.id).toBeTruthy();
+      expect(diffRow?.amountNetCents).toBe(-9375);
+
+      const alloc = await app.inject({
+        method: "POST",
+        url: `/invoices/${SEED_IDS.draftInvoiceId}/difference-bookings/allocate`,
+        headers: buildHeaders("BUCHHALTUNG"),
+        payload: {
+          differenceBookingIds: [diffRow!.id],
+          reason: "Slice2c Zuordnung negatives Delta",
+        },
+      });
+      expect(alloc.statusCode).toBe(204);
+
+      const book = await app.inject({
+        method: "POST",
+        url: `/invoices/${SEED_IDS.draftInvoiceId}/book`,
+        headers: buildHeaders("BUCHHALTUNG"),
+        payload: { reason: "Slice2c Buchung negatives Delta", issueDate: "2026-05-10" },
+      });
+      expect(book.statusCode).toBe(200);
+      const bookBody = book.json() as {
+        schlussrechnungMitigation: {
+          applies: boolean;
+          settledDifferenceNetSumCents?: number;
+          suggestedNextBillingKind?: string;
+        };
+        schlussrechnungFollowUpDraft: {
+          created: boolean;
+          invoiceId: string | null;
+          billingKind: string | null;
+          skippedReason: string | null;
+        };
+      };
+      expect(bookBody.schlussrechnungMitigation.applies).toBe(true);
+      expect(bookBody.schlussrechnungMitigation.settledDifferenceNetSumCents).toBe(-9375);
+      expect(bookBody.schlussrechnungMitigation.suggestedNextBillingKind).toBe("GUTSCHRIFT");
+      expect(bookBody.schlussrechnungFollowUpDraft.created).toBe(false);
+      expect(bookBody.schlussrechnungFollowUpDraft.skippedReason).toBe("GUTSCHRIFT_REQUIRES_MANUAL_DRAFT");
+      expect(bookBody.schlussrechnungFollowUpDraft.billingKind).toBe("GUTSCHRIFT");
     });
   });
 

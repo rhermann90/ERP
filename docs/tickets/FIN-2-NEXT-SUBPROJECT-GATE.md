@@ -28,6 +28,10 @@ Umgesetzt:
 - **Priorität 3** (**Pfad C**, Zwischenstatus) **danach**, ebenfalls **eigenes ADR/Gate** — nicht parallel zu Priorität 2 im selben Strang mischen.
 - **Phase-2-LV** (Einspeisung / Lesepfade) bleibt **eigenes** Programm: [`PHASE-2-PRIORISIERUNG-INCREMENT-2.md`](./PHASE-2-PRIORISIERUNG-INCREMENT-2.md), [`PHASE-2-STARTAUFTRAG.md`](./PHASE-2-STARTAUFTRAG.md) — **kein** Mischen mit 8.4(2–6) oder Pfad C ohne beschlossenes Gate.
 
+## Zurückstellung DOM-8-6 (Differenz → Entwurfssummen)
+
+Die **automatische Verrechnung** zugeordneter **DifferenceBooking**-Beträge in **`lvNetCents`** / **`totalGrossCents`** eines Rechnungsentwurfs gehört zum **8.4-Gesamtmotor** und ist bis auf Widerruf **nicht** implementiert — siehe ADR [`0025-dom86-deferred-difference-to-invoice-totals.md`](../adr/0025-dom86-deferred-difference-to-invoice-totals.md). Umsetzung nur zusammen mit Priorität **2** (8.4(2–6)-Motor) nach beschlossenem Scope/Gate.
+
 ## Review-Anker
 
 - [`FIN-2-START-GATE.md`](./FIN-2-START-GATE.md) — relevante **G1–G10** je nach Teilprojekt.  

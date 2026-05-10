@@ -16,6 +16,7 @@ export type FinancePrepStepTermsProps = {
   listJson: string;
   onLoadPaymentTerms: () => void;
   onCreatePaymentTermsVersion: () => void;
+  showIntegrationHints?: boolean;
 };
 
 function FinancePrepStepTermsInner({
@@ -29,6 +30,7 @@ function FinancePrepStepTermsInner({
   listJson,
   onLoadPaymentTerms,
   onCreatePaymentTermsVersion,
+  showIntegrationHints = false,
 }: FinancePrepStepTermsProps) {
   return (
     <FinancePrepPanel step={1} title="Zahlungsbedingungen (FIN-1)" liveStatus={liveStatus}>
@@ -70,7 +72,9 @@ function FinancePrepStepTermsInner({
           POST neue Version
         </button>
       </div>
-      <FinanceCollapsibleJson summary="Rohantwort API (GET/POST Konditionen)" json={listJson} />
+      {showIntegrationHints && listJson.trim() ? (
+        <FinanceCollapsibleJson summary="Rohantwort API (GET/POST Konditionen)" json={listJson} testId="finance-prep-terms-raw-json" />
+      ) : null}
     </FinancePrepPanel>
   );
 }

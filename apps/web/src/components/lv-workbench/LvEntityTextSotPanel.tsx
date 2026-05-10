@@ -53,7 +53,8 @@ function fieldsForAction(
  * SoT-gestützte Textmutation für LV-Knoten und -Positionen (keine Status-/Struktur-Aktionen).
  * documentId = Knoten- bzw. Positions-UUID; entityType = LV_STRUCTURE_NODE | LV_POSITION.
  */
-export function LvEntityTextSotPanel(props: { api: ApiClient }) {
+export function LvEntityTextSotPanel(props: { api: ApiClient; showIntegrationHints?: boolean }) {
+  const { api, showIntegrationHints = false } = props;
   const [entityType, setEntityType] = useState<EntityType>("LV_STRUCTURE_NODE");
   const [documentId, setDocumentId] = useState("");
   const [allowedActions, setAllowedActions] = useState<string[] | null>(null);
@@ -81,7 +82,7 @@ export function LvEntityTextSotPanel(props: { api: ApiClient }) {
     }
     setBusy(true);
     try {
-      const r = await props.api.getAllowedActions(id, entityType);
+      const r = await api.getAllowedActions(id, entityType);
       setAllowedActions(r.allowedActions);
       setSelectedAction("");
     } catch (e) {
@@ -90,7 +91,7 @@ export function LvEntityTextSotPanel(props: { api: ApiClient }) {
     } finally {
       setBusy(false);
     }
-  }, [props.api, documentId, entityType]);
+  }, [api, documentId, entityType]);
 
   const runSelected = async () => {
     const id = documentId.trim();
@@ -99,8 +100,11 @@ export function LvEntityTextSotPanel(props: { api: ApiClient }) {
     setBusy(true);
     setBanner(null);
     try {
-      const result = await executeActionWithSotGuard(props.api, a, entityType, id, allowedActions, form);
-      setBanner({ kind: "ok", text: JSON.stringify(result, null, 2) });
+      const result = await executeActionWithSotGuard(api, a, entityType, id, allowedActions, form);
+      setBanner({
+        kind: "ok",
+        text: showIntegrationHints ? JSON.stringify(result, null, 2) : "Aktion erfolgreich ausgeführt.",
+      });
       await loadSoT();
     } catch (e) {
       setBanner({

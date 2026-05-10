@@ -10,6 +10,7 @@ import type { DunningReminderRunService } from "../services/dunning-reminder-run
 import type { DunningReminderBatchEmailService } from "../services/dunning-reminder-batch-email-service.js";
 import type { DunningReminderTemplateService } from "../services/dunning-reminder-template-service.js";
 import type { DunningTenantAutomationService } from "../services/dunning-tenant-automation-service.js";
+import type { InvoiceService } from "../services/invoice-service.js";
 import { parseIdempotencyKeyHeader } from "./idempotency-header.js";
 import {
   deleteDunningReminderStageSchema,
@@ -21,6 +22,7 @@ import {
   patchDunningReminderTemplateBodySchema,
   patchDunningTenantAutomationSchema,
   putDunningReminderConfigSchema,
+  openReceivablesQuerySchema,
 } from "../validation/schemas.js";
 
 const stageOrdinalPathSchema = z.object({
@@ -62,6 +64,7 @@ export function registerDunningReminderConfigRoutes(
   app: FastifyInstance,
   deps: {
     authorizationService: AuthorizationService;
+    invoiceService: InvoiceService;
     dunningReminderConfigService: DunningReminderConfigService;
     dunningReminderTemplateService: DunningReminderTemplateService;
     dunningEmailFooterService: DunningEmailFooterService;
@@ -76,6 +79,21 @@ export function registerDunningReminderConfigRoutes(
       const auth = parseAuthContext(request.headers);
       deps.authorizationService.assertCanReadInvoice(auth.role);
       const data = await deps.dunningReminderTemplateService.getReadModel(auth.tenantId);
+      return reply.status(200).send({ data });
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.get("/finance/open-receivables", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      deps.authorizationService.assertCanReadInvoice(auth.role);
+      const query = openReceivablesQuerySchema.parse(request.query);
+      const data = deps.invoiceService.listOpenReceivablesRead(auth.tenantId, {
+        projectId: query.projectId,
+        customerId: query.customerId,
+      });
       return reply.status(200).send({ data });
     } catch (error) {
       return handleHttpError(error, request, reply);

@@ -123,19 +123,30 @@ export interface MeasurementPosition {
   note?: string;
 }
 
-/** §5.4 / §8.6: persistierte Differenzbuchung (Aufmass-Korrektur nach Rechnung; Lesepfad-Slice). */
+/** §5.4 / §8.6: persistierte Differenzbuchung (Aufmass-Korrektur und Konditionsfolge nach Rechnung; Lesepfad-Slices ADR-0020 / ADR-0023). */
+export type DifferenceBookingKind = "MEASUREMENT_CORRECTION_AFTER_INVOICE" | "PAYMENT_TERMS_CHANGE_AFTER_INVOICE";
+
+/** §8.2 / §8.6 Slice 2b: Kennzeichnung des Abrechnungskontexts (Schlussrechnung, Folge, Gutschrift). */
+export type InvoiceBillingKind = "REGULAR" | "SCHLUSSRECHNUNG" | "FOLGERECHNUNG" | "GUTSCHRIFT";
+
 export interface DifferenceBooking {
   id: UUID;
   tenantId: TenantId;
   projectId: UUID;
   customerId: UUID;
   measurementId: UUID;
-  predecessorMeasurementVersionId: UUID;
-  subsequentMeasurementVersionId: UUID;
-  kind: "MEASUREMENT_CORRECTION_AFTER_INVOICE";
+  predecessorMeasurementVersionId?: UUID;
+  subsequentMeasurementVersionId?: UUID;
+  predecessorPaymentTermsVersionId?: UUID;
+  subsequentPaymentTermsVersionId?: UUID;
+  kind: DifferenceBookingKind;
   amountNetCents: number;
-  status: "OPEN" | "APPLIED_TO_DRAFT";
+  /** OPEN → ALLOCATED_TO_DRAFT (Entwurf) → SETTLED (nach BOOK_INVOICE); ADR-0022. */
+  status: "OPEN" | "ALLOCATED_TO_DRAFT" | "SETTLED";
   referenceInvoiceId?: UUID;
+  allocatedInvoiceId?: UUID;
+  allocatedAt?: Date;
+  settledAt?: Date;
   createdAt: Date;
   createdBy: UserId;
 }
@@ -249,6 +260,10 @@ export interface Invoice {
   vatRateBpsEffective?: number;
   /** Optionaler Begründungscode (z. B. Projekt-Override). */
   taxReasonCode?: string;
+  /** §8.2 / §8.6 Slice 2b — Default REGULAR wenn nicht gesetzt (ältere Daten/API). */
+  billingKind?: InvoiceBillingKind;
+  /** ADR-0024: gebuchte Rechnung, zu der dieser ENTWURF als automatischer Folge-Entwurf gehört (Idempotenz). */
+  mitigationFollowUpSourceInvoiceId?: UUID;
 }
 
 /** Stammdaten für XRechnung-UBL (Seller/Buyer); keine juristische Konformitätszusage. */
@@ -394,7 +409,10 @@ export interface AuditEvent {
     | "CRM_PROJECT_CONTACT_CREATED"
     | "CRM_PROJECT_CONTACT_PATCHED"
     | "DIFFERENCE_BOOKING_CREATED"
-    | "DIFFERENCE_BOOKING_AMOUNT_RECALCULATED";
+    | "DIFFERENCE_BOOKING_AMOUNT_RECALCULATED"
+    | "DIFFERENCE_BOOKING_ALLOCATED_TO_DRAFT"
+    | "DIFFERENCE_BOOKING_DEALLOCATED_FROM_DRAFT"
+    | "DIFFERENCE_BOOKING_SETTLED";
   timestamp: Date;
   actorUserId: UserId;
   reason?: string;

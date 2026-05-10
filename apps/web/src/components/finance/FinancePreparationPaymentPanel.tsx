@@ -20,6 +20,7 @@ export type FinancePreparationPaymentPanelProps = {
   intakeResultJson: string;
   onApplyOpenBalance: () => void;
   onSubmitPaymentIntake: () => void;
+  showIntegrationHints?: boolean;
 };
 
 function FinancePreparationPaymentPanelInner({
@@ -36,6 +37,7 @@ function FinancePreparationPaymentPanelInner({
   intakeResultJson,
   onApplyOpenBalance,
   onSubmitPaymentIntake,
+  showIntegrationHints = false,
 }: FinancePreparationPaymentPanelProps) {
   return (
     <FinancePrepPanel step={5} title="Zahlungseingang (FIN-3)" liveStatus={liveStatus}>
@@ -101,7 +103,9 @@ function FinancePreparationPaymentPanelInner({
       >
         Zahlung verbuchen
       </button>
-      <FinanceCollapsibleJson summary="Rohantwort Zahlungseingang (JSON)" json={intakeResultJson} />
+      {showIntegrationHints ? (
+        <FinanceCollapsibleJson summary="Rohantwort Zahlungseingang (JSON)" json={intakeResultJson} />
+      ) : null}
     </FinancePrepPanel>
   );
 }

@@ -70,7 +70,10 @@ export function LvVersionSotPanel(props: {
   api: ApiClient;
   lvVersionId: string;
   onAfterMutation?: () => void;
+  /** Wenn false: Server-SoT lesen (Liste erlaubter Aktionen), keine Ausführung — für Standard-Pilot ohne Expertenmodus. */
+  allowExecution?: boolean;
 }) {
+  const allowExecution = props.allowExecution !== false;
   const [allowedActions, setAllowedActions] = useState<string[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedAction, setSelectedAction] = useState<string>("");
@@ -78,7 +81,11 @@ export function LvVersionSotPanel(props: {
     reason: "Pilot LV Workbench — SoT-Aktion",
   });
   const [busy, setBusy] = useState(false);
-  const [execBanner, setExecBanner] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [execBanner, setExecBanner] = useState<{
+    kind: "ok" | "err";
+    summary: string;
+    detailJson?: string;
+  } | null>(null);
 
   const lvScoped = useMemo(
     () => (allowedActions ?? []).filter((a) => LV_VERSION_DOCUMENT_ACTIONS.has(a)),
@@ -122,13 +129,17 @@ export function LvVersionSotPanel(props: {
         allowedActions,
         form,
       );
-      setExecBanner({ kind: "ok", text: JSON.stringify(result, null, 2) });
+      setExecBanner({
+        kind: "ok",
+        summary: `Aktion „${a}“ wurde ausgeführt (Server-SoT).`,
+        detailJson: JSON.stringify(result, null, 2),
+      });
       props.onAfterMutation?.();
       await loadSoT();
     } catch (e) {
       setExecBanner({
         kind: "err",
-        text: e instanceof ApiError ? `${e.envelope.code}: ${e.envelope.message}` : String(e),
+        summary: e instanceof ApiError ? `${e.envelope.code}: ${e.envelope.message}` : String(e),
       });
     } finally {
       setBusy(false);
@@ -139,8 +150,16 @@ export function LvVersionSotPanel(props: {
     <section className="panel" data-testid="lv-version-sot-panel">
       <h3 style={{ marginTop: 0 }}>SoT — LV_VERSION</h3>
       <p className="hint">
-        Nur Aktionen aus <code>GET /documents/…/allowed-actions?entityType=LV_VERSION</code>; Ausführung über{" "}
-        <code>executeActionWithSotGuard</code> (keine parallele Berechtigungslogik).
+        Nur Aktionen aus <code>GET /documents/…/allowed-actions?entityType=LV_VERSION</code>
+        {allowExecution ? (
+          <>
+            ; Ausführung über <code>executeActionWithSotGuard</code> (keine parallele Berechtigungslogik).
+          </>
+        ) : (
+          <>
+            . <strong>Ausführung</strong> nur im Expertenmodus oder über <strong>Dokument und Details</strong>.
+          </>
+        )}
       </p>
       <button type="button" className="btn-primary" disabled={busy} onClick={() => void loadSoT()} data-testid="lv-sot-load">
         Erlaubte Aktionen laden
@@ -151,12 +170,35 @@ export function LvVersionSotPanel(props: {
         </p>
       ) : null}
       {allowedActions ? (
-        <pre className="system-block" style={{ marginTop: "0.75rem", maxHeight: "10rem", overflow: "auto" }} data-testid="lv-sot-allowed-json">
-          {JSON.stringify({ allowedActions }, null, 2)}
-        </pre>
+        <div style={{ marginTop: "0.75rem" }} data-testid="lv-sot-allowed-wrap">
+          <p className="hint" data-testid="lv-sot-allowed-summary">
+            {allowedActions.length} erlaubte Aktion(en) vom Server (documentId = LV-Version).
+          </p>
+          <ul style={{ margin: "0.35rem 0", paddingLeft: "1.25rem" }} data-testid="lv-sot-allowed-list">
+            {allowedActions.map((a) => (
+              <li key={a}>
+                <code>{a}</code>
+              </li>
+            ))}
+          </ul>
+          {allowExecution ? (
+            <details style={{ marginTop: "0.35rem" }}>
+              <summary style={{ cursor: "pointer", fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                Rohdaten (JSON)
+              </summary>
+              <pre
+                className="system-block"
+                style={{ marginTop: "0.35rem", maxHeight: "10rem", overflow: "auto" }}
+                data-testid="lv-sot-allowed-json"
+              >
+                {JSON.stringify({ allowedActions }, null, 2)}
+              </pre>
+            </details>
+          ) : null}
+        </div>
       ) : null}
 
-      {lvScoped.length > 0 ? (
+      {allowExecution && lvScoped.length > 0 ? (
         <>
           <label className="field" style={{ marginTop: "0.75rem" }}>
             <span>Aktion auswählen</span>
@@ -190,19 +232,40 @@ export function LvVersionSotPanel(props: {
             Aktion ausführen
           </button>
         </>
-      ) : allowedActions && allowedActions.length > 0 ? (
+      ) : allowExecution && allowedActions && allowedActions.length > 0 ? (
         <p className="hint">Keine LV-Schreibaktionen auf dieser Version (Status nicht ENTWURF oder nicht aktuelle Katalogversion).</p>
       ) : null}
 
+      {!allowExecution && allowedActions && allowedActions.length > 0 ? (
+        lvScoped.length > 0 ? (
+          <p className="hint" data-testid="lv-sot-readonly-hint-exec">
+            {lvScoped.length} pilotierte LV-Aktion(en) vom Server — zur Ausführung Expertenmodus aktivieren oder{" "}
+            <strong>Dokument und Details</strong> nutzen.
+          </p>
+        ) : (
+          <p className="hint" data-testid="lv-sot-readonly-no-lv-actions">
+            Keine pilotierten LV-Schreibaktionen in dieser Komponente — vollständige Ausführung über Shell/Expertenmodus.
+          </p>
+        )
+      ) : null}
+
       {execBanner ? (
-        <pre
+        <div
           className={execBanner.kind === "err" ? "error-banner" : "success-banner"}
-          style={{ marginTop: "0.75rem", whiteSpace: "pre-wrap" }}
+          style={{ marginTop: "0.75rem" }}
           role="status"
           data-testid="lv-sot-exec-result"
         >
-          {execBanner.text}
-        </pre>
+          <p style={{ margin: 0 }}>{execBanner.summary}</p>
+          {execBanner.kind === "ok" && execBanner.detailJson ? (
+            <details style={{ marginTop: "0.5rem" }}>
+              <summary style={{ cursor: "pointer", fontSize: "0.85rem" }}>Serverantwort (JSON)</summary>
+              <pre className="system-block" style={{ marginTop: "0.35rem", whiteSpace: "pre-wrap", maxHeight: "12rem", overflow: "auto" }}>
+                {execBanner.detailJson}
+              </pre>
+            </details>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );

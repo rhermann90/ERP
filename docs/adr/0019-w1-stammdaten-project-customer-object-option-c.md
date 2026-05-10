@@ -1,6 +1,6 @@
 # ADR 0019 — W1 Stammdaten: Projekt, Kunde, Objekt (Option C)
 
-**Status:** Angenommen — Umsetzung Spur B gestartet (Prisma/API/PWA)  
+**Status:** Angenommen — W1-Pilot umgesetzt (Prisma, `GET|POST|PATCH /crm/…`, PWA `#/stammdaten` inkl. CRM-CRUD, Opt-Lock, Audit)  
 **Datum:** 2026-05-07  
 **Kontext:** ERP §18.1 (Objekt/Baustelle, Projekt, Kontakte), W1 in Teil V; Ist-Backend nutzt `projectId`/`customerId` als UUIDs auf Aggregaten ohne Root-Modelle — siehe Ticket [`PHASE-2-BACKLOG-PROJECT-CUSTOMER-STAMM.md`](../tickets/PHASE-2-BACKLOG-PROJECT-CUSTOMER-STAMM.md).
 
@@ -35,5 +35,7 @@ Die PWA kann XRechnung-Buyer/Seller und FIN-1-Zahlungsbedingungen lesend abbilde
 
 ## Status Abgleich
 
-Teil-Spur B (2026-05-07): Prisma-Tabellen, Seeds, `GET|POST|PATCH /crm/…`, PWA-Lesepfad unter `#/stammdaten`; Gap-Liste in [`pwa-backend-coverage-matrix.md`](../plans/pwa-backend-coverage-matrix.md) für verbleibende §18.1-Themen (Schreib-UX, Historie) angepasst. [`PWA-Entwicklungsreferenz.md`](../PWA-Entwicklungsreferenz.md) W1 bleibt **Teilweise** (Lesepfad, kein vollständiges Feld-Management).
+**Pilot (Repo, Postgres + Seeds):** Prisma-Tabellen `crm_*`, Seeds (`seed-crm-stammdaten-prisma`), mandanten-isolierte REST-Routen [`src/api/crm-stammdaten-routes.ts`](../../src/api/crm-stammdaten-routes.ts), Service mit Optimistic Locking und Audit in Transaktion [`src/services/crm-stammdaten-service.ts`](../../src/services/crm-stammdaten-service.ts), PWA-Hub `#/stammdaten` mit FIN-5/FIN-1 und **CRM-Stamm** (Listen, POST/PATCH für Baustelle, CRM-Kunde, Projekt, Projektkontakt; 409 `CRM_STALE_VERSION`-UX; 503 Memory-Hinweis) in [`apps/web/src/components/hubs/stammdaten/StammdatenCrmReadPanels.tsx`](../../apps/web/src/components/hubs/stammdaten/StammdatenCrmReadPanels.tsx). Persistenz-Nachweise u. a. [`test/persistence.integration.test.ts`](../../test/persistence.integration.test.ts) (CRM: Baustelle/Kunde/Projektkontakt PATCH/POST + Audit, ergänzend zu Projekt-PATCH); Vitest [`apps/web/src/components/hubs/stammdaten/StammdatenCrmReadPanels.test.tsx`](../../apps/web/src/components/hubs/stammdaten/StammdatenCrmReadPanels.test.tsx) (Memory-503, Stale-409-Meldung).
+
+**Abgrenzung Zielbild §18.1:** DMS / Objekt-Historie / Anhänge und weiteres Feintuning bleiben **außerhalb** dieses Pilot-Scopes (Roadmap, vgl. [`PWA-Entwicklungsreferenz.md`](../PWA-Entwicklungsreferenz.md) W1-Zeile und [`pwa-backend-coverage-matrix.md`](../plans/pwa-backend-coverage-matrix.md)).
 

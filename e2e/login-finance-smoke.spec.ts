@@ -5,8 +5,10 @@ import {
   SEED_LV_VERSION_ID,
   SEED_MEASUREMENT_ID,
   SEED_MEASUREMENT_VERSION_ID,
+  SEED_OFFER_ID,
   SEED_OFFER_VERSION_ID,
   SEED_PROJECT_ID,
+  SEED_SUPPLEMENT_OFFER_ID,
   SEED_SUPPLEMENT_VERSION_ID,
 } from "./login-finance-smoke-constants.js";
 
@@ -117,6 +119,28 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await expect(page.getByTestId("offer-shell-detail")).toContainText(SEED_LV_VERSION_ID);
   });
 
+  test("Angebots-/Nachtrags-Arbeitsfläche: GET Projekt-Listen (offers / supplements)", async ({ page }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+    await expect(page.getByRole("heading", { name: "Schnellzugriff" })).toBeVisible({ timeout: 20_000 });
+
+    await page.goto("/#/angebote-arbeitsflaeche");
+    await expect(page.getByTestId("offer-workspace-page")).toBeVisible({ timeout: 15_000 });
+
+    await page.getByTestId("ows-project-id").fill(SEED_PROJECT_ID);
+    await page.getByTestId("ows-load-project-lists").click();
+
+    await expect(page.getByTestId("ows-offer-server-table")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("ows-supp-server-table")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("ows-offer-table-wrap")).toContainText(SEED_OFFER_ID);
+    await expect(page.getByTestId("ows-supp-table-wrap")).toContainText(SEED_SUPPLEMENT_OFFER_ID);
+  });
+
   test("Haupt-Shell: INVOICE GET-Detail und Lesepfade payment-intakes / dunning-reminders", async ({ page }) => {
     await page.goto("/#/login");
 
@@ -141,11 +165,13 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
     await expect(invoiceDetail.getByTestId("shell-invoice-trace-offer-version")).toContainText(SEED_OFFER_VERSION_ID);
 
     const subreads = page.getByTestId("shell-invoice-readonly-subreads");
-    await subreads.getByRole("button", { name: "Zahlungseingänge (GET)" }).click();
-    await expect(page.getByRole("heading", { name: "Antwort payment-intakes" })).toBeVisible({ timeout: 15_000 });
+    await subreads.getByRole("button", { name: /Zahlungseingänge/ }).click();
+    await expect(page.getByRole("heading", { name: "Zahlungseingänge" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("shell-invoice-payment-intakes-json")).toBeVisible({ timeout: 15_000 });
 
-    await subreads.getByRole("button", { name: "Mahn-Ereignisse (GET)" }).click();
-    await expect(page.getByRole("heading", { name: "Antwort dunning-reminders" })).toBeVisible({ timeout: 15_000 });
+    await subreads.getByRole("button", { name: /Mahn-Ereignisse/ }).click();
+    await expect(page.getByRole("heading", { name: "Mahn-Ereignisse" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("shell-invoice-dunning-reminders-json")).toBeVisible({ timeout: 15_000 });
 
     await subreads
       .getByRole("button", { name: /Zahlungsbedingungen zum Projekt der Rechnung laden \(GET\)/ })
@@ -320,6 +346,28 @@ test.describe("Login → Finanz (Vorbereitung)", () => {
       timeout: 10_000,
     });
     await expect(page).toHaveURL(/finanz-grundeinstellungen/);
+  });
+
+  test("Finanz: Betriebs-Arbeitsliste — offene Posten und Mahn-Kandidaten (#/finanz-arbeitsliste)", async ({ page }) => {
+    await page.goto("/#/login");
+
+    await page.getByLabel("E-Mail").fill("e2e-ops@example.com");
+    await page.getByLabel("Passwort").fill("e2e-correct-horse-battery-staple");
+    await page.getByRole("button", { name: "Anmelden" }).click();
+
+    await expect(page).not.toHaveURL(/#\/login/, { timeout: 20_000 });
+
+    await page.goto("/#/finanz-arbeitsliste");
+    await expect(page.getByTestId("finance-worklist-page")).toBeVisible({ timeout: 20_000 });
+    await page.getByTestId("fowl-open-load").click();
+    await expect(
+      page.getByTestId("fowl-open-empty").or(page.locator("table").filter({ hasText: /In Dokument öffnen/ })).first(),
+    ).toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId("fowl-tab-mahn").click();
+    await expect(page).toHaveURL(/tab=mahn/);
+    await page.getByTestId("fowl-load").click();
+    await expect(page.getByText(/asOfDate|Tage nach Fälligkeit|Keine Kandidaten/i).first()).toBeVisible({ timeout: 25_000 });
   });
 
   test("Haupt-Shell: GET /tenant/pwa-display-settings (read-only)", async ({ page }) => {
