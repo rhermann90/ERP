@@ -182,6 +182,20 @@ export class InMemoryRepositories {
     );
   }
 
+  /** Differenzbuchungen mit expliziter Bezugsrechnung `referenceInvoiceId` (Slice-2-Lesepfad). */
+  public listDifferenceBookingsForReferenceInvoice(tenantId: TenantId, referenceInvoiceId: UUID): DifferenceBooking[] {
+    return [...this.differenceBookings.values()].filter(
+      (b) => b.tenantId === tenantId && b.referenceInvoiceId === referenceInvoiceId,
+    );
+  }
+
+  /** Zuordnung zum Rechnungsentwurf / Ausgleichs-Rechnung (ADR-0022). */
+  public listDifferenceBookingsAllocatedToInvoice(tenantId: TenantId, allocatedInvoiceId: UUID): DifferenceBooking[] {
+    return [...this.differenceBookings.values()].filter(
+      (b) => b.tenantId === tenantId && b.allocatedInvoiceId === allocatedInvoiceId,
+    );
+  }
+
   public getDifferenceBookingBySubsequentVersion(
     tenantId: TenantId,
     subsequentMeasurementVersionId: UUID,
@@ -193,6 +207,12 @@ export class InMemoryRepositories {
 
   public putDifferenceBooking(row: DifferenceBooking): void {
     this.differenceBookings.set(row.id, row);
+  }
+
+  public getDifferenceBookingByTenant(tenantId: TenantId, id: UUID): DifferenceBooking | undefined {
+    const b = this.differenceBookings.get(id);
+    if (!b || b.tenantId !== tenantId) return undefined;
+    return b;
   }
 
   public getPaymentIntakeByIdempotency(tenantId: TenantId, idempotencyKey: UUID): PaymentIntake | undefined {
@@ -285,6 +305,51 @@ export class InMemoryRepositories {
     return [...this.measurementPositions.values()].filter(
       (p) => p.tenantId === tenantId && p.measurementVersionId === measurementVersionId,
     );
+  }
+
+  /**
+   * Ob der Mandant fachlich „Projektkontext“ für listende Endpunkte hat (Aufmass/Angebot/Rechnung),
+   * konsistent mit Differenzbuchung-Lesepfad.
+   */
+  public tenantHasProjectContext(tenantId: TenantId, projectId: UUID): boolean {
+    if ([...this.measurements.values()].some((m) => m.tenantId === tenantId && m.projectId === projectId)) {
+      return true;
+    }
+    if ([...this.offers.values()].some((o) => o.tenantId === tenantId && o.projectId === projectId)) {
+      return true;
+    }
+    if ([...this.invoices.values()].some((i) => i.tenantId === tenantId && i.projectId === projectId)) {
+      return true;
+    }
+    return false;
+  }
+
+  public listMeasurementsForProject(tenantId: TenantId, projectId: UUID): Measurement[] {
+    return [...this.measurements.values()].filter((m) => m.tenantId === tenantId && m.projectId === projectId);
+  }
+
+  public listOffersForProject(tenantId: TenantId, projectId: UUID): Offer[] {
+    return [...this.offers.values()].filter((o) => o.tenantId === tenantId && o.projectId === projectId);
+  }
+
+  /**
+   * Nachträge zum Projekt: SupplementOffer je Parent-Angebot mit gleicher projectId (Mandant-isoliert).
+   */
+  public listSupplementOffersForProject(tenantId: TenantId, projectId: UUID): SupplementOffer[] {
+    return [...this.supplementOffers.values()].filter((so) => {
+      if (so.tenantId !== tenantId) return false;
+      const offer = this.getOfferByTenant(tenantId, so.offerId);
+      return offer?.projectId === projectId;
+    });
+  }
+
+  /** Höchste versionsNumber je Nachtragsangebot (Pilot hat typischerweise nur V1). */
+  public getLatestSupplementVersionForOffer(tenantId: TenantId, supplementOfferId: UUID): SupplementVersion | undefined {
+    const versions = [...this.supplementVersions.values()].filter(
+      (v) => v.tenantId === tenantId && v.supplementOfferId === supplementOfferId,
+    );
+    if (versions.length === 0) return undefined;
+    return versions.reduce((a, b) => (a.versionNumber >= b.versionNumber ? a : b));
   }
 
   public getLvCatalogByTenant(tenantId: TenantId, catalogId: UUID): LvCatalog | undefined {

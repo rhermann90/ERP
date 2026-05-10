@@ -4,6 +4,7 @@ import type {
   DunningReminderBatchEmailResponse,
   DunningReminderCandidatesReadResponse,
   DunningReminderRunResponse,
+  OpenReceivablesReadResponse,
 } from "./finance-dunning-api-types.js";
 
 /** Unset oder nur Whitespace → Backend-Default Port 3000 (kein relativer Aufruf auf den Vite-Dev-Server). */
@@ -119,6 +120,15 @@ export type OfferVersionDetail = {
   releasedAt?: string;
 };
 
+/** Antwort `GET /supplements/:supplementVersionId` (Lesepfad, Basis-Angebotsversion für Traceability). */
+export type SupplementVersionRead = {
+  id: string;
+  tenantId: string;
+  status: string;
+  baseOfferVersionId: string;
+  supplementOfferId: string;
+};
+
 /** Antwort `GET /lv/versions/:lvVersionId` (Phase 2 LV Lesepfad, Systembeschreibung Abschnitt 9). */
 export type LvVersionSnapshot = {
   catalog: {
@@ -165,6 +175,96 @@ export type LvVersionSnapshot = {
   }>;
 };
 
+
+/** Antwort `GET /measurements/:measurementVersionId` (Aufmassversion inkl. Positionen und Traceability-Kopf). */
+export type MeasurementVersionDetail = {
+  measurementId: string;
+  projectId: string;
+  customerId: string;
+  lvVersionId: string;
+  /** ISO-8601 — Erstellung des Aufmass-Aggregats */
+  measurementCreatedAt: string;
+  version: {
+    id: string;
+    tenantId: string;
+    measurementId: string;
+    versionNumber: number;
+    status: string;
+    createdAt: string;
+    createdBy: string;
+  };
+  positions: Array<{
+    id: string;
+    tenantId: string;
+    measurementVersionId: string;
+    lvPositionId: string;
+    quantity: number;
+    unit: string;
+    note?: string;
+  }>;
+};
+
+/** Antwort `GET /projects/:projectId/measurements` (Pilot-Liste Messungen je Projekt). */
+export type MeasurementListItem = {
+  measurementId: string;
+  projectId: string;
+  customerId: string;
+  lvVersionId: string;
+  currentMeasurementVersionId: string;
+  createdAt: string;
+  currentVersion: {
+    id: string;
+    versionNumber: number;
+    status: string;
+    createdAt: string;
+  };
+};
+
+export type MeasurementListResponse = {
+  data: MeasurementListItem[];
+};
+
+/** Antwort `GET /projects/:projectId/offers` (Pilot-Liste Angebote je Projekt). */
+export type OfferListItem = {
+  offerId: string;
+  projectId: string;
+  customerId: string;
+  currentOfferVersionId: string;
+  createdAt: string;
+  currentVersion: {
+    id: string;
+    versionNumber: number;
+    status: string;
+    lvVersionId: string;
+    createdAt: string;
+  };
+};
+
+export type OfferListResponse = {
+  data: OfferListItem[];
+};
+
+/** Antwort `GET /projects/:projectId/supplements` (Pilot-Liste Nachträge je Projekt). */
+export type SupplementListItem = {
+  supplementOfferId: string;
+  offerId: string;
+  projectId: string;
+  baseOfferVersionId: string;
+  currentSupplementVersionId: string;
+  createdAt: string;
+  currentVersion: {
+    id: string;
+    versionNumber: number;
+    status: string;
+    lvVersionId: string;
+    createdAt: string;
+  };
+};
+
+export type SupplementListResponse = {
+  data: SupplementListItem[];
+};
+
 /** Antwort `GET /lv/versions/:lvVersionId/structure` (§9-Projektion ohne Katalog/Versionskopf). */
 export type LvHierarchySnapshot = {
   lvVersionId: string;
@@ -178,6 +278,30 @@ export type InvoiceTaxRegimeApi =
   | "REVERSE_CHARGE"
   | "SMALL_BUSINESS_19"
   | "CONSTRUCTION_13B";
+
+/** §8.6 Slice 2b — Rechnungsart (Server persistiert, Default REGULAR). */
+export type InvoiceBillingKindApi = "REGULAR" | "SCHLUSSRECHNUNG" | "FOLGERECHNUNG" | "GUTSCHRIFT";
+
+/** Antwortanteil `POST /invoices/:id/book` nach Ausgleich SETTLED bei früherer Schlussrechnung (§8.6 Slice 2b). */
+export type SchlussrechnungMitigationResponse =
+  | { applies: false }
+  | {
+      applies: true;
+      settledDifferenceNetSumCents: number;
+      suggestedNextBillingKind: "FOLGERECHNUNG" | "GUTSCHRIFT";
+    };
+
+/** Antwortanteil `POST /invoices/:id/book` — ADR-0024 automatischer Folge-ENTWURF (Plus). */
+export type SchlussrechnungFollowUpDraftResponse = {
+  created: boolean;
+  invoiceId: string | null;
+  billingKind: "FOLGERECHNUNG" | "GUTSCHRIFT" | null;
+  skippedReason:
+    | "MITIGATION_NOT_APPLICABLE"
+    | "GUTSCHRIFT_REQUIRES_MANUAL_DRAFT"
+    | "FOLLOW_UP_DRAFT_ALREADY_EXISTS"
+    | null;
+};
 
 /** Antwort `GET /invoices/:invoiceId` (FIN-2 + 8.4 MVP). */
 export type InvoiceOverview = {
@@ -199,11 +323,15 @@ export type InvoiceOverview = {
   paymentTermsVersionId?: string;
   /** 8.4(2) B2-1a: Skonto in Basispunkten (Server liefert 0 wenn nicht am Entwurf gesetzt). */
   skontoBps: number;
+  /** §8.6 Slice 2b */
+  billingKind: InvoiceBillingKindApi;
   /** FIN-5: persistierter / effektiver Steuerregime-Code (§8.16). */
   invoiceTaxRegime: InvoiceTaxRegimeApi;
   taxReasonCode?: string;
   /** §8.10 Pflicht-Hinweise bei Sonderregime; optional/leer bei Standard. */
   mandatoryTaxNoticeLines?: string[];
+  /** DOM-8-6 Slice 2: diesem Beleg zugeordnete Differenzzeilen (Server; kein Client-Delta). */
+  allocatedDifferenceBookings: DifferenceBookingReadRow[];
 };
 
 /** Antwort `GET /projects/:projectId/difference-bookings` (§5.4/§8.6 Lesepfad). */
@@ -211,18 +339,35 @@ export type DifferenceBookingReadRow = {
   id: string;
   projectId: string;
   measurementId: string;
-  predecessorMeasurementVersionId: string;
-  subsequentMeasurementVersionId: string;
+  predecessorMeasurementVersionId: string | null;
+  subsequentMeasurementVersionId: string | null;
+  predecessorPaymentTermsVersionId: string | null;
+  subsequentPaymentTermsVersionId: string | null;
   kind: string;
   amountNetCents: number;
   status: string;
-  referenceInvoiceId?: string;
+  referenceInvoiceId?: string | null;
+  allocatedInvoiceId?: string | null;
+  allocatedAt?: string | null;
+  settledAt?: string | null;
   createdAt: string;
   createdBy: string;
 };
 
 export type DifferenceBookingListResponse = {
   data: DifferenceBookingReadRow[];
+};
+
+/** Antwort `GET /projects/:projectId/difference-bookings/summary` (OPEN vs. Zuordnung zu Entwürfen). */
+export type DifferenceBookingAllocatedDraftGroup = {
+  draftInvoiceId: string;
+  invoiceStatus: string;
+  rows: DifferenceBookingReadRow[];
+};
+
+export type DifferenceBookingProjectSummaryResponse = {
+  open: DifferenceBookingReadRow[];
+  allocatedByDraft: DifferenceBookingAllocatedDraftGroup[];
 };
 
 export type CreateInvoiceDraftResponse = {
@@ -234,6 +379,18 @@ export type CreateInvoiceDraftResponse = {
   skontoBps: number;
   invoiceTaxRegime: InvoiceTaxRegimeApi;
   mandatoryTaxNoticeLines: string[];
+  billingKind: InvoiceBillingKindApi;
+};
+
+/** Antwort `POST /invoices/:invoiceId/book` (FIN-2 + Slice 2b Mitigation + Slice 2c Follow-Up). */
+export type BookInvoiceResponse = {
+  invoiceId: string;
+  status: string;
+  invoiceNumber: string;
+  issueDate: string;
+  totalGrossCents: number;
+  schlussrechnungMitigation: SchlussrechnungMitigationResponse;
+  schlussrechnungFollowUpDraft: SchlussrechnungFollowUpDraftResponse;
 };
 
 /** Antwort `POST /offers` (Angebots-Stamm + erste Version ENTWURF). */
@@ -582,8 +739,11 @@ export type ApiClient = {
   getOfferVersion(offerVersionId: string): Promise<OfferVersionDetail>;
   getLvVersionSnapshot(lvVersionId: string): Promise<LvVersionSnapshot>;
   getLvVersionStructure(lvVersionId: string): Promise<LvHierarchySnapshot>;
-  getMeasurementVersion(measurementVersionId: string): Promise<unknown>;
-  getSupplementVersion(supplementVersionId: string): Promise<unknown>;
+  getMeasurementVersion(measurementVersionId: string): Promise<MeasurementVersionDetail>;
+  listProjectMeasurements(projectId: string): Promise<MeasurementListResponse>;
+  listProjectOffers(projectId: string): Promise<OfferListResponse>;
+  listProjectSupplements(projectId: string): Promise<SupplementListResponse>;
+  getSupplementVersion(supplementVersionId: string): Promise<SupplementVersionRead>;
   getPaymentTermsByProject(projectId: string): Promise<PaymentTermsListResponse>;
   createInvoiceDraft(body: {
     lvVersionId: string;
@@ -592,6 +752,8 @@ export type ApiClient = {
     measurementId?: string;
     paymentTermsVersionId?: string;
     skontoBps?: number;
+    billingKind?: InvoiceBillingKindApi;
+    mitigationFollowUpSourceInvoiceId?: string;
     reason: string;
   }): Promise<CreateInvoiceDraftResponse>;
   createOffer(body: {
@@ -603,7 +765,29 @@ export type ApiClient = {
     reason: string;
   }): Promise<CreateOfferResponse>;
   getInvoice(invoiceId: string): Promise<InvoiceOverview>;
+  bookInvoice(invoiceId: string, body: { reason: string; issueDate?: string }): Promise<BookInvoiceResponse>;
+  allocateDifferenceBookingsToInvoiceDraft(
+    invoiceId: string,
+    body: { differenceBookingIds: string[]; reason: string },
+  ): Promise<void>;
+  deallocateDifferenceBookingsFromInvoiceDraft(
+    invoiceId: string,
+    body: { differenceBookingIds: string[]; reason: string },
+  ): Promise<void>;
   listProjectDifferenceBookings(projectId: string): Promise<DifferenceBookingListResponse>;
+  getProjectDifferenceBookingsSummary(projectId: string): Promise<DifferenceBookingProjectSummaryResponse>;
+  listInvoiceDifferenceBookingsByReference(invoiceId: string): Promise<DifferenceBookingListResponse>;
+  createPaymentTermsDifferenceBooking(
+    projectId: string,
+    body: {
+      measurementId: string;
+      referenceInvoiceId: string;
+      predecessorPaymentTermsVersionId: string;
+      subsequentPaymentTermsVersionId: string;
+      amountNetCents: number;
+      reason: string;
+    },
+  ): Promise<void>;
   listInvoicePaymentIntakes(invoiceId: string): Promise<{ data: PaymentIntakeReadRow[] }>;
   listInvoiceDunningReminders(invoiceId: string): Promise<{ data: DunningReminderReadRow[] }>;
   getDunningReminderConfig(): Promise<DunningReminderConfigReadResponse>;
@@ -655,6 +839,7 @@ export type ApiClient = {
     preferredDunningChannel?: "EMAIL" | "PRINT";
   }): Promise<DunningTenantAutomationReadResponse>;
   getDunningReminderCandidates(params: { stageOrdinal: number; asOfDate?: string }): Promise<DunningReminderCandidatesReadResponse>;
+  getOpenReceivables(params?: { projectId?: string; customerId?: string }): Promise<OpenReceivablesReadResponse>;
   postDunningReminderRunDryRun(body: {
     stageOrdinal: number;
     reason: string;
@@ -870,10 +1055,17 @@ export function createApiClient(options: {
       );
     },
     getMeasurementVersion(measurementVersionId) {
-      return requestJson("GET", `/measurements/${encodeURIComponent(measurementVersionId)}`);
+      return requestJson<MeasurementVersionDetail>(
+        "GET",
+        `/measurements/${encodeURIComponent(measurementVersionId)}`,
+      );
     },
     getSupplementVersion(supplementVersionId) {
-      return requestJson("GET", `/supplements/${encodeURIComponent(supplementVersionId)}`);
+      assertUuidKey(supplementVersionId.trim(), "supplementVersionId");
+      return requestJson<SupplementVersionRead>(
+        "GET",
+        `/supplements/${encodeURIComponent(supplementVersionId.trim())}`,
+      );
     },
     getPaymentTermsByProject(projectId) {
       const q = new URLSearchParams({ projectId });
@@ -886,14 +1078,100 @@ export function createApiClient(options: {
       return requestJson<CreateOfferResponse>("POST", "/offers", body);
     },
     getInvoice(invoiceId) {
-      return requestJson<InvoiceOverview>("GET", `/invoices/${encodeURIComponent(invoiceId)}`);
+      return requestJson<InvoiceOverview>("GET", `/invoices/${encodeURIComponent(invoiceId)}`).then(
+        (inv): InvoiceOverview => ({
+          ...inv,
+          allocatedDifferenceBookings: Array.isArray(inv.allocatedDifferenceBookings)
+            ? inv.allocatedDifferenceBookings
+            : [],
+        }),
+      );
     },
+    bookInvoice(invoiceId, body) {
+      const id = invoiceId.trim();
+      assertUuidKey(id, "invoiceId");
+      return requestJson<BookInvoiceResponse>("POST", `/invoices/${encodeURIComponent(id)}/book`, body).then((r) => ({
+        ...r,
+        schlussrechnungFollowUpDraft:
+          r.schlussrechnungFollowUpDraft ??
+          ({
+            created: false,
+            invoiceId: null,
+            billingKind: null,
+            skippedReason: "MITIGATION_NOT_APPLICABLE",
+          } satisfies SchlussrechnungFollowUpDraftResponse),
+      }));
+    },
+    allocateDifferenceBookingsToInvoiceDraft(invoiceId, body) {
+      const id = invoiceId.trim();
+      assertUuidKey(id, "invoiceId");
+      return requestJson<void>(
+        "POST",
+        `/invoices/${encodeURIComponent(id)}/difference-bookings/allocate`,
+        body,
+      );
+    },
+    deallocateDifferenceBookingsFromInvoiceDraft(invoiceId, body) {
+      const id = invoiceId.trim();
+      assertUuidKey(id, "invoiceId");
+      return requestJson<void>(
+        "POST",
+        `/invoices/${encodeURIComponent(id)}/difference-bookings/deallocate`,
+        body,
+      );
+    },
+    listProjectMeasurements(projectId) {
+      const id = projectId.trim();
+      assertUuidKey(id, "projectId");
+      return requestJson<MeasurementListResponse>(
+        "GET",
+        `/projects/${encodeURIComponent(id)}/measurements`,
+      );
+    },
+
+    listProjectOffers(projectId) {
+      const id = projectId.trim();
+      assertUuidKey(id, "projectId");
+      return requestJson<OfferListResponse>("GET", `/projects/${encodeURIComponent(id)}/offers`);
+    },
+
+    listProjectSupplements(projectId) {
+      const id = projectId.trim();
+      assertUuidKey(id, "projectId");
+      return requestJson<SupplementListResponse>("GET", `/projects/${encodeURIComponent(id)}/supplements`);
+    },
+
     listProjectDifferenceBookings(projectId) {
       const id = projectId.trim();
       assertUuidKey(id, "projectId");
       return requestJson<DifferenceBookingListResponse>(
         "GET",
         `/projects/${encodeURIComponent(id)}/difference-bookings`,
+      );
+    },
+    getProjectDifferenceBookingsSummary(projectId) {
+      const id = projectId.trim();
+      assertUuidKey(id, "projectId");
+      return requestJson<DifferenceBookingProjectSummaryResponse>(
+        "GET",
+        `/projects/${encodeURIComponent(id)}/difference-bookings/summary`,
+      );
+    },
+    listInvoiceDifferenceBookingsByReference(invoiceId) {
+      const id = invoiceId.trim();
+      assertUuidKey(id, "invoiceId");
+      return requestJson<DifferenceBookingListResponse>(
+        "GET",
+        `/invoices/${encodeURIComponent(id)}/difference-bookings`,
+      );
+    },
+    async createPaymentTermsDifferenceBooking(projectId, body) {
+      const id = projectId.trim();
+      assertUuidKey(id, "projectId");
+      await requestJson<unknown>(
+        "POST",
+        `/projects/${encodeURIComponent(id)}/difference-bookings/from-payment-terms`,
+        body,
       );
     },
     listInvoicePaymentIntakes(invoiceId) {
@@ -981,6 +1259,15 @@ export function createApiClient(options: {
         "GET",
         `/finance/dunning-reminder-candidates?${q}`,
       );
+    },
+    getOpenReceivables(params) {
+      const q = new URLSearchParams();
+      const pid = params?.projectId?.trim();
+      const cid = params?.customerId?.trim();
+      if (pid) q.set("projectId", pid);
+      if (cid) q.set("customerId", cid);
+      const suffix = q.size > 0 ? `?${q}` : "";
+      return requestJson<OpenReceivablesReadResponse>("GET", `/finance/open-receivables${suffix}`);
     },
     postDunningReminderRunDryRun(body) {
       return requestJson<DunningReminderRunResponse>("POST", "/finance/dunning-reminder-run", {

@@ -219,6 +219,49 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     expect((second.json() as { versionNumber: number }).versionNumber).toBe(2);
   });
 
+  it("POST /projects/:id/difference-bookings/from-payment-terms creates PAYMENT_TERMS row (Slice 2b)", async () => {
+    const v2 = await app.inject({
+      method: "POST",
+      url: "/finance/payment-terms/versions",
+      headers: buildHeaders(),
+      payload: {
+        projectId: SEED_IDS.projectId,
+        customerId: SEED_IDS.customerId,
+        termsLabel: "Slice2b Nachtrag Kondition",
+        reason: "Slice2b zweite Konditionsversion fuer Delta",
+      },
+    });
+    expect(v2.statusCode).toBe(201);
+    const subId = (v2.json() as { paymentTermsVersionId: string }).paymentTermsVersionId;
+    expect(subId).not.toBe(SEED_IDS.paymentTermsVersionId);
+
+    const create = await app.inject({
+      method: "POST",
+      url: `/projects/${SEED_IDS.projectId}/difference-bookings/from-payment-terms`,
+      headers: buildHeaders(),
+      payload: {
+        measurementId: SEED_IDS.measurementId,
+        referenceInvoiceId: SEED_IDS.invoiceId,
+        predecessorPaymentTermsVersionId: SEED_IDS.paymentTermsVersionId,
+        subsequentPaymentTermsVersionId: subId,
+        amountNetCents: 500,
+        reason: "Slice2b Konditions-Differenz Testzeile",
+      },
+    });
+    expect(create.statusCode).toBe(204);
+
+    const list = await app.inject({
+      method: "GET",
+      url: `/projects/${SEED_IDS.projectId}/difference-bookings`,
+      headers: buildHeaders(),
+    });
+    expect(list.statusCode).toBe(200);
+    const rows = (list.json() as { data: Array<{ kind: string; amountNetCents: number }> }).data;
+    expect(rows.some((r) => r.kind === "PAYMENT_TERMS_CHANGE_AFTER_INVOICE" && r.amountNetCents === 500)).toBe(
+      true,
+    );
+  });
+
   it("POST /invoices creates draft when traceability satisfied (FIN-2)", async () => {
     const res = await app.inject({
       method: "POST",
@@ -242,6 +285,80 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     expect(draft.lvNetCents).toBe(125000);
     expect(draft.totalGrossCents).toBe(148750);
     expect(draft.skontoBps).toBe(0);
+  });
+
+  it("POST /invoices GUTSCHRIFT negates LV pipeline amounts (Slice 3)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/invoices",
+      headers: buildHeaders(),
+      payload: {
+        lvVersionId: SEED_IDS.lvVersionId,
+        offerVersionId: SEED_IDS.offerVersionId,
+        invoiceCurrencyCode: "EUR",
+        billingKind: "GUTSCHRIFT",
+        reason: "Slice3 Gutschrift draft amounts inverted",
+      },
+    });
+    expect(res.statusCode).toBe(201);
+    const draft = res.json() as { lvNetCents: number; totalGrossCents: number; vatCents: number };
+    expect(draft.lvNetCents).toBe(-125000);
+    expect(draft.totalGrossCents).toBe(-148750);
+    expect(draft.vatCents).toBe(-23750);
+  });
+
+  it("POST /invoices rejects mitigationFollowUpSourceInvoiceId without GUTSCHRIFT/FOLGERECHNUNG", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/invoices",
+      headers: buildHeaders(),
+      payload: {
+        lvVersionId: SEED_IDS.lvVersionId,
+        offerVersionId: SEED_IDS.offerVersionId,
+        invoiceCurrencyCode: "EUR",
+        mitigationFollowUpSourceInvoiceId: SEED_IDS.invoiceId,
+        reason: "Slice3 mitigation link without billing kind",
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect((res.json() as { code: string }).code).toBe("VALIDATION_FAILED");
+  });
+
+  it("POST /invoices rejects mitigation link to ENTWURF (INVOICE_NOT_BOOKED_FOR_MITIGATION_LINK)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/invoices",
+      headers: buildHeaders(),
+      payload: {
+        lvVersionId: SEED_IDS.lvVersionId,
+        offerVersionId: SEED_IDS.offerVersionId,
+        invoiceCurrencyCode: "EUR",
+        billingKind: "GUTSCHRIFT",
+        mitigationFollowUpSourceInvoiceId: SEED_IDS.draftInvoiceId,
+        reason: "Slice3 mitigation draft not booked",
+      },
+    });
+    expect(res.statusCode).toBe(422);
+    expect((res.json() as { code: string }).code).toBe("INVOICE_NOT_BOOKED_FOR_MITIGATION_LINK");
+  });
+
+  it("POST /invoices accepts GUTSCHRIFT with mitigationFollowUpSourceInvoiceId (seed booked invoice)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/invoices",
+      headers: buildHeaders(),
+      payload: {
+        lvVersionId: SEED_IDS.lvVersionId,
+        offerVersionId: SEED_IDS.offerVersionId,
+        invoiceCurrencyCode: "EUR",
+        billingKind: "GUTSCHRIFT",
+        mitigationFollowUpSourceInvoiceId: SEED_IDS.invoiceId,
+        reason: "Slice3 Gutschrift mit Mitigations-Bezug",
+      },
+    });
+    expect(res.statusCode).toBe(201);
+    const draft = res.json() as { lvNetCents: number };
+    expect(draft.lvNetCents).toBe(-125000);
   });
 
   it("POST /invoices rejects unknown measurementId (MEASUREMENT_NOT_FOUND)", async () => {
@@ -328,6 +445,7 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
     expect((body as { totalGrossCents?: number }).totalGrossCents).toBe(148750);
     expect(body.skontoBps).toBe(0);
     expect((body as { invoiceTaxRegime?: string }).invoiceTaxRegime).toBe("STANDARD_VAT_19");
+    expect(Array.isArray((body as { allocatedDifferenceBookings?: unknown }).allocatedDifferenceBookings)).toBe(true);
   });
 
   it("FIN-5: PATCH Mandanten-Steuerprofil und Entwurf SMALL_BUSINESS_19 ohne USt-Zeile", async () => {
@@ -426,11 +544,21 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
       invoiceNumber: string;
       issueDate: string;
       totalGrossCents: number;
+      schlussrechnungMitigation: { applies: boolean };
+      schlussrechnungFollowUpDraft: {
+        created: boolean;
+        invoiceId: string | null;
+        billingKind: string | null;
+        skippedReason: string | null;
+      };
     };
     expect(body.invoiceId).toBe(SEED_IDS.draftInvoiceId);
     expect(body.status).toBe("GEBUCHT_VERSENDET");
     expect(body.invoiceNumber).toMatch(/^RE-20\d{2}-\d{4}$/u);
     expect(body.totalGrossCents).toBe(5950);
+    expect(body.schlussrechnungMitigation.applies).toBe(false);
+    expect(body.schlussrechnungFollowUpDraft.created).toBe(false);
+    expect(body.schlussrechnungFollowUpDraft.skippedReason).toBe("MITIGATION_NOT_APPLICABLE");
 
     const again = await app.inject({
       method: "POST",
@@ -700,6 +828,64 @@ describe("FIN-0 finance HTTP stubs (fail-closed)", () => {
       headers: { authorization: `Bearer ${token}`, "x-tenant-id": SEED_IDS.tenantId },
     });
     expect(res.statusCode).toBe(200);
+  });
+
+  it("GET /finance/open-receivables returns booked seed invoices with positive open balance", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/finance/open-receivables",
+      headers: buildHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["x-erp-openapi-contract-version"]).toBe(ERP_OPENAPI_INFO_VERSION);
+    const body = res.json() as {
+      data: Array<{
+        invoiceId: string;
+        openAmountCents: number;
+        status: string;
+      }>;
+    };
+    const ids = body.data.map((r) => r.invoiceId).sort();
+    expect(ids).toContain(SEED_IDS.invoiceId);
+    expect(ids).toContain(SEED_IDS.inconsistentInvoiceId);
+    for (const row of body.data) {
+      expect(row.openAmountCents).toBeGreaterThan(0);
+      expect(row.status === "GEBUCHT_VERSENDET" || row.status === "TEILBEZAHLT").toBe(true);
+    }
+  });
+
+  it("GET /finance/open-receivables filters by projectId when provided", async () => {
+    const otherProject = "00000000-0000-4000-8000-000000000001";
+    const res = await app.inject({
+      method: "GET",
+      url: `/finance/open-receivables?projectId=${encodeURIComponent(otherProject)}`,
+      headers: buildHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: Array<{ invoiceId: string }> };
+    expect(body.data).toHaveLength(0);
+  });
+
+  it("GET /finance/open-receivables with seed projectId returns same open rows as unfiltered", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: `/finance/open-receivables?projectId=${encodeURIComponent(SEED_IDS.projectId)}`,
+      headers: buildHeaders(),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { data: Array<{ invoiceId: string }> };
+    const ids = body.data.map((r) => r.invoiceId).sort();
+    expect(ids).toContain(SEED_IDS.invoiceId);
+    expect(ids).toContain(SEED_IDS.inconsistentInvoiceId);
+  });
+
+  it("GET /finance/open-receivables rejects invalid projectId query with 400", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/finance/open-receivables?projectId=not-a-uuid",
+      headers: buildHeaders(),
+    });
+    expect(res.statusCode).toBe(400);
   });
 
   it("GET /finance/dunning-reminder-candidates returns booked seed invoices for stage 1 when asOf on deadline (M4 Slice 5b-0)", async () => {

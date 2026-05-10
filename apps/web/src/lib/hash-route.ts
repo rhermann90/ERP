@@ -65,11 +65,95 @@ export const HILFE_HASH = "#/hilfe";
 /** Pilot: Messungsversionen merken und Detail lesen (kein Backend-Listen-Endpunkt). */
 export const MEASUREMENT_PILOT_LIST_HASH = "#/aufmass-messungen";
 
+/** Query-Key: Messungsversions-ID auf der Pilot-Liste (`#/aufmass-messungen?measurementVersionId=`). */
+export const MEASUREMENT_PILOT_VERSION_QUERY = "measurementVersionId";
+
+/** Hash für Pilot-Liste mit optionalem Deep-Link auf eine Messungsversions-ID. */
+export function measurementPilotListHashWithVersionId(versionId: string | null | undefined): string {
+  const id = versionId?.trim();
+  if (!id) return MEASUREMENT_PILOT_LIST_HASH;
+  const q = new URLSearchParams({ [MEASUREMENT_PILOT_VERSION_QUERY]: id });
+  return `${MEASUREMENT_PILOT_LIST_HASH}?${q}`;
+}
+
+/** Liest `measurementVersionId` nur auf Route `/aufmass-messungen` (keine Kreuzwirkung auf andere Screens). */
+export function readMeasurementPilotVersionIdFromHash(): string {
+  if (normalizeHash() !== "/aufmass-messungen") return "";
+  return readHashQuery().get(MEASUREMENT_PILOT_VERSION_QUERY)?.trim() ?? "";
+}
+
+/**
+ * Setzt `location.hash` auf die Pilot-Liste mit/ohne `measurementVersionId` und feuert `hashchange`
+ * (analog zu Stammdaten-`customerId`).
+ */
+export function applyMeasurementPilotVersionToLocationHash(versionId: string | null | undefined): void {
+  const next = measurementPilotListHashWithVersionId(versionId ?? null);
+  if (window.location.hash !== next) {
+    const url = `${window.location.pathname}${window.location.search}${next}`;
+    history.replaceState(null, "", url);
+    window.dispatchEvent(new Event("hashchange"));
+  }
+}
+
 /** Pilot: Angebots-/Nachtrags-SoT ohne vollen Dokument-Shell-Kontext. */
 export const OFFER_WORKSPACE_HASH = "#/angebote-arbeitsflaeche";
 
+/** Query-Keys: Deep-Link zur Arbeitsfläche (`#/angebote-arbeitsflaeche?offerVersionId=&supplementVersionId=`). */
+export const OFFER_WORKSPACE_OFFER_VERSION_QUERY = "offerVersionId";
+export const OFFER_WORKSPACE_SUPPLEMENT_VERSION_QUERY = "supplementVersionId";
+
+export function offerWorkspaceHashWithVersionIds(
+  offerVersionId: string | null | undefined,
+  supplementVersionId: string | null | undefined,
+): string {
+  const o = offerVersionId?.trim();
+  const s = supplementVersionId?.trim();
+  const q = new URLSearchParams();
+  if (o) q.set(OFFER_WORKSPACE_OFFER_VERSION_QUERY, o);
+  if (s) q.set(OFFER_WORKSPACE_SUPPLEMENT_VERSION_QUERY, s);
+  const qs = q.toString();
+  return qs ? `${OFFER_WORKSPACE_HASH}?${qs}` : OFFER_WORKSPACE_HASH;
+}
+
+/** Liest Query nur auf Route `/angebote-arbeitsflaeche`. */
+export function readOfferWorkspaceVersionIdsFromHash(): { offerVersionId: string; supplementVersionId: string } {
+  if (normalizeHash() !== "/angebote-arbeitsflaeche") return { offerVersionId: "", supplementVersionId: "" };
+  const qq = readHashQuery();
+  return {
+    offerVersionId: qq.get(OFFER_WORKSPACE_OFFER_VERSION_QUERY)?.trim() ?? "",
+    supplementVersionId: qq.get(OFFER_WORKSPACE_SUPPLEMENT_VERSION_QUERY)?.trim() ?? "",
+  };
+}
+
 /** Betrieb: Mahnkandidaten als Arbeitsliste (FIN-4 Lesepfad). */
 export const FINANCE_WORKLIST_HASH = "#/finanz-arbeitsliste";
+
+/** Query `tab` auf `#/finanz-arbeitsliste`: `offen` (Standard) | `mahn`. */
+export const FINANCE_WORKLIST_TAB_QUERY = "tab";
+
+export type FinanceWorklistPanel = "offen" | "mahn";
+
+export function readFinanceWorklistPanelFromHash(path: string, query: URLSearchParams): FinanceWorklistPanel {
+  if (path !== "/finanz-arbeitsliste") return "offen";
+  const raw = query.get(FINANCE_WORKLIST_TAB_QUERY)?.trim().toLowerCase() ?? "";
+  return raw === "mahn" ? "mahn" : "offen";
+}
+
+export function financeWorklistHashWithPanel(panel: FinanceWorklistPanel): string {
+  if (panel === "mahn") {
+    return `${FINANCE_WORKLIST_HASH}?${FINANCE_WORKLIST_TAB_QUERY}=mahn`;
+  }
+  return FINANCE_WORKLIST_HASH;
+}
+
+export function applyFinanceWorklistPanelToLocationHash(panel: FinanceWorklistPanel): void {
+  const next = financeWorklistHashWithPanel(panel);
+  if (window.location.hash !== next) {
+    const url = `${window.location.pathname}${window.location.search}${next}`;
+    history.replaceState(null, "", url);
+    window.dispatchEvent(new Event("hashchange"));
+  }
+}
 
 /** Mandanten-Benutzer (nur Rolle ADMIN, Postgres). */
 export const ADMIN_USERS_HASH = "#/admin/users";
@@ -147,11 +231,11 @@ export function normalizeFinancePrepHashToCanon(): void {
 }
 
 export function useHashRoute(): string {
-  const [path, setPath] = useState(normalizeHash);
+  const [, setHashBump] = useState(0);
   useEffect(() => {
-    const on = () => setPath(normalizeHash());
+    const on = () => setHashBump((n) => n + 1);
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
   }, []);
-  return path;
+  return normalizeHash();
 }

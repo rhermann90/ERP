@@ -19,6 +19,22 @@ function makeClient(): ApiClient {
     createInvoiceDraft: vi.fn(),
     createOffer: vi.fn(),
     getInvoice: vi.fn(),
+    bookInvoice: vi.fn().mockResolvedValue({
+      invoiceId: "55555555-5555-4555-8555-555555555555",
+      status: "GEBUCHT_VERSENDET",
+      invoiceNumber: "R-1",
+      issueDate: "2026-05-01",
+      totalGrossCents: 119_000,
+      schlussrechnungMitigation: { applies: false },
+      schlussrechnungFollowUpDraft: {
+        created: false,
+        invoiceId: null,
+        billingKind: null,
+        skippedReason: "MITIGATION_NOT_APPLICABLE",
+      },
+    }),
+    allocateDifferenceBookingsToInvoiceDraft: vi.fn().mockResolvedValue(undefined),
+    deallocateDifferenceBookingsFromInvoiceDraft: vi.fn().mockResolvedValue(undefined),
     listInvoicePaymentIntakes: vi.fn(),
     listInvoiceDunningReminders: vi.fn(),
     getDunningReminderConfig: vi.fn(),
@@ -37,6 +53,7 @@ function makeClient(): ApiClient {
     getDunningReminderAutomation: vi.fn(),
     patchDunningReminderAutomation: vi.fn(),
     getDunningReminderCandidates: vi.fn(),
+    getOpenReceivables: vi.fn(),
     postDunningReminderRunDryRun: vi.fn(),
     postDunningReminderRunExecute: vi.fn(),
     postDunningReminderBatchSendEmails: vi.fn(),
@@ -66,7 +83,13 @@ function makeClient(): ApiClient {
     getCrmCustomer: vi.fn(),
     postCrmCustomer: vi.fn(),
     patchCrmCustomer: vi.fn(),
+    listProjectMeasurements: vi.fn(),
+    listProjectOffers: vi.fn(),
+    listProjectSupplements: vi.fn(),
     listProjectDifferenceBookings: vi.fn(),
+    getProjectDifferenceBookingsSummary: vi.fn(),
+    listInvoiceDifferenceBookingsByReference: vi.fn(),
+    createPaymentTermsDifferenceBooking: vi.fn().mockResolvedValue(undefined),
     getAuditEvents: vi.fn(),
     listTenantUsers: vi.fn(),
     createTenantUser: vi.fn(),
@@ -134,7 +157,7 @@ describe("executeActionWithSotGuard", () => {
       ["BOOK_INVOICE"],
       { reason: "Valid reason text" },
     );
-    expect(client.requestJson).toHaveBeenCalledWith("POST", "/invoices/55555555-5555-4555-8555-555555555555/book", {
+    expect(client.bookInvoice).toHaveBeenCalledWith("55555555-5555-4555-8555-555555555555", {
       reason: "Valid reason text",
     });
   });

@@ -12,6 +12,7 @@ import type {
   ApiClient,
   DunningReminderReadRow,
   DunningStageConfigReadRow,
+  InvoiceBillingKindApi,
   InvoiceOverview,
   InvoiceTaxRegimeApi,
   PaymentIntakeReadRow,
@@ -48,7 +49,14 @@ import { FinancePrepStepInvoice } from "./finance/preparation/FinancePrepStepInv
 import { FinancePrepStepSot } from "./finance/preparation/FinancePrepStepSot.js";
 import { FinancePrepStepTerms } from "./finance/preparation/FinancePrepStepTerms.js";
 import { FinanceInvoiceTaxSettingsPanel } from "./finance/preparation/FinanceInvoiceTaxSettingsPanel.js";
-import { financePrepStepAriaLive, finNoticeFromUnknown, formatSkontoDisplay, isUuidShape } from "./finance/finance-prep-helpers.js";
+import {
+  financePrepStepAriaLive,
+  finNoticeFromUnknown,
+  formatSkontoDisplay,
+  isUuidShape,
+  schlussrechnungFollowUpDraftUserSentence,
+  schlussrechnungMitigationUserSentence,
+} from "./finance/finance-prep-helpers.js";
 
 const FINANCE_PREP_MAIN_TABS: FinancePrepMainTab[] = ["rechnung", "grundeinstellungen", "mahnwesen", "fortgeschritten"];
 
@@ -57,6 +65,7 @@ export function FinancePreparation({
   initialMainTab,
   showExpertIntegratorNav,
   showFortgeschrittenTab = true,
+  showIntegrationHints = false,
 }: {
   api: ApiClient;
   initialMainTab?: FinancePrepMainTab;
@@ -64,6 +73,8 @@ export function FinancePreparation({
   showExpertIntegratorNav?: boolean;
   /** Tab „Fortgeschritten“ (SoT, Audit) — typischerweise nur mit Mandanten-Expertenmodus. */
   showFortgeschrittenTab?: boolean;
+  /** Roh-JSON-Diagnostik (z. B. Kandidaten-GET) nur mit Expertenmodus — `App` übergibt `showExpertUi`. */
+  showIntegrationHints?: boolean;
 }) {
   const showIntegratorNavRow =
     showExpertIntegratorNav ?? (typeof import.meta !== "undefined" && Boolean(import.meta.env.DEV));
@@ -79,6 +90,7 @@ export function FinancePreparation({
   const [listJson, setListJson] = useState<string>("");
   const [draftJson, setDraftJson] = useState<string>("");
   const [draftSkontoBps, setDraftSkontoBps] = useState("0");
+  const [draftBillingKind, setDraftBillingKind] = useState<InvoiceBillingKindApi>("REGULAR");
   const [draftSummary, setDraftSummary] = useState<string | null>(null);
   const [invoiceIdRead, setInvoiceIdRead] = useState(DEMO_INVOICE_ID);
   const [invoiceOverview, setInvoiceOverview] = useState<InvoiceOverview | null>(null);
@@ -333,6 +345,7 @@ export function FinancePreparation({
         invoiceCurrencyCode: "EUR",
         measurementId: DEMO_SEED_IDS.measurementId,
         skontoBps: bps,
+        billingKind: draftBillingKind,
         reason: "Demo-Rechnungsentwurf aus Finanz-Vorbereitung (FIN-2)",
       });
       setDraftJson(JSON.stringify(data, null, 2));
@@ -351,7 +364,7 @@ export function FinancePreparation({
       setBusy(false);
       setBusyStep(null);
     }
-  }, [api, draftSkontoBps]);
+  }, [api, draftBillingKind, draftSkontoBps]);
 
   const loadInvoice = useCallback(
     async (overrideInvoiceId?: string, opts?: { manageBusy?: boolean }) => {
@@ -402,6 +415,7 @@ export function FinancePreparation({
   useEffect(() => {
     if (invoiceOverview) {
       setDraftSkontoBps(String(invoiceOverview.skontoBps));
+      setDraftBillingKind(invoiceOverview.billingKind);
     }
   }, [invoiceOverview]);
 
@@ -429,6 +443,7 @@ export function FinancePreparation({
         invoiceCurrencyCode: "EUR",
         measurementId: invoiceOverview.measurementId,
         skontoBps: bps,
+        billingKind: draftBillingKind,
         reason: "Finanz-Vorbereitung: Skonto auf Entwurf anwenden (POST /invoices)",
       });
       setInvoiceIdRead(data.invoiceId);
@@ -443,7 +458,7 @@ export function FinancePreparation({
       setBusy(false);
       setBusyStep(null);
     }
-  }, [api, draftSkontoBps, invoiceOverview, loadInvoice]);
+  }, [api, draftBillingKind, draftSkontoBps, invoiceOverview, loadInvoice]);
 
   const bookInvoice = useCallback(async () => {
     setBookPanelError(null);
@@ -467,11 +482,28 @@ export function FinancePreparation({
     setBusy(true);
     setBusyStep(3);
     try {
-      await api.requestJson("POST", `/invoices/${encodeURIComponent(invoiceIdRead.trim())}/book`, {
+      const booked = await api.bookInvoice(invoiceIdRead.trim(), {
         reason: "Rechnungsbuchung aus Finanz-Vorbereitung (FIN-2 Demo)",
         ...(d ? { issueDate: d } : {}),
       });
-      await loadInvoice(undefined, { manageBusy: false });
+      const mitigationText = schlussrechnungMitigationUserSentence(booked.schlussrechnungMitigation);
+      const followText = schlussrechnungFollowUpDraftUserSentence(booked.schlussrechnungFollowUpDraft, {
+        bookedInvoiceId: booked.invoiceId,
+      });
+      const parts = [mitigationText, followText].filter(Boolean);
+      if (parts.length > 0) {
+        setNotice({ kind: "text", text: parts.join(" "), sourceStep: 3 });
+      }
+      const followId =
+        booked.schlussrechnungFollowUpDraft?.created && booked.schlussrechnungFollowUpDraft.invoiceId
+          ? booked.schlussrechnungFollowUpDraft.invoiceId
+          : null;
+      if (followId) {
+        setInvoiceIdRead(followId);
+        await loadInvoice(followId, { manageBusy: false });
+      } else {
+        await loadInvoice(undefined, { manageBusy: false });
+      }
     } catch (e) {
       setBookPanelError(finNoticeFromUnknown(e));
     } finally {
@@ -503,6 +535,7 @@ export function FinancePreparation({
         measurementId: invoiceOverview.measurementId,
         paymentTermsVersionId: invoiceOverview.paymentTermsVersionId,
         skontoBps: invoiceOverview.skontoBps,
+        billingKind: invoiceOverview.billingKind,
         reason: "FIN-5 §8.16 Regime-Drift: Entwurf neu erzeugt aus Buchungs-Pfad",
       });
       setInvoiceIdRead(data.invoiceId);
@@ -1603,6 +1636,7 @@ export function FinancePreparation({
           listJson={listJson}
           onLoadPaymentTerms={loadPaymentTerms}
           onCreatePaymentTermsVersion={createPaymentTermsVersion}
+          showIntegrationHints={showIntegrationHints}
         />
 
         <FinancePrepStepDraft
@@ -1611,9 +1645,12 @@ export function FinancePreparation({
           stepNotice={noticeStep2}
           draftSkontoBps={draftSkontoBps}
           setDraftSkontoBps={setDraftSkontoBps}
+          draftBillingKind={draftBillingKind}
+          setDraftBillingKind={setDraftBillingKind}
           draftSummary={draftSummary}
           draftJson={draftJson}
           onCreateInvoiceDraft={createInvoiceDraft}
+          showIntegrationHints={showIntegrationHints}
         />
 
         <FinancePrepStepInvoice
@@ -1639,6 +1676,9 @@ export function FinancePreparation({
           onSubmitEntwurfSkontoRecalc={submitEntwurfSkontoRecalc}
           canRecreateDraftAfterRegimeDrift={canRecreateDraftAfterRegimeDrift}
           onRecreateInvoiceDraftFromRegimeDrift={recreateInvoiceDraftFromRegimeDrift}
+          showIntegrationHints={showIntegrationHints}
+          api={api}
+          onPaymentTermsDifferenceSuccess={() => void loadInvoice(undefined, { manageBusy: false })}
         />
 
         <FinancePreparationPaymentPanel
@@ -1655,6 +1695,7 @@ export function FinancePreparation({
           intakeResultJson={intakeResultJson}
           onApplyOpenBalance={applyOpenBalanceToIntake}
           onSubmitPaymentIntake={submitPaymentIntake}
+          showIntegrationHints={showIntegrationHints}
         />
         </div>
 
@@ -1698,6 +1739,7 @@ export function FinancePreparation({
             onPrefillBatchEmailItemsFromCandidates={() => void prefillBatchEmailItemsFromCandidates()}
             onDunningBatchEmailDryRun={runSubmitDunningBatchEmailDryRun}
             onDunningBatchEmailExecute={runSubmitDunningBatchEmailExecute}
+            showIntegrationHints={showIntegrationHints}
           />
           <FinanceInvoiceTaxSettingsPanel
             busy={busy}
@@ -1712,6 +1754,7 @@ export function FinancePreparation({
             onPatchTenant={(b) => void patchInvoiceTaxTenant(b)}
             onPutProject={(b) => void putInvoiceTaxProject(b)}
             onDeleteProject={(r) => void deleteInvoiceTaxProject(r)}
+            showIntegrationHints={showIntegrationHints}
           />
         </div>
 
@@ -1797,6 +1840,7 @@ export function FinancePreparation({
           onSubmitEmailPreview={runSubmitEmailPreview}
           onSubmitEmailSendStub={runSubmitEmailSendStub}
           onSubmitEmailSend={runSubmitEmailSend}
+          showIntegrationHints={showIntegrationHints}
         />
         </div>
 
@@ -1817,6 +1861,7 @@ export function FinancePreparation({
           setSotDocumentId={setSotDocumentId}
           sotJson={sotJson}
           onLoadSotAllowedActions={loadSotAllowedActions}
+          showIntegrationHints={showIntegrationHints}
         />
 
         <FinancePrepStepAudit
@@ -1825,6 +1870,7 @@ export function FinancePreparation({
           stepNotice={noticeStep7}
           auditJson={auditJson}
           onLoadAuditEvents={loadAuditEvents}
+          showIntegrationHints={showIntegrationHints}
         />
 
         </div>

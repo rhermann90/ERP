@@ -1,6 +1,10 @@
 /** Abgleich mit `apps/web/src/lib/demo-seed-ids.ts` / Backend-Seed (E2E-Tenant). */
 export const SEED_LV_VERSION_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001";
 export const SEED_OFFER_VERSION_ID = "33333333-3333-4333-8333-333333333333";
+/** Seed-Angebotskopf (`src/composition/seed.ts` SEED_IDS.offerId). */
+export const SEED_OFFER_ID = "22222222-2222-4222-8222-222222222222";
+/** Seed-Nachtragsangebot (`src/composition/seed.ts` SEED_IDS.supplementOfferId). */
+export const SEED_SUPPLEMENT_OFFER_ID = "90909090-9090-4090-8090-909090909090";
 export const SEED_INVOICE_ID = "44444444-4444-4444-8444-444444444444";
 /** Seed ENTWURF SMALL_BUSINESS_19 — Pflicht-Hinweise (FIN-5 Paket B); `src/composition/seed.ts` SEED_IDS.invoiceDraftSmallBusinessId. */
 export const SEED_INVOICE_DRAFT_SMALL_BUSINESS_ID = "57575757-5757-4575-8575-575757575757";

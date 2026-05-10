@@ -58,6 +58,8 @@ export const paymentTermsListQuerySchema = z.object({
   projectId: z.string().uuid(),
 });
 
+const invoiceBillingKindSchema = z.enum(["REGULAR", "SCHLUSSRECHNUNG", "FOLGERECHNUNG", "GUTSCHRIFT"]);
+
 export const createInvoiceDraftSchema = z.object({
   lvVersionId: z.string().uuid(),
   offerVersionId: z.string().uuid(),
@@ -68,12 +70,36 @@ export const createInvoiceDraftSchema = z.object({
   paymentTermsVersionId: z.string().uuid().optional(),
   /** 8.4(2) B2-1a: Skonto in Basispunkten (0 = kein Abzug). */
   skontoBps: z.number().int().min(0).max(10_000).optional(),
+  /** §8.6 Slice 2b: Kennzeichnung Schlussrechnung / Folge / Gutschrift (Default REGULAR). */
+  billingKind: invoiceBillingKindSchema.optional(),
+  /** Optional; nur mit billingKind GUTSCHRIFT oder FOLGERECHNUNG — gebuchte Bezugsrechnung gleiches Aufmass (§8.6). */
+  mitigationFollowUpSourceInvoiceId: z.string().uuid().optional(),
+  reason: z.string().min(5),
+});
+
+/** §8.6 Slice 2b: explizite Konditions-Differenz nach gebuchter Referenz-Rechnung (Betrag API-first). */
+export const createPaymentTermsDifferenceBookingSchema = z.object({
+  measurementId: z.string().uuid(),
+  referenceInvoiceId: z.string().uuid(),
+  predecessorPaymentTermsVersionId: z.string().uuid(),
+  subsequentPaymentTermsVersionId: z.string().uuid(),
+  amountNetCents: z.number().int(),
   reason: z.string().min(5),
 });
 
 export const bookInvoiceSchema = z.object({
   reason: z.string().min(5),
   issueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).optional(),
+});
+
+export const allocateDifferenceBookingsToInvoiceDraftSchema = z.object({
+  differenceBookingIds: z.array(z.string().uuid()).min(1),
+  reason: z.string().min(5),
+});
+
+export const deallocateDifferenceBookingsFromInvoiceDraftSchema = z.object({
+  differenceBookingIds: z.array(z.string().uuid()).min(1),
+  reason: z.string().min(5),
 });
 
 const invoiceTaxRegimeSchema = z.enum([
@@ -215,6 +241,14 @@ export const dunningReminderCandidatesQuerySchema = z
   .object({
     stageOrdinal: z.coerce.number().int().min(1).max(9),
     asOfDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  })
+  .strict();
+
+/** Optional: Forderungsliste auf Projekt und/oder Kunde eingrenzen (`GET /finance/open-receivables`). */
+export const openReceivablesQuerySchema = z
+  .object({
+    projectId: z.string().uuid().optional(),
+    customerId: z.string().uuid().optional(),
   })
   .strict();
 

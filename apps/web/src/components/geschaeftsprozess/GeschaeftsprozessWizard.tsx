@@ -6,6 +6,11 @@ import {
   executeActionWithSotGuard,
 } from "../../lib/action-executor.js";
 import { DEMO_SEED_IDS as SEED } from "../../lib/demo-seed-ids.js";
+import {
+  DOCUMENT_WORKSPACE_HASH,
+  measurementPilotListHashWithVersionId,
+  OFFER_WORKSPACE_HASH,
+} from "../../lib/hash-route.js";
 import { LvWorkbench } from "../lv-workbench/LvWorkbench.js";
 
 const DEFAULT_MEASUREMENT_POSITIONS_JSON = JSON.stringify(
@@ -35,6 +40,8 @@ export function GeschaeftsprozessWizard({
   const [step, setStep] = useState(0);
   const [lvVersionId, setLvVersionId] = useState<string>(SEED.lvVersionId);
   const [wizardMeasurementId, setWizardMeasurementId] = useState<string>("");
+  /** Erste Messungsversion nach MEASUREMENT_CREATE — für Shell `MEASUREMENT_VERSION` und Pilotliste (`GET /measurements/:id`). */
+  const [wizardMeasurementVersionId, setWizardMeasurementVersionId] = useState<string>("");
   const [offerVersionId, setOfferVersionId] = useState("");
   const [draftSummary, setDraftSummary] = useState<string | null>(null);
   const [banner, setBanner] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
@@ -49,6 +56,10 @@ export function GeschaeftsprozessWizard({
     lvVersionId: SEED.lvVersionId,
     positionsJson: DEFAULT_MEASUREMENT_POSITIONS_JSON,
   }));
+
+  const [pilotQuantity, setPilotQuantity] = useState("12.5");
+  const [pilotUnit, setPilotUnit] = useState("m2");
+  const [pilotNote, setPilotNote] = useState("Geschaeftsprozess-Wizard — Pilot Aufmassposition");
 
   const measurementFormSyncedLv = useMemo(
     () => ({
@@ -76,13 +87,45 @@ export function GeschaeftsprozessWizard({
     }
   };
 
+  const buildPositionsJsonForPilotFields = (): { ok: true; json: string } | { ok: false; message: string } => {
+    const raw = pilotQuantity.trim().replace(",", ".");
+    const q = Number(raw);
+    if (!Number.isFinite(q) || q <= 0) {
+      return { ok: false, message: "Bitte eine gültige Menge größer 0 eingeben (Komma oder Punkt als Dezimaltrennzeichen)." };
+    }
+    const unit = pilotUnit.trim();
+    if (!unit) {
+      return { ok: false, message: "Bitte eine Einheit angeben (z. B. m2, m, Stk.)." };
+    }
+    const row: Record<string, unknown> = {
+      lvPositionId: SEED.lvPositionId,
+      quantity: q,
+      unit,
+    };
+    const note = pilotNote.trim();
+    if (note) row.note = note;
+    return { ok: true, json: JSON.stringify([row], null, 2) };
+  };
+
   const runMeasurementCreate = async () => {
     const allowed = projectAllowedActions;
     if (!allowed?.includes("MEASUREMENT_CREATE")) return;
     setBusy(true);
     setMeasurementBanner(null);
+    setWizardMeasurementVersionId("");
     try {
-      const fields = { ...measurementFormSyncedLv };
+      let fields: ActionFormFields;
+      if (showIntegrationHints) {
+        fields = { ...measurementFormSyncedLv };
+      } else {
+        const built = buildPositionsJsonForPilotFields();
+        if (!built.ok) {
+          setMeasurementBanner({ kind: "err", text: built.message });
+          setBusy(false);
+          return;
+        }
+        fields = { ...measurementFormSyncedLv, positionsJson: built.json };
+      }
       const result = await executeActionWithSotGuard(
         api,
         "MEASUREMENT_CREATE",
@@ -91,13 +134,26 @@ export function GeschaeftsprozessWizard({
         allowed,
         fields,
       );
-      setMeasurementBanner({ kind: "ok", text: JSON.stringify(result, null, 2) });
       const mid =
         result && typeof result === "object" && "measurementId" in result
           ? String((result as { measurementId: unknown }).measurementId)
           : "";
+      const mvid =
+        result && typeof result === "object" && "measurementVersionId" in result
+          ? String((result as { measurementVersionId: unknown }).measurementVersionId).trim()
+          : "";
+      setWizardMeasurementVersionId(mvid);
+      setMeasurementBanner({
+        kind: "ok",
+        text: showIntegrationHints
+          ? JSON.stringify(result, null, 2)
+          : mid
+            ? `Aufmass angelegt. Messungs-ID: ${mid}${mvid ? ` · Messungsversions-ID: ${mvid}` : ""}.`
+            : "Aufmass angelegt.",
+      });
       if (mid) setWizardMeasurementId(mid);
     } catch (e) {
+      setWizardMeasurementVersionId("");
       setMeasurementBanner({
         kind: "err",
         text: e instanceof ApiError ? `${e.envelope.code}: ${e.envelope.message}` : String(e),
@@ -106,6 +162,10 @@ export function GeschaeftsprozessWizard({
       setBusy(false);
     }
   };
+
+  const measurementVersionShellHref = wizardMeasurementVersionId.trim()
+    ? `${DOCUMENT_WORKSPACE_HASH}?documentId=${encodeURIComponent(wizardMeasurementVersionId.trim())}&entityType=MEASUREMENT_VERSION`
+    : "";
 
   const runCreateOffer = async () => {
     setBusy(true);
@@ -274,16 +334,74 @@ export function GeschaeftsprozessWizard({
               {measurementBanner.text}
             </pre>
           ) : null}
+          {wizardMeasurementVersionId.trim() && measurementVersionShellHref ? (
+            <p className="shell-sub" style={{ marginTop: "0.75rem" }} data-testid="geschaeftsprozess-measurement-trace">
+              Messungsversion <code>{wizardMeasurementVersionId.trim()}</code>:{" "}
+              <a href={measurementVersionShellHref} data-testid="geschaeftsprozess-measurement-trace-measurement-shell">
+                Dokument-Shell (MEASUREMENT_VERSION)
+              </a>
+              {" · "}
+              <a
+                href={measurementPilotListHashWithVersionId(wizardMeasurementVersionId.trim())}
+                data-testid="geschaeftsprozess-measurement-trace-pilot-list"
+              >
+                Messungs-Pilotliste (Deep-Link)
+              </a>
+            </p>
+          ) : null}
           {projectAllowedActions?.includes("MEASUREMENT_CREATE") ? (
             <>
-              <label className="field geschaeftsprozess-field-spaced">
-                <span>{showIntegrationHints ? "positions (JSON-Array)" : "Positionen (technisches Format)"}</span>
-                <textarea
-                  value={measurementForm.positionsJson ?? ""}
-                  onChange={(e) => setMeasurementForm((f) => ({ ...f, positionsJson: e.target.value }))}
-                  data-testid="geschaeftsprozess-measurement-positions-json"
-                />
-              </label>
+              {showIntegrationHints ? (
+                <label className="field geschaeftsprozess-field-spaced">
+                  <span>positions (JSON-Array)</span>
+                  <textarea
+                    value={measurementForm.positionsJson ?? ""}
+                    onChange={(e) => setMeasurementForm((f) => ({ ...f, positionsJson: e.target.value }))}
+                    data-testid="geschaeftsprozess-measurement-positions-json"
+                  />
+                </label>
+              ) : (
+                <>
+                  <p className="hint geschaeftsprozess-field-spaced" style={{ marginBottom: "0.5rem" }}>
+                    Eine Pilot-Position an die Demo-LV-Position geknüpft. Menge und Einheit anpassen; die LV-Positions-ID
+                    kommt aus dem Seed (keine manuelle UUID nötig).
+                  </p>
+                  <p className="hint" style={{ fontSize: "0.82rem", marginBottom: "0.5rem" }}>
+                    LV-Position (Seed): <code>{SEED.lvPositionId}</code>
+                  </p>
+                  <label className="field">
+                    <span>Menge</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={pilotQuantity}
+                      onChange={(e) => setPilotQuantity(e.target.value)}
+                      data-testid="geschaeftsprozess-measurement-pilot-quantity"
+                      aria-label="Aufmass-Pilotposition Menge"
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Einheit</span>
+                    <input
+                      type="text"
+                      value={pilotUnit}
+                      onChange={(e) => setPilotUnit(e.target.value)}
+                      data-testid="geschaeftsprozess-measurement-pilot-unit"
+                      aria-label="Aufmass-Pilotposition Einheit"
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Anmerkung (optional)</span>
+                    <textarea
+                      value={pilotNote}
+                      onChange={(e) => setPilotNote(e.target.value)}
+                      rows={2}
+                      data-testid="geschaeftsprozess-measurement-pilot-note"
+                      aria-label="Aufmass-Pilotposition Anmerkung"
+                    />
+                  </label>
+                </>
+              )}
               <label className="field">
                 <span>Grund</span>
                 <textarea
@@ -347,6 +465,44 @@ export function GeschaeftsprozessWizard({
           <p>
             Angebotsversion: <code>{offerVersionId}</code>
           </p>
+          {wizardMeasurementId.trim() ? (
+            <p className="shell-sub" data-testid="geschaeftsprozess-trace-measurement-id">
+              Aufmass (Wizard): <code>{wizardMeasurementId.trim()}</code> — wird an <code>POST /invoices</code> als{" "}
+              <code>measurementId</code> übergeben, wenn gesetzt.
+            </p>
+          ) : null}
+          {wizardMeasurementVersionId.trim() ? (
+            <p className="shell-sub" data-testid="geschaeftsprozess-trace-measurement-version">
+              Messungsversion: <code>{wizardMeasurementVersionId.trim()}</code> —{" "}
+              <a href={measurementPilotListHashWithVersionId(wizardMeasurementVersionId.trim())} data-testid="geschaeftsprozess-trace-measurement-version-pilot">
+                Pilot-Liste (Deep-Link)
+              </a>
+              {" · "}
+              <a
+                href={`${DOCUMENT_WORKSPACE_HASH}?documentId=${encodeURIComponent(wizardMeasurementVersionId.trim())}&entityType=MEASUREMENT_VERSION`}
+                data-testid="geschaeftsprozess-trace-measurement-version-shell"
+              >
+                Shell (MEASUREMENT_VERSION)
+              </a>
+            </p>
+          ) : null}
+          {offerVersionId.trim() ? (
+            <p className="shell-sub" data-testid="geschaeftsprozess-trace-links">
+              Traceability / SoT:{" "}
+              <a href={OFFER_WORKSPACE_HASH} data-testid="geschaeftsprozess-trace-offer-workspace">
+                Angebots- und Nachtrags-Arbeitsfläche
+              </a>
+              {" · "}
+              <a
+                href={`${DOCUMENT_WORKSPACE_HASH}?documentId=${encodeURIComponent(offerVersionId.trim())}&entityType=OFFER_VERSION`}
+                data-testid="geschaeftsprozess-trace-offer-shell"
+              >
+                Dokument-Shell (OFFER_VERSION)
+              </a>
+              . Demo-Nachtrag: <code>{SEED.supplementVersionId}</code> in der Arbeitsfläche mit „Nachtrag lesen“ prüfbar
+              (nicht automatisch durch diesen Wizard angelegt).
+            </p>
+          ) : null}
           <button
             type="button"
             className="btn-primary"

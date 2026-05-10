@@ -14,6 +14,9 @@ In der Shell: **Darstellung** → **Hell**, **Dunkel (warm)**, **Dunkel (neutral
 | `VITE_REPO_DOCS_BASE` | Optional: GitHub-`blob/main`-URL **ohne** trailing slash — klickbare Links auf der Seite **Finanz (Vorbereitung)** (`#/finanz-vorbereitung`) |
 | `VITE_EXPECTED_OPENAPI_CONTRACT_VERSION` | Optional: gleicher Wert wie `docs/api-contract.yaml` `info.version` zum PWA-Release — bei Abweichung zu `x-erp-openapi-contract-version` auf FIN-4-Pfaden nur `console.warn` (siehe [`docs/contracts/FIN4-external-client-integration.md`](../docs/contracts/FIN4-external-client-integration.md)) |
 | `VITE_PWA_EXPERT_UI=1` | Optional: Experten-UI (Integrationstexte, Tab „Fortgeschritten“ in Finanz-Vorbereitung, technische Shell-Hilfen) auch im Production-Build — ohne diese Variable zusätzlich **`GET /tenant/pwa-display-settings`** (Mandanten-Flag) und im **Vite-Dev-Server** sind dieselben Hilfen eingeschaltet. |
+| `VITE_DOM86_SLICE3_MITIGATION_GUTSCHRIFT_HINT=1` | Optional: nach Buchung mit `GUTSCHRIFT_REQUIRES_MANUAL_DRAFT` einen **ausführlicheren** Hinweistext in der Finanz-Vorbereitung (Slice 3 / ADR-0024); ohne Flag kurzer Standard-Hinweis. |
+
+Schreib-UI für **DOM-8-6** (Zuordnung von Differenzzeilen zum Rechnungsentwurf, Konditions-Differenz nach Buchung) ist **ohne** separates Vite-Flag gebündelt; welche Panels sichtbar sind, folgt **Belegstatus** und den dokumentierten APIs — Mandantenisolation und Domänenregeln bleiben serverseitig.
 
 Kopiere `apps/web/.env.example` nach `.env` (nur Vite-Variablen). Backend-Umgebung siehe Repo-Root [`.env.example`](../.env.example).
 
@@ -21,7 +24,7 @@ Kopiere `apps/web/.env.example` nach `.env` (nur Vite-Variablen). Backend-Umgebu
 
 - **`#/`** — Start nach Login: **HomeDashboard** (Kacheln Finanz → Pilot → erweiterte Dokumentansicht) und **Schnellzugriff**; keine große Dokument-/JSON-Shell. Kurzer Einleitungstext; technischer Hinweis mit Link zu **Dokument und Details** nur bei Expertenmodus (`VITE_PWA_EXPERT_UI`, Mandanten-Flag oder Vite-Dev), wie bei Schnellzugriff.
 - **`#/dokument`** — **Dokument-Arbeitsbereich** (Entity-Typ, UUID, GET, Roh-JSON, FIN-4-Lesepfade, Mandanten-PWA-Anzeige): für Integration und E2E über denselben Hash erreichbar.
-- **`#/lv-bearbeiten`** — **LV (Pilot):** Lesepfad (`LvWorkbench`); direkte SoT-Aktionen (`LvVersionSotPanel`) nur bei Expertenmodus wie auf der Startseite.
+- **`#/lv-bearbeiten`** — **LV (Pilot):** Lesepfad (`LvWorkbench`); SoT-Lesepfad (`LvVersionSotPanel`: erlaubte Aktionen als Liste, JSON optional eingeklappt); direkte Ausführung pilotierter `LV_*`-Aktionen nur bei Expertenmodus wie auf der Startseite.
 - **`#/geschaeftsprozess`** — **Geschäftsprozess (Pilot):** geführter Flow LV → Aufmass → Angebot → Rechnungsentwurf; Roh-JSON der Projekt-`allowedActions` nur bei Expertenmodus (sonst Kurzliste der Aktionen).
 
 Die PWA dupliziert **keine** Domänenlogik: Berechtigungen und Status kommen aus dem Backend (`allowedActions`, Fehler-Envelope). Welche Aktionen die Shell über `src/lib/action-executor.ts` ausführt und welche (z. B. FIN-3/FIN-5) nur in der Finanz-Vorbereitung — [`docs/contracts/ui-action-executor-coverage.md`](../docs/contracts/ui-action-executor-coverage.md).

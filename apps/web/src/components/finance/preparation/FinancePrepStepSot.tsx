@@ -18,6 +18,7 @@ export type FinancePrepStepSotProps = {
   setSotDocumentId: (v: string) => void;
   sotJson: string;
   onLoadSotAllowedActions: () => void;
+  showIntegrationHints?: boolean;
 };
 
 function FinancePrepStepSotInner({
@@ -31,6 +32,7 @@ function FinancePrepStepSotInner({
   setSotDocumentId,
   sotJson,
   onLoadSotAllowedActions,
+  showIntegrationHints = false,
 }: FinancePrepStepSotProps) {
   return (
     <FinancePrepPanel step={4} title="SoT — erlaubte Aktionen (Fortgeschritten)" liveStatus={liveStatus}>
@@ -131,7 +133,9 @@ function FinancePrepStepSotInner({
       <button type="button" onClick={() => void onLoadSotAllowedActions()} disabled={busy}>
         Erlaubte Aktionen laden
       </button>
-      <FinanceCollapsibleJson summary="Rohantwort allowed-actions (JSON)" json={sotJson} />
+      {showIntegrationHints ? (
+        <FinanceCollapsibleJson summary="Rohantwort allowed-actions (JSON)" json={sotJson} />
+      ) : null}
     </FinancePrepPanel>
   );
 }

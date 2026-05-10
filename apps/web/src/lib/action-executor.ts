@@ -208,7 +208,7 @@ export async function executeAllowedAction(
     const body: { reason: string; issueDate?: string } = { reason };
     const issueDate = fields.issueDate?.trim();
     if (issueDate) body.issueDate = issueDate;
-    return client.requestJson("POST", `/invoices/${encodeURIComponent(documentId)}/book`, body);
+    return client.bookInvoice(documentId, body);
   }
 
   if (actionId === "RECORD_DUNNING_REMINDER") {

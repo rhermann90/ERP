@@ -193,4 +193,53 @@ export class OfferService {
     });
     return updated;
   }
+
+  /** Lesepfad Pilot/PWA: Angebotsköpfe je Projekt mit aktueller Version (tenant-gefiltert). */
+  public listProjectOffers(tenantId: TenantId, projectId: UUID): {
+    data: Array<{
+      offerId: UUID;
+      projectId: UUID;
+      customerId: UUID;
+      currentOfferVersionId: UUID;
+      createdAt: string;
+      currentVersion: {
+        id: UUID;
+        versionNumber: number;
+        status: OfferStatus;
+        lvVersionId: UUID;
+        createdAt: string;
+      };
+    }>;
+  } {
+    if (!this.repos.tenantHasProjectContext(tenantId, projectId)) {
+      throw new DomainError("PROJECT_NOT_FOUND", "Projekt-Kontext fuer Mandant nicht gefunden", 404);
+    }
+    const rows = this.repos.listOffersForProject(tenantId, projectId);
+    const sorted = [...rows].sort((a, b) => {
+      const t = a.createdAt.getTime() - b.createdAt.getTime();
+      if (t !== 0) return t;
+      return a.id.localeCompare(b.id);
+    });
+    const data = sorted.map((offer) => {
+      const v = this.repos.getOfferVersionByTenant(tenantId, offer.currentVersionId);
+      if (!v) {
+        throw new DomainError("OFFER_INCONSISTENT", "Aktuelle Angebotsversion fehlt im Repository", 500);
+      }
+      return {
+        offerId: offer.id,
+        projectId: offer.projectId,
+        customerId: offer.customerId,
+        currentOfferVersionId: offer.currentVersionId,
+        createdAt: offer.createdAt.toISOString(),
+        currentVersion: {
+          id: v.id,
+          versionNumber: v.versionNumber,
+          status: v.status,
+          lvVersionId: v.lvVersionId,
+          createdAt: v.createdAt.toISOString(),
+        },
+      };
+    });
+    return { data };
+  }
 }

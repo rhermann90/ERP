@@ -1,5 +1,13 @@
-import { memo } from "react";
-import type { DunningReminderReadRow, InvoiceOverview, PaymentIntakeReadRow } from "../../../lib/api-client.js";
+import { memo, useEffect, useState } from "react";
+import type {
+  ApiClient,
+  DifferenceBookingReadRow,
+  DunningReminderReadRow,
+  InvoiceBillingKindApi,
+  InvoiceOverview,
+  PaymentIntakeReadRow,
+} from "../../../lib/api-client.js";
+import { DifferenceBookingReadTable } from "../../shared/DifferenceBookingReadTable.js";
 import { repoDocHref } from "../../../lib/repo-doc-links.js";
 import {
   BOOK_INVOICE_ACTION_ID,
@@ -11,7 +19,25 @@ import { FinancePrepPanel } from "../FinancePrepPanel.js";
 import { FinancePrepNotice } from "../FinancePrepNotice.js";
 import type { FinNotice } from "../finance-prep-types.js";
 import { formatSkontoDisplay } from "../finance-prep-helpers.js";
+import { DOCUMENT_WORKSPACE_HASH, LV_AUFMASS_HUB_HASH } from "../../../lib/hash-route.js";
 import { DEMO_INVOICE_ID, FIN_PREP_A11Y, formatEurFromCents } from "../finance-preparation-meta.js";
+import { PaymentTermsDifferenceBookingPanel } from "../PaymentTermsDifferenceBookingPanel.js";
+import { InvoiceDraftDifferenceAllocatePanel } from "../InvoiceDraftDifferenceAllocatePanel.js";
+
+function billingKindLabelDe(kind: InvoiceBillingKindApi): string {
+  switch (kind) {
+    case "REGULAR":
+      return "Regulär";
+    case "SCHLUSSRECHNUNG":
+      return "Schlussrechnung";
+    case "FOLGERECHNUNG":
+      return "Folgerechnung";
+    case "GUTSCHRIFT":
+      return "Gutschrift";
+    default:
+      return kind;
+  }
+}
 
 export type FinancePrepStepInvoiceProps = {
   busy: boolean;
@@ -36,6 +62,9 @@ export type FinancePrepStepInvoiceProps = {
   onSubmitEntwurfSkontoRecalc: () => void;
   canRecreateDraftAfterRegimeDrift: boolean;
   onRecreateInvoiceDraftFromRegimeDrift: () => void;
+  showIntegrationHints?: boolean;
+  api: ApiClient;
+  onPaymentTermsDifferenceSuccess: () => void | Promise<void>;
 };
 
 function FinancePrepStepInvoiceInner({
@@ -61,7 +90,40 @@ function FinancePrepStepInvoiceInner({
   onSubmitEntwurfSkontoRecalc,
   canRecreateDraftAfterRegimeDrift,
   onRecreateInvoiceDraftFromRegimeDrift,
+  showIntegrationHints = false,
+  api,
+  onPaymentTermsDifferenceSuccess,
 }: FinancePrepStepInvoiceProps) {
+  const [projectDiffRows, setProjectDiffRows] = useState<DifferenceBookingReadRow[]>([]);
+  const [injectOpenDiffIds, setInjectOpenDiffIds] = useState<{ rev: number; text: string }>({ rev: 0, text: "" });
+
+  useEffect(() => {
+    const pid = invoiceOverview?.projectId?.trim();
+    if (!pid) {
+      setProjectDiffRows([]);
+      return;
+    }
+    let cancelled = false;
+    void api.listProjectDifferenceBookings(pid).then(
+      (res) => {
+        if (!cancelled) setProjectDiffRows(Array.isArray(res.data) ? res.data : []);
+      },
+      () => {
+        if (!cancelled) setProjectDiffRows([]);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [api, invoiceOverview?.projectId, invoiceOverview?.invoiceId]);
+
+  const openDiffsForMeasurement =
+    invoiceOverview == null
+      ? []
+      : projectDiffRows.filter(
+          (r) => r.measurementId === invoiceOverview.measurementId && r.status === "OPEN",
+        );
+
   return (
     <FinancePrepPanel step={3} title="Rechnung laden, Beträge & Buchung" liveStatus={liveStatus}>
       <FinancePrepNotice notice={stepNotice} structuredAnnouncementRole="status" />
@@ -141,6 +203,13 @@ function FinancePrepStepInvoiceInner({
             <dd style={{ margin: 0 }}>{invoiceOverview.status}</dd>
             <dt style={{ color: "var(--text-secondary)" }}>Rechnungsnr.</dt>
             <dd style={{ margin: 0 }}>{invoiceOverview.invoiceNumber ?? "—"}</dd>
+            <dt style={{ color: "var(--text-secondary)" }}>Rechnungsart (billingKind)</dt>
+            <dd style={{ margin: 0 }} data-testid="finance-invoice-billing-kind">
+              <code>{invoiceOverview.billingKind}</code>
+              <span style={{ marginLeft: "0.35rem", color: "var(--text-secondary)" }}>
+                ({billingKindLabelDe(invoiceOverview.billingKind)})
+              </span>
+            </dd>
             <dt style={{ color: "var(--text-secondary)" }}>LV-Netto (8.4/1)</dt>
             <dd style={{ margin: 0 }}>{formatEurFromCents(invoiceOverview.lvNetCents)}</dd>
             <dt style={{ color: "var(--text-secondary)" }}>Skonto (8.4/2, BP)</dt>
@@ -233,6 +302,84 @@ function FinancePrepStepInvoiceInner({
               )}
             </dd>
           </dl>
+          <div style={{ marginTop: "0.75rem" }} data-testid="finance-invoice-allocated-difference-bookings-block">
+            <h4 style={{ fontSize: "0.9rem", margin: "0 0 0.35rem" }}>Zugeordnete Differenzbuchungen</h4>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", margin: "0 0 0.35rem" }}>
+              Feld <code>allocatedDifferenceBookings</code> aus <code>GET /invoices/:invoiceId</code> — Ausgleich je §8.6 Slice 2 (ohne Client-Delta).
+            </p>
+            <p
+              style={{ fontSize: "0.72rem", color: "var(--text-secondary)", margin: "0 0 0.35rem" }}
+              data-testid="finance-invoice-dom86-cross-links"
+            >
+              Kurzeingänge mit gleicher API: <a href={DOCUMENT_WORKSPACE_HASH}>Dokument (INVOICE)</a>,{" "}
+              <a href={LV_AUFMASS_HUB_HASH}>LV &amp; Aufmaß-Hub</a>.
+            </p>
+            <DifferenceBookingReadTable
+              rows={invoiceOverview.allocatedDifferenceBookings}
+              formatEur={formatEurFromCents}
+              showAllocationTimestamps
+              wrapTestId="finance-invoice-allocated-difference-bookings-wrap"
+              tableTestId="finance-invoice-allocated-difference-bookings-table"
+            />
+            {invoiceOverview.allocatedDifferenceBookings.length === 0 ? (
+              <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", margin: "0.35rem 0 0" }}>
+                Keine Differenzzeilen diesem Beleg zugeordnet.
+              </p>
+            ) : null}
+          </div>
+          <PaymentTermsDifferenceBookingPanel
+            api={api}
+            invoiceOverview={invoiceOverview}
+            parentBusy={busy}
+            onSuccess={onPaymentTermsDifferenceSuccess}
+            testIdNs="finance"
+          />
+          {invoiceOverview.status === "ENTWURF" ? (
+            <div style={{ marginTop: "0.65rem" }} data-testid="finance-prep-draft-difference-allocate-wrap">
+              <h4 style={{ fontSize: "0.9rem", margin: "0 0 0.35rem" }}>Offene Differenzzeilen (Projekt, gleiches Aufmass)</h4>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)", margin: "0 0 0.35rem" }}>
+                Lesepfad <code>GET /projects/&#123;projectId&#125;/difference-bookings</code>, gefiltert nach Status{" "}
+                <code>OPEN</code> und <code>measurementId</code> dieser Rechnung — keine Betragsberechnung im Browser.
+              </p>
+              <DifferenceBookingReadTable
+                rows={openDiffsForMeasurement}
+                formatEur={formatEurFromCents}
+                wrapTestId="finance-prep-open-diff-bookings-wrap"
+                tableTestId="finance-prep-open-diff-bookings-table"
+              />
+              {openDiffsForMeasurement.length === 0 ? (
+                <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", margin: "0.35rem 0 0" }}>
+                  Keine offenen Zeilen für dieses Aufmass — oder Projektliste noch nicht geladen.
+                </p>
+              ) : null}
+              <button
+                type="button"
+                data-testid="finance-prep-inject-open-diff-ids"
+                disabled={busy || openDiffsForMeasurement.length === 0}
+                style={{ marginTop: "0.45rem" }}
+                onClick={() =>
+                  setInjectOpenDiffIds((p) => ({
+                    rev: p.rev + 1,
+                    text: openDiffsForMeasurement.map((r) => r.id).join(" "),
+                  }))
+                }
+              >
+                IDs in Zuordnungsfeld übernehmen
+              </button>
+              <p style={{ fontSize: "0.72rem", color: "var(--text-secondary)", margin: "0.5rem 0 0" }}>
+                Mehrere gleichzeitige Entwürfe: keine serverseitige Priorität — explizite Zuordnung (ADR-0022).
+              </p>
+              <InvoiceDraftDifferenceAllocatePanel
+                api={api}
+                invoiceId={invoiceOverview.invoiceId}
+                parentBusy={busy}
+                onSuccess={onPaymentTermsDifferenceSuccess}
+                testIdNs="finance"
+                injectIdsRevision={injectOpenDiffIds.rev}
+                injectIdsText={injectOpenDiffIds.text}
+              />
+            </div>
+          ) : null}
           {invoiceOverview.status === "ENTWURF" ? (
             <div style={{ marginTop: "0.65rem", paddingTop: "0.65rem", borderTop: "1px dashed color-mix(in srgb, var(--border) 80%, transparent)" }}>
               <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", margin: "0 0 0.35rem" }}>
@@ -363,7 +510,9 @@ function FinancePrepStepInvoiceInner({
               )}
             </div>
           ) : null}
-          <FinanceCollapsibleJson summary="Rohdaten GET /invoices (JSON)" json={invoiceOverview ? JSON.stringify(invoiceOverview, null, 2) : ""} />
+          {showIntegrationHints ? (
+            <FinanceCollapsibleJson summary="Rohdaten GET /invoices (JSON)" json={invoiceOverview ? JSON.stringify(invoiceOverview, null, 2) : ""} />
+          ) : null}
         </div>
       ) : null}
     </FinancePrepPanel>

@@ -1,14 +1,14 @@
 openapi: 3.0.3
 info:
   title: ERP Backend API (Phase 1 + Phase 2 Inc1 + Inc2 LV §9 + FIN-1/2/3/4 Finance)
-  version: 1.31.0-w2-difference-bookings-read
+  version: 1.39.0-measurement-detail-traceability
   description: |
     **PWA / Browser-Anbindung**
     - **CORS**: Umgebungsvariable `CORS_ORIGINS` — kommagetrennte, exakte Origins (z. B. `https://app.example.com,http://localhost:5173`). Leer oder unset: keine `Access-Control-*`-Header (gleiche Origin oder Server-zu-Server).
     - **Auth**: `Authorization: Bearer <signed-v1-token>` (siehe `bearerToken`); optionaler Header `X-Tenant-Id` muss zum Tenant im Token passen, sonst `TENANT_SCOPE_VIOLATION`. **Passwort-Login:** `POST /auth/login` mit JSON `{ tenantId, email, password }` — siehe `docs/authentication-login.md`. **Passwort vergessen (öffentlich):** `POST /auth/request-password-reset`, `POST /auth/confirm-password-reset` — nur mit Postgres; Link `#/password-reset?token=…` (Basis `ERP_PUBLIC_APP_BASE_URL`); Produktion: SMTP + Basis-URL Pflicht. **Benutzerverwaltung:** `GET|POST /users`, `PATCH /users/{userId}` inkl. optional **E-Mail** (nur Rolle **ADMIN**, nur mit Postgres) — Audit-Ereignisse `USER` / `USER_CREATED` / `USER_UPDATED`. **Betrieb:** `AUTH_TOKEN_SECRET` (min. 32 Zeichen bei `NODE_ENV=production`); ohne Secret kein Start — siehe Repo-`.env.example`. Nur lokaler Demo-Modus: `ERP_ALLOW_INSECURE_DEV_AUTH=1` und nicht `production` (niemals deployen).
     - **Logs**: Strukturierte Fastify-Request-Logs enthalten keine `Authorization`- oder `Cookie`-Werte (`LOG_LEVEL`, `LOG_DISABLE=1` siehe Betrieb).
     - **Fehler**: Antwort-JSON gemäß Schema `Error` — Felder `code`, `message`, `correlationId`, `retryable`, `blocking`, optional `details` (Frontend-Passthrough laut `docs/contracts/decision-log-phase1-frontend.md`). **Header:** `x-correlation-id` und `x-request-id` sind gleich der Request-ID (`request.id`) und entsprechen `correlationId` im Body bei Fehlerantworten.
-    - **FIN-4 / Integratoren:** Auf Pfaden unter **`/finance/dunning-reminder…`**, **`/finance/dunning-reminder-automation`**, **`/finance/dunning-email-footer`** und **`/finance/invoice-tax-profile…`**, **`/finance/e-invoice-parties…`**, **`/projects/…/difference-bookings`**, **`/crm/…`** sendet der Server zusätzlich **`x-erp-openapi-contract-version`** (Wert identisch zu `info.version` dieser Datei). Laufzeit-Abgleich und Breaking-Notes: `docs/contracts/FIN4-external-client-integration.md`. Browser-Cross-Origin: Header steht in `Access-Control-Expose-Headers`, wenn CORS aktiv ist (`CORS_ORIGINS`).
+    - **FIN-4 / Integratoren:** Auf Pfaden unter **`/finance/dunning-reminder…`**, **`/finance/open-receivables`**, **`/finance/dunning-reminder-automation`**, **`/finance/dunning-email-footer`** und **`/finance/invoice-tax-profile…`**, **`/finance/e-invoice-parties…`**, **`/projects/…/difference-bookings`** (inkl. **`GET …/difference-bookings/summary`**, **`POST …/difference-bookings/from-payment-terms`**), **`/invoices/…/difference-bookings`**, **`/crm/…`** sendet der Server zusätzlich **`x-erp-openapi-contract-version`** (Wert identisch zu `info.version` dieser Datei). Laufzeit-Abgleich und Breaking-Notes: `docs/contracts/FIN4-external-client-integration.md`. Browser-Cross-Origin: Header steht in `Access-Control-Expose-Headers`, wenn CORS aktiv ist (`CORS_ORIGINS`).
 servers:
   - url: http://localhost:3000
 tags:
@@ -31,7 +31,7 @@ tags:
       Mapping: `docs/contracts/finance-fin0-openapi-mapping.md`.
   - name: Finance (FIN-4)
     description: |
-      Mahnwesen (Spez 8.10): **Kern** — `GET|PUT /finance/dunning-reminder-config` und `PATCH|DELETE …/stages/{stageOrdinal}` (Lesen: MVP **oder** 9 **aktive** DB-Stufen; Schreiben: Postgres, Rollen wie Zahlungseingang); `GET /invoices/{invoiceId}/dunning-reminders` (Liste); `POST` Mahn-Ereignis; Tabellen `dunning_reminders`, `dunning_tenant_stage_config` — `docs/adr/0009-fin4-mahnwesen-slice.md`. **M4** — `GET /finance/dunning-reminder-templates` (Slice 1: MVP **oder** 18 aktive DB-Zeilen 9×2 Kanäle); **`PATCH …/templates/stages/{stageOrdinal}/channels/{channel}`** (Slice 2: `body` mit Pflichtplatzhaltern §8.10, Audit in DB-Tx); **`GET|PATCH /finance/dunning-email-footer`** (Slice 3: Impressum-Stammdaten); **`POST …/dunning-reminders/email-preview`** und **`POST …/send-email-stub`** (Slice 4: Plain-Text-Vorschau; Versand nur Audit, kein SMTP); **`POST …/dunning-reminders/send-email`** (Slice 5a: SMTP, Idempotenz); **`GET /finance/dunning-reminder-candidates`** (Slice **5b-0**: Lesepfad Mahnlauf-Kandidaten, keine Mutation); **`POST /finance/dunning-reminder-run`** (Slice **5b-1**: Mahnlauf `DRY_RUN`/`EXECUTE`, Idempotenz `dunning_reminder_run_intents`); **`GET|PATCH /finance/dunning-reminder-automation`** (Mandanten-Modus OFF/SEMI, SEMI-Kontext: Zeitzone, optional DE-Bundesland, Kalender-/Werktage-Frist, Kanal-Vorgabe); Tabellen `dunning_tenant_stage_templates`, `dunning_tenant_email_footer`, `dunning_email_sends`, `dunning_tenant_automation` — `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`, `docs/adr/0011-fin4-semi-dunning-context.md`. SoT **`RECORD_DUNNING_REMINDER`** in `allowed-actions` für gebuchte/teilbezahlte Rechnung.
+      Mahnwesen (Spez 8.10): **Kern** — `GET|PUT /finance/dunning-reminder-config` und `PATCH|DELETE …/stages/{stageOrdinal}` (Lesen: MVP **oder** 9 **aktive** DB-Stufen; Schreiben: Postgres, Rollen wie Zahlungseingang); `GET /invoices/{invoiceId}/dunning-reminders` (Liste); `POST` Mahn-Ereignis; Tabellen `dunning_reminders`, `dunning_tenant_stage_config` — `docs/adr/0009-fin4-mahnwesen-slice.md`. **M4** — `GET /finance/dunning-reminder-templates` (Slice 1: MVP **oder** 18 aktive DB-Zeilen 9×2 Kanäle); **`PATCH …/templates/stages/{stageOrdinal}/channels/{channel}`** (Slice 2: `body` mit Pflichtplatzhaltern §8.10, Audit in DB-Tx); **`GET|PATCH /finance/dunning-email-footer`** (Slice 3: Impressum-Stammdaten); **`POST …/dunning-reminders/email-preview`** und **`POST …/send-email-stub`** (Slice 4: Plain-Text-Vorschau; Versand nur Audit, kein SMTP); **`POST …/dunning-reminders/send-email`** (Slice 5a: SMTP, Idempotenz); **`GET /finance/dunning-reminder-candidates`** (Slice **5b-0**: Lesepfad Mahnlauf-Kandidaten, keine Mutation); **`GET /finance/open-receivables`** (betriebliche Forderungsliste: gebuchte/teilbezahlte Rechnungen mit positivem Restsaldo); **`POST /finance/dunning-reminder-run`** (Slice **5b-1**: Mahnlauf `DRY_RUN`/`EXECUTE`, Idempotenz `dunning_reminder_run_intents`); **`GET|PATCH /finance/dunning-reminder-automation`** (Mandanten-Modus OFF/SEMI, SEMI-Kontext: Zeitzone, optional DE-Bundesland, Kalender-/Werktage-Frist, Kanal-Vorgabe); Tabellen `dunning_tenant_stage_templates`, `dunning_tenant_email_footer`, `dunning_email_sends`, `dunning_tenant_automation` — `docs/adr/0010-fin4-m4-dunning-email-and-templates.md`, `docs/adr/0011-fin4-semi-dunning-context.md`. SoT **`RECORD_DUNNING_REMINDER`** in `allowed-actions` für gebuchte/teilbezahlte Rechnung.
   - name: Finance (FIN-1)
     description: |
       Zahlungsbedingungen (Spez 8.5): Konditionskopf pro Projekt, append-only Versionen — `docs/adr/0008-payment-terms-fin1.md`.
@@ -379,6 +379,258 @@ components:
         reason:
           type: string
           minLength: 5
+
+    MeasurementListCurrentVersion:
+      type: object
+      required: [id, versionNumber, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        versionNumber:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [ENTWURF, GEPRUEFT, FREIGEGEBEN, ABGERECHNET, ARCHIVIERT]
+        createdAt:
+          type: string
+          format: date-time
+    MeasurementListItem:
+      type: object
+      required:
+        - measurementId
+        - projectId
+        - customerId
+        - lvVersionId
+        - currentMeasurementVersionId
+        - createdAt
+        - currentVersion
+      properties:
+        measurementId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        lvVersionId:
+          type: string
+          format: uuid
+        currentMeasurementVersionId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        currentVersion:
+          $ref: '#/components/schemas/MeasurementListCurrentVersion'
+    MeasurementListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeasurementListItem'
+
+    MeasurementVersionDetailVersion:
+      type: object
+      required: [id, tenantId, measurementId, versionNumber, status, createdAt, createdBy]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        measurementId:
+          type: string
+          format: uuid
+        versionNumber:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [ENTWURF, GEPRUEFT, FREIGEGEBEN, ABGERECHNET, ARCHIVIERT]
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+    MeasurementPositionRow:
+      type: object
+      required: [id, tenantId, measurementVersionId, lvPositionId, quantity, unit]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        measurementVersionId:
+          type: string
+          format: uuid
+        lvPositionId:
+          type: string
+          format: uuid
+        quantity:
+          type: number
+        unit:
+          type: string
+        note:
+          type: string
+          nullable: true
+    MeasurementVersionDetailResponse:
+      type: object
+      required:
+        - measurementId
+        - projectId
+        - customerId
+        - lvVersionId
+        - measurementCreatedAt
+        - version
+        - positions
+      properties:
+        measurementId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        lvVersionId:
+          type: string
+          format: uuid
+        measurementCreatedAt:
+          type: string
+          format: date-time
+          description: Erstellzeitpunkt des Aufmass-Kopfs (Aggregat), ISO-8601.
+        version:
+          $ref: '#/components/schemas/MeasurementVersionDetailVersion'
+        positions:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeasurementPositionRow'
+
+    OfferListCurrentVersion:
+      type: object
+      required: [id, versionNumber, status, lvVersionId, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        versionNumber:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [ENTWURF, IN_FREIGABE, FREIGEGEBEN, VERSENDET, ANGENOMMEN, ABGELEHNT, ARCHIVIERT]
+        lvVersionId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+    OfferListItem:
+      type: object
+      required:
+        - offerId
+        - projectId
+        - customerId
+        - currentOfferVersionId
+        - createdAt
+        - currentVersion
+      properties:
+        offerId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        currentOfferVersionId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        currentVersion:
+          $ref: '#/components/schemas/OfferListCurrentVersion'
+    OfferListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OfferListItem'
+
+    SupplementListCurrentVersion:
+      type: object
+      required: [id, versionNumber, status, lvVersionId, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        versionNumber:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [ENTWURF, IN_FREIGABE, FREIGEGEBEN, VERSENDET, BEAUFTRAGT, ABGELEHNT, ARCHIVIERT]
+        lvVersionId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+    SupplementListItem:
+      type: object
+      required:
+        - supplementOfferId
+        - offerId
+        - projectId
+        - baseOfferVersionId
+        - currentSupplementVersionId
+        - createdAt
+        - currentVersion
+      properties:
+        supplementOfferId:
+          type: string
+          format: uuid
+        offerId:
+          type: string
+          format: uuid
+        projectId:
+          type: string
+          format: uuid
+        baseOfferVersionId:
+          type: string
+          format: uuid
+        currentSupplementVersionId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        currentVersion:
+          $ref: '#/components/schemas/SupplementListCurrentVersion'
+    SupplementListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupplementListItem'
+
     UpdateMeasurementPositionsRequest:
       type: object
       required: [positions, reason]
@@ -748,6 +1000,8 @@ components:
         Optional `paymentTermsVersionId` muss zum Projekt des Angebots passen (FIN-1).
         Optional `skontoBps` (0–10_000): **8.4(2)** Skonto aliquot auf LV-Netto nach Schritt 1 (B2-1a); USt/Brutto auf reduziertes Netto.
         Optional `measurementId`: Aufmass für die Traceability-Zeile; muss zu Projekt/Kunde/LV der Angebotsversion passen. Ohne Angabe wählt der Server deterministisch das zeitlich älteste passende Aufmass (gleiches Projekt/Kunde/LV).
+        Optional `billingKind` (Default REGULAR): Kennzeichnung Schlussrechnung / Folge / Gutschrift nach §8.6 Slice 2b.
+        Optional `mitigationFollowUpSourceInvoiceId`: gebuchte Bezugsrechnung nach Schluss-Mitigation — nur mit `billingKind` **GUTSCHRIFT** oder **FOLGERECHNUNG**; gleiches Aufmass wie Entwurf (Traceability).
       required: [lvVersionId, offerVersionId, invoiceCurrencyCode, reason]
       properties:
         lvVersionId:
@@ -772,12 +1026,19 @@ components:
           minimum: 0
           maximum: 10000
           description: Skonto in Basispunkten; 0 = kein Abzug. 10000 würde das gesamte Netto tilgen und wird serverseitig abgelehnt, wenn kein positives Netto übrig bleibt.
+        billingKind:
+          $ref: '#/components/schemas/InvoiceBillingKind'
+          description: Optional; Standard REGULAR.
+        mitigationFollowUpSourceInvoiceId:
+          type: string
+          format: uuid
+          description: Optional; Verknüpfung mit gebuchter Ausgleichsrechnung (§8.6 Folge-Gutschrift / manuelle Folge); nur mit billingKind GUTSCHRIFT oder FOLGERECHNUNG.
         reason:
           type: string
           minLength: 5
     CreateInvoiceDraftResponse:
       type: object
-      required: [invoiceId, lvNetCents, vatRateBps, vatCents, totalGrossCents, skontoBps, invoiceTaxRegime, mandatoryTaxNoticeLines]
+      required: [invoiceId, lvNetCents, vatRateBps, vatCents, totalGrossCents, skontoBps, invoiceTaxRegime, mandatoryTaxNoticeLines, billingKind]
       properties:
         invoiceId:
           type: string
@@ -801,11 +1062,14 @@ components:
           items:
             type: string
           description: §8.10 Pflicht-Hinweiszeilen für Darstellung/Export bei aktivem Sonderregime (sonst leer).
+        billingKind:
+          $ref: '#/components/schemas/InvoiceBillingKind'
     BookInvoiceRequest:
       type: object
       description: |
         FIN-2 — Rechnung aus **ENTWURF** buchen (**8.2** / gebucht unveränderlich ab `GEBUCHT_VERSENDET`).
         `issueDate` optional; Standard ist UTC-Datum `yyyy-mm-dd` am Buchungstag.
+        Nach erfolgreicher Buchung setzt der Server zugeordnete Differenzzeilen (Status ALLOCATED_TO_DRAFT) auf SETTLED; die Antwort kann `schlussrechnungMitigation` enthalten (§8.6 Slice 2b), wenn zuvor eine Schlussrechnung auf dasselbe Aufmass gebucht war und die Summe der glattgestellten Differenz-Nettobeträge ungleich null ist. Zusätzlich liefert `schlussrechnungFollowUpDraft` (ADR-0024) das Ergebnis der automatischen Anlage eines **FOLGERECHNUNG**-Entwurfs bei positivem Ausgleich; bei **Gutschrift** (Minus) bleibt die Anlage bewusst aus (`skippedReason`).
       required: [reason]
       properties:
         reason:
@@ -817,7 +1081,7 @@ components:
           description: ISO-Datum Buchungs-/Ausstellungsdatum; wenn fehlt, setzt der Server UTC heute.
     BookInvoiceResponse:
       type: object
-      required: [invoiceId, status, invoiceNumber, issueDate, totalGrossCents]
+      required: [invoiceId, status, invoiceNumber, issueDate, totalGrossCents, schlussrechnungMitigation, schlussrechnungFollowUpDraft]
       properties:
         invoiceId:
           type: string
@@ -832,10 +1096,26 @@ components:
           format: date
         totalGrossCents:
           type: integer
+        schlussrechnungMitigation:
+          $ref: '#/components/schemas/SchlussrechnungMitigation'
+        schlussrechnungFollowUpDraft:
+          $ref: '#/components/schemas/SchlussrechnungFollowUpDraft'
     InvoiceGetResponse:
       type: object
       required:
-        [invoiceId, projectId, customerId, measurementId, lvVersionId, offerId, status, invoiceTaxRegime]
+        [
+          invoiceId,
+          projectId,
+          customerId,
+          measurementId,
+          lvVersionId,
+          offerId,
+          status,
+          invoiceTaxRegime,
+          skontoBps,
+          billingKind,
+          allocatedDifferenceBookings,
+        ]
       properties:
         invoiceId:
           type: string
@@ -895,6 +1175,8 @@ components:
           minimum: 0
           maximum: 10000
           description: Persistierter Skonto-Anteil aus Entwurfserzeugung (B2-1a).
+        billingKind:
+          $ref: '#/components/schemas/InvoiceBillingKind'
         invoiceTaxRegime:
           $ref: '#/components/schemas/InvoiceTaxRegime'
         taxReasonCode:
@@ -905,9 +1187,84 @@ components:
           items:
             type: string
           description: §8.10 Hinweiszeilen bei Sonderregime; fehlt wenn Standard-USt ohne Zusatztexte.
+        allocatedDifferenceBookings:
+          type: array
+          description: Differenzbuchungs-Zeilen, die diesem Beleg (Entwurf oder gebucht) als Ausgleich zugeordnet sind (ADR-0022).
+          items:
+            $ref: '#/components/schemas/DifferenceBookingReadRow'
+    AllocateDifferenceBookingsToInvoiceDraftRequest:
+      type: object
+      required: [differenceBookingIds, reason]
+      properties:
+        differenceBookingIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+        reason:
+          type: string
+          minLength: 5
+    DeallocateDifferenceBookingsFromInvoiceDraftRequest:
+      type: object
+      required: [differenceBookingIds, reason]
+      properties:
+        differenceBookingIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+        reason:
+          type: string
+          minLength: 5
     InvoiceTaxRegime:
       type: string
       enum: [STANDARD_VAT_19, REVERSE_CHARGE, SMALL_BUSINESS_19, CONSTRUCTION_13B]
+    InvoiceBillingKind:
+      type: string
+      enum: [REGULAR, SCHLUSSRECHNUNG, FOLGERECHNUNG, GUTSCHRIFT]
+      description: §8.6 Slice 2b — Kennzeichnung Schlussrechnung und Folgebelege (Default REGULAR).
+    SchlussrechnungMitigation:
+      type: object
+      description: |
+        Hinweis nach Buchung, wenn zuvor eine gebuchte Schlussrechnung auf dasselbe Aufmass existiert und zugeordnete Differenzzeilen mit diesem Buchungsvorgang auf SETTLED gesetzt wurden und die Summe der Netto-Differenz ungleich null ist.
+      required: [applies]
+      properties:
+        applies:
+          type: boolean
+        settledDifferenceNetSumCents:
+          type: integer
+          description: Nur wenn applies true — Summe der bei dieser Buchung auf SETTLED gesetzten zugeordneten Differenzzeilen (Netto).
+        suggestedNextBillingKind:
+          type: string
+          enum: [FOLGERECHNUNG, GUTSCHRIFT]
+          description: Nur wenn applies true.
+    SchlussrechnungFollowUpDraft:
+      type: object
+      description: |
+        ADR-0024 — Ergebnis der automatischen Anlage eines Folge-Rechnungsentwurfs nach Schluss-Mitigation.
+        Bei `created: true` ist ein neuer ENTWURF mit `billingKind: FOLGERECHNUNG` angelegt. Bei Minus-Ausgleich (`GUTSCHRIFT`) wird kein Entwurf über den LV-positiven Motor erzeugt (`skippedReason: GUTSCHRIFT_REQUIRES_MANUAL_DRAFT`).
+      required: [created, invoiceId, billingKind, skippedReason]
+      properties:
+        created:
+          type: boolean
+        invoiceId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Neu angelegter Entwurf oder bereits existierender Folge-Entwurf zu derselben Buchung; sonst null.
+        billingKind:
+          type: string
+          nullable: true
+          enum: [FOLGERECHNUNG, GUTSCHRIFT]
+          description: Ziel-Rechnungsart bei Mitigation; bei created true immer FOLGERECHNUNG.
+        skippedReason:
+          type: string
+          nullable: true
+          enum:
+            [MITIGATION_NOT_APPLICABLE, GUTSCHRIFT_REQUIRES_MANUAL_DRAFT, FOLLOW_UP_DRAFT_ALREADY_EXISTS]
+          description: Null wenn created true; sonst Grund warum kein neuer Entwurf angelegt wurde.
     TenantInvoiceTaxProfileResponse:
       type: object
       required: [tenantId, defaultInvoiceTaxRegime]
@@ -1178,17 +1535,51 @@ components:
           items:
             $ref: '#/components/schemas/DunningReminderReadRow'
 
+    CreatePaymentTermsDifferenceBookingRequest:
+      type: object
+      description: |
+        §8.6 Slice 2b — Erzeugt eine OFFENE Differenzbuchung `PAYMENT_TERMS_CHANGE_AFTER_INVOICE` für ein Aufmass/Projekt.
+        Referenz-Rechnung muss gebucht sein und an `predecessorPaymentTermsVersionId` gebunden sein; Nachfolge-Konditionsversion muss dieselbe Kopfzeile haben und eine höhere Versionsnummer.
+      required:
+        [measurementId, referenceInvoiceId, predecessorPaymentTermsVersionId, subsequentPaymentTermsVersionId, amountNetCents, reason]
+      properties:
+        measurementId:
+          type: string
+          format: uuid
+        referenceInvoiceId:
+          type: string
+          format: uuid
+        predecessorPaymentTermsVersionId:
+          type: string
+          format: uuid
+        subsequentPaymentTermsVersionId:
+          type: string
+          format: uuid
+        amountNetCents:
+          type: integer
+          description: Netto-Differenz API-first (ohne Client-Nachrechnung); Vorzeichen je nach fachlicher Ausrichtung.
+        reason:
+          type: string
+          minLength: 5
+
     DifferenceBookingReadRow:
       type: object
+      description: Aufmass-Differenz oder Konditions-Differenz; bei letzterem sind die Aufmassversions-Felder null.
       required:
         - id
         - projectId
         - measurementId
         - predecessorMeasurementVersionId
         - subsequentMeasurementVersionId
+        - predecessorPaymentTermsVersionId
+        - subsequentPaymentTermsVersionId
         - kind
         - amountNetCents
         - status
+        - referenceInvoiceId
+        - allocatedInvoiceId
+        - allocatedAt
+        - settledAt
         - createdAt
         - createdBy
       properties:
@@ -1204,9 +1595,19 @@ components:
         predecessorMeasurementVersionId:
           type: string
           format: uuid
+          nullable: true
         subsequentMeasurementVersionId:
           type: string
           format: uuid
+          nullable: true
+        predecessorPaymentTermsVersionId:
+          type: string
+          format: uuid
+          nullable: true
+        subsequentPaymentTermsVersionId:
+          type: string
+          format: uuid
+          nullable: true
         kind:
           type: string
         amountNetCents:
@@ -1216,6 +1617,18 @@ components:
         referenceInvoiceId:
           type: string
           format: uuid
+          nullable: true
+        allocatedInvoiceId:
+          type: string
+          format: uuid
+          nullable: true
+        allocatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        settledAt:
+          type: string
+          format: date-time
           nullable: true
         createdAt:
           type: string
@@ -1231,6 +1644,35 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DifferenceBookingReadRow'
+    DifferenceBookingAllocatedDraftGroup:
+      type: object
+      description: Differenzzeilen, die einem Rechnungsentwurf zugeordnet sind (Slice 3 gebündelte Lesesicht).
+      required: [draftInvoiceId, invoiceStatus, rows]
+      properties:
+        draftInvoiceId:
+          type: string
+          format: uuid
+        invoiceStatus:
+          type: string
+          description: Status der Ziel-Rechnung aus Persistenz (typischerweise ENTWURF für aktive Zuordnung).
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/DifferenceBookingReadRow'
+    DifferenceBookingProjectSummaryResponse:
+      type: object
+      description: |
+        §8.6 Slice 3 — ohne Client-Nachrechnung: alle OPEN-Zeilen des Projekts plus Zuordnungen gruppiert nach Entwurfs-Rechnungs-ID.
+      required: [open, allocatedByDraft]
+      properties:
+        open:
+          type: array
+          items:
+            $ref: '#/components/schemas/DifferenceBookingReadRow'
+        allocatedByDraft:
+          type: array
+          items:
+            $ref: '#/components/schemas/DifferenceBookingAllocatedDraftGroup'
     CreateDunningReminderRequest:
       type: object
       required: [stageOrdinal, reason]
@@ -1541,6 +1983,52 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/DunningReminderCandidatesReadData'
+    OpenReceivableRow:
+      type: object
+      required:
+        [
+          invoiceId,
+          status,
+          projectId,
+          customerId,
+          totalGrossCents,
+          totalPaidCents,
+          openAmountCents,
+        ]
+      properties:
+        invoiceId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [GEBUCHT_VERSENDET, TEILBEZAHLT]
+        projectId:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+          format: uuid
+        invoiceNumber:
+          type: string
+        issueDate:
+          type: string
+          format: date
+        totalGrossCents:
+          type: integer
+        totalPaidCents:
+          type: integer
+          minimum: 0
+        openAmountCents:
+          type: integer
+          minimum: 1
+    OpenReceivablesReadResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OpenReceivableRow'
     DunningReminderRunRequest:
       type: object
       required: [stageOrdinal, reason, mode]
@@ -3026,6 +3514,94 @@ paths:
           description: MEASUREMENT_NOT_FOUND
         '401':
           description: Authentifizierung fehlgeschlagen
+
+  /projects/{projectId}/measurements:
+    get:
+      description: |
+        Liste der Aufmassköpfe im Projekt mit aktueller Messungsversion (Lesepfad, Mandanten-isoliert).
+        Projekt-Kontext wie GET …/difference-bookings (mindestens ein Aufmass, Angebot oder Rechnung zum Projekt).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: MeasurementListResponse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeasurementListResponse'
+        '404':
+          description: PROJECT_NOT_FOUND
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+        '401':
+          description: Authentifizierung fehlgeschlagen
+
+  /projects/{projectId}/offers:
+    get:
+      description: |
+        Liste der Angebotsköpfe im Projekt mit aktueller Angebotsversion (Lesepfad, Mandanten-isoliert).
+        Projekt-Kontext wie GET …/measurements (mindestens ein Aufmass, Angebot oder Rechnung zum Projekt).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OfferListResponse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferListResponse'
+        '404':
+          description: PROJECT_NOT_FOUND
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+        '401':
+          description: Authentifizierung fehlgeschlagen
+
+  /projects/{projectId}/supplements:
+    get:
+      description: |
+        Liste der Nachträge (SupplementOffer) im Projekt mit neuester Supplement-Version je Nachtragsangebot.
+        Rollen wie Rechnung lesen (`assertCanReadInvoice`).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: SupplementListResponse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplementListResponse'
+        '404':
+          description: PROJECT_NOT_FOUND
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+        '401':
+          description: Authentifizierung fehlgeschlagen
+
   /projects/{projectId}/difference-bookings:
     get:
       description: |
@@ -3052,6 +3628,76 @@ paths:
           description: PROJECT_NOT_FOUND
         '403':
           description: AUTH_ROLE_FORBIDDEN
+        '401':
+          description: Authentifizierung fehlgeschlagen
+
+  /projects/{projectId}/difference-bookings/summary:
+    get:
+      operationId: projectDifferenceBookingsSummary
+      summary: Differenzbuchungen gebündelt OPEN / je Entwurf (§8.6 Slice 3)
+      description: |
+        Lesepfad ohne Client-Nachrechnung: alle `OPEN`-Zeilen plus Gruppen zugeordneter Zeilen (`ALLOCATED_TO_DRAFT`) je `draftInvoiceId`.
+        Gleiche Projekt-Kontext- und Rollenregeln wie `GET …/difference-bookings`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: DifferenceBookingProjectSummaryResponse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DifferenceBookingProjectSummaryResponse'
+        '404':
+          description: PROJECT_NOT_FOUND
+        '403':
+          description: AUTH_ROLE_FORBIDDEN
+        '401':
+          description: Authentifizierung fehlgeschlagen
+
+  /projects/{projectId}/difference-bookings/from-payment-terms:
+    post:
+      operationId: projectDifferenceBookingFromPaymentTerms
+      summary: Konditions-Differenzbuchung anlegen (§8.6 Slice 2b)
+      description: |
+        Erzeugt eine OPEN-Zeile `PAYMENT_TERMS_CHANGE_AFTER_INVOICE` für das angegebene Aufmass im Projekt.
+        Schreibrolle wie Rechnungsbuchung (`assertCanBookInvoice`). Idempotent bezüglich Dubletten auf (Referenz-Rechnung, Vorgänger-/Nachfolge-Konditionsversion) mit **409** `DIFFERENCE_BOOKING_PAYMENT_TERMS_DUPLICATE`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentTermsDifferenceBookingRequest'
+      responses:
+        '204':
+          description: Differenzbuchung angelegt
+        '400':
+          description: VALIDATION_FAILED
+        '404':
+          description: DOCUMENT_NOT_FOUND | MEASUREMENT_NOT_FOUND | PROJECT_NOT_FOUND
+        '409':
+          description: DIFFERENCE_BOOKING_PAYMENT_TERMS_DUPLICATE
+        '422':
+          description: DIFFERENCE_BOOKING_PAYMENT_TERMS_REFERENCE_MISMATCH | DIFFERENCE_BOOKING_INVOICE_CONTEXT_MISMATCH | TRACEABILITY_FIELD_MISMATCH | VALIDATION_FAILED
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
         '401':
           description: Authentifizierung fehlgeschlagen
 
@@ -3087,7 +3733,8 @@ paths:
           description: Authentifizierung fehlgeschlagen
   /measurements/{measurementVersionId}:
     get:
-      description: Liest Aufmassversion inkl. Positionen (tenant-gefiltert).
+      description: |
+        Liest Aufmassversion inkl. Positionen und Traceability-Kopffeldern (Projekt, Kunde, LV-Version, Aufmass-Anlagezeit) — tenant-gefiltert.
       security:
         - bearerToken: []
       parameters:
@@ -3100,7 +3747,11 @@ paths:
             format: uuid
       responses:
         '200':
-          description: version, measurementId, positions
+          description: MeasurementVersionDetailResponse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeasurementVersionDetailResponse'
         '404':
           description: MEASUREMENT_NOT_FOUND
         '401':
@@ -3639,6 +4290,51 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /finance/open-receivables:
+    get:
+      tags: [Finance (FIN-4)]
+      operationId: finOpenReceivablesGet
+      summary: Offene Forderungen lesen (betriebliche Arbeitsliste)
+      description: |
+        Mandanten-isolierte Liste gebuchter (`GEBUCHT_VERSENDET`) und teilbezahlter (`TEILBEZAHLT`) Rechnungen mit **positivem Restsaldo**
+        (`totalGrossCents` abzüglich Summe der Zahlungseingänge). Kein Mahnstufen-Filter — für Mahnlauf-Kandidaten siehe `GET /finance/dunning-reminder-candidates`.
+        Gleiche Leserolle wie `GET /invoices/{invoiceId}` (`assertCanReadInvoice`).
+        Optional **`projectId`** / **`customerId`** (UUID-Query): schränkt die Liste auf Rechnungen mit exakt passender Zuordnung ein; beide Parameter dürfen kombiniert werden (UND).
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: query
+          name: projectId
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Optional; nur Rechnungen dieses Projekts.
+        - in: query
+          name: customerId
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Optional; nur Rechnungen dieses Kunden.
+      responses:
+        '200':
+          description: Forderungszeilen (absteigend nach `issueDate`, dann `invoiceId`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenReceivablesReadResponse'
+        '400':
+          description: VALIDATION_FAILED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
   /finance/dunning-reminder-candidates:
     get:
       tags: [Finance (FIN-4)]
@@ -4416,6 +5112,131 @@ paths:
                 $ref: '#/components/schemas/PaymentIntakeListResponse'
         '404':
           description: DOCUMENT_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+  /invoices/{invoiceId}/difference-bookings:
+    get:
+      tags: [Finance (FIN-2)]
+      operationId: finInvoiceDifferenceBookingsList
+      summary: Differenzbuchungen zur Bezugsrechnung lesen (§8.6 Slice 2 Lesepfad)
+      description: |
+        Gleiche Leserolle wie `GET /invoices/{invoiceId}`. Liefert nur Zeilen, deren `referenceInvoiceId` dieser Rechnungs-ID entspricht (explizite serverseitige Zuordnung; kein stiller Entwurfs-Merge).
+        Für projektweite Liste siehe `GET /projects/{projectId}/difference-bookings`.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: invoiceId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Liste (leer wenn keine Buchung diese Rechnung referenziert)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DifferenceBookingListResponse'
+        '404':
+          description: DOCUMENT_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+  /invoices/{invoiceId}/difference-bookings/allocate:
+    post:
+      tags: [Finance (FIN-2)]
+      operationId: finInvoiceDifferenceBookingsAllocateToDraft
+      summary: Offene Differenzbuchungen einem Rechnungsentwurf zuordnen (§8.6 Slice 2)
+      description: |
+        Schreibrolle wie Buchhaltungs-Rechnungsbuchung (`assertCanBookInvoice`). Nur wenn die Rechnung **ENTWURF** ist und jede Zeile **OPEN** mit passendem Projekt/Aufmass.
+        Siehe ADR-0022.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: invoiceId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllocateDifferenceBookingsToInvoiceDraftRequest'
+      responses:
+        '204':
+          description: Zuordnung gespeichert
+        '404':
+          description: DOCUMENT_NOT_FOUND | DIFFERENCE_BOOKING_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: INVOICE_NOT_DRAFT_FOR_ALLOCATION | DIFFERENCE_BOOKING_NOT_OPEN | DIFFERENCE_BOOKING_NOT_ALLOCATED_TO_INVOICE
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: DIFFERENCE_BOOKING_INVOICE_CONTEXT_MISMATCH
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: AUTH_ROLE_FORBIDDEN | TENANT_SCOPE_VIOLATION
+        '401':
+          description: UNAUTHORIZED
+  /invoices/{invoiceId}/difference-bookings/deallocate:
+    post:
+      tags: [Finance (FIN-2)]
+      operationId: finInvoiceDifferenceBookingsDeallocateFromDraft
+      summary: Zuordnung von Differenzbuchungen zum Entwurf aufheben
+      description: Schreibrolle wie allocate; nur **ENTWURF** und Zeilen **ALLOCATED_TO_DRAFT** zu dieser Rechnungs-ID.
+      security:
+        - bearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/TenantScopeHeader'
+        - in: path
+          name: invoiceId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeallocateDifferenceBookingsFromInvoiceDraftRequest'
+      responses:
+        '204':
+          description: Zuordnung entfernt
+        '404':
+          description: DOCUMENT_NOT_FOUND | DIFFERENCE_BOOKING_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: INVOICE_NOT_DRAFT_FOR_ALLOCATION | DIFFERENCE_BOOKING_NOT_ALLOCATED_TO_INVOICE
           content:
             application/json:
               schema:

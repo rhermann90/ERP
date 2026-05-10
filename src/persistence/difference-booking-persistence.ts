@@ -18,12 +18,17 @@ function toDomain(row: {
   projectId: string;
   customerId: string;
   measurementId: string;
-  predecessorMeasurementVersionId: string;
-  subsequentMeasurementVersionId: string;
+  predecessorMeasurementVersionId: string | null;
+  subsequentMeasurementVersionId: string | null;
+  predecessorPaymentTermsVersionId: string | null;
+  subsequentPaymentTermsVersionId: string | null;
   kind: string;
   amountNetCents: number;
   status: string;
   referenceInvoiceId: string | null;
+  allocatedInvoiceId: string | null;
+  allocatedAt: Date | null;
+  settledAt: Date | null;
   createdAt: Date;
   createdBy: string;
 }): DifferenceBooking {
@@ -33,12 +38,17 @@ function toDomain(row: {
     projectId: row.projectId,
     customerId: row.customerId,
     measurementId: row.measurementId,
-    predecessorMeasurementVersionId: row.predecessorMeasurementVersionId,
-    subsequentMeasurementVersionId: row.subsequentMeasurementVersionId,
+    predecessorMeasurementVersionId: row.predecessorMeasurementVersionId ?? undefined,
+    subsequentMeasurementVersionId: row.subsequentMeasurementVersionId ?? undefined,
+    predecessorPaymentTermsVersionId: row.predecessorPaymentTermsVersionId ?? undefined,
+    subsequentPaymentTermsVersionId: row.subsequentPaymentTermsVersionId ?? undefined,
     kind: row.kind as DifferenceBooking["kind"],
     amountNetCents: row.amountNetCents,
     status: row.status as DifferenceBooking["status"],
     referenceInvoiceId: row.referenceInvoiceId ?? undefined,
+    allocatedInvoiceId: row.allocatedInvoiceId ?? undefined,
+    allocatedAt: row.allocatedAt ?? undefined,
+    settledAt: row.settledAt ?? undefined,
     createdAt: row.createdAt,
     createdBy: row.createdBy,
   };
@@ -65,19 +75,31 @@ export class PrismaDifferenceBookingPersistence implements DifferenceBookingPers
         projectId: row.projectId,
         customerId: row.customerId,
         measurementId: row.measurementId,
-        predecessorMeasurementVersionId: row.predecessorMeasurementVersionId,
-        subsequentMeasurementVersionId: row.subsequentMeasurementVersionId,
+        predecessorMeasurementVersionId: row.predecessorMeasurementVersionId ?? null,
+        subsequentMeasurementVersionId: row.subsequentMeasurementVersionId ?? null,
+        predecessorPaymentTermsVersionId: row.predecessorPaymentTermsVersionId ?? null,
+        subsequentPaymentTermsVersionId: row.subsequentPaymentTermsVersionId ?? null,
         kind: row.kind,
         amountNetCents: row.amountNetCents,
         status: row.status,
         referenceInvoiceId: row.referenceInvoiceId ?? null,
+        allocatedInvoiceId: row.allocatedInvoiceId ?? null,
+        allocatedAt: row.allocatedAt ?? null,
+        settledAt: row.settledAt ?? null,
         createdAt: row.createdAt,
         createdBy: row.createdBy,
       },
       update: {
+        predecessorMeasurementVersionId: row.predecessorMeasurementVersionId ?? null,
+        subsequentMeasurementVersionId: row.subsequentMeasurementVersionId ?? null,
+        predecessorPaymentTermsVersionId: row.predecessorPaymentTermsVersionId ?? null,
+        subsequentPaymentTermsVersionId: row.subsequentPaymentTermsVersionId ?? null,
         amountNetCents: row.amountNetCents,
         status: row.status,
         referenceInvoiceId: row.referenceInvoiceId ?? null,
+        allocatedInvoiceId: row.allocatedInvoiceId ?? null,
+        allocatedAt: row.allocatedAt ?? null,
+        settledAt: row.settledAt ?? null,
       },
     });
   }

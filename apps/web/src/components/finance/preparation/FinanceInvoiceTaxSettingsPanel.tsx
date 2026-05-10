@@ -30,9 +30,11 @@ export type FinanceInvoiceTaxSettingsPanelProps = {
   onPatchTenant: (body: { defaultInvoiceTaxRegime: InvoiceTaxRegimeApi; reason: string }) => void;
   onPutProject: (body: { invoiceTaxRegime: InvoiceTaxRegimeApi; taxReasonCode?: string; reason: string }) => void;
   onDeleteProject: (reason: string) => void;
+  showIntegrationHints?: boolean;
 };
 
 function FinanceInvoiceTaxSettingsPanelInner(props: FinanceInvoiceTaxSettingsPanelProps) {
+  const showIntegrationHints = props.showIntegrationHints ?? false;
   const [tenantReason, setTenantReason] = useState("Finanz-Vorbereitung PATCH Mandanten-Steuerprofil (FIN-5)");
   const [tenantRegime, setTenantRegime] = useState<InvoiceTaxRegimeApi>("STANDARD_VAT_19");
   const [putReason, setPutReason] = useState("Finanz-Vorbereitung PUT Projekt-Steueroverride (FIN-5)");
@@ -86,8 +88,12 @@ function FinanceInvoiceTaxSettingsPanelInner(props: FinanceInvoiceTaxSettingsPan
           </button>
         </div>
         <FinancePrepNotice notice={props.panelError} />
-        <FinanceCollapsibleJson summary="Rohantwort GET Mandanten-Steuerprofil (JSON)" json={tenantJson} testId="finance-invoice-tax-tenant-json" />
-        <FinanceCollapsibleJson summary="Rohantwort GET Projekt-Override (JSON)" json={projectJson} testId="finance-invoice-tax-project-json" />
+        {showIntegrationHints ? (
+          <>
+            <FinanceCollapsibleJson summary="Rohantwort GET Mandanten-Steuerprofil (JSON)" json={tenantJson} testId="finance-invoice-tax-tenant-json" />
+            <FinanceCollapsibleJson summary="Rohantwort GET Projekt-Override (JSON)" json={projectJson} testId="finance-invoice-tax-project-json" />
+          </>
+        ) : null}
 
         <h4 style={{ fontSize: "0.88rem", margin: "0.75rem 0 0.35rem" }}>Mandanten-Default ändern (PATCH)</h4>
         <label style={{ display: "block", marginBottom: "0.5rem" }}>
@@ -203,12 +209,14 @@ function FinanceInvoiceTaxSettingsPanelInner(props: FinanceInvoiceTaxSettingsPan
           Projekt-Override entfernen (DELETE)
         </button>
 
-        <FinanceCollapsibleJson
-          summary="Letzte Schreib-Antwort (PATCH/PUT, JSON)"
-          json={props.mutationResultJson}
-          defaultOpen
-          testId="finance-invoice-tax-mutation-json"
-        />
+        {showIntegrationHints ? (
+          <FinanceCollapsibleJson
+            summary="Letzte Schreib-Antwort (PATCH/PUT, JSON)"
+            json={props.mutationResultJson}
+            defaultOpen
+            testId="finance-invoice-tax-mutation-json"
+          />
+        ) : null}
       </FinancePrepPanel>
     </div>
   );

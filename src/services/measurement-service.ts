@@ -276,16 +276,85 @@ export class MeasurementService {
     return created;
   }
 
+  /** Lesepfad Pilot/PWA: Aufmassköpfe je Projekt mit aktueller Version (tenant-gefiltert). */
+  public listProjectMeasurements(tenantId: string, projectId: string): {
+    data: Array<{
+      measurementId: string;
+      projectId: string;
+      customerId: string;
+      lvVersionId: string;
+      currentMeasurementVersionId: string;
+      createdAt: string;
+      currentVersion: {
+        id: string;
+        versionNumber: number;
+        status: MeasurementStatus;
+        createdAt: string;
+      };
+    }>;
+  } {
+    if (!this.repos.tenantHasProjectContext(tenantId, projectId)) {
+      throw new DomainError("PROJECT_NOT_FOUND", "Projekt-Kontext fuer Mandant nicht gefunden", 404);
+    }
+    const rows = this.repos.listMeasurementsForProject(tenantId, projectId);
+    const sorted = [...rows].sort((a, b) => {
+      const t = a.createdAt.getTime() - b.createdAt.getTime();
+      if (t !== 0) return t;
+      return a.id.localeCompare(b.id);
+    });
+    const data = sorted.map((m) => {
+      const v = this.repos.getMeasurementVersionByTenant(tenantId, m.currentVersionId);
+      if (!v) {
+        throw new DomainError(
+          "MEASUREMENT_INCONSISTENT",
+          "Aktuelle Aufmassversion fehlt im Repository",
+          500,
+        );
+      }
+      return {
+        measurementId: m.id,
+        projectId: m.projectId,
+        customerId: m.customerId,
+        lvVersionId: m.lvVersionId,
+        currentMeasurementVersionId: m.currentVersionId,
+        createdAt: m.createdAt.toISOString(),
+        currentVersion: {
+          id: v.id,
+          versionNumber: v.versionNumber,
+          status: v.status,
+          createdAt: v.createdAt.toISOString(),
+        },
+      };
+    });
+    return { data };
+  }
+
   public getVersionDetail(tenantId: string, measurementVersionId: string): {
     version: MeasurementVersion;
     measurementId: string;
+    projectId: string;
+    customerId: string;
+    lvVersionId: string;
+    measurementCreatedAt: string;
     positions: MeasurementPosition[];
   } {
     const version = this.repos.getMeasurementVersionByTenant(tenantId, measurementVersionId);
     if (!version) {
       throw new DomainError("MEASUREMENT_NOT_FOUND", "Aufmassversion nicht gefunden", 404);
     }
+    const measurement = this.repos.getMeasurementByTenant(tenantId, version.measurementId);
+    if (!measurement) {
+      throw new DomainError("MEASUREMENT_NOT_FOUND", "Aufmass nicht gefunden", 404);
+    }
     const positions = this.repos.listMeasurementPositionsForVersion(tenantId, version.id);
-    return { version, measurementId: version.measurementId, positions };
+    return {
+      version,
+      measurementId: version.measurementId,
+      projectId: measurement.projectId,
+      customerId: measurement.customerId,
+      lvVersionId: measurement.lvVersionId,
+      measurementCreatedAt: measurement.createdAt.toISOString(),
+      positions,
+    };
   }
 }

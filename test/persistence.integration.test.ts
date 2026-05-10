@@ -2089,4 +2089,179 @@ persistenceDbSuite("Persistence Inkrement 2 (Postgres; in CI ohne SKIP)", () => 
     const hit = body.data.find((p) => p.id === SEED_IDS.projectId);
     expect(hit?.primaryCustomerId).toBe(SEED_IDS.customerId);
   });
+
+  it("CRM PATCH Baustelle falsch versionNumber -> 409 CRM_STALE_VERSION", async () => {
+    const res = await app.inject({
+      method: "PATCH",
+      url: `/crm/construction-sites/${SEED_IDS.crmConstructionSiteId}`,
+      headers: adminHeaders(),
+      payload: {
+        reason: "Persistenztest CRM Baustelle stale",
+        versionNumber: 999,
+        label: "Soll nicht persistieren",
+      },
+    });
+    expect(res.statusCode).toBe(409);
+    expect((res.json() as { code?: string }).code).toBe("CRM_STALE_VERSION");
+  });
+
+  it("CRM PATCH Baustelle erfolgreich + Audit CRM_CONSTRUCTION_SITE_PATCHED", async () => {
+    const before = await prisma.crmConstructionSite.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.crmConstructionSiteId } },
+    });
+    expect(before).not.toBeNull();
+    const v = before!.versionNumber;
+    const res = await app.inject({
+      method: "PATCH",
+      url: `/crm/construction-sites/${SEED_IDS.crmConstructionSiteId}`,
+      headers: adminHeaders(),
+      payload: {
+        reason: "Persistenztest CRM PATCH Baustelle ok",
+        versionNumber: v,
+        label: "Demo-Baustelle Nord (patched)",
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const row = await prisma.crmConstructionSite.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.crmConstructionSiteId } },
+    });
+    expect(row?.versionNumber).toBe(v + 1);
+    expect(row?.label).toBe("Demo-Baustelle Nord (patched)");
+    const audit = await prisma.auditEvent.findFirst({
+      where: {
+        tenantId: SEED_IDS.tenantId,
+        entityType: "CRM_CONSTRUCTION_SITE",
+        entityId: SEED_IDS.crmConstructionSiteId,
+        action: "CRM_CONSTRUCTION_SITE_PATCHED",
+      },
+      orderBy: { timestamp: "desc" },
+    });
+    expect(audit).not.toBeNull();
+  });
+
+  it("CRM POST Baustelle + Audit CRM_CONSTRUCTION_SITE_CREATED", async () => {
+    const label = `Test-Baustelle-${randomUUID().slice(0, 8)}`;
+    const res = await app.inject({
+      method: "POST",
+      url: "/crm/construction-sites",
+      headers: adminHeaders(),
+      payload: {
+        reason: "Persistenztest CRM neue Baustelle",
+        label,
+        city: "Hamburg",
+      },
+    });
+    expect(res.statusCode).toBe(201);
+    const j = res.json() as { id: string; versionNumber: number; label: string };
+    expect(j.versionNumber).toBe(1);
+    expect(j.label).toBe(label);
+    const audit = await prisma.auditEvent.findFirst({
+      where: {
+        tenantId: SEED_IDS.tenantId,
+        entityType: "CRM_CONSTRUCTION_SITE",
+        entityId: j.id,
+        action: "CRM_CONSTRUCTION_SITE_CREATED",
+      },
+      orderBy: { timestamp: "desc" },
+    });
+    expect(audit).not.toBeNull();
+  });
+
+  it("CRM PATCH Kunde falsch versionNumber -> 409 CRM_STALE_VERSION", async () => {
+    const res = await app.inject({
+      method: "PATCH",
+      url: `/crm/customers/${SEED_IDS.customerId}`,
+      headers: adminHeaders(),
+      payload: {
+        reason: "Persistenztest CRM Kunde stale",
+        versionNumber: 999,
+        legalName: "Soll nicht persistieren",
+      },
+    });
+    expect(res.statusCode).toBe(409);
+    expect((res.json() as { code?: string }).code).toBe("CRM_STALE_VERSION");
+  });
+
+  it("CRM PATCH Kunde erfolgreich + Audit CRM_CUSTOMER_PATCHED", async () => {
+    const before = await prisma.crmCustomer.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.customerId } },
+    });
+    expect(before).not.toBeNull();
+    const v = before!.versionNumber;
+    const res = await app.inject({
+      method: "PATCH",
+      url: `/crm/customers/${SEED_IDS.customerId}`,
+      headers: adminHeaders(),
+      payload: {
+        reason: "Persistenztest CRM PATCH Kunde ok",
+        versionNumber: v,
+        legalName: "Demo-Kunde AG (CRM patched)",
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const row = await prisma.crmCustomer.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.customerId } },
+    });
+    expect(row?.versionNumber).toBe(v + 1);
+    expect(row?.legalName).toBe("Demo-Kunde AG (CRM patched)");
+    const audit = await prisma.auditEvent.findFirst({
+      where: {
+        tenantId: SEED_IDS.tenantId,
+        entityType: "CRM_CUSTOMER",
+        entityId: SEED_IDS.customerId,
+        action: "CRM_CUSTOMER_PATCHED",
+      },
+      orderBy: { timestamp: "desc" },
+    });
+    expect(audit).not.toBeNull();
+  });
+
+  it("CRM PATCH Projektkontakt falsch versionNumber -> 409 CRM_STALE_VERSION", async () => {
+    const res = await app.inject({
+      method: "PATCH",
+      url: `/crm/project-contacts/${SEED_IDS.crmProjectContactId}`,
+      headers: adminHeaders(),
+      payload: {
+        reason: "Persistenztest CRM Kontakt stale",
+        versionNumber: 999,
+        displayName: "Soll nicht persistieren",
+      },
+    });
+    expect(res.statusCode).toBe(409);
+    expect((res.json() as { code?: string }).code).toBe("CRM_STALE_VERSION");
+  });
+
+  it("CRM PATCH Projektkontakt erfolgreich + Audit CRM_PROJECT_CONTACT_PATCHED", async () => {
+    const before = await prisma.crmProjectContact.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.crmProjectContactId } },
+    });
+    expect(before).not.toBeNull();
+    const v = before!.versionNumber;
+    const res = await app.inject({
+      method: "PATCH",
+      url: `/crm/project-contacts/${SEED_IDS.crmProjectContactId}`,
+      headers: adminHeaders(),
+      payload: {
+        reason: "Persistenztest CRM PATCH Kontakt ok",
+        versionNumber: v,
+        displayName: "Max Mustermann (patched)",
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const row = await prisma.crmProjectContact.findUnique({
+      where: { tenantId_id: { tenantId: SEED_IDS.tenantId, id: SEED_IDS.crmProjectContactId } },
+    });
+    expect(row?.versionNumber).toBe(v + 1);
+    expect(row?.displayName).toBe("Max Mustermann (patched)");
+    const audit = await prisma.auditEvent.findFirst({
+      where: {
+        tenantId: SEED_IDS.tenantId,
+        entityType: "CRM_PROJECT_CONTACT",
+        entityId: SEED_IDS.crmProjectContactId,
+        action: "CRM_PROJECT_CONTACT_PATCHED",
+      },
+      orderBy: { timestamp: "desc" },
+    });
+    expect(audit).not.toBeNull();
+  });
 });

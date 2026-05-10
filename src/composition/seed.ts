@@ -214,6 +214,7 @@ export function seedDemoData(repos: InMemoryRepositories): void {
     invoiceTaxRegime: "STANDARD_VAT_19",
     vatRateBpsEffective: 1900,
     paymentTermsVersionId: SEED_IDS.paymentTermsVersionId,
+    billingKind: "SCHLUSSRECHNUNG",
   };
   const draftInvoice: Invoice = {
     id: SEED_IDS.draftInvoiceId,

@@ -62,11 +62,14 @@ export function registerPwaHttpHooks(app: FastifyInstance, corsAllowlist: Set<st
     const pathOnly = rawUrl.split("?")[0] ?? "";
     if (
       pathOnly.startsWith("/finance/dunning-reminder") ||
+      pathOnly.startsWith("/finance/open-receivables") ||
       pathOnly.startsWith("/finance/dunning-email-footer") ||
       pathOnly.startsWith("/finance/invoice-tax-profile") ||
       pathOnly.startsWith("/finance/e-invoice-parties") ||
       pathOnly.startsWith("/tenant/pwa-display-settings") ||
-      pathOnly.startsWith("/crm/")
+      pathOnly.startsWith("/crm/") ||
+      (pathOnly.startsWith("/projects/") && pathOnly.includes("/difference-bookings")) ||
+      (pathOnly.startsWith("/invoices/") && pathOnly.includes("/difference-bookings"))
     ) {
       reply.header("x-erp-openapi-contract-version", ERP_OPENAPI_INFO_VERSION);
     }
@@ -103,7 +106,9 @@ export function sanitizeFinanceRequestUrlForLogs(rawUrl: string): string {
   }
   if (
     pathOnly.includes("/invoices/") &&
-    (pathOnly.includes("/payment-intakes") || pathOnly.includes("/dunning-reminders"))
+    (pathOnly.includes("/payment-intakes") ||
+      pathOnly.includes("/dunning-reminders") ||
+      pathOnly.includes("/difference-bookings"))
   ) {
     return pathOnly;
   }

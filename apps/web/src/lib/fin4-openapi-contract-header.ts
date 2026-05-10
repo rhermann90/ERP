@@ -20,6 +20,9 @@ export function isFin4OpenApiContractResponsePath(path: string): boolean {
   if (p.startsWith("/finance/dunning-reminder")) {
     return true;
   }
+  if (p === "/finance/open-receivables" || p.startsWith("/finance/open-receivables?")) {
+    return true;
+  }
   return p.startsWith("/crm/");
 }
 

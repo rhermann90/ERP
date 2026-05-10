@@ -7,11 +7,12 @@ import {
 } from "../domain/invoice-calculation.js";
 import { getMandatoryTaxNoticeLines } from "../domain/invoice-tax-mandatory-notices.js";
 import type { InvoiceTaxRegime } from "../domain/invoice-tax-regime.js";
-import type { Invoice, Measurement, TenantId, UUID } from "../domain/types.js";
+import type { Invoice, InvoiceBillingKind, Measurement, TenantId, UUID } from "../domain/types.js";
 import { DomainError } from "../errors/domain-error.js";
 import type { InMemoryRepositories } from "../repositories/in-memory-repositories.js";
 import type { InvoicePersistencePort } from "../persistence/invoice-persistence.js";
 import { AuditService } from "./audit-service.js";
+import { differenceBookingToReadJson } from "./difference-booking-service.js";
 import type { TraceabilityService } from "./traceability-service.js";
 
 function isPrismaUniqueViolation(error: unknown): boolean {
@@ -22,6 +23,12 @@ function isPrismaUniqueViolation(error: unknown): boolean {
     (error as { code: string }).code === "P2002"
   );
 }
+
+const BOOKED_INVOICE_STATUSES_FOR_MITIGATION = new Set<Invoice["status"]>([
+  "GEBUCHT_VERSENDET",
+  "TEILBEZAHLT",
+  "BEZAHLT",
+]);
 
 export type CreateInvoiceDraftInput = {
   tenantId: TenantId;
@@ -34,6 +41,10 @@ export type CreateInvoiceDraftInput = {
   paymentTermsVersionId?: UUID;
   /** 8.4(2) B2-1a: Skonto in Basispunkten; fehlend = 0. */
   skontoBps?: number;
+  /** §8.6 Slice 2b: Kennzeichnung Schlussrechnung / Folge / Gutschrift (Standard REGULAR). */
+  billingKind?: InvoiceBillingKind;
+  /** ADR-0024: optional bei automatischem Folge-ENTWURF nach Schluss-Mitigation. */
+  mitigationFollowUpSourceInvoiceId?: UUID;
   reason: string;
 };
 
@@ -45,6 +56,45 @@ export type BookInvoiceInput = {
   /** ISO `yyyy-mm-dd` (UTC); default: heutiges UTC-Datum. */
   issueDate?: string;
 };
+
+/** ADR-0024 — Antwortteil `POST /invoices/:id/book`. */
+export type SchlussrechnungFollowUpDraftResult =
+  | { created: true; invoiceId: UUID; billingKind: "FOLGERECHNUNG" }
+  | {
+      created: false;
+      skippedReason:
+        | "MITIGATION_NOT_APPLICABLE"
+        | "GUTSCHRIFT_REQUIRES_MANUAL_DRAFT"
+        | "FOLLOW_UP_DRAFT_ALREADY_EXISTS";
+      invoiceId?: UUID;
+      billingKind?: "FOLGERECHNUNG" | "GUTSCHRIFT";
+    };
+
+export function schlussrechnungFollowUpDraftToJson(result: SchlussrechnungFollowUpDraftResult): {
+  created: boolean;
+  invoiceId: string | null;
+  billingKind: "FOLGERECHNUNG" | "GUTSCHRIFT" | null;
+  skippedReason:
+    | "MITIGATION_NOT_APPLICABLE"
+    | "GUTSCHRIFT_REQUIRES_MANUAL_DRAFT"
+    | "FOLLOW_UP_DRAFT_ALREADY_EXISTS"
+    | null;
+} {
+  if (result.created) {
+    return {
+      created: true,
+      invoiceId: result.invoiceId,
+      billingKind: result.billingKind,
+      skippedReason: null,
+    };
+  }
+  return {
+    created: false,
+    skippedReason: result.skippedReason,
+    invoiceId: result.invoiceId ?? null,
+    billingKind: result.billingKind ?? null,
+  };
+}
 
 /** Lesepfad FIN-3: Zahlungseingänge je Rechnung (ohne Idempotency-Key im API-Body). */
 export type PaymentIntakeReadRow = {
@@ -60,6 +110,19 @@ export type DunningReminderReadRow = {
   stageOrdinal: number;
   note?: string;
   createdAt: string;
+};
+
+/** Betriebliche Forderungsliste: gebuchte/teilbezahlte Rechnungen mit positivem Restsaldo (`GET /finance/open-receivables`). */
+export type OpenReceivableReadRow = {
+  invoiceId: UUID;
+  status: "GEBUCHT_VERSENDET" | "TEILBEZAHLT";
+  projectId: UUID;
+  customerId: UUID;
+  invoiceNumber?: string;
+  issueDate?: string;
+  totalGrossCents: number;
+  totalPaidCents: number;
+  openAmountCents: number;
 };
 
 export class InvoiceService {
@@ -79,6 +142,7 @@ export class InvoiceService {
     skontoBps: number;
     invoiceTaxRegime: InvoiceTaxRegime;
     mandatoryTaxNoticeLines: string[];
+    billingKind: InvoiceBillingKind;
   }> {
     if (input.invoiceCurrencyCode !== "EUR") {
       throw new DomainError("VALIDATION_FAILED", "Nur EUR laut Spez", 400);
@@ -141,6 +205,35 @@ export class InvoiceService {
       measurement = candidateMeasurements[0]!;
     }
 
+    if (input.mitigationFollowUpSourceInvoiceId) {
+      const bk = input.billingKind ?? "REGULAR";
+      if (bk !== "GUTSCHRIFT" && bk !== "FOLGERECHNUNG") {
+        throw new DomainError(
+          "VALIDATION_FAILED",
+          "mitigationFollowUpSourceInvoiceId nur mit billingKind GUTSCHRIFT oder FOLGERECHNUNG",
+          400,
+        );
+      }
+      const srcInv = this.repos.getInvoiceByTenant(input.tenantId, input.mitigationFollowUpSourceInvoiceId);
+      if (!srcInv) {
+        throw new DomainError("DOCUMENT_NOT_FOUND", "Mitigations-Bezugsrechnung nicht gefunden", 404);
+      }
+      if (!BOOKED_INVOICE_STATUSES_FOR_MITIGATION.has(srcInv.status)) {
+        throw new DomainError(
+          "INVOICE_NOT_BOOKED_FOR_MITIGATION_LINK",
+          "mitigationFollowUpSourceInvoiceId verlangt gebuchte Rechnung",
+          422,
+        );
+      }
+      if (srcInv.measurementId !== measurement.id) {
+        throw new DomainError(
+          "TRACEABILITY_FIELD_MISMATCH",
+          "Mitigations-Bezugsrechnung passt nicht zum Aufmass des Entwurfs",
+          422,
+        );
+      }
+    }
+
     if (input.paymentTermsVersionId) {
       const ptv = this.repos.getPaymentTermsVersionByTenant(input.tenantId, input.paymentTermsVersionId);
       if (!ptv) {
@@ -159,14 +252,16 @@ export class InvoiceService {
     const lvPositions = this.repos.listLvPositionsForVersion(input.tenantId, input.lvVersionId);
     const lvNetAfterStep1 = sumLvNetCentsStep84_1(lvPositions);
     const skontoBps = input.skontoBps ?? 0;
-    const lvNetCents = netCentsAfterStep84_6Mvp(lvNetAfterStep1, { skontoBps });
-    if (lvNetCents <= 0) {
+    const pipelineNet = netCentsAfterStep84_6Mvp(lvNetAfterStep1, { skontoBps });
+    if (pipelineNet <= 0) {
       throw new DomainError(
         "VALIDATION_FAILED",
         "LV-Summe Netto (8.4 Schritt 1) ist 0 — keine abrechenbare NORMAL-Position",
         400,
       );
     }
+    const billingKind = input.billingKind ?? "REGULAR";
+    const lvNetCents = billingKind === "GUTSCHRIFT" ? -pipelineNet : pipelineNet;
     const regime = this.repos.resolveEffectiveInvoiceTaxRegime(input.tenantId, offer.projectId);
     const taxReasonCode = this.repos.resolveTaxReasonCodeForProject(input.tenantId, offer.projectId);
     const totals = computeInvoiceTotalsForTaxRegime(lvNetCents, regime);
@@ -192,6 +287,8 @@ export class InvoiceService {
       invoiceTaxRegime,
       vatRateBpsEffective,
       taxReasonCode,
+      billingKind,
+      mitigationFollowUpSourceInvoiceId: input.mitigationFollowUpSourceInvoiceId,
     };
     this.repos.invoices.set(id, invoice);
     this.repos.traceabilityLinks.set(id, {
@@ -237,7 +334,71 @@ export class InvoiceService {
       skontoBps,
       invoiceTaxRegime,
       mandatoryTaxNoticeLines: getMandatoryTaxNoticeLines(invoiceTaxRegime),
+      billingKind,
     };
+  }
+
+  public findMitigationFollowUpDraftForSource(tenantId: TenantId, bookedInvoiceId: UUID): Invoice | undefined {
+    for (const inv of this.repos.invoices.values()) {
+      if (inv.tenantId !== tenantId) continue;
+      if (inv.status !== "ENTWURF") continue;
+      if (inv.mitigationFollowUpSourceInvoiceId !== bookedInvoiceId) continue;
+      return inv;
+    }
+    return undefined;
+  }
+
+  /**
+   * ADR-0024: Nach Schluss-Mitigation (Plus) automatischer FOLGERECHNUNG-ENTWURF; Gutschrift fail-closed.
+   */
+  public async resolveSchlussrechnungFollowUpDraft(input: {
+    tenantId: TenantId;
+    actorUserId: UUID;
+    bookedInvoiceId: UUID;
+    mitigation: { applies: false } | { applies: true; suggestedNextBillingKind: "FOLGERECHNUNG" | "GUTSCHRIFT" };
+    bookReason: string;
+  }): Promise<SchlussrechnungFollowUpDraftResult> {
+    if (!input.mitigation.applies) {
+      return { created: false, skippedReason: "MITIGATION_NOT_APPLICABLE" };
+    }
+    const existing = this.findMitigationFollowUpDraftForSource(input.tenantId, input.bookedInvoiceId);
+    if (existing) {
+      return {
+        created: false,
+        skippedReason: "FOLLOW_UP_DRAFT_ALREADY_EXISTS",
+        invoiceId: existing.id,
+        billingKind: "FOLGERECHNUNG",
+      };
+    }
+    if (input.mitigation.suggestedNextBillingKind === "GUTSCHRIFT") {
+      return {
+        created: false,
+        skippedReason: "GUTSCHRIFT_REQUIRES_MANUAL_DRAFT",
+        billingKind: "GUTSCHRIFT",
+      };
+    }
+    const booked = this.repos.getInvoiceByTenant(input.tenantId, input.bookedInvoiceId);
+    if (!booked?.offerVersionId) {
+      throw new DomainError(
+        "INVOICE_TRACEABILITY_INCOMPLETE",
+        "Automatischer Folge-Entwurf: Angebotsversion fehlt auf gebuchter Rechnung",
+        422,
+      );
+    }
+    const draft = await this.createDraft({
+      tenantId: input.tenantId,
+      actorUserId: input.actorUserId,
+      lvVersionId: booked.lvId,
+      offerVersionId: booked.offerVersionId,
+      invoiceCurrencyCode: "EUR",
+      measurementId: booked.measurementId,
+      paymentTermsVersionId: booked.paymentTermsVersionId,
+      skontoBps: booked.skontoBps ?? 0,
+      billingKind: "FOLGERECHNUNG",
+      mitigationFollowUpSourceInvoiceId: input.bookedInvoiceId,
+      reason: `ADR-0024: automatischer Folge-Entwurf nach Buchung ${input.bookedInvoiceId} (${input.bookReason})`,
+    });
+    return { created: true, invoiceId: draft.invoiceId, billingKind: "FOLGERECHNUNG" };
   }
 
   /**
@@ -381,6 +542,8 @@ export class InvoiceService {
     totalPaidCents?: number;
     paymentTermsVersionId?: UUID;
     skontoBps: number;
+    billingKind: InvoiceBillingKind;
+    allocatedDifferenceBookings: ReturnType<typeof differenceBookingToReadJson>[];
   } {
     const inv = this.repos.getInvoiceByTenant(tenantId, invoiceId);
     if (!inv) {
@@ -390,6 +553,9 @@ export class InvoiceService {
     const totalPaidCents = paidList.reduce((s, p) => s + p.amountCents, 0);
     const regime = inv.invoiceTaxRegime ?? ("STANDARD_VAT_19" as InvoiceTaxRegime);
     const notices = getMandatoryTaxNoticeLines(regime);
+    const allocatedDifferenceBookings = this.repos
+      .listDifferenceBookingsAllocatedToInvoice(tenantId, inv.id)
+      .map(differenceBookingToReadJson);
     return {
       invoiceId: inv.id,
       projectId: inv.projectId,
@@ -414,6 +580,8 @@ export class InvoiceService {
       totalPaidCents: paidList.length > 0 ? totalPaidCents : undefined,
       paymentTermsVersionId: inv.paymentTermsVersionId,
       skontoBps: inv.skontoBps ?? 0,
+      billingKind: inv.billingKind ?? "REGULAR",
+      allocatedDifferenceBookings,
     };
   }
 
@@ -449,5 +617,50 @@ export class InvoiceService {
         createdAt: r.createdAt.toISOString(),
       }))
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  private static readonly OPEN_RECEIVABLE_STATUSES: ReadonlySet<Invoice["status"]> = new Set([
+    "GEBUCHT_VERSENDET",
+    "TEILBEZAHLT",
+  ]);
+
+  /**
+   * Gebuchte/teilbezahlte Rechnungen mit positivem Restsaldo (ohne Mahnstufen-Filter).
+   * Leserechte wie `GET /invoices/:invoiceId`.
+   */
+  public listOpenReceivablesRead(
+    tenantId: TenantId,
+    filter?: { projectId?: UUID; customerId?: UUID },
+  ): OpenReceivableReadRow[] {
+    const rows: OpenReceivableReadRow[] = [];
+    for (const inv of this.repos.listInvoicesForTenant(tenantId)) {
+      if (!InvoiceService.OPEN_RECEIVABLE_STATUSES.has(inv.status)) continue;
+      if (filter?.projectId && inv.projectId !== filter.projectId) continue;
+      if (filter?.customerId && inv.customerId !== filter.customerId) continue;
+      const total = inv.totalGrossCents;
+      if (total == null) continue;
+      const paidList = this.repos.listPaymentIntakesForInvoice(tenantId, inv.id);
+      const totalPaidCents = paidList.reduce((s, p) => s + p.amountCents, 0);
+      const openAmountCents = total - totalPaidCents;
+      if (openAmountCents <= 0) continue;
+      rows.push({
+        invoiceId: inv.id,
+        status: inv.status as "GEBUCHT_VERSENDET" | "TEILBEZAHLT",
+        projectId: inv.projectId,
+        customerId: inv.customerId,
+        invoiceNumber: inv.invoiceNumber,
+        issueDate: inv.issueDate,
+        totalGrossCents: total,
+        totalPaidCents,
+        openAmountCents,
+      });
+    }
+    rows.sort((a, b) => {
+      const dA = a.issueDate ?? "";
+      const dB = b.issueDate ?? "";
+      if (dA !== dB) return dB.localeCompare(dA);
+      return a.invoiceId.localeCompare(b.invoiceId);
+    });
+    return rows;
   }
 }

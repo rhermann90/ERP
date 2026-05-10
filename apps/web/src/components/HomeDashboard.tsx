@@ -71,7 +71,7 @@ export function HomeDashboard({ showIntegrationHints = false }: Props) {
           data-testid="home-tile-finance-worklist"
         >
           <span className="quick-role-tile-title">Finanz-Arbeitsliste</span>
-          <span className="quick-role-tile-sub">Mahn-Kandidaten (Lesepfad FIN-4)</span>
+          <span className="quick-role-tile-sub">Offene Posten und Mahn-Kandidaten (FIN-4)</span>
         </a>
       </div>
 

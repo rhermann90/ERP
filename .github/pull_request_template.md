@@ -1,3 +1,5 @@
+**Pfad wählen (Onboarding):** [Developer-Ladder](../docs/plans/developer-onboarding-ladder.md) — 15 min / 1–2 h / Merge, bevor du die Checklisten unten durcharbeitest. *(Falls der Markdown-Link im Editor nicht springt: Repo-Pfad `docs/plans/developer-onboarding-ladder.md`.)*
+
 ## Änderung (kurz)
 
 <!-- Was wurde geändert und warum? -->
@@ -10,6 +12,8 @@
 - **Feature-Branches** von `main` (`feat/…`, `fix/…`): Mandanten- und Finanz-Änderungen **nur** dort und in **eigenen** PRs gegen `main`, damit Rollback und Verantwortung klar bleiben.
 
 ### Schnell-Check (kleine PRs: Refactor, Typos, keine Finanz-/Contract-Änderung)
+
+**Codemap:** Lange Tabellenzeilen zu Tickets, FIN, Compliance, Cursor nur in [`docs/CODEMAPS/overview-deep-links.md`](../docs/CODEMAPS/overview-deep-links.md) pflegen — nicht parallel in [`docs/CODEMAPS/overview.md`](../docs/CODEMAPS/overview.md) duplizieren (Drift-Regel im Kopf der Deep-Links-Datei).
 
 - [ ] `npm run verify:ci` lokal grün **oder** bewusst auf Remote-CI vertraut
 - [ ] Keine Secrets / keine echten Kundendaten in Diff oder Fixtures

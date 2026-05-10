@@ -1,7 +1,7 @@
 # PWA — Entwicklungsreferenz (Zielbild MVP und Umsetzungsstand)
 
 **Version:** 1.0  
-**Stand:** 2026-05-07  
+**Stand:** 2026-05-10  
 **Status:** Operative Referenz für Arbeit an der Endnutzer-PWA (`apps/web`): **verbindliches MVP-Zielbild** (kurz, mit Verweis auf die Domänenspezifikation) und **expliziter Ist-Stand** zur Nachverfolgbarkeit.
 
 ## Geltung und Rangfolge
@@ -14,7 +14,7 @@
 
 **§18** der ERP-Systembeschreibung (**Erweiterte Domänenmodule**) ist **nicht Bestandteil des MVP**; hier nur als **vorbereitetes Post-MVP-Zielbild** erfasst (siehe unten).
 
-**Pflege:** Bei merge-relevanten PWA-/Finanz-Inkrementen Matrix-Zeilen anpassen oder in der PR-Beschreibung bestätigen, dass der Eintrag unverändert gültig bleibt — konsistent zu [`docs/plans/workflow-code-first-ohne-qualitaetsverlust.md`](./plans/workflow-code-first-ohne-qualitaetsverlust.md).
+**Pflege:** Bei merge-relevanten PWA-/Finanz-Inkrementen Matrix-Zeilen anpassen oder in der PR-Beschreibung bestätigen, dass der Eintrag unverändert gültig bleibt — konsistent zu [`docs/plans/workflow-code-first-ohne-qualitaetsverlust.md`](./plans/workflow-code-first-ohne-qualitaetsverlust.md). **Nächster dokumentierter Domänen-Schwerpunkt** (Roadmap): Bund 3 Aufmass — [`pwa-domain-increment-roadmap.md`](./plans/pwa-domain-increment-roadmap.md) Abschnitt „Nächster gewählter Schwerpunkt“. Qualifizierte Finanz-Merges auf `main`: Meilenstein-Pflege [`P1-3-DOCS-MILESTONE-WAVE3.md`](./tickets/P1-3-DOCS-MILESTONE-WAVE3.md) (aktuell Zeilen 1–14 belegt; nächste freie Zeile **15**).
 
 ---
 
@@ -37,7 +37,7 @@ Aus [`docs/ERP-Systembeschreibung.md`](./ERP-Systembeschreibung.md) **Teil V —
 | Welle | Inhalt (Kurz) | MVP-PWA |
 |-------|----------------|---------|
 | **W1** | Stammdaten Kunde / Projekt / Objekt (§18.1) | **Implementiert (Pilot-CRM)** — `#/stammdaten`: XRechnung Buyer/Seller + FIN-1 + **CRM-Stamm** vollständig über `ApiClient` (Lesen/Schreiben: Baustelle, CRM-Kunde, Projekt, Projektkontakt) mit **Optimistic Locking** (`versionNumber`) und **409-Konflikt-UX**; Audit fail-hard; Einstieg **Geschäftsprozess** → Link Stammdaten-Hub. Memory-Demo: Hinweis statt Live-CRM — Matrix [`pwa-backend-coverage-matrix.md`](./plans/pwa-backend-coverage-matrix.md), ADR [`0019`](./adr/0019-w1-stammdaten-project-customer-object-option-c.md). §18.1 Historie/Anhänge: Zielbild, nicht W1. |
-| **W2** | Kerngeschäft: Angebot → Aufmass → Rechnung; §5.4 / §8.6 nachvollziehbar | **MVP** — Pilot-Wizard, Shell, Finanz-Vorbereitung; **Lesepfad Differenzbuchungen** `GET /projects/{projectId}/difference-bookings` + Shell-Button; vollständige 8.6-Randfälle weiterhin Folge-Inkremente (ADR-0020). |
+| **W2** | Kerngeschäft: Angebot → Aufmass → Rechnung; §5.4 / §8.6 nachvollziehbar | **MVP** — Pilot-Wizard, Shell, Finanz-Vorbereitung; **Lesepfad Differenzbuchungen** `GET /projects/{projectId}/difference-bookings` + **`GET …/difference-bookings/summary`** + Shell; **Slice-2/3-MVP** (explizite Zuordnung, `allocatedDifferenceBookings`, Konditions-Differenz / ADR-0023, Mitigation Folge-Entwurf / ADR-0024, Gutschrift-Mitigation / ADR-0025); Schreibmasken ohne separates Vite-Flag außer optionalem Hinweistext ([`apps/web/README.md`](../apps/web/README.md) `VITE_DOM86_SLICE3_MITIGATION_GUTSCHRIFT_HINT`) |
 | **W3** | DMS light, Suche (§18.4, §18.8) | **Außerhalb MVP** |
 | **W4** | Mobile / Feld (§18.3) | **Außerhalb MVP** |
 | **W5** | Material, Kalkulation (§18.2, §18.5) | **Außerhalb MVP** |
@@ -52,18 +52,18 @@ Zielbild-Spalte verweist auf die **normative** Domäne; **Ist** bezieht sich auf
 | Thema | ERP-Verweis (Zielbild) | Ist (PWA) | Nachweis / Hinweis |
 |-------|-------------------------|-----------|---------------------|
 | Mandantentrennung, keine Client-SoT für Berechtigung | §2, §11 | **Implementiert** | [`apps/web/README.md`](../apps/web/README.md); [`docs/contracts/ui-action-executor-coverage.md`](./contracts/ui-action-executor-coverage.md) |
-| Traceability-Kette sichtbar / drilldown wo vorgesehen | §4, §5, §8 | **Teilweise** | Rechnungs-Shell: [`docs/CODEMAPS/overview.md`](./CODEMAPS/overview.md) (PWA); LV/Aufmass/Angebot über Wizard + Shell |
+| Traceability-Kette sichtbar / drilldown wo vorgesehen | §4, §5, §8 | **Teilweise** | Rechnungs-Shell: [`docs/CODEMAPS/overview.md`](./CODEMAPS/overview.md) (PWA); LV/Aufmass/Angebot über Wizard + Shell; Lesepfad-Fließtext ohne Experte gekürzt |
 | Systemtext vs. Bearbeitungstext (keine Vermischung in UI) | §6, §9 | **Teilweise** | Backend durchsetzt; PWA rendert Plain Text — keine zweite Textnorm im Client |
 | Auth / Session / Token-Policy | §11, Teil II | **Implementiert** | [`apps/web/README.md`](../apps/web/README.md) (Security); Login `#/login` |
 | Globale Navigation & IA | §11.1, Teil V | **Teilweise** | [`docs/plans/pwa-information-architecture.md`](./plans/pwa-information-architecture.md); `AppPrimaryNav`, Hubs; Pilot-Routen `#/aufmass-messungen`, `#/angebote-arbeitsflaeche`, `#/finanz-arbeitsliste`, `#/admin/users` (ADMIN) |
-| Dokument-Arbeitsbereich `#/dokument` (SoT, Shell) | §5, §8, §11 | **Implementiert** | [`apps/web/README.md`](../apps/web/README.md); `executeActionWithSotGuard` |
+| Dokument-Arbeitsbereich `#/dokument` (SoT, Shell) | §5, §8, §11 | **Implementiert** | [`apps/web/README.md`](../apps/web/README.md); `executeActionWithSotGuard`; Erfolg nach Shell-Aktion: Kurzmeldung ohne Roh-JSON, wenn Experte aus |
 | LV Lesepfad §9 | §9 | **Teilweise** | `#/lv-bearbeiten`, Shell GET; SoT-Formulare für Text/Knotenposition (`LvEntityTextSotPanel`); tiefe Bearbeitung weiter Experte — [`pwa-backend-coverage-matrix.md`](./plans/pwa-backend-coverage-matrix.md) |
-| Aufmass | §5.3–§5.4 | **Teilweise** | Wizard + Shell + Pilot **`#/aufmass-messungen`** (Liste/Detail); §5.4/§8.6: **persistierter Lesepfad** `GET /projects/{projectId}/difference-bookings` + Rechnungs-Shell (ADR [`0020`](./adr/0020-difference-booking-measurement-8-6-slice.md)); Integration in nächsten Rechnungsentwurf / Randfälle 8.6 offen |
+| Aufmass | §5.3–§5.4 | **Teilweise** | Wizard + Shell + Pilot **`#/aufmass-messungen`** (Liste/Detail); §5.4/§8.6: **`#/lv-aufmass`**-Hub mit Projekt-Lesepfad, **gebündelter Summary-GET**, Bezugsrechnung-GET, Beleg mit `allocatedDifferenceBookings`, PT-Differenz (gebucht) und allocate/deallocate (ENTWURF) — Parität zur Rechnungs-Shell (ADR [`0020`](./adr/0020-difference-booking-measurement-8-6-slice.md)); **Schreibmasken** für DOM-8-6 ohne separates Vite-Flag ([`apps/web/README.md`](../apps/web/README.md)); automatische Verrechnung zugeordneter Differenzbeträge in Entwurfssummen ADR [`0025`](./adr/0025-dom86-deferred-difference-to-invoice-totals.md) |
 | Angebot / Nachtrag | §5.2, §7 | **Teilweise** | Wizard, Shell, Pilot **`#/angebote-arbeitsflaeche`** (SoT-Arbeitsfläche) |
-| Rechnung Entwurf / Lesen / Buchung | §8.2, §8.4, FIN-2 | **Teilweise** | **Finanz-Vorbereitung** + Shell; volle 8.4-Tiefe siehe Tickets/ADR |
+| Rechnung Entwurf / Lesen / Buchung | §8.2, §8.4, FIN-2 | **Teilweise** | **Finanz-Vorbereitung** + Shell; **Rechnungsart (`billingKind`)** wählbar am Entwurf und in der Übersicht; nach Buchung Hinweis **Schlussrechnung-Mitigation** und optional **Folge-Entwurf** aus der Server-Antwort (ADR [`0023`](./adr/0023-dom86-slice2b-payment-terms-schluss-mitigation.md), [`0024`](./adr/0024-dom86-schluss-mitigation-auto-follow-up-draft.md)), ohne Client-Delta; **zugeordnete Differenzbuchungen** (`allocatedDifferenceBookings` auf `GET /invoices/:id`); **allocate/deallocate** und **PT-Differenz-Schreib** in der PWA (Belegstatus/API); Roh-JSON-Diagnostik nur Mandanten-Experte/Vite-Dev; volle 8.4-Tiefe siehe Tickets/ADR |
 | Zahlungseingang FIN-3 | §8.7–§8.9 | **Implementiert** (SoT-Pfad) | [`apps/web/README.md`](../apps/web/README.md); `RECORD_PAYMENT_INTAKE` + Idempotency-Key |
-| Mahnwesen FIN-4 | §8.10 | **Teilweise** | Lesepfade + Tabs + Pilot **`#/finanz-arbeitsliste`** (Kandidaten); Batch/E-Mail siehe Mandanten-Automation OFF — [`apps/web/README.md`](../apps/web/README.md) |
-| Steuerprofil / FIN-5 §8.16 | §8.16 | **Teilweise** | Finanz-UI + Shell-Lesepfade; Expertenanteile möglich |
+| Mahnwesen FIN-4 | §8.10 | **Teilweise** | Lesepfade + Tabs + Pilot **`#/finanz-arbeitsliste`** (Tabs **Offene Posten** / **Mahn-Kandidaten**, Deep-Link `?tab=mahn`); Mahn-Tab Kurz-Einleitung ohne API-Wand, wenn Experte aus; Batch/E-Mail siehe Mandanten-Automation OFF — [`apps/web/README.md`](../apps/web/README.md) |
+| Steuerprofil / FIN-5 §8.16 | §8.16 | **Teilweise** | Finanz-UI + Shell-Lesepfade; GET-/Schreib-Roh-JSON nur Experte |
 | XRechnung Parteien / Export | §14, §8 | **Teilweise** | `EXPORT_INVOICE`, `POST /exports`; Shell — [`action-contracts.json`](./contracts/action-contracts.json) |
 | Audit-Events UI | §12 | **Teilweise** | Shell / Tab Fortgeschritten — eher **Experte** |
 | DSGVO-minimierte Darstellung (Zahlung/Logs) | §13, §8.14 | **Teilweise** | Backend FIN-6; PWA zeigt strukturierte Daten nur nach Vertrag — [`fin6-logging-privacy-814.md`](./contracts/fin6-logging-privacy-814.md) |
@@ -121,5 +121,6 @@ Auszug aus ERP **Teil II** — für Details weiterhin [`docs/ERP-Systembeschreib
 
 - [`docs/plans/pwa-ux-patterns-end-user.md`](./plans/pwa-ux-patterns-end-user.md)
 - [`docs/plans/pwa-domain-increment-roadmap.md`](./plans/pwa-domain-increment-roadmap.md)
+- [`docs/plans/w2-pwa-ux-backend-exposure-inventory.md`](./plans/w2-pwa-ux-backend-exposure-inventory.md) — W2 UX: Roh-JSON/API je Route
 - [`docs/plans/pwa-qa-quality-bar.md`](./plans/pwa-qa-quality-bar.md)
 - UI-Link-Hub: [`docs/referenz-ui-ux.md`](./referenz-ui-ux.md)

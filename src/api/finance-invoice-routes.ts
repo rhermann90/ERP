@@ -4,11 +4,15 @@ import { parseIdempotencyKeyHeader } from "./idempotency-header.js";
 import type { AuthorizationService } from "../services/authorization-service.js";
 import type { DunningReminderEmailService } from "../services/dunning-reminder-email-service.js";
 import type { DunningReminderService } from "../services/dunning-reminder-service.js";
-import type { InvoiceService } from "../services/invoice-service.js";
+import type { DifferenceBookingService } from "../services/difference-booking-service.js";
+import { differenceBookingToReadJson } from "../services/difference-booking-service.js";
+import { schlussrechnungFollowUpDraftToJson, type InvoiceService } from "../services/invoice-service.js";
 import {
+  allocateDifferenceBookingsToInvoiceDraftSchema,
   bookInvoiceSchema,
   createDunningReminderSchema,
   createInvoiceDraftSchema,
+  deallocateDifferenceBookingsFromInvoiceDraftSchema,
   dunningReminderEmailPreviewSchema,
   dunningReminderEmailSendSchema,
 } from "../validation/schemas.js";
@@ -18,6 +22,7 @@ export function registerInvoiceFinanceRoutes(
   deps: {
     authorizationService: AuthorizationService;
     invoiceService: InvoiceService;
+    differenceBookingService: DifferenceBookingService;
     dunningReminderService: DunningReminderService;
     dunningReminderEmailService: DunningReminderEmailService;
   },
@@ -36,6 +41,8 @@ export function registerInvoiceFinanceRoutes(
         measurementId: body.measurementId,
         paymentTermsVersionId: body.paymentTermsVersionId,
         skontoBps: body.skontoBps,
+        billingKind: body.billingKind,
+        mitigationFollowUpSourceInvoiceId: body.mitigationFollowUpSourceInvoiceId,
         reason: body.reason,
       });
       return reply.status(201).send(result);
@@ -51,6 +58,58 @@ export function registerInvoiceFinanceRoutes(
       const params = request.params as { invoiceId: string };
       const result = deps.invoiceService.getInvoice(auth.tenantId, params.invoiceId);
       return reply.status(200).send(result);
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.get("/invoices/:invoiceId/difference-bookings", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      deps.authorizationService.assertCanReadInvoice(auth.role);
+      const params = request.params as { invoiceId: string };
+      const rows = deps.differenceBookingService.listForInvoiceReference(auth.tenantId, params.invoiceId);
+      return reply.status(200).send({
+        data: rows.map(differenceBookingToReadJson),
+      });
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.post("/invoices/:invoiceId/difference-bookings/allocate", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      deps.authorizationService.assertCanBookInvoice(auth.role);
+      const params = request.params as { invoiceId: string };
+      const body = allocateDifferenceBookingsToInvoiceDraftSchema.parse(request.body);
+      await deps.differenceBookingService.allocateToInvoiceDraft({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        invoiceId: params.invoiceId,
+        differenceBookingIds: body.differenceBookingIds,
+        reason: body.reason,
+      });
+      return reply.status(204).send();
+    } catch (error) {
+      return handleHttpError(error, request, reply);
+    }
+  });
+
+  app.post("/invoices/:invoiceId/difference-bookings/deallocate", async (request, reply) => {
+    try {
+      const auth = parseAuthContext(request.headers);
+      deps.authorizationService.assertCanBookInvoice(auth.role);
+      const params = request.params as { invoiceId: string };
+      const body = deallocateDifferenceBookingsFromInvoiceDraftSchema.parse(request.body);
+      await deps.differenceBookingService.deallocateFromInvoiceDraft({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        invoiceId: params.invoiceId,
+        differenceBookingIds: body.differenceBookingIds,
+        reason: body.reason,
+      });
+      return reply.status(204).send();
     } catch (error) {
       return handleHttpError(error, request, reply);
     }
@@ -172,7 +231,30 @@ export function registerInvoiceFinanceRoutes(
         reason: body.reason,
         issueDate: body.issueDate,
       });
-      return reply.status(200).send(result);
+      const { settledSnapshots } = await deps.differenceBookingService.settleAllocationsAfterInvoiceBooked({
+        tenantId: auth.tenantId,
+        invoiceId: params.invoiceId,
+        actorUserId: auth.userId,
+        reason: body.reason,
+      });
+      const schlussrechnungMitigation = deps.differenceBookingService.buildSchlussrechnungMitigation({
+        tenantId: auth.tenantId,
+        bookedInvoiceId: params.invoiceId,
+        issueDate: result.issueDate,
+        settledSnapshots,
+      });
+      const schlussrechnungFollowUpDraft = await deps.invoiceService.resolveSchlussrechnungFollowUpDraft({
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        bookedInvoiceId: params.invoiceId,
+        mitigation: schlussrechnungMitigation,
+        bookReason: body.reason,
+      });
+      return reply.status(200).send({
+        ...result,
+        schlussrechnungMitigation,
+        schlussrechnungFollowUpDraft: schlussrechnungFollowUpDraftToJson(schlussrechnungFollowUpDraft),
+      });
     } catch (error) {
       return handleHttpError(error, request, reply);
     }

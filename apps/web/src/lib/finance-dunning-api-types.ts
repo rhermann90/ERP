@@ -29,6 +29,22 @@ export type DunningReminderCandidatesReadResponse = {
   };
 };
 
+export type OpenReceivableRow = {
+  invoiceId: string;
+  status: "GEBUCHT_VERSENDET" | "TEILBEZAHLT";
+  projectId: string;
+  customerId: string;
+  invoiceNumber?: string;
+  issueDate?: string;
+  totalGrossCents: number;
+  totalPaidCents: number;
+  openAmountCents: number;
+};
+
+export type OpenReceivablesReadResponse = {
+  data: OpenReceivableRow[];
+};
+
 export type DunningReminderRunPlannedRow = {
   invoiceId: string;
   dueDate: string;

@@ -232,23 +232,32 @@ model MeasurementPosition {
 
 /// §5.4 / §8.6: Differenzbuchung nach Aufmass-Korrektur bei gebuchter Rechnung (Lesepfad + persistierte Auslöser; ADR-0020).
 model DifferenceBooking {
-  tenantId                        String   @map("tenant_id") @db.Uuid
-  id                              String   @db.Uuid
-  projectId                       String   @map("project_id") @db.Uuid
-  customerId                      String   @map("customer_id") @db.Uuid
-  measurementId                   String   @map("measurement_id") @db.Uuid
-  predecessorMeasurementVersionId String   @map("predecessor_measurement_version_id") @db.Uuid
-  subsequentMeasurementVersionId  String   @map("subsequent_measurement_version_id") @db.Uuid
-  kind                            String   @db.VarChar(64)
-  amountNetCents                  Int      @map("amount_net_cents")
-  status                          String   @db.VarChar(32)
-  referenceInvoiceId              String?  @map("reference_invoice_id") @db.Uuid
-  createdAt                       DateTime @map("created_at")
-  createdBy                       String   @map("created_by") @db.Uuid
+  tenantId                        String    @map("tenant_id") @db.Uuid
+  id                              String    @db.Uuid
+  projectId                       String    @map("project_id") @db.Uuid
+  customerId                      String    @map("customer_id") @db.Uuid
+  measurementId                   String    @map("measurement_id") @db.Uuid
+  predecessorMeasurementVersionId String? @map("predecessor_measurement_version_id") @db.Uuid
+  subsequentMeasurementVersionId  String? @map("subsequent_measurement_version_id") @db.Uuid
+  predecessorPaymentTermsVersionId String? @map("predecessor_payment_terms_version_id") @db.Uuid
+  subsequentPaymentTermsVersionId String? @map("subsequent_payment_terms_version_id") @db.Uuid
+  kind                            String    @db.VarChar(64)
+  amountNetCents                  Int       @map("amount_net_cents")
+  status                          String    @db.VarChar(32)
+  referenceInvoiceId              String?   @map("reference_invoice_id") @db.Uuid
+  allocatedInvoiceId              String?   @map("allocated_invoice_id") @db.Uuid
+  allocatedAt                     DateTime? @map("allocated_at")
+  settledAt                       DateTime? @map("settled_at")
+  createdAt                       DateTime  @map("created_at")
+  createdBy                       String    @map("created_by") @db.Uuid
+
+  allocatedInvoice Invoice? @relation("DifferenceBookingAllocatedInvoice", fields: [tenantId, allocatedInvoiceId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  predecessorPaymentTermsVersion PaymentTermsVersion? @relation("DiffBookingPredTerms", fields: [tenantId, predecessorPaymentTermsVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  subsequentPaymentTermsVersion PaymentTermsVersion? @relation("DiffBookingSubTerms", fields: [tenantId, subsequentPaymentTermsVersionId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
 
   @@id([tenantId, id])
-  @@unique([tenantId, subsequentMeasurementVersionId], map: "difference_bookings_tenant_subsequent_key")
   @@index([tenantId, projectId])
+  @@index([tenantId, allocatedInvoiceId])
   @@map("difference_bookings")
 }
 
@@ -279,6 +288,8 @@ model PaymentTermsVersion {
   createdBy     String   @map("created_by") @db.Uuid
 
   head PaymentTermsHead @relation(fields: [tenantId, headId], references: [tenantId, id], onUpdate: Restrict, onDelete: Restrict)
+  differenceBookingsAsPred DifferenceBooking[] @relation("DiffBookingPredTerms")
+  differenceBookingsAsSub DifferenceBooking[] @relation("DiffBookingSubTerms")
 
   @@id([tenantId, id])
   @@unique([tenantId, headId, versionNumber])
@@ -312,10 +323,15 @@ model Invoice {
   invoiceTaxRegime          String   @default("STANDARD_VAT_19") @map("invoice_tax_regime") @db.VarChar(64)
   vatRateBpsEffective       Int      @default(1900) @map("vat_rate_bps_effective")
   taxReasonCode             String?  @map("tax_reason_code") @db.VarChar(128)
+  /// §8.2 / §8.6 Slice 2b: Aggregationskontext (REGULAR, SCHLUSSRECHNUNG, Folge-/Gutschrift-Kennzeichnung für Lesepfade).
+  billingKind               String   @default("REGULAR") @map("billing_kind") @db.VarChar(32)
+  /// ADR-0024: ENTWURF, der nach Buchung einer Ausgleichsrechnung (Schluss-Mitigation Plus) automatisch angelegt wurde — Idempotenz je gebuchter Quell-Rechnung.
+  mitigationFollowUpSourceInvoiceId String? @map("mitigation_follow_up_source_invoice_id") @db.Uuid
 
   paymentIntakes PaymentIntake[]
   dunningReminders DunningReminder[]
   dunningEmailSends DunningEmailSend[]
+  differenceBookingsAllocated DifferenceBooking[] @relation("DifferenceBookingAllocatedInvoice")
 
   @@id([tenantId, id])
   @@index([tenantId, projectId])

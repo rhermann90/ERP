@@ -68,6 +68,8 @@ export type FinanceDunningGrundeinstellungenPanelProps = {
   onPrefillBatchEmailItemsFromCandidates: () => void;
   onDunningBatchEmailDryRun: () => void;
   onDunningBatchEmailExecute: () => void;
+  /** Roh-JSON der Kandidaten-GET-Antwort nur im Expertenmodus (Mandanten-PWA / Vite-Flag). */
+  showIntegrationHints?: boolean;
 };
 
 function parseCandidatesResponse(raw: string): DunningReminderCandidatesReadResponse["data"] | null {
@@ -119,6 +121,7 @@ function FinanceDunningGrundeinstellungenPanelInner({
   onPrefillBatchEmailItemsFromCandidates,
   onDunningBatchEmailDryRun,
   onDunningBatchEmailExecute,
+  showIntegrationHints = false,
 }: FinanceDunningGrundeinstellungenPanelProps) {
   const candidatesData = useMemo(() => parseCandidatesResponse(dunningCandidatesJson), [dunningCandidatesJson]);
   const batchMahnlaufDisabled = serverAutomationRunMode === "OFF";
@@ -151,7 +154,7 @@ function FinanceDunningGrundeinstellungenPanelInner({
             <strong>Kandidaten laden</strong> bleibt möglich.
           </p>
         ) : null}
-        {dunningAutomationJson.trim() ? (
+        {showIntegrationHints && dunningAutomationJson.trim() ? (
           <FinanceCollapsibleJson summary="Mandanten-Automation (GET)" json={dunningAutomationJson} />
         ) : null}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "flex-end", marginTop: "0.5rem" }}>
@@ -370,11 +373,15 @@ function FinanceDunningGrundeinstellungenPanelInner({
           </div>
         ) : null}
 
-        {dunningCandidatesJson.trim() ? (
-          <FinanceCollapsibleJson summary="Rohantwort GET /finance/dunning-reminder-candidates" json={dunningCandidatesJson} />
+        {showIntegrationHints && dunningCandidatesJson.trim() ? (
+          <FinanceCollapsibleJson
+            summary="Rohantwort GET /finance/dunning-reminder-candidates"
+            json={dunningCandidatesJson}
+            testId="finance-dunning-candidates-raw-json"
+          />
         ) : null}
 
-        {dunningBatchRunJson.trim() ? (
+        {showIntegrationHints && dunningBatchRunJson.trim() ? (
           <>
             <FinanceCollapsibleJson summary="Letzter Batch-Lauf (Dry-Run oder EXECUTE)" json={dunningBatchRunJson} />
             <p style={{ fontSize: "0.72rem", color: "var(--text-secondary)", marginTop: "0.35rem", marginBottom: 0 }}>
@@ -427,7 +434,7 @@ function FinanceDunningGrundeinstellungenPanelInner({
             Batch-E-Mail EXECUTE
           </button>
         </div>
-        {dunningBatchEmailResultJson.trim() ? (
+        {showIntegrationHints && dunningBatchEmailResultJson.trim() ? (
           <div data-testid="finance-dunning-batch-email-result">
             <FinanceCollapsibleJson summary="Letzter Batch-E-Mail-Lauf (send-emails)" json={dunningBatchEmailResultJson} />
           </div>
