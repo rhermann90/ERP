@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/dependency-review-action@v4
+      - uses: actions/dependency-review-action@v5
         with:
           # Default is `low` — blocks PRs on moderate/low GHSAs that `npm audit --audit-level=high` ignores.
           fail-on-severity: high
