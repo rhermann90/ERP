@@ -67,14 +67,14 @@
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@types/bcryptjs": "^3.0.0",
-    "@types/node": "^25.7.0",
+    "@types/node": "^25.9.1",
     "@types/nodemailer": "^8.0.0",
     "@types/pg": "^8.11.11",
-    "concurrently": "^9.1.2",
+    "concurrently": "^10.0.3",
     "prisma": "7.8.0",
-    "tsx": "^4.21.0",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.6",
+    "vitest": "^4.1.8",
     "yaml": "^2.9.0"
   }
 }
